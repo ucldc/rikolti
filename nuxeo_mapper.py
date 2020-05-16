@@ -13,22 +13,32 @@ def main(database, table):
     original_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=table)
     
     # convert to apache spark dataframe
-    original_DF = original_DyF.toDF()
+    original_DF = original_DyF.toDF() \
+        .distinct()
 
-    # transform 
-    transformed_DF = ucldc_transform(original_DF)
-    #transformed_DF.show()
+    new_df = original_DF \
+        .select(col('uid'))
+
+    date_df = original_DF \
+        .select(col('uid'), col('properties.ucldc_schema:date')) \
+        .withColumn('date_struct', explode(col('ucldc_schema:date'))) \
+        .select('uid', 'date_struct.date') \
+        .groupBy('uid') \
+        .agg(collect_set('date')) \
+    
+    #uid_df = original_DF.select(col('uid'))
+    #uid_df.show(n=300, truncate=False)
+
+    joinExpression = new_df['uid'] == date_df['uid']
+    new_df = new_df.join(date_df, joinExpression)
+    new_df.show(n=300, truncate=False)
 
 def ucldc_transform(dataframe):
 
     new_df = dataframe \
         .withColumn('publisher_mapped', map_publisher(dataframe)) \
         .withColumn('title_mapped', map_title(dataframe)) \
-        .withColumn('date_mapped', map_date(dataframe)) \
-
-
-    #    .withColumn('subject_mapped', map_subject(dataframe))
-
+        .withColumn('date_mapped', map_date(dataframe))
 
     return new_df
 
@@ -48,23 +58,6 @@ def map_title(dataframe):
 
 def map_date(dataframe):
 
-    #properties_df = dataframe.select('properties') # spark type is struct
-    #properties_df.createOrReplaceTempView('properties_df')
-    #date_df = properties_df.select('properties.ucldc_schema:date') # can only use dot notation on struct type 
-    #date_df = dataframe.select(col('uid'), col('properties.ucldc_schema:date'))
-    #date_df.show()
-
-    #date_df_exploded = date_df.withColumn('date_struct', explode(col('ucldc_schema:date')))
-
-    date_df_exploded = dataframe.select(col('uid'), col('properties.ucldc_schema:date')) \
-        .withColumn('date_struct', explode(col('ucldc_schema:date')))
-
-    date_df_exploded.show()
-    date_df_date_extracted = date_df_exploded.select('uid', 'date_struct.date')
-    date_df_date_extracted.show() # a dataframe containing 'uid' and 'date'; can be multiple rows per uid
-
-    # now assemble an array of dates for each uid and make it one row again
- 
     '''
     root
      |-- ucldc_schema:date: array (nullable = true)
@@ -75,28 +68,61 @@ def map_date(dataframe):
      |    |    |-- datetype: string (nullable = true)
      |    |    |-- inclusiveend: string (nullable = true)
     '''
-   
-    date_col = dataframe['properties.ucldc_schema:date'] #FIXME
-    
-    '''
-     |    |-- ucldc_schema:date: array (nullable = true)
-     |    |    |-- element: struct (containsNull = true)
-     |    |    |    |-- date: string (nullable = true)
-     |    |    |    |-- inclusivestart: string (nullable = true)
-     |    |    |    |-- single: string (nullable = true)
-     |    |    |    |-- datetype: string (nullable = true)
-     |    |    |    |-- inclusiveend: string (nullable = true)
-    '''
   
-    # dates = [date['date'] for date in date_col] 
+    date_extracted_df = dataframe \
+        .select(col('uid'), col('properties.ucldc_schema:date')) \
+        .withColumn('date_struct', explode(col('ucldc_schema:date'))) \
+        .select('uid', 'date_struct.date') \
+        .groupBy('uid', 'date') \
+        .agg(collect_set('date'))
+    date_extracted_df.show(n=50, truncate=False)
+
+    date_col = date_extracted_df['collect_set(date)']
+ 
     return date_col 
 
 def map_subject(dataframe):
 
-    subject_df = dataframe.select(col('uid'), col('properties.ucldc_schema:subjecttopic'))
-    subject_df_exploded = subject_df.withColumn('subject_exploded', explode(col('ucldc_schema:subjecttopic')))
+    '''
+ |    |-- ucldc_schema:subjecttopic: array (nullable = true)
+ |    |    |-- element: struct (containsNull = true)
+ |    |    |    |-- headingtype: string (nullable = true)
+ |    |    |    |-- authorityid: string (nullable = true)
+ |    |    |    |-- heading: string (nullable = true)
+ |    |    |    |-- source: string (nullable = true)
+    '''
+
+    properties_df = dataframe \
+        .select(col('uid'), col('properties.ucldc_schema:subjecttopic')) \
+    #    .withColumnRenamed('ucldc_schema:subjecttopic', 'subjecttopic2')
     
+    subject_col = properties_df['.ucldc_schema:subjecttopic']
+    #subject_df = dataframe_tempview \
+    #    .select(col('uid'), col('properties.ucldc_schema:subjecttopic'))
+
+    #print("type(subject_df): {}".format(type(subject_df)))
+    #subject_df = subject_df.createOrReplaceTempView("subject_df")
+    
+    #spark.catalog.dropTempView("dataframe") 
+    #spark.catalog.dropTempView("subject_df")
+
+    '''
+    subject_df \
+        .show(truncate=False)
+    '''
+
+    
+    #subject_col = subject_df['ucldc_schema:subjecttopic']
+
+    '''
+    subject_df_exploded = subject_df \
+        .withColumn('subject_exploded', explode(col('ucldc_schema:subjecttopic'))) \
+        .show(truncate=False)
+    '''
+
     #subject_df_exploded.show()
+
+    return subject_col
 
 
 def forlater():
@@ -136,4 +162,4 @@ if __name__ == "__main__":
 
     spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-    sys.exit(main("test-data-fetched", "466"))   
+    sys.exit(main("test-data-fetched", "2020_03_19_0022"))   
