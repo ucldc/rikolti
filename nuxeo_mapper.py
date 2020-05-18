@@ -1,11 +1,11 @@
 import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.transforms import *
 from pyspark.sql.functions import *
 from pyspark.sql.types import * 
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
 
 def main(database, table):
 
@@ -16,144 +16,93 @@ def main(database, table):
     original_DF = original_DyF.toDF() \
         .distinct()
 
-    new_df = original_DF \
-        .select(col('uid'))
+    spark.udf.register("map_rights_codes_py", map_rights_codes, StringType())
 
-    date_df = original_DF \
+    transformed_DF = original_DF \
+        .select(col('uid'), \
+            col('properties.ucldc_schema:publisher'), \
+            col('properties.ucldc_schema:creator'), \
+            col('properties.ucldc_schema:alternativetitle'), \
+            col('properties.ucldc_schema:extent'), \
+            col('properties.ucldc_schema:physdesc'), \
+            col('properties.ucldc_schema:publisher'), \
+            col('properties.ucldc_schema:relatedresource'), \
+            col('properties.ucldc_schema:temporalcoverage'), \
+            col('properties.dc:title'), \
+            col('properties.ucldc_schema:type'), \
+            col('properties.ucldc_schema:source'), \
+            col('properties.ucldc_schema:provenance'), \
+            col('properties.ucldc_schema:physlocation'), \
+            col('properties.ucldc_schema:rightsstartdate'), \
+            col('properties.ucldc_schema:transcription'), \
+        )
+
+    date_df = map_date(original_DF)
+    joinExpression = transformed_DF['uid'] == date_df['date_uid']
+    transformed_DF = transformed_DF.join(date_df, joinExpression)
+
+    rights_df = map_rights(original_DF)
+    joinExpression = transformed_DF['uid'] == rights_df['rights_uid']
+    transformed_DF = transformed_DF.join(rights_df, joinExpression)
+
+    subject_df = map_subject(original_DF)
+    joinExpression = transformed_DF['uid'] == subject_df['subject_uid']
+    transformed_DF = transformed_DF.join(subject_df, joinExpression)
+
+    transformed_DF.show(n=300, truncate=False)
+    #transformed_DF.printSchema()
+
+def map_rights(dataframe):
+
+    rights_df = dataframe \
+        .select(col('uid'), col('properties.ucldc_schema:rightsstatus'), col('properties.ucldc_schema:rightsstatement')) \
+        .selectExpr('uid', 'map_rights_codes_py(`ucldc_schema:rightsstatus`)', '`ucldc_schema:rightsstatement`') \
+        .select('uid', array('map_rights_codes_py(ucldc_schema:rightsstatus)', 'ucldc_schema:rightsstatement')) \
+        .withColumnRenamed('uid', 'rights_uid')
+
+    return rights_df
+
+def map_rights_codes(rights_str):
+    '''Map the "coded" values of the rights status to a nice one for display
+       This should really be a scala function which we call from python
+    '''
+    print(type(rights_str))
+    print('rights_str: {}'.format(rights_str))
+    decoded = rights_str
+    if rights_str == 'copyrighted':
+        decoded = 'Copyrighted'
+    elif rights_str == 'publicdomain':
+        decoded = 'Public Domain'
+    elif rights_str == 'unknown':
+        decoded = 'Copyright Unknown'
+    return decoded
+
+def map_contributor(dataframe):
+
+    pass
+
+def map_date(dataframe):
+
+    date_df = dataframe \
         .select(col('uid'), col('properties.ucldc_schema:date')) \
         .withColumn('date_struct', explode(col('ucldc_schema:date'))) \
         .select('uid', 'date_struct.date') \
         .groupBy('uid') \
         .agg(collect_set('date')) \
-    
-    #uid_df = original_DF.select(col('uid'))
-    #uid_df.show(n=300, truncate=False)
+        .withColumnRenamed('uid', 'date_uid')
 
-    joinExpression = new_df['uid'] == date_df['uid']
-    new_df = new_df.join(date_df, joinExpression)
-    new_df.show(n=300, truncate=False)
+    return date_df
 
-def ucldc_transform(dataframe):
-
-    new_df = dataframe \
-        .withColumn('publisher_mapped', map_publisher(dataframe)) \
-        .withColumn('title_mapped', map_title(dataframe)) \
-        .withColumn('date_mapped', map_date(dataframe))
-
-    return new_df
-
-def map_publisher(dataframe):
-
-    publisher_col = dataframe['properties.ucldc_schema:publisher']
-    return publisher_col
-
-def map_rights(dataframe):
-    # need to merge the contents of 2 columns
-    #rights_col = dataframe['properties.ucldc_schema:rightsstatus']
-    return
-    
-def map_title(dataframe):
-    title_col = dataframe['properties.dc:title']
-    return title_col    
-
-def map_date(dataframe):
-
-    '''
-    root
-     |-- ucldc_schema:date: array (nullable = true)
-     |    |-- element: struct (containsNull = true)
-     |    |    |-- date: string (nullable = true)
-     |    |    |-- inclusivestart: string (nullable = true)
-     |    |    |-- single: string (nullable = true)
-     |    |    |-- datetype: string (nullable = true)
-     |    |    |-- inclusiveend: string (nullable = true)
-    '''
-  
-    date_extracted_df = dataframe \
-        .select(col('uid'), col('properties.ucldc_schema:date')) \
-        .withColumn('date_struct', explode(col('ucldc_schema:date'))) \
-        .select('uid', 'date_struct.date') \
-        .groupBy('uid', 'date') \
-        .agg(collect_set('date'))
-    date_extracted_df.show(n=50, truncate=False)
-
-    date_col = date_extracted_df['collect_set(date)']
- 
-    return date_col 
 
 def map_subject(dataframe):
 
-    '''
- |    |-- ucldc_schema:subjecttopic: array (nullable = true)
- |    |    |-- element: struct (containsNull = true)
- |    |    |    |-- headingtype: string (nullable = true)
- |    |    |    |-- authorityid: string (nullable = true)
- |    |    |    |-- heading: string (nullable = true)
- |    |    |    |-- source: string (nullable = true)
-    '''
+    subject_df = dataframe \
+        .select(col('uid'), col('properties.ucldc_schema:subjecttopic.heading'), col('properties.ucldc_schema:subjectname.name')) \
+        .select('uid', array_union('heading', 'name')) \
+        .withColumnRenamed('uid', 'subject_uid')
 
-    properties_df = dataframe \
-        .select(col('uid'), col('properties.ucldc_schema:subjecttopic')) \
-    #    .withColumnRenamed('ucldc_schema:subjecttopic', 'subjecttopic2')
-    
-    subject_col = properties_df['.ucldc_schema:subjecttopic']
-    #subject_df = dataframe_tempview \
-    #    .select(col('uid'), col('properties.ucldc_schema:subjecttopic'))
+    return subject_df
 
-    #print("type(subject_df): {}".format(type(subject_df)))
-    #subject_df = subject_df.createOrReplaceTempView("subject_df")
-    
-    #spark.catalog.dropTempView("dataframe") 
-    #spark.catalog.dropTempView("subject_df")
-
-    '''
-    subject_df \
-        .show(truncate=False)
-    '''
-
-    
-    #subject_col = subject_df['ucldc_schema:subjecttopic']
-
-    '''
-    subject_df_exploded = subject_df \
-        .withColumn('subject_exploded', explode(col('ucldc_schema:subjecttopic'))) \
-        .show(truncate=False)
-    '''
-
-    #subject_df_exploded.show()
-
-    return subject_col
-
-
-def forlater():
-    #print("Count:  ", testdata_DyF.count()) 
-    #testdata_DyF.printSchema()
-    #testdata_DyF.show() # glue dynamic frame. dict like output.
-
-    #properties_DyF = testdata_DyF.select_fields(['properties'])
-    #properties_DyF.show()
-    #properties_DyF.printSchema()
-
-    # create a temp table to do sql queries on the data
-    # problem is we can't access the nested data very easily this way
-    '''
-    testdata_DF.createOrReplaceTempView("data")
-    sql_DF = glueContext.spark_session.sql("SELECT `properties` FROM data") # this doesn't actually execute anything? It's just a plan.
-    sql_DF.show() # this is an action?
-    sql_DF.explain()  
-    '''
-
-    # get a nested field as a column from the dataframe
-    '''
-    chop_f = udf(lambda x: x[1:], StringType())
-    titleCol = testdata_DF['properties.dc:title'] # this is a Column object
-    testdata_DF = testdata_DF.withColumn('title_mapped', chop_f(titleCol)).show()
-    '''
-    #new_DF = testdata_DF.select(testdata_DF['uid']).withColumnRenamed('uid', 'harvest_id').withColumn("test", testdata_DF['properties.dc:title']).show()
-    #new_DF.show()
-
-    #newer_DF = new_DF.withColumnRenamed('uid', 'harvest_id')
-#newer_DF.show()
 
 if __name__ == "__main__":
 
