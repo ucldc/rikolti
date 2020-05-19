@@ -1,13 +1,18 @@
 import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
+from datetime import datetime
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
+from awsglue.dynamicframe import DynamicFrame
 from awsglue.transforms import *
 from pyspark.sql.functions import *
 from pyspark.sql.types import * 
 
 def main(database, table):
+
+    # https://harvest-stg.cdlib.org/solr/dc-collection/query?q=collection_url:%22https://registry.cdlib.org/api/v1/collection/466/%22
+    # https://help.oac.cdlib.org/support/solutions/articles/9000101639-calisphere-apis
 
     # Create a glue DynamicFrame
     original_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=table)
@@ -21,12 +26,9 @@ def main(database, table):
     transformed_DF = original_DF \
         .select(col('uid'), \
             col('properties.ucldc_schema:publisher'), \
-            col('properties.ucldc_schema:creator'), \
             col('properties.ucldc_schema:alternativetitle'), \
             col('properties.ucldc_schema:extent'), \
-            col('properties.ucldc_schema:physdesc'), \
             col('properties.ucldc_schema:publisher'), \
-            col('properties.ucldc_schema:relatedresource'), \
             col('properties.ucldc_schema:temporalcoverage'), \
             col('properties.dc:title'), \
             col('properties.ucldc_schema:type'), \
@@ -36,6 +38,10 @@ def main(database, table):
             col('properties.ucldc_schema:rightsstartdate'), \
             col('properties.ucldc_schema:transcription'), \
         )
+
+    # title needs to be repeatable
+    # physdesc needs to be made into a struct
+    # relatedresource
 
     date_df = map_date(original_DF)
     joinExpression = transformed_DF['uid'] == date_df['date_uid']
@@ -48,9 +54,45 @@ def main(database, table):
     subject_df = map_subject(original_DF)
     joinExpression = transformed_DF['uid'] == subject_df['subject_uid']
     transformed_DF = transformed_DF.join(subject_df, joinExpression)
+    
+    transformed_DF.show()
 
-    transformed_DF.show(n=300, truncate=False)
-    #transformed_DF.printSchema()
+    # convert to glue dynamic frame
+    transformed_DyF = DynamicFrame.fromDF(transformed_DF, glueContext, "transformed_DyF")
+
+    transformed_DyF = transformed_DyF.apply_mapping([
+            ('uid', 'string', 'nuxeo_uid', 'string'),
+            ('ucldc_schema:publisher', 'array', 'publisher', 'array'),
+            ('ucldc_schema:alternativetitle', 'array', 'alternative_title', 'array'),
+            ('ucldc_schema:extent', 'string', 'extent', 'string'),
+            ('ucldc_schema:temporalcoverage', 'array', 'temporal', 'array'),
+            ('dc:title', 'string', 'title', 'string'),
+            ('ucldc_schema:type', 'string', 'type', 'string'),
+            ('ucldc_schema:source', 'string', 'source', 'string'),
+            ('ucldc_schema:provenance', 'array', 'provenance', 'array'),
+            ('ucldc_schema:physlocation', 'string', 'location', 'string'),
+            ('ucldc_schema:transcription', 'string', 'transcription', 'string'),
+            ('date_mapped', 'array', 'date', 'array'),
+            ('rights_mapped', 'array', 'rights', 'array'),
+            ('subject_mapped', 'array', 'subject', 'array'),
+        ])
+
+    transformed_DyF.printSchema()
+    #transformed_DyF.show()
+
+    now = datetime.now()
+    dt_string = now.strftime("%Y%m%d_%H%M%S")
+    path = "s3://ucldc-ingest/glue-test-data-target/{}/{}".format(table, dt_string)
+    print("path: {}".format(path))
+
+    '''
+    partition_keys = ["nuxeo_uid"] 
+    glueContext.write_dynamic_frame.from_options(
+       frame = transformed_DyF,
+       connection_type = "s3",
+       connection_options = {"path": path, "partitionKeys": partition_keys},
+       format = "json")
+    '''
 
 def map_rights(dataframe):
 
@@ -58,7 +100,9 @@ def map_rights(dataframe):
         .select(col('uid'), col('properties.ucldc_schema:rightsstatus'), col('properties.ucldc_schema:rightsstatement')) \
         .selectExpr('uid', 'map_rights_codes_py(`ucldc_schema:rightsstatus`)', '`ucldc_schema:rightsstatement`') \
         .select('uid', array('map_rights_codes_py(ucldc_schema:rightsstatus)', 'ucldc_schema:rightsstatement')) \
-        .withColumnRenamed('uid', 'rights_uid')
+        .withColumnRenamed('uid', 'rights_uid') \
+        .withColumnRenamed('array(map_rights_codes_py(ucldc_schema:rightsstatus), ucldc_schema:rightsstatement)', 'rights_mapped')
+   
 
     return rights_df
 
@@ -81,6 +125,11 @@ def map_contributor(dataframe):
 
     pass
 
+def map_creator(dataframe):
+
+    pass
+
+
 def map_date(dataframe):
 
     date_df = dataframe \
@@ -89,7 +138,8 @@ def map_date(dataframe):
         .select('uid', 'date_struct.date') \
         .groupBy('uid') \
         .agg(collect_set('date')) \
-        .withColumnRenamed('uid', 'date_uid')
+        .withColumnRenamed('uid', 'date_uid') \
+        .withColumnRenamed('collect_set(date)', 'date_mapped')
 
     return date_df
 
@@ -99,7 +149,8 @@ def map_subject(dataframe):
     subject_df = dataframe \
         .select(col('uid'), col('properties.ucldc_schema:subjecttopic.heading'), col('properties.ucldc_schema:subjectname.name')) \
         .select('uid', array_union('heading', 'name')) \
-        .withColumnRenamed('uid', 'subject_uid')
+        .withColumnRenamed('uid', 'subject_uid') \
+        .withColumnRenamed('array_union(heading, name)', 'subject_mapped')
 
     return subject_df
 
@@ -111,4 +162,4 @@ if __name__ == "__main__":
 
     spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-    sys.exit(main("test-data-fetched", "2020_03_19_0022"))   
+    sys.exit(main("test-data-fetched", "2020_03_19_0022", "466"))   
