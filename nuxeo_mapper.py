@@ -11,9 +11,6 @@ from pyspark.sql.types import *
 
 def main(database, table):
 
-    # https://harvest-stg.cdlib.org/solr/dc-collection/query?q=collection_url:%22https://registry.cdlib.org/api/v1/collection/466/%22
-    # https://help.oac.cdlib.org/support/solutions/articles/9000101639-calisphere-apis
-
     # Create a glue DynamicFrame
     original_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=table)
     
@@ -21,8 +18,11 @@ def main(database, table):
     original_DF = original_DyF.toDF() \
         .distinct()
 
+    # register a user defined function for use by spark
+    # FIXME write this in scala and call from python. starting a python process is expensive and it is moreover very costly to serialize the data to python
     spark.udf.register("map_rights_codes_py", map_rights_codes, StringType())
 
+    # select columns that are a straight mapping
     transformed_DF = original_DF \
         .select(col('uid'), \
             col('properties.ucldc_schema:publisher'), \
@@ -39,10 +39,7 @@ def main(database, table):
             col('properties.ucldc_schema:transcription'), \
         )
 
-    # title needs to be repeatable
-    # physdesc needs to be made into a struct
-    # relatedresource
-
+    # process columns that need more complex unpacking/mapping
     date_df = map_date(original_DF)
     joinExpression = transformed_DF['uid'] == date_df['date_uid']
     transformed_DF = transformed_DF.join(date_df, joinExpression)
@@ -55,11 +52,14 @@ def main(database, table):
     joinExpression = transformed_DF['uid'] == subject_df['subject_uid']
     transformed_DF = transformed_DF.join(subject_df, joinExpression)
     
-    transformed_DF.show()
+    # title needs to be repeatable
+    # physdesc needs to be made into a struct
+    # relatedresource
 
     # convert to glue dynamic frame
     transformed_DyF = DynamicFrame.fromDF(transformed_DF, glueContext, "transformed_DyF")
 
+    # rename columns
     transformed_DyF = transformed_DyF.apply_mapping([
             ('uid', 'string', 'nuxeo_uid', 'string'),
             ('ucldc_schema:publisher', 'array', 'publisher', 'array'),
@@ -77,22 +77,18 @@ def main(database, table):
             ('subject_mapped', 'array', 'subject', 'array'),
         ])
 
-    transformed_DyF.printSchema()
-    #transformed_DyF.show()
-
+    # write transformed data to target
     now = datetime.now()
     dt_string = now.strftime("%Y%m%d_%H%M%S")
     path = "s3://ucldc-ingest/glue-test-data-target/{}/{}".format(table, dt_string)
-    print("path: {}".format(path))
 
-    '''
     partition_keys = ["nuxeo_uid"] 
     glueContext.write_dynamic_frame.from_options(
        frame = transformed_DyF,
        connection_type = "s3",
        connection_options = {"path": path, "partitionKeys": partition_keys},
        format = "json")
-    '''
+
 
 def map_rights(dataframe):
 
@@ -106,12 +102,11 @@ def map_rights(dataframe):
 
     return rights_df
 
+
 def map_rights_codes(rights_str):
     '''Map the "coded" values of the rights status to a nice one for display
        This should really be a scala function which we call from python
     '''
-    print(type(rights_str))
-    print('rights_str: {}'.format(rights_str))
     decoded = rights_str
     if rights_str == 'copyrighted':
         decoded = 'Copyrighted'
@@ -121,9 +116,11 @@ def map_rights_codes(rights_str):
         decoded = 'Copyright Unknown'
     return decoded
 
+
 def map_contributor(dataframe):
 
     pass
+
 
 def map_creator(dataframe):
 
@@ -162,4 +159,4 @@ if __name__ == "__main__":
 
     spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-    sys.exit(main("test-data-fetched", "2020_03_19_0022", "466"))   
+    sys.exit(main("test-data-fetched", "2020_03_19_0022"))   
