@@ -34,4 +34,4 @@ oai_test = {
 
 # lambda_handler(json.dumps(nuxeo_test), {})
 # lambda_handler(json.dumps(ramicova_test), {})
-lambda_handler(json.dumps(oai_test), {})
+# lambda_handler(json.dumps(oai_test), {})

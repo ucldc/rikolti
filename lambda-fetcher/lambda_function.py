@@ -26,7 +26,6 @@ async def timer(params):
         else:
             print(f"bad harvest type: {params.get('harvest_type')}")
     except asyncio.TimeoutError:
-        print('WHOA TIMEOUT')
         await invoke_next(await fetcher.json())
 
     endTime = time.strftime('%X')
