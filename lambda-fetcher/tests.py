@@ -6,7 +6,6 @@ nuxeo_test = {
     'harvest_type': 'nuxeo',
     'write_page': 0,
     'nuxeo': {
-        'token': "d04187ac-fcc4-458f-ba53-18f876f28083",
         'path': "/asset-library/UCSF/MSS 2000-31 AIDS Ephemera Collection/"
     }
 }
@@ -16,7 +15,6 @@ ramicova_test = {
     'harvest_type': 'nuxeo',
     'write_page': 0,
     'nuxeo': {
-        'token': "d04187ac-fcc4-458f-ba53-18f876f28083",
         'path': "/asset-library/UCM/Ramicova/"
     }
 }
@@ -32,6 +30,6 @@ oai_test = {
     }
 }
 
-# lambda_handler(json.dumps(nuxeo_test), {})
+lambda_handler(json.dumps(nuxeo_test), {})
 # lambda_handler(json.dumps(ramicova_test), {})
 # lambda_handler(json.dumps(oai_test), {})
