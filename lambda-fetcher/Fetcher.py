@@ -4,7 +4,7 @@ import json
 import aiohttp
 
 import os
-DEBUG = os.environ['DEBUG']
+DEBUG = os.environ.get('DEBUG', False)
 if DEBUG:
     from aiofile import AIOFile, Writer
     import os
@@ -45,7 +45,7 @@ class Fetcher(object):
                                 Key=(
                                     f"{self.s3_data['Key']}"
                                     f"{time.strftime('%Y-%m-%d')}/"
-                                    f"{write_page}.jsonl"
+                                    f"{self.write_page}.jsonl"
                                 ),
                                 Body=jsonl)
                         except Exception as e:

@@ -2,6 +2,9 @@ import asyncio
 import json
 from Fetcher import Fetcher
 
+import os
+TOKEN = os.environ['NUXEO']
+
 class NuxeoFetcher(Fetcher):
     def __init__(self, params):
         super(NuxeoFetcher, self).__init__(params)
@@ -21,7 +24,7 @@ class NuxeoFetcher(Fetcher):
                 "Content-Type": "application/json",
                 "X-NXDocumentProperties": "*",
                 "X-NXRepository": "default",
-                "X-Authentication-Token": self.nuxeo.get('token')
+                "X-Authentication-Token": TOKEN
             }
             params = {
                 'pageSize': '100',

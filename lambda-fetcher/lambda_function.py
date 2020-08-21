@@ -3,9 +3,10 @@ import time
 import json
 
 import os
-DEBUG = os.environ['DEBUG']
+DEBUG = os.environ.get('DEBUG', False)
 if not DEBUG:
     import aioboto3
+    import boto3
 
 from NuxeoFetcher import NuxeoFetcher
 from OAIFetcher import OAIFetcher
@@ -26,6 +27,7 @@ async def timer(params):
         else:
             print(f"bad harvest type: {params.get('harvest_type')}")
     except asyncio.TimeoutError:
+        print('WHOA TIMEOUT')
         await invoke_next(await fetcher.json())
 
     endTime = time.strftime('%X')
@@ -40,12 +42,20 @@ async def invoke_next(payload):
     else:
         # time to spawn a new lambda
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html
-        async with aioboto3.resource('lambda', region_name='us-west-2') as lambda_client:
-            await lambda_client.invoke(
-                FunctionName="async-fetch",
-                InvocationType="Event", #invoke asynchronously
-                Payload=await json.dumps(payload).encode('utf-8')
-            )
+        lambda_client = boto3.client('lambda', region_name="us-west-2",)
+        lambda_client.invoke(
+          FunctionName="async-fetch",
+          InvocationType="Event", #invoke asynchronously
+          Payload=payload.encode('utf-8')
+        )
+
+        # async doesn't seem to work
+        # async with aioboto3.resource('lambda', region_name='us-west-2') as lambda_client:
+        #     await lambda_client.invoke(
+        #         FunctionName="async-fetch",
+        #         InvocationType="Event", #invoke asynchronously
+        #         Payload=await json.dumps(payload).encode('utf-8')
+        #     )
 
 def lambda_handler(payload, context):
     if DEBUG:
