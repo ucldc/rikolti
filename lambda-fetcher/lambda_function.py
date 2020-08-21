@@ -23,7 +23,7 @@ async def timer(params):
     try:
         if harvest_type:
             fetcher = instantiate[harvest_type](params)
-            await asyncio.wait_for(fetcher.fetch(), 60)
+            await asyncio.wait_for(fetcher.fetch(), 120)
         else:
             print(f"bad harvest type: {params.get('harvest_type')}")
     except asyncio.TimeoutError:
