@@ -41,7 +41,7 @@ class NuxeoFetcher(Fetcher):
 
     async def get_records(self, httpResp):
         response = await httpResp.json()
-        documents = response['entries']
+        documents = [await self.buildId(doc) for doc in response['entries']]
         return documents
 
 
@@ -61,3 +61,9 @@ class NuxeoFetcher(Fetcher):
             "write_page": self.write_page, 
             "nuxeo": self.nuxeo
         })
+
+
+    async def buildId(self, document):
+        calisphere_id = f"{self.collection_id}--{document.get('uid')}"
+        document['calisphere-id'] = calisphere_id
+        return document
