@@ -62,8 +62,16 @@ class Fetcher(object):
             if not os.path.exists(path):
                 os.mkdir(path)
 
+            date_path = os.path.join(path,f"{time.strftime('%Y-%m-%d')}")
+            if not os.path.exists(date_path):
+                os.mkdir(date_path)
+
             while next_page:
-                async with AIOFile(f"{self.collection_id}/{self.write_page}.jsonl", "w+") as afp:
+                filename = (
+                    f"{self.collection_id}/{time.strftime('%Y-%m-%d')}/"
+                    f"{self.write_page}.jsonl"
+                )
+                async with AIOFile(filename, "w+") as afp:
                     writer = Writer(afp)
 
                     async with http_client.get(**next_page) as response:
