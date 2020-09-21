@@ -52,13 +52,10 @@ class FileFetcher(object):
             pages = pages[pages.index(self.start_page):]
         return pages
 
-    async def create_content_file_key(self, metadata):
+    async def create_content_file_key(self, nuxeo_url, metadata):
         key = None
-        filename = None
-        if metadata.get('properties'):
-            if metadata['properties'].get('file:content'):
-                if metadata['properties']['file:content'].get('name'):
-                    filename = metadata['properties']['file:content']['name']
+        print(nuxeo_url)
+        filename = nuxeo_url.split('/')[-1]
 
         calisphere_id = metadata.get('calisphere-id')
 
@@ -68,19 +65,53 @@ class FileFetcher(object):
             )
         return key
 
+    async def can_textract(self, content):
+        length = content.get('length')
+        length = int(length)/1000000 if length else None
+        name = content.get('name')
+        mime_type = content.get('mime-type')
+
+        textract = False
+        if name and mime_type and length:
+            if mime_type == "application/pdf" and length <= 500:
+                textract = True
+            elif mime_type in ["image/png", "image/jpeg"] and length <= 10:
+                textract = True
+
+        return textract
+
+
     async def get_content_file_url(self, metadata):
         url = None
-        filename = None
-        if metadata.get('properties'):
-            if metadata['properties'].get('file:content'):
-                if metadata['properties']['file:content'].get('name'):
-                    filename = metadata['properties']['file:content']['name']
 
-        if filename and metadata.get('uid'):
+        if not metadata.get('uid') or not metadata.get('properties'):
+            print(f"no uid or properties: {metadata.get('uid')} - {self.page}, {self.line}")
+            return None
+
+        if metadata['properties'].get('file:content') and await self.can_textract(
+            metadata['properties']['file:content']):
+
+            filename = metadata['properties']['file:content']['name']
             url = (
                 f"https://nuxeo.cdlib.org/Nuxeo/nxfile/"
                 f"default/{metadata.get('uid')}/file:content/{filename}"
             )
+
+        elif metadata['properties'].get('picture:views'):
+            picture_views = metadata['properties'].get('picture:views')
+            textractable = [x['content'] for x in picture_views if x.get(
+                'content') and await self.can_textract(x.get('content'))]
+
+            if len(textractable) > 0:
+                textractable.sort(key=lambda x: x['length'], reverse=True)
+                url = (
+                    f"https://nuxeo.cdlib.org/N"
+                    f"{textractable[0]['data'][25:]}"
+                )
+
+        if not url:
+            print(f"no url for: {metadata.get('uid')} - {self.page}, {self.line}")
+
         return url
 
     async def fetch_content_files(self):
@@ -97,6 +128,7 @@ class FileFetcher(object):
 
                 self.line = 0
                 async for record in metadata_file['Body'].iter_lines():
+                    print(self.line)
                     if self.start_line and self.line < self.start_line:
                         print(f"line {self.line} already processed")
                         self.line += 1
@@ -105,19 +137,20 @@ class FileFetcher(object):
                         metadata = json.loads(record)
 
                         file_loc = await self.get_content_file_url(metadata)
-                        s3_key = await self.create_content_file_key(metadata)
 
-                        if not file_loc or not s3_key:
-                            print(f"NO FILE CONTENT collection: {self.collection_id}, page: {page}, line: {self.line}")
+                        if not file_loc:
+                            print(f"NO FILE CONTENT {metadata.get('uid')} - {self.page},{self.line}")
                             self.line +=1
                             continue
+
+                        s3_key = await self.create_content_file_key(file_loc, metadata)
 
                         # check if file already exists at destination
                         exists = True
                         try: 
                             await s3_client.head_object(Bucket='amy-test-bucket', 
                                 Key=s3_key)
-                            print('s3_key already exists')
+                            print(f"s3_key already exists {metadata.get('uid')} - {self.page},{self.line}")
                         except botocore.exceptions.ClientError as e:
                             if e.response['Error']['Code'] == "404":
                                 exists = False
@@ -127,6 +160,8 @@ class FileFetcher(object):
                                 if response.status == 200:
                                     print(f"uploading: {s3_key}, {response.headers.get('Content-Length')}")
                                     await s3_client.upload_fileobj(response.content, 'amy-test-bucket', s3_key)
+                                else:
+                                    print(f"{response.status} - {file_loc}")
                         self.line += 1
 
     async def json(self):
