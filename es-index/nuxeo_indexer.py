@@ -9,8 +9,6 @@ ES_PASS = os.environ['ES_PASS']
 
 class NuxeoESIndexer(object):
 
-    def __init__(self, content):
-
         ''' 
             takes a jsonl string and adds record to ES index 
 
@@ -18,6 +16,8 @@ class NuxeoESIndexer(object):
             these records are coming in one per object as
             jsonl, let's just do it this way for the demo
         '''
+
+    def __init__(self, content):
 
         self.content = content
         self.document = self.create_document(self.content) 

@@ -1,29 +1,21 @@
 import boto3
-import re
-import requests
-from requests_aws4auth import AWS4Auth
+import json
 from nuxeo_indexer import NuxeoESIndexer
 
 ''' 
     lambda function for S3 to use as event handler when new content arrives in relevant bucket
     https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-aws-integrations.html#es-aws-integrations-s3-lambda-es
 '''
-region = 'us-east-1'
-service = 'es'
-credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
-
-host = 'https://search-pachamama-dev-public-w7mykn7bucrpqksnm7tu3vg3za.us-east-1.es.amazonaws.com' # the Amazon ES domain, including https://
-index = ''
-type = ''
-url = host + '/' + index + '/' + type
-
-headers = { "Content-Type": "application/json" }
+bucket = 'ucldc-ingest'
+prefix = 'glue-test-data-target/2020_03_19_0022/20200521_104757/'
+index = 'testing'
 
 s3 = boto3.client('s3')
 
 # Lambda execution starts here
 def handler(event, context):
+
+    es_id = 0 # dumb for now
     for record in event['Records']:
 
         # Get the bucket name and key for the new file
@@ -33,7 +25,12 @@ def handler(event, context):
         # Get, read, and split the file into lines
         obj = s3.get_object(Bucket=bucket, Key=key)
         body = obj['Body'].read() # these should each be one jsonl file
-        
-        # add new document to index
-        indexer = NuxeoESIndexer(body)
-
+        lines = body.splitlines()
+        for line in lines:
+            line = str(line, 'utf-8') # Convert from bytestring to string to avoid "Object of type 'bytes' is not JSON serializable" error. Might be better to do this elsewhere?
+            indexer = NuxeoESIndexer(line)
+            es_id = increment_id(es_id)
+            indexer.index_document(indexer.document, es_id, index)
+       
+def increment_id(current_id):
+    return current_id + 1 
