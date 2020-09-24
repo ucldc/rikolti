@@ -3,7 +3,7 @@
 Get all docs:
 
 ```
-$ curl -XGET -u pachamama-es-dev -p "https://search-pachamama-dev-public-w7mykn7bucrpqksnm7tu3vg3za.us-east-1.es.amazonaws.com/_search?pretty” -H "content-type: application/json" -d'
+$ curl -XGET -u pachamama-es-dev -p "https://search-pachamama-dev-public-w7mykn7bucrpqksnm7tu3vg3za.us-east-1.es.amazonaws.com/_search?pretty" -H "content-type: application/json" -d'
 {
     "query": {
         "match_all": {}
