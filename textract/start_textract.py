@@ -1,26 +1,24 @@
 import boto3
 import json
-import os
 import time
 import botocore
-
-DEBUG = os.environ['DEBUG']
-AMZ_ID = os.environ['AMZ_ID']
-AMZ_SECRET = os.environ['AMZ_SECRET']
 
 def lambda_handler(payload, context):
 	collection_id = payload.get('collection_id')
 	file_fetch_date = payload.get('file_fetch_date')
 
-	s3_client = boto3.client('s3', aws_access_key_id=AMZ_ID, aws_secret_access_key=AMZ_SECRET)
-	textract_client = boto3.client('textract', aws_access_key_id=AMZ_ID, aws_secret_access_key=AMZ_SECRET)
+	s3_client = boto3.client('s3')
+	textract_client = boto3.client('textract')
 
 	s3_list_objects = s3_client.list_objects_v2(
 		Bucket="amy-test-bucket", 
 		Prefix=f"{collection_id}-files/{file_fetch_date}")
 	keys = [file['Key'] for file in s3_list_objects['Contents']]
 
-	for key in keys:
+	start_line = payload.get('start_line', 0)
+	number_run = payload.get('number_run', len(keys))
+
+	for key in keys[start_line:start_line+number_run]:
 		try:
 			textract_job = textract_client.start_document_text_detection(
 				DocumentLocation={
@@ -30,26 +28,35 @@ def lambda_handler(payload, context):
 					}
 				},
 				NotificationChannel={
-					'SNSTopicArn': "arn:aws:sns:us-west-2:563907706919:textract-jobs",
-					'RoleArn': ""
+					'SNSTopicArn': "arn:aws:sns:us-west-2:563907706919:AmazonTextractPachamama",
+					'RoleArn': "arn:aws:iam::563907706919:role/TextractRole"
 				}
-			) 
+			)
 			print({'calisphere-id': key, 'job_id': textract_job})
 		except botocore.exceptions.ClientError as e:
 			print(e)
 			break
 
+		calisphere_id = key.split('/')[-1].split('::')[0]
+		content_filename = key.split('/')[-1].split('::')[1]
+		textract_recordname = (
+			f"{collection_id}-textract/"
+			f"{time.strftime('%Y-%m-%d')}/"
+			f"{calisphere_id}.json"
+		)
+		body = {
+			'calisphere-id': calisphere_id,
+			'analyzed_filename': content_filename,
+			'textract_job': textract_job
+		}
 		response = s3_client.put_object(
+			ACL='bucket-owner-full-control',
 			Bucket='amy-test-bucket',
-			Body=json.dumps({'calisphere-id': key, 'job_id': textract_job}).encode('utf-8'),
-			Key=f"{collection_id}-textract/{time.strftime('%Y-%m-%d')}/{key.split('/')[-1].split('.')[0]}.json"
+			Body=json.dumps(body).encode('utf-8'),
+			Key=textract_recordname
 		)
 
 	return {
 		'statusCode': 200,
 		'body': json.dumps('Hello from Lambda!')
 	}
-
-print(time.strftime('%X'))
-lambda_handler({'collection_id': 466, 'file_fetch_date': '2020-09-18'}, {})
-print(time.strftime('%X'))
