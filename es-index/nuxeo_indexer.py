@@ -27,14 +27,11 @@ class NuxeoESIndexer(object):
         ''' prep the data as necessary '''
         return json_content 
 
-    def index_document(self, document, doc_id):
+    def index_document(self, document, doc_id, index):
         
         host = ES_HOST
         user = ES_USER
         passwd = ES_PASS
-
-        #index = 'pachamama-demo'
-        index = 'testing'
 
         url = f'{host}/{index}/_doc/{doc_id}'
         headers = { "Content-Type": "application/json" }

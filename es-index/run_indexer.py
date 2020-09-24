@@ -23,7 +23,7 @@ def main(bucket, prefix, index):
             line = str(line, 'utf-8') # Convert from bytestring to string to avoid "Object of type 'bytes' is not JSON serializable" error. Might be better to do this elsewhere?
             indexer = NuxeoESIndexer(line)
             es_id = increment_id(es_id)
-            indexer.index_document(indexer.document, es_id)      
+            indexer.index_document(indexer.document, es_id, index)      
 
 def increment_id(current_id):
     return current_id + 1
