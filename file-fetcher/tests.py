@@ -18,7 +18,16 @@ nuxeo_s3_test_line_2 = {
     'harvest_type': 'nuxeo',
     'metadata_date': '2020-08-27',
     'start_page': '0',
-    'start_line': 2
+    'start_line': 0
 }
 
-lambda_handler(json.dumps(nuxeo_s3_test_line_2), {})
+nuxeo_s3_test_new_version = {
+    "harvest_type": "nuxeo",
+    "collection_id": 466,
+    "metadata_source": {
+        "date": "2020-09-23"
+    },
+    "run_date": "2020-09-23"
+}
+
+lambda_handler(json.dumps(nuxeo_s3_test_new_version), {})

@@ -11,7 +11,7 @@ if not DEBUG:
     import aioboto3
     import boto3
 
-from file_fetcher import FileFetcher
+from FileFetcher import FileFetcher
 
 instantiate = {
     'nuxeo': FileFetcher,
@@ -20,12 +20,11 @@ instantiate = {
 # https://docs.python.org/3/library/asyncio-task.html#timeouts
 async def timer(params):
     startTime = time.strftime('%X')
-    print(params)
     harvest_type = params.get('harvest_type')
     try:
         if harvest_type:
             file_fetcher = instantiate[harvest_type](params)
-            await asyncio.wait_for(file_fetcher.fetch_content_files(), 600)
+            await asyncio.wait_for(file_fetcher.fetch_content_files(), 900)
         else:
             print(f"bad harvest type: {params.get('harvest_type')}")
     except asyncio.TimeoutError:
@@ -44,7 +43,7 @@ async def invoke_next(payload):
     else:
         # time to spawn a new lambda
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html
-        lambda_client = boto3.client('lambda', region_name="us-west-2",)
+        lambda_client = boto3.client('lambda', region_name="us-west-2")
         lambda_client.invoke(
           FunctionName="async-file-fetch",
           InvocationType="Event", #invoke asynchronously
