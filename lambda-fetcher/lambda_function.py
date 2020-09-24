@@ -16,13 +16,32 @@ instantiate = {
     'oai': OAIFetcher
 }
 
-# https://docs.python.org/3/library/asyncio-task.html#timeouts
+"""
+AWS Lambda should have an Execution Role set to an IAM role with policy:
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "lambda:InvokeFunction",
+                "logs:*"
+            ],
+            "Resource": "<s3 bucket>"
+        }
+    ]
+}
+"""
+
 async def timer(params):
     startTime = time.strftime('%X')
     harvest_type = params.get('harvest_type')
     try:
         if harvest_type:
             fetcher = instantiate[harvest_type](params)
+            # https://docs.python.org/3/library/asyncio-task.html#timeouts
             await asyncio.wait_for(fetcher.fetch(), 120)
         else:
             print(f"bad harvest type: {params.get('harvest_type')}")
