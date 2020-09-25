@@ -23,7 +23,19 @@
 					<tr>
 						<th scope="row">{{result.id}}</th>
 						{% for field in result.source %}
-						<td>{{ field.1 }}</td>
+						<td>
+							{% if field.type == "list" %}
+								{% for item in field.value %}
+								<a href="/es/?{{field.term}}={{item}}">
+									{{ item }}
+								</a><br/>
+								{% endfor %}
+							{% else %}
+								<a href="/es/?{{field.term}}={{field.value}}">
+									{{ field.value }}
+								</a>
+							{% endif %}
+						</td>
 						{% endfor %}
 					</tr>
 					{% endfor %}
