@@ -31,6 +31,8 @@ Contents:
 
 ### Constraints
 
+### Positions
+
 ### Argument
 
 ### Implications
