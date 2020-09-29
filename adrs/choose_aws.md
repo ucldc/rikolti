@@ -35,7 +35,7 @@ Decided to use Amazon Web Services.
 
 ### Status
 
-Decided. Open to revisiting if/when new significant information arrives. 
+Decided. 
 
 ## Details
 
