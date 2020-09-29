@@ -1,7 +1,6 @@
 # Server Infrastructure
----------------------
 Contents:
-- Summary
+- [Summary](#summary)
 	- Issue
 	- Decision
 	- Status
@@ -19,7 +18,7 @@ Contents:
 - Notes
 
 ## Sumary
----------------------
+
 ### Issue
 
 We need a not-insignificant amount of computing power, storage, permissions, and system coordination to perform harvesting tasks. We are considering Amazon Web Services.
@@ -73,7 +72,7 @@ Amazon Web Services provides many different services, which will allow us to dev
 We are diving further into the AWS ecosystem. 
 
 ## Related
----------------------
+
 ### Related Decisions
 
 Given our decision to use Amazon Web Services, we have decided to use IAM roles, s3 storage, AWS Lambda, Glue, AWS ElasticSearch, AWS Textract, and AWS Simple Notification Service. 
