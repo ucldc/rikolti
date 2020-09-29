@@ -1,23 +1,23 @@
 # Server Infrastructure
 Contents:
 - [Summary](#summary)
-	- Issue
-	- Decision
-	- Status
-- Details
-	- Assumptions
-	- Constraints
-	- Positions
-	- Argument
-	- Implications
-- Related
-	- Related decisions
-	- Related requirements
-	- Related artifacts
-	- Related principles
-- Notes
+	- [Issue](#issue)
+	- [Decision](#decision)
+	- [Status](#status)
+- [Details](#details)
+	- [Assumptions](#assumptions)
+	- [Constraints](#constraints)
+	- [Positions](#positions)
+	- [Argument](#argument)
+	- [Implications](#implications)
+- [Related](#related)
+	- [Related decisions](#related-decisions)
+	- [Related requirements](#related-requirements)
+	- [Related artifacts](#related-artifacts)
+	- [Related principles](#related-principles)
+- [Notes](#notes)
 
-## Sumary
+## Summary
 
 ### Issue
 
@@ -84,3 +84,7 @@ Given our decision to use Amazon Web Services, we have decided to use IAM roles,
 https://drive.google.com/file/d/1TwDZ8k6S2gDc8YfA2JdLtJ4E5uh_jXDm/view?usp=sharing
 
 ### Related principles
+
+## Notes
+
+
