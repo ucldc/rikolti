@@ -1,6 +1,5 @@
 # Server Infrastructure
 ---------------------
-
 Contents:
 - Summary
 	- Issue
@@ -40,7 +39,7 @@ Decided to use Amazon Web Services.
 Decided. Open to revisiting if/when new significant information arrives. 
 
 ## Details
----------------------
+
 ### Assumptions
 
 Keeping Pachamama fast and reliable will allow operators to run harvests quickly, with more focus on metadata mappings, and less on infrastructure-related bugs. 
