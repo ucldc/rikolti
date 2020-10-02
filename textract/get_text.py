@@ -54,6 +54,8 @@ def get_text(sns_message, context):
 	)
 	job_record = json.loads(textract_record['Body'].read())
 	job_record['word_bucket'] = " ".join(words)
+	if 'textract_job' in job_record:
+		del job_record['textract_job']
 	s3_client.put_object(
 		Bucket='amy-test-bucket',
 		Key=f"466-textract/{date}/{calisphere_id}.json",
