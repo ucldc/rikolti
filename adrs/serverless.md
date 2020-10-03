@@ -33,7 +33,7 @@ We've decided to use AWS Lambda and AWS Glue as our serverless platforms of choi
 
 ### Status
 
-Decided, open to revisiting as more information becomes available. 
+Decided. Open to revisiting if/when new significant information arrives. 
 
 ## Details
 
