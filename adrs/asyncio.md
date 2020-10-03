@@ -16,6 +16,8 @@ Contents:
 	- [Related artifacts](#related-artifacts)
 	- [Related principles](#related-principles)
 - [Notes](#notes)
+	- [Vernacular Metadata Fetcher Notes](#vernacular-metadata-fetcher-notes)
+	- [Content File Fetcher Notes](#content-file-fetcher-notes)
 
 ## Summary
 
@@ -87,7 +89,8 @@ State management/idempotent lambdas
 
 ## Notes
 
-Code for this component lives at `metadata_fetcher`. 
+### Vernacular Metadata Fetcher Notes
+Code for this the vernacular metadata fetcher lives at `metadata_fetcher`. 
 
 `metadata_fetcher/lambda_function.py` handles determining which style of fetcher to use, initializing the Fetcher object, and takes care of all the timeout handling. The AWS Lambda function takes a json object such as: 
 
@@ -109,3 +112,10 @@ Code for this component lives at `metadata_fetcher`.
 `increment` includes details about how to process the HttpResp from the API to increment the Fetcher's internal state to get the next page.
 `build_id` includes details about how to build the universal Calisphere ID for each record.  
 `json` dumps the internal state of the fetcher as a json object to send to the next lambda. 
+
+### Content File Fetcher Notes
+Code for the content file fetcher lives at `file-fetcher`. 
+
+`file-fetcher/lambda_function.py` similarly handles the timeout. 
+
+`file-fetcher/FileFetcher.py` handles the aiohttp and aioboto3 coordination, fetching the largest derivative that textract will take, and stashing it into s3. 
