@@ -1,11 +1,14 @@
 import sys
+import argparse
 import boto3
 import json
 from nuxeo_indexer import NuxeoESIndexer
 
+'''
 bucket = 'ucldc-ingest'
-prefix = 'glue-test-data-target/2020_03_19_0022/20200521_104757/'
+prefix = 'glue-test-data-target/joined/466/20201005/'
 index = 'testing'
+'''
 
 session = boto3.Session(profile_name='pachamamaES')
 
@@ -29,4 +32,17 @@ def increment_id(current_id):
     return current_id + 1
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(
+        description='Run ES indexer')
+    parser.add_argument('bucket', help='S3 bucket')
+    parser.add_argument('prefix', help='S3 prefix')
+    parser.add_argument('index', help='ES index name')
+
+    argv = parser.parse_args()
+
+    bucket = argv.bucket
+    prefix = argv.prefix
+    index = argv.index
+
     sys.exit(main(bucket, prefix, index))
