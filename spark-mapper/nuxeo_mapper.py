@@ -1,6 +1,4 @@
 import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
 from datetime import datetime
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
@@ -24,7 +22,9 @@ def main(database, table):
 
     # select columns that are a straight mapping
     transformed_DF = original_DF \
-        .select(col('uid'), \
+        .select(
+            col('uid'), \
+            col('calisphere-id'), \
             col('properties.ucldc_schema:publisher'), \
             col('properties.ucldc_schema:alternativetitle'), \
             col('properties.ucldc_schema:extent'), \
@@ -62,6 +62,7 @@ def main(database, table):
     # rename columns
     transformed_DyF = transformed_DyF.apply_mapping([
             ('uid', 'string', 'nuxeo_uid', 'string'),
+            ('calisphere-id', 'string', 'calisphere-id', 'string'),
             ('ucldc_schema:publisher', 'array', 'publisher', 'array'),
             ('ucldc_schema:alternativetitle', 'array', 'alternative_title', 'array'),
             ('ucldc_schema:extent', 'string', 'extent', 'string'),
@@ -79,8 +80,9 @@ def main(database, table):
 
     # write transformed data to target
     now = datetime.now()
-    dt_string = now.strftime("%Y%m%d_%H%M%S")
-    path = "s3://ucldc-ingest/glue-test-data-target/{}/{}".format(table, dt_string)
+    collection_id = '466'
+    dt_string = now.strftime("%Y-%m-%d")
+    path = "s3://ucldc-ingest/glue-test-data-target/mapped/{}".format(dt_string)
 
     partition_keys = ["nuxeo_uid"] 
     glueContext.write_dynamic_frame.from_options(
@@ -159,4 +161,5 @@ if __name__ == "__main__":
 
     spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-    sys.exit(main("test-data-fetched", "2020_03_19_0022"))   
+    sys.exit(main("pachamama-demo", "vernacular_metadata"))
+
