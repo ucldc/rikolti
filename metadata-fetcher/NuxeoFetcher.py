@@ -63,7 +63,7 @@ class NuxeoFetcher(Fetcher):
         })
 
 
-    async def buildId(self, document):
+    async def build_id(self, document):
         calisphere_id = f"{self.collection_id}--{document.get('uid')}"
         document['calisphere-id'] = calisphere_id
         return document

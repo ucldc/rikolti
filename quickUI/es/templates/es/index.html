@@ -1,0 +1,47 @@
+<html>
+<head>
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+</head>
+<body>
+	<div class="container-fluid">
+		<h1>Total Results: {{ count }}</h1><form method="get"><input type="search" name="q" placeholder="search" value="{{ search_string }}"/></form> 
+		<div class="table-responsive">
+			<table class="table table-striped" style="width:200%">
+				<thead class="thead-light">
+					<tr>
+						<th scope="col">#</th>
+						{% for field in fields %}
+						<th scope="col">{{field}}</th>
+						{% endfor %}
+					</tr>
+				</thead>
+				<tbody>
+					{% for result in search_results %}
+					<tr>
+						<th scope="row">{{result.id}}</th>
+						{% for field in result.source %}
+						<td>
+							{% if field.type == "list" %}
+								{% for item in field.value %}
+								<a href="/es/?{{field.term}}={{item}}">
+									{{ item }}
+								</a><br/>
+								{% endfor %}
+							{% else %}
+								<a href="/es/?{{field.term}}={{field.value}}">
+									{{ field.value }}
+								</a>
+							{% endif %}
+						</td>
+						{% endfor %}
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</body>
+</html>
