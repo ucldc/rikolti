@@ -161,5 +161,5 @@ if __name__ == "__main__":
 
     spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-    sys.exit(main("pachamama-demo", "vernacular_metadata"))
+    sys.exit(main("pachamama-demo", "27414"))
 

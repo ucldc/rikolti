@@ -17,7 +17,7 @@ def main(database, collection_id):
     metadata_table = 'mapped'
     mapped_metadata_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=metadata_table)
 
-    textract_table = 'textract'
+    textract_table = 'textract_27414'
     textract_output_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=textract_table)
 
 
@@ -60,4 +60,4 @@ if __name__ == "__main__":
 
     spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-    sys.exit(main("pachamama-test", "466"))
+    sys.exit(main("pachamama-demo", "27414"))
