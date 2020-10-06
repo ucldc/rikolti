@@ -38,6 +38,8 @@ We have created a couple of proof-of-concept data transforms for the demo on 10/
 
 Data transformation is a core component of the harvesting infrastructure. We want something fast and powerful. Apache Spark, which is the core processing technology around which AWS Glue is built, is known to be fast and powerful.
 
+Spark would also natively supports machine learning and other more advanced data manipulation and transformation.
+
 ### Constraints
 
 We will need to get fully up to speed on using Apache Spark for data transformation. It takes some time to learn, and nobody on our team knows it well yet. 
