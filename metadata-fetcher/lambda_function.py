@@ -10,10 +10,12 @@ if not DEBUG:
 
 from NuxeoFetcher import NuxeoFetcher
 from OAIFetcher import OAIFetcher
+from OACFetcher import OACFetcher
 
 instantiate = {
     'nuxeo': NuxeoFetcher,
-    'oai': OAIFetcher
+    'oai': OAIFetcher,
+    'oac': OACFetcher,
 }
 
 """
