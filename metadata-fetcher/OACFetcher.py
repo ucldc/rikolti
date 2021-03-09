@@ -1,6 +1,7 @@
 import asyncio
 import xmltodict
 import json
+import aiohttp
 from Fetcher import Fetcher
 
 GROUPS_TO_FETCH = ['image', 'text']
@@ -9,8 +10,7 @@ class OACFetcher(Fetcher):
     def __init__(self, params):
         super(OACFetcher, self).__init__(params)
         self.oac = params.get('oac')
-        self.start_doc = 0
-        self.groups = None
+        self.oac['groups'] = None
         self.oac['done'] = False
 
         # get total docs, groups
@@ -21,34 +21,47 @@ class OACFetcher(Fetcher):
 
 
     async def build_fetch_request(self):
-
         # initial request
-        if not self.groups:
-            self.groups = self.get_groups()
-            # handle None
-            self.oac['groupIndex'] = 0
-            self.current_group = self.groups[0]
-            # handle no images and/or no text
-            self.oac['startDoc'] = 1
-            self.oac['currentGroupName'] = self.current_group.get('groupname')
-            url = f"{self.base}&startDoc={self.oac['startDoc']}&group={self.oac['currentGroupName']}"
-        # subsequent requests
+        if not self.oac['groups']:
+            self.oac['groups'] = await self.get_groups()
+            if len(self.oac['groups']) == 0:
+                print("No valid group data found")
+                return None
+            self.oac['current_group_index'] = 0
+            self.oac['current_group'] = self.oac['groups'][self.oac['current_group_index']]
+            self.oac['start_doc'] = 1
+            self.oac['current_group_name'] = self.oac['current_group'].get('groupname')
+            url = f"{self.base}&startDoc={self.oac['start_doc']}&group={self.oac['current_group_name']}"
         elif self.oac['done'] is False:
-            url = f"{self.base}&startDoc={self.oac['startDoc']}&group={self.oac['currentGroupName']}"
+            url = f"{self.base}&startDoc={self.oac['start_doc']}&group={self.oac['current_group_name']}"
         else:
             print("No more pages to fetch")
             return None
 
-        # url = f"{self.base}&startDoc={startDoc}&group={currentGroup}"
-
         print(f"Fetching page {self.write_page} at {url}")
         return {"url": url}
 
-    def get_groups(self):
+    async def get_groups(self):
+        groups = []
+
+        # FIXME bad to have multiple aiohttp.ClientSession's going at once??
+        async with aiohttp.ClientSession() as http_client:
+
+            async with http_client.get(self.base) as response:
+                resp = await response.text()
+                data = xmltodict.parse(resp)
+
+                # get all group facets with 1 or more docs
+                group_facets = data.get('crossQueryResult', {}) .get('facet', {}).get('group')
+                for g in group_facets:
+                    if g.get('@totalDocs') and int(g.get('@totalDocs')) > 0:
+                        group = {}
+                        group['groupname'] = g.get('@value')
+                        group['count'] = int(g.get('@totalDocs'))
+                        group['current_start_doc'] = 1
+                        group['current_end_doc'] = 0
+                        groups.append(group)
         
-        # skip groups not in `groups_to_fetch`
-        groups = [{'groupname': 'image', 'count': 25, 'current_start_doc': 1, 'current_end_doc': 0}]
-        # return None if there aren't any
         return groups
 
 
@@ -56,30 +69,39 @@ class OACFetcher(Fetcher):
         resp = await httpResp.text()
         data = xmltodict.parse(resp)
 
-        records = data.get('crossQueryResult', {}) .get('facet', {}).get('group'), {}.get('docHit')
+        records = []
+        groups = data.get('crossQueryResult').get('facet').get('group')
+        for group in groups:
+            if group.get('@value') == self.oac['current_group_name']:
+                doc_hit = group.get('docHit', [])
+                for doc in doc_hit:
+                    meta = doc.get("meta", {})
+                    # the first item is an empty list, so skip it
+                    if isinstance(meta, dict):
+                        records.append(meta)
 
         return records
 
 
     async def increment(self, httpResp):
-        
-        await super(OACFetcher, self).increment(httpResp) # not sure why OAIFetcher.py doesn't need positional arg?
+        await super(OACFetcher, self).increment(httpResp)
         
         resp = await httpResp.text()
         data = xmltodict.parse(resp)
 
-        totalDocs = int(data.get('crossQueryResult').get('facet').get('group')[0]['@totalDocs'])
-        endDoc = int(data.get('crossQueryResult').get('facet').get('group')[0]['@endDoc'])
+        # FIXME need to get current group, not just [0], I think
+        total_docs = int(data.get('crossQueryResult').get('facet').get('group')[0]['@totalDocs'])
+        end_doc = int(data.get('crossQueryResult').get('facet').get('group')[0]['@endDoc'])
 
-        if endDoc >= totalDocs:
-            if self.oac['groupIndex'] + 1 >= len(self.groups):
+        if end_doc >= total_docs:
+            if self.oac['current_group_index'] + 1 >= len(self.oac['groups']):
                 self.oac['done'] = True
                 return None
             else:
-                self.oac['groupIndex'] = self.oac['groupIndex'] + 1
-                self.current_group = self.groups[self.oac['groupIndex']]
-                self.oac['startDoc'] = 1
-                self.oac['currentGroupName'] = self.current_group.get('groupname')
+                self.oac['current_group_index'] = self.oac['current_group_index'] + 1
+                self.oac['current_group'] = self.groups[self.oac['current_group_index']]
+                self.oac['start_doc'] = 1
+                self.oac['current_group_name'] = self.oac['current_group'].get('groupname')
         else:
-            self.oac['startDoc'] = endDoc + 1
+            self.oac['start_doc'] = end_doc + 1
 
