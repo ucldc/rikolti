@@ -41,7 +41,7 @@ class Fetcher(object):
         self.s3_data = {
             "ACL": 'bucket-owner-full-control',
             "Bucket": 'amy-test-bucket',
-            "Key": f"{self.collection_id}/"
+            "Key": f"vernacular_metadata/{self.collection_id}/"
         }
         if not self.collection_id:
             print('no collection id!')
@@ -71,7 +71,6 @@ class Fetcher(object):
                                 Bucket=self.s3_data['Bucket'],
                                 Key=(
                                     f"{self.s3_data['Key']}"
-                                    f"{time.strftime('%Y-%m-%d')}/"
                                     f"{self.write_page}.jsonl"
                                 ),
                                 Body=jsonl)
