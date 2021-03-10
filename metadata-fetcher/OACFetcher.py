@@ -13,7 +13,6 @@ class OACFetcher(Fetcher):
         self.oac['groups'] = None
         self.oac['done'] = False
 
-        # get total docs, groups
         try:
             self.base = f"{self.oac.get('url')}&docsPerPage=100"
         except KeyError:
@@ -28,12 +27,10 @@ class OACFetcher(Fetcher):
                 print("No valid group data found")
                 return None
             self.oac['current_group_index'] = 0
-            self.oac['current_group'] = self.oac['groups'][self.oac['current_group_index']]
             self.oac['start_doc'] = 1
-            self.oac['current_group_name'] = self.oac['current_group'].get('groupname')
-            url = f"{self.base}&startDoc={self.oac['start_doc']}&group={self.oac['current_group_name']}"
+            url = f"{self.base}&startDoc={self.oac['start_doc']}&group={self.oac['groups'][self.oac['current_group_index']].get('groupname')}"
         elif self.oac['done'] is False:
-            url = f"{self.base}&startDoc={self.oac['start_doc']}&group={self.oac['current_group_name']}"
+            url = f"{self.base}&startDoc={self.oac['start_doc']}&group={self.oac['groups'][self.oac['current_group_index']].get('groupname')}"
         else:
             print("No more pages to fetch")
             return None
@@ -51,15 +48,13 @@ class OACFetcher(Fetcher):
                 resp = await response.text()
                 data = xmltodict.parse(resp)
 
-                # get all group facets with 1 or more docs
+                # get all valid group facets with 1 or more docs
                 group_facets = data.get('crossQueryResult', {}) .get('facet', {}).get('group')
                 for g in group_facets:
-                    if g.get('@totalDocs') and int(g.get('@totalDocs')) > 0:
+                    if g.get('@value') in GROUPS_TO_FETCH and int(g.get('@totalDocs')) > 0:
                         group = {}
                         group['groupname'] = g.get('@value')
                         group['count'] = int(g.get('@totalDocs'))
-                        group['current_start_doc'] = 1
-                        group['current_end_doc'] = 0
                         groups.append(group)
         
         return groups
@@ -70,10 +65,10 @@ class OACFetcher(Fetcher):
         data = xmltodict.parse(resp)
 
         records = []
-        groups = data.get('crossQueryResult').get('facet').get('group')
-        for group in groups:
-            if group.get('@value') == self.oac['current_group_name']:
-                doc_hit = group.get('docHit', [])
+        group_facets = data.get('crossQueryResult').get('facet').get('group')
+        for g in group_facets:
+            if g.get('@value') == self.oac['groups'][self.oac['current_group_index']].get('groupname'):
+                doc_hit = g.get('docHit', [])
                 for doc in doc_hit:
                     meta = doc.get("meta", {})
                     # the first item is an empty list, so skip it
@@ -89,9 +84,11 @@ class OACFetcher(Fetcher):
         resp = await httpResp.text()
         data = xmltodict.parse(resp)
 
-        # FIXME need to get current group, not just [0], I think
-        total_docs = int(data.get('crossQueryResult').get('facet').get('group')[0]['@totalDocs'])
-        end_doc = int(data.get('crossQueryResult').get('facet').get('group')[0]['@endDoc'])
+        group_facets = data.get('crossQueryResult').get('facet').get('group')
+        for g in group_facets:
+            if g.get('@value') == self.oac['groups'][self.oac['current_group_index']].get('groupname'):
+                total_docs = int(group['@totalDocs'])
+                end_doc = int(group['@endDoc'])
 
         if end_doc >= total_docs:
             if self.oac['current_group_index'] + 1 >= len(self.oac['groups']):
@@ -99,9 +96,7 @@ class OACFetcher(Fetcher):
                 return None
             else:
                 self.oac['current_group_index'] = self.oac['current_group_index'] + 1
-                self.oac['current_group'] = self.groups[self.oac['current_group_index']]
                 self.oac['start_doc'] = 1
-                self.oac['current_group_name'] = self.oac['current_group'].get('groupname')
         else:
             self.oac['start_doc'] = end_doc + 1
 
