@@ -41,12 +41,12 @@ class NuxeoFetcher(Fetcher):
 
     async def get_records(self, httpResp):
         response = await httpResp.json()
-        documents = [await self.buildId(doc) for doc in response['entries']]
+        documents = [await self.build_id(doc) for doc in response['entries']]
         return documents
 
 
     async def increment(self, httpResp):
-        await super(NuxeoFetcher, self).increment()
+        await super(NuxeoFetcher, self).increment(httpResp)
         resp = await httpResp.json()
         if resp.get('isNextPageAvailable'):
             self.nuxeo['current_page_index'] = self.nuxeo.get('current_page_index', 0) + 1
