@@ -39,11 +39,15 @@ class OACFetcher(Fetcher):
         return {"url": url}
 
     async def get_groups(self):
+        '''
+        The oac urls provided in the registry are for a faceted query
+        Results are returned in groups: image, text, website
+        We are only interested in image and text
+        '''
         groups = []
 
         # FIXME bad to have multiple aiohttp.ClientSession's going at once??
         async with aiohttp.ClientSession() as http_client:
-
             async with http_client.get(self.base) as response:
                 resp = await response.text()
                 data = xmltodict.parse(resp)
@@ -64,7 +68,7 @@ class OACFetcher(Fetcher):
         resp = await httpResp.text()
         data = xmltodict.parse(resp)
 
-        records = []
+        raw_records = []
         group_facets = data.get('crossQueryResult').get('facet').get('group')
         for g in group_facets:
             if g.get('@value') == self.oac['groups'][self.oac['current_group_index']].get('groupname'):
@@ -73,7 +77,9 @@ class OACFetcher(Fetcher):
                     meta = doc.get("meta", {})
                     # the first item is an empty list, so skip it
                     if isinstance(meta, dict):
-                        records.append(meta)
+                        raw_records.append(meta)
+
+        records = [await self.build_id(doc) for doc in raw_records]
 
         return records
 
@@ -87,8 +93,8 @@ class OACFetcher(Fetcher):
         group_facets = data.get('crossQueryResult').get('facet').get('group')
         for g in group_facets:
             if g.get('@value') == self.oac['groups'][self.oac['current_group_index']].get('groupname'):
-                total_docs = int(group['@totalDocs'])
-                end_doc = int(group['@endDoc'])
+                total_docs = int(g['@totalDocs'])
+                end_doc = int(g['@endDoc'])
 
         if end_doc >= total_docs:
             if self.oac['current_group_index'] + 1 >= len(self.oac['groups']):
@@ -100,3 +106,23 @@ class OACFetcher(Fetcher):
         else:
             self.oac['start_doc'] = end_doc + 1
 
+
+    async def build_id(self, document):
+        '''
+        based on https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/master/lib/akamod/select_oac_id.py
+        '''
+        ark = None
+        for identifier in document.get('identifier'):
+            if isinstance(identifier, str):
+                ark = identifier
+                break
+            else:
+                for value in (identifier if isinstance(identifier, list) else [identifier]):
+                    if value.get('#text').startswith('http://ark.cdlib.org/ark:') \
+                    and is_absolute(value.get('#text')):
+                        ark = value.get('#text')
+                        break
+
+        calisphere_id = f"{self.collection_id}--{ark}"
+        document['calisphere-id'] = calisphere_id
+        return document
