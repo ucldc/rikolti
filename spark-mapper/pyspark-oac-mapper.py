@@ -189,7 +189,7 @@ def get_source_field(df, src_field, exclusions=None, specifics=None):
         xml_df = xml_df.withColumn(src_field, explode(src_field))
         xml_df = get_struct_field(xml_df, src_field, exclusions, specifics)
         xml_df = xml_df.groupBy(calisphere_id).agg(collect_list(dest).alias(dest))
-    elif src_field_type.startswith('array'):
+    elif src_field_type == "array<string>":
         xml_df = get_array_field(xml_df, src_field, exclusions, specifics)
 
     return xml_df
