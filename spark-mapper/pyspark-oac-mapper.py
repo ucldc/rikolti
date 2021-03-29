@@ -24,26 +24,162 @@ def has_column(df, col):
 def get_dtype(df, col):
     return [dtype for name,dtype in df.dtypes if name == col][0]
 
-def get_text(source_arr, exclusions=None):
-    new_array = None
-    attribute = None
-    for val in source_arr:
-        if val:
-            try:
-                j = json.loads(val)
-                new_val = j['#text']
-                attribute = j['@q']
-            except JSONDecodeError:
-                new_val = val
+def get_text_from_string(src, exclusion=None, specific=None):
+    # print(f"source: {src}")
+    # print(f"exclude: {exclusion}")
+    # print(f"specify: {specific}")
+    if not src:
+        return src
+    
+    try:
+        j = json.loads(src)
+    # it really is a string
+    except JSONDecodeError:
+        if not specific:
+            return [src]
+        else:
+            return None
 
-            if exclusions and attribute and attribute == exclusions:
-                continue
+    field = []
+    if isinstance(j, dict):
+        if exclusion:
+            if j.get('@q') != exclusion:
+                field.append(j.get('#text'))
+        elif specific:
+            if j.get('@q') == specific:
+                field.append(j.get('#text'))
+        else:
+            field.append(j.get('#text'))
+    elif isinstance(j, list):
+        for elem in j:
+            if isinstance(elem, str):
+                if not specific:
+                    field.append(elem)
+            elif isinstance(elem, dict):
+                if exclusion:
+                    if elem.get('@q') != exclusion:
+                        field.append(elem.get('#text'))
+                elif specific:
+                    if elem.get('@q') == specific:
+                        field.append(elem.get('#text'))
+                else:
+                    field.append(elem.get('#text'))
+            elif isinstance(elem, list):
+                print('whoa nested list')
+    else:
+        print('unknown')
 
-            if not new_array:
-                new_array = []
-            new_array.append(new_val)
 
-    return new_array
+    if len(field) == 0:
+        field = None
+
+    return field
+
+def get_text_from_array(src_arr, exclusion=None, spec=None):
+    # print(f"source: {src_arr}")
+    # print(f"exclude: {exclusion}")
+    # print(f"specify: {spec}")
+    if not src_arr:
+        return src_arr
+    
+    field = []
+    for src in src_arr:
+        try:
+            j = json.loads(src)
+        except JSONDecodeError:
+            # it's a string
+            if not spec:
+                field.append(src)
+            continue
+
+        if isinstance(j, dict):
+            if exclusion:
+                if j.get('@q') != exclusion:
+                    field.append(j.get('#text'))
+            elif spec:
+                if j.get('@q') == spec:
+                    field.append(j.get('#text'))
+            else:
+                field.append(j.get('#text'))
+        elif isinstance(j, list):
+            print('whoa nested list')
+        else:
+            print('unknown')
+
+
+    if len(field) == 0:
+        field = None
+
+    return field
+
+
+def get_string_field(xml_df, src_field, exclusions=None, specifics=None):
+    xml_df = (xml_df
+        .withColumn(
+            src_field,
+            get_text_from_string_udf(src_field, lit(exclusions), lit(specifics))
+        )
+    )
+    return xml_df
+
+def get_struct_field(xml_df, src_field, exclusions=None, specifics=None):
+    xml_df = (xml_df
+        .select(
+            calisphere_id, 
+            col(f"{src_field}.@q").alias('attrib'), 
+            col(f"{src_field}.#text").alias('text')
+        )
+    )
+    if exclusions:
+        xml_df = (xml_df
+            .withColumn(
+                src_field,
+                when(col('attrib') != lit(exclusions), col('text')).otherwise(lit(None))
+            )
+        )
+    elif specifics:
+        xml_df = (xml_df
+            .withColumn(
+                src_field,
+                when(col('attrib') == lit(specifics), col('text')).otherwise(lit(None))
+            )
+        )
+    else:
+        xml_df = (xml_df
+            .withColumn(
+                src_field,
+                when(col('text').isNotNull(), col('text')).otherwise(lit(None))
+            )
+        )
+    xml_df = xml_df.drop('attrib', 'text')
+    return xml_df
+
+def get_array_field(xml_df, src_field, exclusions=None, specifics=None):
+    xml_df = (xml_df
+        .withColumn(
+            src_field,
+            get_text_from_array_udf(src_field, lit(exclusions), lit(specifics))
+        )
+    )
+    return xml_df
+
+def get_source_field(df, src_field, exclusions=None, specifics=None):
+    xml_df = df.select(calisphere_id, src_field)
+    src_field_type = get_dtype(xml_df, src_field)
+    if src_field_type == 'string':
+        xml_df = get_string_field(xml_df, src_field, exclusions, specifics)
+    elif src_field_type.startswith('struct'):
+        xml_df = (get_struct_field(xml_df, src_field, exclusions, specifics)
+            .withColumn(src_field, array(col(src_field)))
+        )
+    elif src_field_type == "array<struct<#text:string,@q:string>>":
+        xml_df = xml_df.withColumn(src_field, explode(src_field))
+        xml_df = get_struct_field(xml_df, src_field, exclusions, specifics)
+        xml_df = xml_df.groupBy(calisphere_id).agg(collect_list(dest).alias(dest))
+    elif src_field_type.startswith('array'):
+        xml_df = get_array_field(xml_df, src_field, exclusions, specifics)
+
+    return xml_df
 
 
 if __name__ == "__main__":
@@ -62,40 +198,6 @@ if __name__ == "__main__":
         .load(oac_file))
     # oac_source.printSchema()
 
-
-    # SECOND IDEA, WORKING, EXPLODE ARRAY, GET JSON OBJECT BY NAME (EXPLICIT SCHEMA)
-    # oac_ids = (oac_source
-    #     .select('calisphere-id',explode('identifier').alias('identifier'))
-    #     .select(
-    #         'calisphere-id',
-    #         get_json_object('identifier', '$.#text').alias('id_text'),
-    #         get_json_object('identifier', '$.@q').alias('id_q'),
-    #         'identifier'
-    #     )
-    # )
-
-    # oac_ids.show(10, truncate=False)
-    # oac_ids.printSchema()
-
-    
-    # ONE IDEA, CONVERT ARRAY TO STRING, READ AS JSON TO GET SCHEMA, LOAD AS JSON
-    # text_fields = spark.read.json().schema
-    # oac_ids = (oac_source
-    #     .select('identifier')
-    #     .withColumn('id_json', from_json('identifier', text_fields))
-    #     .show(10, truncate=False)
-    # )
-
-
-    if has_column(oac_source, 'identifier'):
-        id_dtype = get_dtype(oac_source, 'identifier')
-        if id_dtype == 'string':
-            oac_source = oac_source.withColumn('calisphere-id', col('identifier'))
-        elif id_dtype.startswith('array'):
-            id_array_type = id_dtype[6:-1]
-            if id_array_type == 'string':
-                oac_source = (oac_source.withColumn(
-                    'calisphere-id', col('identifier').getItem(0)))
 
     calisphere_id = 'calisphere-id'
 
@@ -123,30 +225,33 @@ if __name__ == "__main__":
         (['accessRights', 'rights'], 'rights')
     ]
 
-    get_text_udf = udf(get_text, ArrayType(StringType()))
+    get_text_from_string_udf = udf(get_text_from_string, ArrayType(StringType()))
+    get_text_from_array_udf = udf(get_text_from_array, ArrayType(StringType()))
 
     for source_fields, destination_field in combine_fields:
-        # check if these field are represented in this source
+        # check if these fields are represented in this source
         source_fields = [f for f in source_fields if f in oac_source.columns]
         if source_fields:
             # coalesce allows us to concat even if one of source_fields is NULL
             # https://stackoverflow.com/questions/37284077/combine-pyspark-dataframe-arraytype-fields-into-single-arraytype-field
-            coalesce_f = []
+            
+            source_df = oac_source.select(calisphere_id)
             for sf in source_fields:
-                if get_dtype(oac_source, sf).startswith('array'):
-                    coalesce_f.append(coalesce(col(sf), array()))
-                else:
-                    coalesce_f.append(coalesce(array(col(sf)), array()))
+                join_df = (get_source_field(oac_source, sf)
+                    .withColumn(sf, coalesce(col(sf), array()))
+                )
+                source_df = source_df.join(join_df, calisphere_id)
 
-            combine_df = (oac_source
-                .select(calisphere_id, concat(*coalesce_f).alias('tmp'))
-                .withColumn(destination_field, get_text_udf('tmp'))
-                .drop('tmp'))
-            # combine_df.show(25, truncate=False)
+            combine_df = (source_df
+                .select(
+                    calisphere_id, 
+                    concat(*source_fields).alias(destination_field)
+                )
+            )
             oac_mapped = oac_mapped.join(combine_df, calisphere_id)
 
-    """ these fields (0) exclude the specified subfield (1) 
-    when mapped to destination field (2) """
+    # these fields (0) exclude the specified subfield (1) 
+    # when mapped to destination field (2)
     exclude_subfields = [
         ('date', 'dcterms:dateCopyrighted', 'date'),
         ('format', 'x', 'format'),
@@ -160,35 +265,12 @@ if __name__ == "__main__":
         ex = mapping[1]
         dest = mapping[2]
         if src in oac_source.columns:
-            if get_dtype(oac_source, src) == 'struct<#text:string,@q:string>':
-                # https://sparkbyexamples.com/pyspark/pyspark-when-otherwise/
-                exclusion = (oac_source
-                    .select(calisphere_id, 
-                        col(f"{src}.#text").alias('text'), 
-                        col(f"{src}.@q").alias('attrib'))
-                    .withColumn(dest, 
-                        when(col('attrib') != ex, array(col('text')))
-                        .otherwise(array()))
-                    )
-                exclusion = exclusion.select(calisphere_id, dest)
-                oac_mapped = oac_mapped.join(exclusion, calisphere_id)
-            if get_dtype(oac_source, src) == 'array<struct<#text:string,@q:string>>':
-                exclusion = (oac_source
-                    .select(calisphere_id,
-                        explode(src).alias(f"{src}-exploded"))
-                    .select(calisphere_id,
-                        col(f"{src}-exploded.#text").alias('text'),
-                        col(f"{src}-exploded.@q").alias('attrib'))
-                    .withColumn(dest, 
-                        when(col('attrib') != ex, 
-                            array(col('text'))).otherwise(array()))
-                    .groupBy(calisphere_id)
-                    .agg(collect_list(dest).alias(dest))
-                )
-                oac_mapped = oac_mapped.join(exclusion, calisphere_id)
-            if get_dtype(oac_source, src) == 'string':
-                direct = oac_source.select(calisphere_id, src)
-                oac_mapped = oac_mapped.join(direct, calisphere_id)
+            join_df = (get_source_field(oac_source, src, ex)
+                .withColumn(dest, col(src))
+                .drop(src)
+            )
+            oac_mapped = oac_mapped.join(join_df, calisphere_id)
+
 
     specific_subfield = [
         ('date', 'dcterms:dateCopyrighted', 'copyrightDate'),
@@ -202,25 +284,18 @@ if __name__ == "__main__":
         spec = mapping[1]
         dest = mapping[2]
         if src in oac_source.columns:
-            if get_dtype(oac_source, src) == 'string':
-                # this attribute is only present if the string contains json
-                continue;
-            if get_dtype(oac_source, src) == 'struct<#text:string,@q:string>':
-                specific = (oac_source
-                    .select(calisphere_id,
-                        col(f"{src}.#text").alias('text'),
-                        col(f"{src}.@q").alias('attrib'))
-                    .withColumn(dest, 
-                        when(col('attrib') == spec, 
-                            array(col('text'))).otherwise(array()))
-                    .select(calisphere_id, dest)
-                )
-                oac_mapped = oac_mapped.join(specific, calisphere_id)
+            join_df = (get_source_field(oac_source, src, None, spec)
+                .withColumn(dest, col(src))
+                .drop(src)
+            )
+            join_df.show(25, truncate=False)
+            oac_mapped = oac_mapped.join(join_df, calisphere_id)
 
     add_fields = ('{"name": "California"}', 'stateLocatedIn')
     oac_mapped = oac_mapped.withColumn(add_fields[1], lit(add_fields[0]))
 
     oac_mapped.show(25)
     oac_mapped.printSchema()
+
 
 
