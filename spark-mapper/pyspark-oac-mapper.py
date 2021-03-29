@@ -1,7 +1,7 @@
 # TO RUN:
 # (pyspark) (oac-fetcher) Amys-MBP:spark-mapper amywieliczka$ pwd
 # /Users/amywieliczka/Projects/work/harvesting/rikolti/spark-mapper
-# (pyspark) (oac-mapper) Amys-MBP:spark-mapper amywieliczka$ spark-submit pyspark-oac-mapper.py 509/2021-03-09/0.jsonl 
+# (pyspark) (oac-mapper) Amys-MBP:spark-mapper amywieliczka$ spark-submit pyspark-oac-mapper.py 509/2021-03-22/0.jsonl 
 
 import sys
 import json
@@ -189,8 +189,8 @@ def get_source_field(df, src_field, exclusions=None, specifics=None):
     elif src_field_type == "array<struct<#text:string,@q:string>>":
         xml_df = xml_df.withColumn(src_field, explode(src_field))
         xml_df = get_struct_field(xml_df, src_field, exclusions, specifics)
+        xml_df.show(10, truncate=False)
         xml_df = xml_df.groupBy(calisphere_id).agg(collect_list(src_field).alias(src_field))
-
     elif src_field_type == "array<string>":
         xml_df = get_array_field(xml_df, src_field, exclusions, specifics)
     elif src_field_type.startswith("array"):
@@ -205,15 +205,15 @@ def get_source_field(df, src_field, exclusions=None, specifics=None):
 
 # ------------ LOCAL DEV -------------- #
 # def main(oac_file):
-    # spark = (SparkSession
-    #     .builder
-    #     .appName("OAC Mapper")
-    #     .getOrCreate())
-    # oac_source = (spark.read.format("json")
-    #     .option("header", True)
-    #     .option("inferSchema", True)
-    #     .load(oac_file))
-    # oac_source.printSchema()
+#     spark = (SparkSession
+#         .builder
+#         .appName("OAC Mapper")
+#         .getOrCreate())
+#     oac_source = (spark.read.format("json")
+#         .option("header", True)
+#         .option("inferSchema", True)
+#         .load(oac_file))
+#     oac_source.printSchema()
 # ------------ LOCAL DEV -------------- #
 
 # ------------ GLUE JOB -------------- #
@@ -287,10 +287,13 @@ def main(database, table):
         ex = mapping[1]
         dest = mapping[2]
         if src in oac_source.columns:
-            join_df = (get_source_field(oac_source, src, ex)
-                .withColumn(dest, col(src))
-                .drop(src)
-            )
+            join_df = get_source_field(oac_source, src, ex)
+            if src != dest:
+                join_df = (join_df
+                    .withColumn(dest, col(src))
+                    .drop(src)
+                )
+            join_df.show(10, truncate=False)
             oac_mapped = oac_mapped.join(join_df, calisphere_id)
 
 
@@ -306,19 +309,24 @@ def main(database, table):
         spec = mapping[1]
         dest = mapping[2]
         if src in oac_source.columns:
-            join_df = (get_source_field(oac_source, src, None, spec)
-                .withColumn(dest, col(src))
-                .drop(src)
-            )
+            join_df = get_source_field(oac_source, src, None, spec)
+            if src != dest:
+                join_df = (join_df
+                    .withColumn(dest, col(src))
+                    .drop(src)
+                )
             # join_df.show(25, truncate=False)
             oac_mapped = oac_mapped.join(join_df, calisphere_id)
 
     add_fields = ('{"name": "California"}', 'stateLocatedIn')
     oac_mapped = oac_mapped.withColumn(add_fields[1], lit(add_fields[0]))
 
+# ------------ LOCAL DEV -------------- #
     # oac_mapped.show(25)
     # oac_mapped.printSchema()
+# ------------ LOCAL DEV -------------- #
 
+# ------------ GLUE JOB -------------- #
     # convert to glue dynamic frame
     transformed_DyF = DynamicFrame.fromDF(oac_mapped, glueContext, "transformed_DyF")
 
@@ -334,6 +342,7 @@ def main(database, table):
        connection_type = "s3",
        connection_options = {"path": path, "partitionKeys": partition_keys},
        format = "json")
+# ------------ GLUE JOB -------------- #
 
 
 
