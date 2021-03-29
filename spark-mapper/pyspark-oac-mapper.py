@@ -7,12 +7,20 @@ import sys
 import json
 from json.decoder import JSONDecodeError
 
+from datetime import datetime
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.dynamicframe import DynamicFrame
+from awsglue.transforms import *
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
 from pyspark.sql.utils import AnalysisException
 
 # from pyspark.sql import Row
+
+calisphere_id = 'calisphere-id'
 
 def has_column(df, col):
     try:
@@ -114,6 +122,8 @@ def get_text_from_array(src_arr, exclusion=None, spec=None):
 
 
 def get_string_field(xml_df, src_field, exclusions=None, specifics=None):
+    get_text_from_string_udf = udf(get_text_from_string, ArrayType(StringType()))
+    # spark.udf.register('get_text_from_string_udf', get_text_from_string, ArrayType(StringType()))
     xml_df = (xml_df
         .withColumn(
             src_field,
@@ -155,6 +165,9 @@ def get_struct_field(xml_df, src_field, exclusions=None, specifics=None):
     return xml_df
 
 def get_array_field(xml_df, src_field, exclusions=None, specifics=None):
+    get_text_from_array_udf = udf(get_text_from_array, ArrayType(StringType()))
+    # spark.udf.register('get_text_from_array_udf', get_text_from_array, ArrayType(StringType()))
+
     xml_df = (xml_df
         .withColumn(
             src_field,
@@ -181,25 +194,28 @@ def get_source_field(df, src_field, exclusions=None, specifics=None):
 
     return xml_df
 
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: pyspark-oac-mapper.py <file>", file=sys.stderr)
-        sys.exit(-1)
-
-    spark = (SparkSession
-        .builder
-        .appName("OAC Mapper")
-        .getOrCreate())
-    oac_file=sys.argv[1]
-    oac_source = (spark.read.format("json")
-        .option("header", True)
-        .option("inferSchema", True)
-        .load(oac_file))
+# ------------ LOCAL DEV -------------- #
+# def main(oac_file):
+    # spark = (SparkSession
+    #     .builder
+    #     .appName("OAC Mapper")
+    #     .getOrCreate())
+    # oac_source = (spark.read.format("json")
+    #     .option("header", True)
+    #     .option("inferSchema", True)
+    #     .load(oac_file))
     # oac_source.printSchema()
+# ------------ LOCAL DEV -------------- #
 
+# ------------ GLUE JOB -------------- #
+def main(database, table):
+    # Create a glue DynamicFrame
+    original_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=table)
 
-    calisphere_id = 'calisphere-id'
+    # convert to apache spark dataframe
+    oac_source = original_DyF.toDF() \
+        .distinct()
+# ------------ GLUE JOB -------------- #
 
     ### these fields directly map to a field of the same name
     direct_fields = [
@@ -224,9 +240,6 @@ if __name__ == "__main__":
         (['identifier', 'bibliographicCitation'], 'identifier'),
         (['accessRights', 'rights'], 'rights')
     ]
-
-    get_text_from_string_udf = udf(get_text_from_string, ArrayType(StringType()))
-    get_text_from_array_udf = udf(get_text_from_array, ArrayType(StringType()))
 
     for source_fields, destination_field in combine_fields:
         # check if these fields are represented in this source
@@ -288,14 +301,57 @@ if __name__ == "__main__":
                 .withColumn(dest, col(src))
                 .drop(src)
             )
-            join_df.show(25, truncate=False)
+            # join_df.show(25, truncate=False)
             oac_mapped = oac_mapped.join(join_df, calisphere_id)
 
     add_fields = ('{"name": "California"}', 'stateLocatedIn')
     oac_mapped = oac_mapped.withColumn(add_fields[1], lit(add_fields[0]))
 
-    oac_mapped.show(25)
-    oac_mapped.printSchema()
+    # oac_mapped.show(25)
+    # oac_mapped.printSchema()
+
+    # convert to glue dynamic frame
+    transformed_DyF = DynamicFrame.fromDF(oac_mapped, glueContext, "transformed_DyF")
+
+    # write transformed data to target
+    now = datetime.now()
+    collection_id = '509'
+    dt_string = now.strftime("%Y-%m-%d")
+    path = "s3://ucldc-ingest/glue-test-data-target/mapped/{}".format(dt_string)
+
+    partition_keys = [calisphere_id] 
+    glueContext.write_dynamic_frame.from_options(
+       frame = transformed_DyF,
+       connection_type = "s3",
+       connection_options = {"path": path, "partitionKeys": partition_keys},
+       format = "json")
+
+
+
+
+
+
+# ------------ GLUE JOB -------------- #
+if __name__ == "__main__":
+
+    # Create a Glue context
+    glueContext = GlueContext(SparkContext.getOrCreate()) 
+
+    spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
+
+    sys.exit(main("pachamama-demo", "oac509"))
+# ------------ GLUE JOB -------------- #
+
+# ------------ LOCAL DEV -------------- #
+# if __name__ == "__main__":
+#     if len(sys.argv) != 2:
+#         print("Usage: pyspark-oac-mapper.py <file>", file=sys.stderr)
+#         sys.exit(-1)
+
+#     sys.exit(main(sys.argv[1]))
+# ------------ LOCAL DEV -------------- #
+
+
 
 
 
