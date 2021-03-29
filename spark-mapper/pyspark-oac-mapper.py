@@ -124,6 +124,7 @@ def get_text_from_array(src_arr, exclusion=None, spec=None):
 def get_string_field(xml_df, src_field, exclusions=None, specifics=None):
     get_text_from_string_udf = udf(get_text_from_string, ArrayType(StringType()))
     # spark.udf.register('get_text_from_string_udf', get_text_from_string, ArrayType(StringType()))
+
     xml_df = (xml_df
         .withColumn(
             src_field,
@@ -188,8 +189,16 @@ def get_source_field(df, src_field, exclusions=None, specifics=None):
     elif src_field_type == "array<struct<#text:string,@q:string>>":
         xml_df = xml_df.withColumn(src_field, explode(src_field))
         xml_df = get_struct_field(xml_df, src_field, exclusions, specifics)
-        xml_df = xml_df.groupBy(calisphere_id).agg(collect_list(dest).alias(dest))
+        xml_df = xml_df.groupBy(calisphere_id).agg(collect_list(src_field).alias(src_field))
+
     elif src_field_type == "array<string>":
+        xml_df = get_array_field(xml_df, src_field, exclusions, specifics)
+    elif src_field_type.startswith("array"):
+        xml_df = (xml_df
+            .withColumn(src_field, explode(src_field))
+            .withColumn(src_field, col(src_field).cast(StringType()))
+            .groupBy(calisphere_id).agg(collect_list(src_field).alias(src_field))
+        )
         xml_df = get_array_field(xml_df, src_field, exclusions, specifics)
 
     return xml_df
