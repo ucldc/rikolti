@@ -92,6 +92,9 @@ def get_text_from_array(src_arr, exclusion=None, spec=None):
     
     field = []
     for src in src_arr:
+        if not src:
+            continue;
+
         try:
             j = json.loads(src)
         except JSONDecodeError:
@@ -175,31 +178,40 @@ def get_array_field(xml_df, src_field, exclusions=None, specifics=None):
             get_text_from_array_udf(src_field, lit(exclusions), lit(specifics))
         )
     )
+
     return xml_df
 
 def get_source_field(df, src_field, exclusions=None, specifics=None):
     xml_df = df.select(calisphere_id, src_field)
     src_field_type = get_dtype(xml_df, src_field)
+
     if src_field_type == 'string':
         xml_df = get_string_field(xml_df, src_field, exclusions, specifics)
     elif src_field_type.startswith('struct'):
         xml_df = (get_struct_field(xml_df, src_field, exclusions, specifics)
             .withColumn(src_field, array(col(src_field)))
         )
-    elif src_field_type == "array<struct<#text:string,@q:string>>":
+    elif src_field_type == "array<struct<#text:string,@q:string>>" or src_field_type == "array<struct<@q:string,#text:string>>":
         xml_df = xml_df.withColumn(src_field, explode(src_field))
         xml_df = get_struct_field(xml_df, src_field, exclusions, specifics)
-        xml_df.show(10, truncate=False)
+        # xml_df.show(10, truncate=False)
         xml_df = xml_df.groupBy(calisphere_id).agg(collect_list(src_field).alias(src_field))
     elif src_field_type == "array<string>":
         xml_df = get_array_field(xml_df, src_field, exclusions, specifics)
-    elif src_field_type.startswith("array"):
+    elif src_field_type == "array<struct<string:string,struct:struct<@q:string,#text:string>>>":
         xml_df = (xml_df
-            .withColumn(src_field, explode(src_field))
-            .withColumn(src_field, col(src_field).cast(StringType()))
-            .groupBy(calisphere_id).agg(collect_list(src_field).alias(src_field))
+            .withColumn(f"{src_field}_string", col(f"{src_field}.string"))
+            .withColumn(f"{src_field}_struct", col(f"{src_field}.struct"))
         )
-        xml_df = get_array_field(xml_df, src_field, exclusions, specifics)
+        str_field = get_source_field(xml_df, f"{src_field}_string", exclusions, specifics)
+        struct_field = get_source_field(xml_df, f"{src_field}_struct", exclusions, specifics)
+        xml_df = struct_field.join(str_field, calisphere_id)
+        xml_df = (xml_df
+            .select(
+                calisphere_id,
+                concat(f"{src_field}_string",f"{src_field}_struct").alias(src_field)
+            )
+        )
 
     return xml_df
 
@@ -220,6 +232,9 @@ def get_source_field(df, src_field, exclusions=None, specifics=None):
 def main(database, table):
     # Create a glue DynamicFrame
     original_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=table)
+    # Resolve Choice fields before converting to data frame
+    original_DyF = original_DyF.resolveChoice(specs = [("identifier[]", "make_struct")])
+    # original_DyF.toDF().select('identifier').withColumn('identifier_string', col('identifier.string')).show(10, truncate=False)
 
     # convert to apache spark dataframe
     oac_source = original_DyF.toDF() \
