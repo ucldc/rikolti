@@ -30,6 +30,16 @@ oai_test = {
     }
 }
 
-lambda_handler(json.dumps(nuxeo_test), {})
+oac_test = {
+    'collection_id': 509,
+    'harvest_type': 'oac',
+    'write_page': 0,
+    'oac': {
+        'url': "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/tf1z09n955",
+    }
+}
+
+lambda_handler(json.dumps(oac_test), {})
+# lambda_handler(json.dumps(nuxeo_test), {})
 # lambda_handler(json.dumps(ramicova_test), {})
 # lambda_handler(json.dumps(oai_test), {})
