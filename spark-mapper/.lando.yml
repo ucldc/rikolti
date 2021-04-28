@@ -1,0 +1,20 @@
+---
+name: glue
+env_file:
+  - env.local
+services:
+  glue:
+    type: compose
+    app_mount: delegated
+    services:
+      image: chriswessells/awsgluepyspark
+      command: tail -f /dev/null
+    scanner: false
+    meUser: glue
+tooling:
+  gluepytest:
+    service: glue
+  gluepyspark:
+    service: glue
+  gluesparksubmit:
+    service: glue
