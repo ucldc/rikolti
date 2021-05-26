@@ -1,4 +1,6 @@
 name: jp2-playground
+env_file:
+  - env.local
 services:
   python:
     config: {}
