@@ -98,17 +98,22 @@ def main(database, table):
 	new_struct = new.withColumn('contentFile', struct(col('mime-type'), col('url'), col('filename')))
 	new_struct = new_struct.drop('mime-type', 'url', 'filename')
 
-	image_df = nuxeo_df.filter(col('type') == lit('SampleCustomPicture'))
-	image_df = image_df.filter(col('properties.file:content.data').isNotNull())
-	image_df = image_df.select('calisphere-id', 'uid')
-	image_df = (image_df.withColumn('thumbnail', concat(
-			lit("https://nuxeo.cdlib.org/Nuxeo/nxpicsfile/default/"), 
-			col('uid'), 
-			lit("/Medium:content")
-		)
-	))
+	thumbnail_df = (nuxeo_df
+        .withColumn(
+            'thumbnail',
+            when(
+                ((col('type') == lit('SampleCustomPicture')) &
+                    col('properties.file:content.data').isNotNull()),
+                concat(
+                    lit("https://nuxeo.cdlib.org/Nuxeo/nxpicsfile/default/"),
+                    col('uid'),
+                    lit("/Medium:content")
+                )
+            ).otherwise(None)
+        ).select('calisphere-id', 'thumbnail', 'uid')
+    )
 
-	new_struct = new_struct.join(image_df, 'calisphere-id')
+	new_struct = new_struct.join(thumbnail_df, 'calisphere-id')
 	new_struct.show()
 
 	# convert to glue dynamic frame
@@ -119,7 +124,7 @@ def main(database, table):
 	now = datetime.now()
 	collection_id = table
 	dt_string = now.strftime("%Y-%m-%d")
-	path = "s3://ucldc-ingest/glue-test-data-target/mapped/media-{}".format(dt_string)
+	path = f"s3://ucldc-ingest/glue-test-data-target/mapped/{collection_id}-media-{dt_string}"
 
 	partition_keys = ['uid'] 
 	glueContext.write_dynamic_frame.from_options(
