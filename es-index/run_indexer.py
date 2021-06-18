@@ -8,7 +8,7 @@ bucket = 'ucldc-ingest'
 prefix = 'glue-test-data-target/joined/27414/'
 index = '20201005'
 
-session = boto3.Session(profile_name='pachamamaES')
+session = boto3.Session(profile_name='default')
 
 def main(bucket, prefix, index):
 
