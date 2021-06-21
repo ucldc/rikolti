@@ -26,9 +26,7 @@ class Fetcher(object):
             print('no collection id!')
 
 
-    def fetchtolocal(self):
-        page = self.build_fetch_request()
-
+    def fetchtolocal(self, records):
         path = os.path.join(os.getcwd(),f"{self.collection_id}")
         if not os.path.exists(path):
             os.mkdir(path)
@@ -43,20 +41,41 @@ class Fetcher(object):
         )
         f = open(filename, "w+")
 
-        response = requests.get(**page)
-        records = self.get_records(response)
-
         jsonl = "\n".join([json.dumps(record) for record in records])
         f.write(jsonl)
         f.write("\n")
 
-        self.increment(response)
+
+    def fetchtos3(self, records):
+        s3_client = boto3.client('s3')
+        
+        jsonl = "\n".join([json.dumps(record) for record in records])
+        try:
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.put_object
+            s3_client.put_object(
+                ACL=self.s3_data['ACL'],
+                Bucket=self.s3_data['Bucket'],
+                Key=(
+                    f"{self.s3_data['Key']}"
+                    f"{self.write_page}.jsonl"
+                ),
+                Body=jsonl)
+        except Exception as e:
+            print(e)
+
 
     def fetchPage(self):
+        page = self.build_fetch_request()
+        response = requests.get(**page)
+        records = self.get_records(response)
+
         if DEBUG:
-            self.fetchtolocal()
-        # else:
-        #     self.fetchtos3()
+            self.fetchtolocal(records)
+        else:
+            self.fetchtos3(records)
+
+        self.increment(response)
+
 
     def build_fetch_request(self):
         """build parameters for the institution's http_client.get()

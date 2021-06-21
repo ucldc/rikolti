@@ -54,6 +54,9 @@ class NuxeoFetcher(Fetcher):
 
 
     def json(self):
+        if self.nuxeo.get('current_page_index') == -1:
+            return None
+
         return json.dumps({
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
