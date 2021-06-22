@@ -38,9 +38,10 @@ class Fetcher(object):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
+        bucket = os.environ.get('S3_BUCKET', False)
         self.s3_data = {
             "ACL": 'bucket-owner-full-control',
-            "Bucket": 'amy-test-bucket',
+            "Bucket": bucket,
             "Key": f"vernacular_metadata/{self.collection_id}/"
         }
         if not self.collection_id:
@@ -51,7 +52,7 @@ class Fetcher(object):
         """fetch metadata records from remote API to s3
 
         records are stored in json line format at 
-        s3:amy-test-bucket/<collection id>/<date>/<page>.jsonl
+        s3:<bucket>/<collection id>/<page>.jsonl
         """
         async with aioboto3.client("s3") as s3_client:
             async with aiohttp.ClientSession() as http_client:
