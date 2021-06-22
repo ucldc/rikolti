@@ -1,5 +1,6 @@
+import asyncio
 import json
-from Fetcher import Fetcher, FetchError
+from Fetcher import Fetcher
 
 import os
 TOKEN = os.environ['NUXEO']
@@ -11,9 +12,9 @@ class NuxeoFetcher(Fetcher):
         if not self.nuxeo.get('current_page_index'):
             self.nuxeo['current_page_index'] = 0
 
-    def build_fetch_request(self):
+    async def build_fetch_request(self):
         page = self.nuxeo.get('current_page_index')
-        if (page and page != -1) or page == 0:
+        if page or page == 0:
             url = (
                 f"https://nuxeo.cdlib.org/Nuxeo/site/api/v1/"
                 f"repo/default/path{self.nuxeo.get('path')}@children"
@@ -38,25 +39,22 @@ class NuxeoFetcher(Fetcher):
         return request
 
 
-    def get_records(self, httpResp):
-        response = httpResp.json()
-        documents = [self.build_id(doc) for doc in response['entries']]
+    async def get_records(self, httpResp):
+        response = await httpResp.json()
+        documents = [await self.build_id(doc) for doc in response['entries']]
         return documents
 
 
-    def increment(self, httpResp):
-        super(NuxeoFetcher, self).increment(httpResp)
-        resp = httpResp.json()
+    async def increment(self, httpResp):
+        await super(NuxeoFetcher, self).increment(httpResp)
+        resp = await httpResp.json()
         if resp.get('isNextPageAvailable'):
             self.nuxeo['current_page_index'] = self.nuxeo.get('current_page_index', 0) + 1
         else:
-            self.nuxeo['current_page_index'] = -1
+            self.nuxeo['current_page_index'] = None
 
 
-    def json(self):
-        if self.nuxeo.get('current_page_index') == -1:
-            return None
-
+    async def json(self):
         return json.dumps({
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
@@ -65,7 +63,7 @@ class NuxeoFetcher(Fetcher):
         })
 
 
-    def build_id(self, document):
+    async def build_id(self, document):
         calisphere_id = f"{self.collection_id}--{document.get('uid')}"
         document['calisphere-id'] = calisphere_id
         return document
