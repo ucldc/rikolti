@@ -38,6 +38,9 @@ def index(request):
 		data = { "query": { } }
 		for term, value in get.items():
 			data['query']['term'] = {term: value}
+
+	data['highlight'] = {"fields": {"word_bucket": {}}}
+	data['_source'] = {"includes": ["type", "title"]}
 	# data = urllib.parse.urlencode(query)
 	# data = data.encode('ascii')
 
@@ -46,24 +49,25 @@ def index(request):
 
 	# with urllib.request.urlopen(f"{es_host}/_search?pretty", data.encode()) as resp:
 		# hits = json.loads(resp.read())['hits']['hits']
-	resp = elastic_client.search(index="testing", body=data, size=999)
+	resp = elastic_client.search(index="20201005", body=data, size=999)
 	count = resp['hits']['total']['value']
 	hits = resp['hits']['hits']
 
 	fields = [
 		'title', 
 		'type', 
-		'source', 
-		'date', 
-		'publisher', 
-		'transcription',
-		'rights',
-		'subject',
-		'alternative_title', 
-		'extent',
-		'temporal',
-		'provenance',
-		'location',
+		'snippets'
+		# 'source', 
+		# 'date', 
+		# 'publisher', 
+		# 'transcription',
+		# 'rights',
+		# 'subject',
+		# 'alternative_title', 
+		# 'extent',
+		# 'temporal',
+		# 'provenance',
+		# 'location',
 	]
 
 	for hit in hits:
