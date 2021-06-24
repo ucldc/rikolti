@@ -3,9 +3,10 @@ from datetime import datetime
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.dynamicframe import DynamicFrame
+from awsglue.utils import getResolvedOptions
 from awsglue.transforms import *
 from pyspark.sql.functions import *
-from pyspark.sql.types import * 
+from pyspark.sql.types import *
 
 def main(database, table):
 
@@ -13,44 +14,51 @@ def main(database, table):
     original_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=table)
     
     # convert to apache spark dataframe
-    original_DF = original_DyF.toDF() \
-        .distinct()
+    original_DF = (original_DyF.toDF().distinct())
 
     # register a user defined function for use by spark
     # FIXME write this in scala and call from python. starting a python process is expensive and it is moreover very costly to serialize the data to python
     spark.udf.register("map_rights_codes_py", map_rights_codes, StringType())
 
     # select columns that are a straight mapping
-    transformed_DF = original_DF \
-        .select(
-            col('uid'), \
-            col('calisphere-id'), \
-            col('properties.ucldc_schema:publisher'), \
-            col('properties.ucldc_schema:alternativetitle'), \
-            col('properties.ucldc_schema:extent'), \
-            col('properties.ucldc_schema:publisher'), \
-            col('properties.ucldc_schema:temporalcoverage'), \
-            col('properties.dc:title'), \
-            col('properties.ucldc_schema:type'), \
-            col('properties.ucldc_schema:source'), \
-            col('properties.ucldc_schema:provenance'), \
-            col('properties.ucldc_schema:physlocation'), \
-            col('properties.ucldc_schema:rightsstartdate'), \
-            col('properties.ucldc_schema:transcription'), \
-        )
+    direct_fields = [
+        'uid',
+        'calisphere-id'
+    ]
+    subfields = [
+        'ucldc_schema:publisher',
+        'ucldc_schema:alternativetitle',
+        'ucldc_schema:extent',
+        'ucldc_schema:publisher',
+        'ucldc_schema:temporalcoverage',
+        'dc:title',
+        'ucldc_schema:type',
+        'ucldc_schema:source',
+        'ucldc_schema:provenance',
+        'ucldc_schema:physlocation',
+        'ucldc_schema:rightsstartdate',
+        'ucldc_schema:transcription'
+    ]
+    direct_fields = [f for f in direct_fields if f in original_DF.columns]
+    subfields = check_subfields(original_DF, 'properties', subfields)
+    direct_fields = direct_fields + subfields
+    if direct_fields:
+        transformed_DF = original_DF.select(direct_fields)
 
     # process columns that need more complex unpacking/mapping
     date_df = map_date(original_DF)
-    joinExpression = transformed_DF['uid'] == date_df['date_uid']
-    transformed_DF = transformed_DF.join(date_df, joinExpression)
+    if date_df:
+        joinExpression = transformed_DF['uid'] == date_df['date_uid']
+        transformed_DF = transformed_DF.join(date_df, joinExpression)
 
     rights_df = map_rights(original_DF)
     joinExpression = transformed_DF['uid'] == rights_df['rights_uid']
     transformed_DF = transformed_DF.join(rights_df, joinExpression)
 
     subject_df = map_subject(original_DF)
-    joinExpression = transformed_DF['uid'] == subject_df['subject_uid']
-    transformed_DF = transformed_DF.join(subject_df, joinExpression)
+    if subject_df:
+        joinExpression = transformed_DF['uid'] == subject_df['subject_uid']
+        transformed_DF = transformed_DF.join(subject_df, joinExpression)
     
     # title needs to be repeatable
     # physdesc needs to be made into a struct
@@ -80,9 +88,7 @@ def main(database, table):
 
     # write transformed data to target
     now = datetime.now()
-    collection_id = '466'
-    dt_string = now.strftime("%Y-%m-%d")
-    path = "s3://ucldc-ingest/glue-test-data-target/mapped/{}".format(dt_string)
+    path = f"s3://rikolti/mapped_metadata/{table}/"
 
     partition_keys = ["nuxeo_uid"] 
     glueContext.write_dynamic_frame.from_options(
@@ -90,6 +96,8 @@ def main(database, table):
        connection_type = "s3",
        connection_options = {"path": path, "partitionKeys": partition_keys},
        format = "json")
+
+    return True
 
 
 def map_rights(dataframe):
@@ -130,36 +138,85 @@ def map_creator(dataframe):
 
 
 def map_date(dataframe):
+    date_df = (dataframe
+        .select(col('uid'), col('properties.ucldc_schema:date'))
+        .withColumn('date_struct', explode(col('ucldc_schema:date')))
+    )
+    if date_df.count() > 0:
+        date_df = (date_df.select('uid', 'date_struct.date')
+            .groupBy('uid')
+            .agg(collect_set('date'))
+            .withColumnRenamed('uid', 'date_uid')
+            .withColumnRenamed('collect_set(date)', 'date_mapped')
+        )
+        return date_df
 
-    date_df = dataframe \
-        .select(col('uid'), col('properties.ucldc_schema:date')) \
-        .withColumn('date_struct', explode(col('ucldc_schema:date'))) \
-        .select('uid', 'date_struct.date') \
-        .groupBy('uid') \
-        .agg(collect_set('date')) \
-        .withColumnRenamed('uid', 'date_uid') \
-        .withColumnRenamed('collect_set(date)', 'date_mapped')
+    return None
 
-    return date_df
+def get_dtype(df, col):
+    return [dtype for name,dtype in df.dtypes if name == col][0]
 
+def check_subfields(df, field, subfields):
+    field_df = df.select(f'{field}.*')
+    subfields = [f'{field}.{s}' for s in subfields if s in field_df.columns]
+    return subfields
+
+def check_array_subfields(df, field, subfields):
+    field_df = df.select(field)
+    subfields = [f'{field}.{s}' for s in subfields if s in f'{field_df.schema}']
+    return subfields
 
 def map_subject(dataframe):
+    subject_fields = check_subfields(
+        dataframe, 
+        'properties', 
+        ['ucldc_schema:subjecttopic', 'ucldc_schema:subjectname']
+    )
+    subject_subfields = []
+    if 'properties.ucldc_schema:subjecttopic' in subject_fields:
+        subject_subfields += check_array_subfields(
+            dataframe, 
+            'properties.ucldc_schema:subjecttopic',
+            ['heading']
+        )
+    if 'properties.ucldc_schema:subjectname' in subject_fields:
+        subject_subfields += check_array_subfields(
+            dataframe,
+            'properties.ucldc_schema:subjectname',
+            ['name'])
 
-    subject_df = dataframe \
-        .select(col('uid'), col('properties.ucldc_schema:subjecttopic.heading'), col('properties.ucldc_schema:subjectname.name')) \
-        .select('uid', array_union('heading', 'name')) \
-        .withColumnRenamed('uid', 'subject_uid') \
-        .withColumnRenamed('array_union(heading, name)', 'subject_mapped')
+    if subject_subfields:
+        flattened_subfields = [f.split('.')[-1] for f in subject_subfields]
 
-    return subject_df
+        subject_df = (dataframe
+            .select(subject_subfields + ['uid'])
+        )
+        if len(flattened_subfields) == 2:
+            subject_df = (subject_df.select(
+                    col('uid').alias('subject_uid'), 
+                    array_union(*flattened_subfields).alias('subject_mapped')
+                )
+            ) 
+        else:
+            subject_df = (subject_df.select(
+                col('uid').alias('subject_uid'),
+                col(flattened_subfields[0]).alias('subject_mapped')))
+
+        return subject_df
+    
+    return None
 
 
 if __name__ == "__main__":
+
+    args = getResolvedOptions(sys.argv,['JOB_NAME', 'collection_id'])
 
     # Create a Glue context
     glueContext = GlueContext(SparkContext.getOrCreate()) 
 
     spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-    sys.exit(main("pachamama-demo", "27414"))
+    print(args['collection_id'])
+    main("rikolti", args['collection_id'])
+    job.commit()
 
