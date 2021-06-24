@@ -4,10 +4,11 @@ from Fetcher import Fetcher, FetchError
 import os
 TOKEN = os.environ['NUXEO']
 
+
 class NuxeoFetcher(Fetcher):
     def __init__(self, params):
         super(NuxeoFetcher, self).__init__(params)
-        self.nuxeo = params.get('nuxeo') 
+        self.nuxeo = params.get('nuxeo')
         if not self.nuxeo.get('current_page_index'):
             self.nuxeo['current_page_index'] = 0
 
@@ -30,28 +31,30 @@ class NuxeoFetcher(Fetcher):
                 'currentPageIndex': self.nuxeo.get('current_page_index')
             }
             request = {'url': url, 'headers': headers, 'params': params}
-            print(f"Fetching page {request.get('params').get('currentPageIndex')} at {request.get('url')}")
+            print(
+                f"Fetching page"
+                f" {request.get('params').get('currentPageIndex')} "
+                f"at {request.get('url')}")
         else:
             request = None
             print("No more pages to fetch")
 
         return request
 
-
-    def get_records(self, httpResp):
-        response = httpResp.json()
+    def get_records(self, http_resp):
+        response = http_resp.json()
+        print(response)
         documents = [self.build_id(doc) for doc in response['entries']]
         return documents
 
-
-    def increment(self, httpResp):
-        super(NuxeoFetcher, self).increment(httpResp)
-        resp = httpResp.json()
+    def increment(self, http_resp):
+        super(NuxeoFetcher, self).increment(http_resp)
+        resp = http_resp.json()
         if resp.get('isNextPageAvailable'):
-            self.nuxeo['current_page_index'] = self.nuxeo.get('current_page_index', 0) + 1
+            current_page = self.nuxeo.get('current_page_index', 0)
+            self.nuxeo['current_page_index'] = current_page + 1
         else:
             self.nuxeo['current_page_index'] = -1
-
 
     def json(self):
         if self.nuxeo.get('current_page_index') == -1:
@@ -60,10 +63,9 @@ class NuxeoFetcher(Fetcher):
         return json.dumps({
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
-            "write_page": self.write_page, 
+            "write_page": self.write_page,
             "nuxeo": self.nuxeo
         })
-
 
     def build_id(self, document):
         calisphere_id = f"{self.collection_id}--{document.get('uid')}"

@@ -38,8 +38,27 @@ oac_test = {
         'url': "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/tf1z09n955",
     }
 }
-
+nordskogpapers = {
+  "collection_id": 26746,
+  "harvest_type": "NuxeoFetcher",
+  "write_page": 0,
+  "nuxeo": {
+    "path": "/asset-library/UCR/Special Collections & University Archives/Archival/Andrae B. Nordskog papers/"
+  }
+}
+spectrum = {
+  "collection_id": 26697,
+  "harvest_type": "NuxeoFetcher",
+  "write_page": 0,
+  "nuxeo": {
+    "path": "/asset-library/UCI/SCA_UniversityArchives/Publications/Spectrum/"
+  }
+}
+# 27414
+# 26710 - nuxeo video
+# 9513 - nuxeo image
 # lambda_handler(json.dumps(oac_test), {})
 # lambda_handler(json.dumps(nuxeo_test), {})
-lambda_handler(json.dumps(ramicova_test), {})
+# lambda_handler(json.dumps(ramicova_test), {})
+lambda_handler(json.dumps(nordskogpapers), {})
 # lambda_handler(json.dumps(oai_test), {})

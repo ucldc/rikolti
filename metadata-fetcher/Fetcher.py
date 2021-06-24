@@ -11,6 +11,7 @@ if not DEBUG:
 class FetchError(Exception):
     pass
 
+
 class Fetcher(object):
     def __init__(self, params):
         self.harvest_type = params.get('harvest_type')
@@ -25,13 +26,12 @@ class Fetcher(object):
         if not self.collection_id:
             print('no collection id!')
 
-
     def fetchtolocal(self, records):
-        path = os.path.join(os.getcwd(),f"{self.collection_id}")
+        path = os.path.join(os.getcwd(), f"{self.collection_id}")
         if not os.path.exists(path):
             os.mkdir(path)
 
-        date_path = os.path.join(path,f"{time.strftime('%Y-%m-%d')}")
+        date_path = os.path.join(path, f"{time.strftime('%Y-%m-%d')}")
         if not os.path.exists(date_path):
             os.mkdir(date_path)
 
@@ -45,10 +45,9 @@ class Fetcher(object):
         f.write(jsonl)
         f.write("\n")
 
-
     def fetchtos3(self, records):
         s3_client = boto3.client('s3')
-        
+
         jsonl = "\n".join([json.dumps(record) for record in records])
         try:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.put_object
@@ -63,8 +62,7 @@ class Fetcher(object):
         except Exception as e:
             print(e)
 
-
-    def fetchPage(self):
+    def fetch_page(self):
         page = self.build_fetch_request()
         response = requests.get(**page)
         records = self.get_records(response)
@@ -76,7 +74,6 @@ class Fetcher(object):
 
         self.increment(response)
 
-
     def build_fetch_request(self):
         """build parameters for the institution's http_client.get()
 
@@ -86,19 +83,19 @@ class Fetcher(object):
         """
         pass
 
-    def get_records(self, httpResp):
-        """parse httpResp from institution API into a list of records
+    def get_records(self, http_resp):
+        """parse http_resp from institution API into a list of records
 
-        should return a list of dictionaries which can easily be serialized 
+        should return a list of dictionaries which can easily be serialized
         by json.dumps into json line format; takes as an argument:
         https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientResponse
         """
         pass
 
-    def increment(self, httpResp):
+    def increment(self, http_resp):
         """increment internal state for fetching the next page
 
-        takes as an argument the httpResp from institution API call
+        takes as an argument the http_resp from institution API call
         https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientResponse
         """
         self.write_page = self.write_page + 1
