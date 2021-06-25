@@ -114,17 +114,17 @@ def main(database, table):
     )
 
 	new_struct = new_struct.join(thumbnail_df, 'calisphere-id')
-	new_struct.show()
+# 	new_struct.show()
 
 	# convert to glue dynamic frame
 	transformed_DyF = DynamicFrame.fromDF(new_struct, glueContext, "transformed_DyF")
-	transformed_DyF.show()
+# 	transformed_DyF.show()
 
 	# write transformed data to target
 	now = datetime.now()
 	collection_id = table
 	dt_string = now.strftime("%Y-%m-%d")
-	path = f"s3://ucldc-ingest/glue-test-data-target/mapped/{collection_id}-media-{dt_string}"
+	path = f"s3://rikolti/media_instructions/{collection_id}"
 
 	partition_keys = ['uid'] 
 	glueContext.write_dynamic_frame.from_options(
@@ -142,13 +142,14 @@ if __name__ == '__main__':
 
 	spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-	database = "pachamama-demo"
+	database = "rikolti"
+	table = "466"
+	# table = "26697"
+	# table = "26098"
+	# table = "27414"
+
 	# table = "27414" # pdfs
 	# table = "26710" # videos
-	table = "9513"  # images
+	# table = "9513"  # images
 
 	sys.exit(main(database, table))
-
-
-
-
