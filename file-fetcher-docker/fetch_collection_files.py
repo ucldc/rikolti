@@ -6,9 +6,10 @@ from file_fetchers.nuxeo_file_fetcher import NuxeoFileFetcher
 """ fetch content files for a given collection """
 def main(collection_id):
     # get collection type from registry and map to FileFetcher type
+    # research the best way to do this: https://github.com/ucldc/rikolti/issues/105
     harvest_type = 'nuxeo'
 
-    if harvest_type:
+    if harvest_type == 'nuxeo':
         file_fetcher = NuxeoFileFetcher(collection_id)
         file_fetcher.fetch_content_files()
 

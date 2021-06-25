@@ -10,6 +10,10 @@ NUXEO_BASIC_AUTH = os.environ['NUXEO_BASIC_AUTH']
 magick_convert_location = os.environ.get('PATH_MAGICK_CONVERT', '/usr/bin/convert')
 ffmpeg_location = os.environ.get('PATH_FFMPEG', '/usr/bin/ffmpeg')
 ffprobe_location = os.environ.get('PATH_FFPROBE','/usr/bin/ffprobe')
+S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
+S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
+S3_MEDIA_INSTRUCTIONS_FOLDER = os.environ['S3_MEDIA_INSTRUCTIONS_FOLDER']
+S3_CONTENT_FILES_FOLDER = os.environ['S3_CONTENT_FILES_FOLDER']
 
 class NuxeoFileFetcher(object):
 
@@ -21,42 +25,43 @@ class NuxeoFileFetcher(object):
         """ fetch content files to store in s3 """
         print(f"fetching content files for collection {self.collection_id=}")
 
-        s3_bucket = 'ucldc-ingest'
+        # get the media instructions for this collection
         s3 = boto3.client('s3')
-        prefix = f"glue-test-data-target/mapped/{self.collection_id}-media-2021-06-01"
+        prefix = f"{S3_MEDIA_INSTRUCTIONS_FOLDER}/{self.collection_id}"
 
         response = s3.list_objects_v2(
-            Bucket=s3_bucket,
+            Bucket=S3_PRIVATE_BUCKET,
             Prefix=prefix
         )
 
         for content in response['Contents']:
             # read in the json stored at Key
             response = s3.get_object(
-                Bucket=s3_bucket,
+                Bucket=S3_PRIVATE_BUCKET,
                 Key=content['Key']
             )
-            media_json = json.loads(response['Body'].read())
+            media_instructions = json.loads(response['Body'].read())
 
-            if media_json['contentFile'] is not None:
-                self.stash_content_files(media_json)
+            if media_instructions['contentFile'] is not None:
+                self.stash_content_files(media_instructions)
 
         return "Success" #TODO: return json representation of something useful
 
-    def stash_content_files(self, media_json):
+    def stash_content_files(self, media_instructions):
         """ stash content files on s3 """
-        #print(f"{media_json=}")
-        calisphere_id = media_json['calisphere-id']
-        filename = media_json['contentFile']['filename']
-        source_url = media_json['contentFile']['url']
-        mimetype = media_json['contentFile']['mime-type']
+        #print(f"{media_instructions=}")
+        calisphere_id = media_instructions['calisphere-id']
+        filename = media_instructions['contentFile']['filename']
+        source_url = media_instructions['contentFile']['url']
+        mimetype = media_instructions['contentFile']['mime-type']
 
-        s3_bucket = 'ucldc-ingest'
+        s3_bucket = S3_PUBLIC_BUCKET
         s3 = boto3.client('s3')
         requests_session = requests.Session()
 
-        s3_key = f"content-files-fetched/{calisphere_id}::{filename}"
+        s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{calisphere_id}::{filename}"
         print(f"{s3_key=}")
+
 
         # check to see if key already exists on s3
         # TODO: allow for clean restash
@@ -71,8 +76,7 @@ class NuxeoFileFetcher(object):
                 s3_key_exists = False
                 print(f"stashing {s3_key}")
 
-        if 1 == 1:
-        #if s3_key_exists is False:
+        if s3_key_exists is False:
 
             response = requests_session.get(source_url,
                 auth=(NUXEO_BASIC_USER, NUXEO_BASIC_AUTH),
@@ -82,11 +86,10 @@ class NuxeoFileFetcher(object):
 
             with response as part:
 
-                ''' stash content file on s3
-                    https://amalgjose.com/2020/08/13/python-program-to-stream-data-from-a-url-and-write-it-to-s3/
-                    https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpu-upload-object.html
+                # stash content file on s3
+                # https://amalgjose.com/2020/08/13/python-program-to-stream-data-from-a-url-and-write-it-to-s3/
+                # https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpu-upload-object.html
 
-                '''
                 part.raw.decode_content = True
                 if s3_key_exists is False:
                     conf = boto3.s3.transfer.TransferConfig(multipart_threshold=10000, max_concurrency=4)
@@ -96,6 +99,7 @@ class NuxeoFileFetcher(object):
                 if mimetype == 'application/pdf':
                     print(f"create thumbnail and stash on s3 at {s3_key=}")
                     # download copy of contentfile to /tmp
+                    '''
                     local_filepath = f"/tmp/{filename}"
 
                     with open(local_filepath, 'wb') as f:
@@ -108,9 +112,8 @@ class NuxeoFileFetcher(object):
                     # updoad thumbnail to s3
                     s3_key = f"nuxeo-thumbnails/{calisphere_id}::thumbnail.png"
 
-
                     # delete local files
-
+                    '''
                 elif mimetype.startswith('video'):
                     s3_key = f"nuxeo-thumbnails/{calisphere_id}::thumbnail.png"
                     print(f"create thumbnail and stash on s3 at {s3_key=}")
