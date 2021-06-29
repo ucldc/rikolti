@@ -66,6 +66,7 @@ def main(database, table):
     # title needs to be repeatable
     # physdesc needs to be made into a struct
     # relatedresource
+    transformed_df = transformed_df.withColumn('collection_id', lit(table))
 
     # convert to glue dynamic frame
     transformed_dyf = DynamicFrame.fromDF(
@@ -90,12 +91,13 @@ def main(database, table):
             ('date_mapped', 'array', 'date', 'array'),
             ('rights_mapped', 'array', 'rights', 'array'),
             ('subject_mapped', 'array', 'subject', 'array'),
+            ('collection_id', 'string', 'collection_id', 'string')
         ])
 
     # write transformed data to target
     path = f"s3://rikolti/mapped_metadata/{table}/"
 
-    partition_keys = ["nuxeo_uid"]
+    partition_keys = ["collection_id"]
     glue_context.write_dynamic_frame.from_options(
        frame=transformed_dyf,
        connection_type="s3",
@@ -241,4 +243,3 @@ if __name__ == "__main__":
 
     print(args['collection_id'])
     main("rikolti", args['collection_id'])
-    job.commit()
