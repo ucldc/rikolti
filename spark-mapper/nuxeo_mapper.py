@@ -95,7 +95,7 @@ def main(database, table):
         ])
 
     # write transformed data to target
-    path = f"s3://rikolti/mapped_metadata/{table}/"
+    path = f"s3://rikolti/mapped_metadata/"
 
     partition_keys = ["collection_id"]
     glue_context.write_dynamic_frame.from_options(
