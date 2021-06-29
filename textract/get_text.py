@@ -23,6 +23,7 @@ def get_text(sns_message, context):
 	next=True
 	page=0
 	words = []
+	collection_id = job['DocumentLocation']['S3ObjectName'].split('/')[-2]
 	calisphere_id = job['DocumentLocation']['S3ObjectName'].split('/')[-1].split('::')[0]
 	while(next):
 		if page==0:
@@ -42,29 +43,29 @@ def get_text(sns_message, context):
 		next = response.get('NextToken')
 
 		s3_client.put_object(
-			Bucket='amy-test-bucket',
+			Bucket='rikolti',
 			Body=json.dumps(response).encode('utf-8'),
-			Key=f"466-textract/{date}/textract-results/{calisphere_id}/{page}.json"
+			Key=f"textract/{collection_id}/{calisphere_id}/minimal_processing/{page}.json"
 		)
 		page+=1
 
 	textract_record = s3_client.get_object(
-		Bucket='amy-test-bucket',
-		Key=f"466-textract/{date}/{calisphere_id}.json"
+		Bucket='rikolti',
+		Key=f"textract/{collection_id}/{calisphere_id}.json"
 	)
 	job_record = json.loads(textract_record['Body'].read())
 	job_record['word_bucket'] = " ".join(words)
-	if 'textract_job' in job_record:
-		del job_record['textract_job']
+	# if 'textract_job' in job_record:
+	# 	del job_record['textract_job']
 	s3_client.put_object(
-		Bucket='amy-test-bucket',
-		Key=f"466-textract/{date}/{calisphere_id}.json",
+		Bucket='rikolti',
+		Key=f"textract/{collection_id}/{calisphere_id}.json",
 		Body=json.dumps(job_record).encode('utf-8')
 	)
 	
 	return {
 		'statusCode': 200,
-		'body': json.dumps('Hello from Lambda!')
+		'body': json.dumps(f'Got textract results for {collection_id}')
 	}
 
 
