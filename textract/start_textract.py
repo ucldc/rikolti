@@ -34,7 +34,7 @@ def lambda_handler(payload, context):
 				},
 				OutputConfig={
 					"S3Bucket": "rikolti",
-					"S3Prefix": f"textract/{collection_id}/{calisphere_id}/textract-raw"
+					"S3Prefix": f"textract/raw-output/{collection_id}/{calisphere_id}/textract-raw"
 				}
 			)
 			print({'calisphere-id': key, 'job_id': textract_job})

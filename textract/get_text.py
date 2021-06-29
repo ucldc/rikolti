@@ -45,7 +45,7 @@ def get_text(sns_message, context):
 		s3_client.put_object(
 			Bucket='rikolti',
 			Body=json.dumps(response).encode('utf-8'),
-			Key=f"textract/{collection_id}/{calisphere_id}/minimal_processing/{page}.json"
+			Key=f"textract/raw-output/{collection_id}/{calisphere_id}/minimal_processing/{page}.json"
 		)
 		page+=1
 
