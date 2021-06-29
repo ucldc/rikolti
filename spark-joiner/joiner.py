@@ -1,40 +1,51 @@
 import sys
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
+from awsglue.dynamicframe import DynamicFrame
+from awsglue.utils import getResolvedOptions
 from awsglue.transforms import *
-from datetime import datetime
 
 '''
 
    Join output of mapper and textract jobs
 
    See "Code Example: Joining and Relationalizing Data": https://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python-samples-legislators.html
+   See also "How can I run an AWS Glue Job on a specific partition in Amazon S3": https://aws.amazon.com/premiumsupport/knowledge-center/glue-job-specific-s3-partition/
 
 '''
 def main(database, collection_id):
 
     # create glue DynamicFrames
-    metadata_table = 'mapped'
-    mapped_metadata_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=metadata_table)
+    mapped_metadata_DyF = glueContext.create_dynamic_frame.from_catalog(
+        database=database,
+        table_name='mapped_metadata',
+        push_down_predicate=f"(collection_id == '{collection_id}')")
 
-    textract_table = 'textract_27414'
-    textract_output_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=textract_table)
+    textract_output_DyF = glueContext.create_dynamic_frame.from_catalog(
+        database=database,
+        table_name='textract',
+        push_down_predicate=f"(collection_id == '{collection_id}')")
 
 
-    # join tables together on calisphere-id
-    joined_DyF = Join.apply(mapped_metadata_DyF, textract_output_DyF, 'calisphere-id', 'calisphere-id')
+    mapped_metadata_df = mapped_metadata_DyF.toDF().distinct()
+    textract_df = textract_output_DyF.toDF().distinct()
 
-    # remove duplicate `.calisphere-id` field
-    joined_DyF = joined_DyF.drop_fields(['`.calisphere-id`'])
+    if textract_df.head():
+        textract_df = textract_df.drop('textract_job', 'collection_id')
+        joined_df = mapped_metadata_df.join(
+            textract_df, "calisphere-id", "left_outer")
+    else:
+        joined_df = mapped_metadata_df
+
+    joined_dyf = DynamicFrame.fromDF(
+        joined_df, glueContext, "joined_dyf")
 
     # write data to target
-    now = datetime.now()
-    dt_string = now.strftime("%Y-%m-%d")
-    path = "s3://ucldc-ingest/glue-test-data-target/joined/{}".format(collection_id, dt_string)
+    path = "s3://rikolti/joined/"
 
-    partition_keys = ["nuxeo_uid"]
+    partition_keys = ["collection_id"]
     glueContext.write_dynamic_frame.from_options(
-       frame = joined_DyF,
+       frame = joined_dyf,
        connection_type = "s3",
        connection_options = {"path": path, "partitionKeys": partition_keys},
        format = "json")
@@ -55,9 +66,13 @@ if __name__ == "__main__":
     index = argv.index
     '''
 
+    args = getResolvedOptions(sys.argv, ['JOB_NAME', 'collection_id'])
+
     # Create a Glue context
     glueContext = GlueContext(SparkContext.getOrCreate())
 
     spark = glueContext.spark_session # SparkSession provided with GlueContext. Pass this around at runtime rather than instantiating within every python class
 
-    sys.exit(main("pachamama-demo", "27414"))
+    print(f"Joining {args['collection_id']}")
+    main("rikolti", args['collection_id'])
+
