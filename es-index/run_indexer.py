@@ -4,9 +4,9 @@ import boto3
 import json
 from nuxeo_indexer import NuxeoESIndexer
 
-bucket = 'ucldc-ingest'
-prefix = 'glue-test-data-target/joined/27414/'
-index = '20201005'
+bucket = 'rikolti'
+prefix = 'joined/collection_id=26098/'
+index = 'testing'
 
 session = boto3.Session(profile_name='default')
 
@@ -16,7 +16,7 @@ def main(bucket, prefix, index):
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket)
 
-    es_id = 0 # just dumbly incrementing the id for now
+    es_id = 2066 # just dumbly incrementing the id for now
     for obj in bucket.objects.filter(Prefix=prefix):
         body = obj.get()['Body'].read()
         lines = body.splitlines()

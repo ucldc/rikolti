@@ -49,7 +49,7 @@ def index(request):
 
 	# with urllib.request.urlopen(f"{es_host}/_search?pretty", data.encode()) as resp:
 		# hits = json.loads(resp.read())['hits']['hits']
-	resp = elastic_client.search(index="20201005", body=data, size=999)
+	resp = elastic_client.search(index="testing", body=data, size=999)
 	count = resp['hits']['total']['value']
 	hits = resp['hits']['hits']
 

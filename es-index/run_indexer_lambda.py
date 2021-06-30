@@ -6,8 +6,8 @@ from nuxeo_indexer import NuxeoESIndexer
     lambda function for S3 to use as event handler when new content arrives in relevant bucket
     https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-aws-integrations.html#es-aws-integrations-s3-lambda-es
 '''
-bucket = 'ucldc-ingest'
-prefix = 'glue-test-data-target/2020_03_19_0022/20200521_104757/'
+bucket = 'rikolti'
+prefix = 'joined/collection_id='
 index = 'testing'
 
 s3 = boto3.client('s3')
