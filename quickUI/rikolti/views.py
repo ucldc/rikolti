@@ -77,7 +77,7 @@ def index(request):
 		hit['source'].sort(key=lambda k: fields.index(k['term']))
 		hit['id'] = hit['_id']
 
-	return render(request, 'es/index.html', {
+	return render(request, 'rikolti/index.html', {
 		'fields': fields, 
 		'count': count,
 		'search_results': hits,
