@@ -3,10 +3,11 @@ import urllib.request
 import json
 import os
 from elasticsearch import Elasticsearch
+from django.conf import settings
 
-es_host = os.environ['ES_HOST']
-es_user = os.environ['ES_USER']
-es_pass = os.environ['ES_PASS']
+es_host = settings.ES_HOST
+es_user = settings.ES_USER
+es_pass = settings.ES_PASS
 
 # password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
 # password_mgr.add_password(None, es_host, es_user, es_pass)
