@@ -3,10 +3,11 @@ import urllib.request
 import json
 import os
 from elasticsearch import Elasticsearch
+from django.conf import settings
 
-es_host = os.environ['ES_HOST']
-es_user = os.environ['ES_USER']
-es_pass = os.environ['ES_PASS']
+es_host = settings.ES_HOST
+es_user = settings.ES_USER
+es_pass = settings.ES_PASS
 
 # password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
 # password_mgr.add_password(None, es_host, es_user, es_pass)
@@ -49,7 +50,7 @@ def index(request):
 
 	# with urllib.request.urlopen(f"{es_host}/_search?pretty", data.encode()) as resp:
 		# hits = json.loads(resp.read())['hits']['hits']
-	resp = elastic_client.search(index="20201005", body=data, size=999)
+	resp = elastic_client.search(index="testing", body=data, size=999)
 	count = resp['hits']['total']['value']
 	hits = resp['hits']['hits']
 
@@ -77,7 +78,7 @@ def index(request):
 		hit['source'].sort(key=lambda k: fields.index(k['term']))
 		hit['id'] = hit['_id']
 
-	return render(request, 'es/index.html', {
+	return render(request, 'rikolti/index.html', {
 		'fields': fields, 
 		'count': count,
 		'search_results': hits,
