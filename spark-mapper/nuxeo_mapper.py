@@ -185,9 +185,16 @@ def check_subfields(df, field, subfields):
 
 
 def check_array_subfields(df, field, subfields):
-    field_df = df.select(field)
+    field_df = (df
+        .select(field)
+        .withColumn('exploded', explode(col(field)))
+        .drop(field))
+    if field_df.count() == 0:
+        return []
+
+    field_df.select('exploded.*')
     subfields = [f'{field}.{s}'
-                 for s in subfields if s in f'{field_df.schema}']
+                 for s in subfields if s in field_df.columns]
     return subfields
 
 
