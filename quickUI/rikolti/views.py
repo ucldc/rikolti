@@ -1,7 +1,7 @@
 import json
 import boto3
 from json import JSONDecodeError
-from botocore.exceptions import NoCredentialsError
+from botocore.exceptions import NoCredentialsError, ClientError
 
 from django.conf import settings
 from django.shortcuts import render
@@ -97,8 +97,7 @@ def s3_search(item_id, collection_id, prefix):
             Bucket='rikolti',
             Prefix=f'{prefix}{collection_id}/'
         )
-    except NoCredentialsError as e:
-        print(e)
+    except ClientError as e:
         return ''
 
     keys = [obj['Key'] for obj in s3_resp['Contents']]
