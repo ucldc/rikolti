@@ -1,9 +1,7 @@
-import os
 import json
 import boto3
-import urllib.request
-import re
 from json import JSONDecodeError
+from botocore.exceptions import NoCredentialsError
 
 from django.conf import settings
 from django.shortcuts import render
@@ -94,10 +92,14 @@ def index(request):
 
 
 def s3_search(item_id, collection_id, prefix):
-    s3_resp = s3_client.list_objects_v2(
-        Bucket='rikolti',
-        Prefix=f'{prefix}{collection_id}/'
-    )
+    try:
+        s3_resp = s3_client.list_objects_v2(
+            Bucket='rikolti',
+            Prefix=f'{prefix}{collection_id}/'
+        )
+    except NoCredentialsError as e:
+        print(e)
+        return ''
 
     keys = [obj['Key'] for obj in s3_resp['Contents']]
     found = ''
