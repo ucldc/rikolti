@@ -27,16 +27,18 @@
 						<!-- <th scope="row">{{result.id}}</th> -->
 						{% for field in result.source %}
 						<td>
-							{% if field.type == "list" %}
-								{% for item in field.value %}
-								<a href="/es/?{{field.term}}={{item}}">
-									{{ item }}
-								</a><br/>
-								{% endfor %}
-							{% else %}
-								<a href="/es/?{{field.term}}={{field.value}}">
+							{% if field.term == 'title' %}
+								<a href="{% url 'rikolti:itemView' result.id %}">
 									{{ field.value }}
 								</a>
+							{% else %}
+								{% if field.type == "list" %}
+									{% for item in field.value %}
+										<a href="{% url 'rikolti:index' %}?{{field.term}}={{item}}">{{ item }}</a><br/>
+									{% endfor %}
+								{% else %}
+									<a href="{% url 'rikolti:index' %}?{{field.term}}={{field.value}}">{{ field.value }}</a>
+								{% endif %}
 							{% endif %}
 						</td>
 						{% endfor %}

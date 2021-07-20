@@ -124,3 +124,8 @@ try:
     from collection_registry.local_settings import *
 except ImportError:
     pass
+
+try:
+    from quickUI.local_settings import *
+except ImportError:
+    pass

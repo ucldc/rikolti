@@ -17,6 +17,6 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path('rikolti/', include('rikolti.urls')),
+    path('rikolti/', include(('rikolti.urls', 'rikolti'), namespace='rikolti')),
     path('admin/', admin.site.urls),
 ]
