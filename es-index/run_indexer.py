@@ -5,6 +5,7 @@ import json
 import os
 import requests
 from requests.auth import HTTPBasicAuth
+import re
 
 ES_HOST = os.environ['ES_HOST']
 ES_USER = os.environ['ES_USER']
@@ -13,6 +14,47 @@ BUCKET = os.environ['S3_BUCKET']
 
 session = boto3.Session(profile_name='default')
 
+# from harvester.solr_updater
+RE_ALPHANUMSPACE = re.compile(r'[^0-9A-Za-z\s]*')  # \W include "_" as does A-z
+
+
+# from harvester.solr_updater
+def normalize_sort_field(sort_field,
+                         default_missing='~title unknown',
+                         missing_equivalents=['title unknown']):
+    sort_field = sort_field.lower()
+    # remove punctuation
+    sort_field = RE_ALPHANUMSPACE.sub('', sort_field)
+    words = sort_field.split()
+    if words:
+        if words[0] in ('the', 'a', 'an'):
+            sort_field = ' '.join(words[1:])
+    if not sort_field or sort_field in missing_equivalents:
+        sort_field = default_missing
+    return sort_field
+
+
+# updated from harvester.solr_updater
+def add_sort_title(s3_doc):
+    '''Add a sort title to the solr doc'''
+    if isinstance(s3_doc['title'], str):
+        sort_title = s3_doc['title']
+    else:
+        sort_title = s3_doc['title'][0]
+    # if 'sort-title' in couch_doc['originalRecord']:  # OAC mostly
+    #     sort_obj = couch_doc['originalRecord']['sort-title']
+    #     if isinstance(sort_obj, list):
+    #         sort_obj = sort_obj[0]
+    #         if isinstance(sort_obj, dict):
+    #             sort_title = sort_obj.get(
+    #                 'text', couch_doc['sourceResource']['title'][0])
+    #         else:
+    #             sort_title = sort_obj
+    #     else:  # assume flat string
+    #         sort_title = sort_obj
+    sort_title = normalize_sort_field(sort_title)
+    return sort_title
+
 
 def get_registry_data(col_id):
     ''' get registry data for this collection '''
@@ -20,13 +62,22 @@ def get_registry_data(col_id):
         'collection_ids': [int(col_id)],
         'collection_urls': [(
             f"https://registry.cdlib.org/api/v1/collection/{col_id}/")],
+        'sort_collection_data': [],
         'repository_ids': [],
         'repository_urls': [],
-        'repository_data': []
+        'repository_data': [],
+        'campus_ids': []
     }
 
     r = requests.get(registry['collection_urls'][0])
     col_details = r.json()
+
+    sort_name = normalize_sort_field(
+        col_details.get('name'),
+        default_missing='~collection unknown',
+        missing_equivalents=[])
+    registry['sort_collection_data'] = '::'.join((
+        sort_name, col_details.get('name'), col_id))
 
     registry['collection_data'] = [(f"{col_id}::{col_details.get('name')}")]
     for repo in col_details.get('repository'):
@@ -38,8 +89,10 @@ def get_registry_data(col_id):
         if repo.get('campus'):
             campus_names = [c.get('name') for c in repo.get('campus')]
             campus_names = (', ').join(campus_names)
+            campus_ids = [c.get('id') for c in repo.get('campus')]
             data = f"{data}::{campus_names}"
         registry['repository_data'].append(data)
+        registry['campus_ids'].extend(campus_ids)
 
     return registry
 
@@ -63,7 +116,8 @@ def main(col_id):
             item_id = calisphere_id[1]
 
             document.update(registry_data)
-            document.update({'calisphere-id': item_id})
+            document.update({'id': item_id})
+            document['sort_title'] = add_sort_title(document)
 
             # doc_id should be calisphere_id
             url = f'{ES_HOST}/{index}/_doc/{item_id}'
