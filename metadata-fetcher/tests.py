@@ -54,11 +54,34 @@ spectrum = {
     "path": "/asset-library/UCI/SCA_UniversityArchives/Publications/Spectrum/"
   }
 }
+
+nightingale_test = {
+  "collection_id": 76,
+  "harvest_type": "NuxeoFetcher",
+  "write_page": 0,
+  "nuxeo": {
+    "path": "/asset-library/UCM/NightingaleDiaries/",
+    "fetch_components": True
+  }
+}
+
+mcdaniel_test = {
+  "collection_id": 14256,
+  "harvest_type": "NuxeoFetcher",
+  "write_page": 0,
+  "nuxeo": {
+    "path": "/asset-library/UCM/Wilma_McDaniel/Publish/",
+    "fetch_components": False
+  }
+}
+
+
 # 27414
 # 26710 - nuxeo video
 # 9513 - nuxeo image
 # lambda_handler(json.dumps(oac_test), {})
 # lambda_handler(json.dumps(nuxeo_test), {})
 # lambda_handler(json.dumps(ramicova_test), {})
-lambda_handler(json.dumps(nordskogpapers), {})
+# lambda_handler(json.dumps(nordskogpapers), {})
 # lambda_handler(json.dumps(oai_test), {})
+lambda_handler(json.dumps(nightingale_test), {})

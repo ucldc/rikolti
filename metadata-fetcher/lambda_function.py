@@ -31,8 +31,8 @@ def lambda_handler(payload, context):
     if DEBUG:
         payload = json.loads(payload)
 
-    harvest_type = payload.get('harvest_type')
-    fetcher = get_fetcher(harvest_type)
+    #harvest_type = payload.get('harvest_type')
+    fetcher = NuxeoFetcher(payload)
 
     fetcher.fetch_page()
     next_page = fetcher.json()
