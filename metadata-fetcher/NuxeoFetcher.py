@@ -51,7 +51,7 @@ class NuxeoFetcher(Fetcher):
 
     def get_records(self, http_resp):
         response = http_resp.json()
-        print(response)
+        #print(response)
         documents = [self.build_id(doc) for doc in response['entries']]
         for doc in response['entries']:
             self.nuxeo['parent_list'].append(
@@ -85,6 +85,7 @@ class NuxeoFetcher(Fetcher):
                     self.nuxeo['current_nuxeo_uid'] = self.nuxeo['parent_list'][0]['uid']
                     self.nuxeo['parent_list'].pop(0)
                     self.nuxeo['current_page_index'] = 0
+                    self.write_page = 0
                 else:
                     self.nuxeo['current_page_index'] = -1
 
