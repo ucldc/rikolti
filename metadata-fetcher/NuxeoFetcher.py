@@ -1,9 +1,20 @@
 import json
 from Fetcher import Fetcher, FetchError
-
 import os
-TOKEN = os.environ['NUXEO']
+import requests
+import urllib.parse
 
+TOKEN = os.environ.get('NUXEO')
+API_BASE = 'https://nuxeo.cdlib.org/Nuxeo/site'
+API_PATH = 'api/v1'
+
+# for some reason, using `ORDER BY ecm:name` in the query avoids the
+# bug where the API was returning duplicate records from Nuxeo
+PARENT_NXQL = "SELECT * FROM Document WHERE ecm:parentId = '{}' AND " \
+              "ecm:isTrashed = 0 ORDER BY ecm:name"
+
+CHILD_NXQL = "SELECT * FROM Document WHERE ecm:parentId = '{}' AND " \
+             "ecm:isTrashed = 0 ORDER BY ecm:pos"
 
 class NuxeoFetcher(Fetcher):
     def __init__(self, params):
@@ -16,17 +27,35 @@ class NuxeoFetcher(Fetcher):
         if not self.nuxeo.get('current_nuxeo_path'):
             self.nuxeo['current_nuxeo_path'] = self.nuxeo.get('path')
         if not self.nuxeo.get('current_nuxeo_uid'):
-            self.nuxeo['current_nuxeo_uid'] = ''
+            self.nuxeo['current_nuxeo_uid'] = self.get_nuxeo_id(self.nuxeo['current_nuxeo_path'])
+        print(f"{self.nuxeo.get('current_nuxeo_uid')=}")
         if not self.nuxeo.get('parent_list'):
             self.nuxeo['parent_list'] = []
+
+    def get_nuxeo_id(self, path):
+        ''' get nuxeo uid of doc given path '''
+        escaped_path = urllib.parse.quote(path, safe=' /')
+        url = u'/'.join([API_BASE, API_PATH, "path", escaped_path.strip('/')])
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-NXDocumentProperties": "*",
+            "X-NXRepository": "default",
+            "X-Authentication-Token": TOKEN
+        }
+        request = {'url': url, 'headers': headers}
+        response = requests.get(**request)
+        response.raise_for_status()
+        json_response = response.json()
+
+        return json_response['uid']
+
 
     def build_fetch_request(self):
         page = self.nuxeo.get('current_page_index')
         if (page and page != -1) or page == 0:
-            url = (
-                f"https://nuxeo.cdlib.org/Nuxeo/site/api/v1/"
-                f"repo/default/path{self.nuxeo.get('current_nuxeo_path')}@children"
-            )
+            query = PARENT_NXQL.format(self.nuxeo.get('current_nuxeo_uid'))
+            url = u'/'.join([API_BASE, API_PATH, "path/@search"])
             headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
@@ -36,7 +65,8 @@ class NuxeoFetcher(Fetcher):
             }
             params = {
                 'pageSize': '100',
-                'currentPageIndex': self.nuxeo.get('current_page_index')
+                'currentPageIndex': self.nuxeo.get('current_page_index'),
+                'query': query
             }
             request = {'url': url, 'headers': headers, 'params': params}
             print(
@@ -51,7 +81,7 @@ class NuxeoFetcher(Fetcher):
 
     def get_records(self, http_resp):
         response = http_resp.json()
-        #print(response)
+        # filter documents here
         documents = [self.build_id(doc) for doc in response['entries']]
         for doc in response['entries']:
             self.nuxeo['parent_list'].append(
@@ -64,7 +94,6 @@ class NuxeoFetcher(Fetcher):
         return documents
 
     def increment(self, http_resp):
-        #super(NuxeoFetcher, self).increment(http_resp)
         resp = http_resp.json()
         # if next page is available, whether parent or component, fetch it
         if resp.get('isNextPageAvailable'):
@@ -105,21 +134,6 @@ class NuxeoFetcher(Fetcher):
         document['calisphere-id'] = calisphere_id
         return document
 
-    '''
-    def fetchtolocal(self, records):
-        if self.nuxeo.get('current_structural_type') == 'parents':
-            super(NuxeoFetcher, self).fetchtolocal(records)
-        else:
-            path = os.path.join(
-                os.getcwd(), 
-                f"{self.collection_id}", 
-                "components", 
-                f"{self.nuxeo.get('current_nuxeo_uid')}"
-            )
-            if not os.path.exists(path):
-                os.mkdir(path)
-    '''
-
     def get_local_path(self):
         basepath = super(NuxeoFetcher, self).get_local_path()
         if self.nuxeo.get('current_structural_type') == 'parents':
@@ -133,8 +147,6 @@ class NuxeoFetcher(Fetcher):
             if not os.path.exists(uid_path):
                 os.mkdir(uid_path)
             return uid_path
-
-
 
 
 
