@@ -18,8 +18,10 @@ PARENT_NXQL = "SELECT * FROM SampleCustomPicture, CustomFile, CustomVideo, Custo
               "WHERE ecm:parentId = '{}' AND " \
               "ecm:isTrashed = 0 ORDER BY ecm:name"
 
-CHILD_NXQL = "SELECT * FROM SampleCustomPicture, CustomFile, CustomVideo, CustomAudio, CustomThreeD WHERE ecm:parentId = '{}' AND " \
-             "ecm:isTrashed = 0 ORDER BY ecm:pos"
+RECURSIVE_OBJECT_NXQL = "SELECT * FROM SampleCustomPicture, CustomFile, CustomVideo, CustomAudio, CustomThreeD " \
+                       "WHERE ecm:path STARTSWITH '{}' " \
+                       "AND ecm:isTrashed = 0 " \
+                       "ORDER BY ecm:pos"
 
 class NuxeoFetcher(Fetcher):
     def __init__(self, params):
@@ -37,6 +39,8 @@ class NuxeoFetcher(Fetcher):
             self.nuxeo['current_nuxeo_uid'] = self.get_nuxeo_id(self.nuxeo['current_nuxeo_path'])
         if self.nuxeo.get('parent_list') is None:
             self.nuxeo['parent_list'] = []
+        if self.nuxeo.get('component_count') is None:
+            self.nuxeo['component_count'] = 0
 
     def get_nuxeo_id(self, path):
         ''' get nuxeo uid of doc given path '''
@@ -84,7 +88,10 @@ class NuxeoFetcher(Fetcher):
     def build_fetch_request(self):
         page = self.nuxeo.get('current_page_index')
         if (page and page != -1) or page == 0:
-            query = PARENT_NXQL.format(self.nuxeo.get('current_nuxeo_uid'))
+            if self.nuxeo.get('current_structural_type') == 'parents':
+                query = PARENT_NXQL.format(self.nuxeo.get('current_nuxeo_uid'))
+            elif self.nuxeo.get('current_structural_type') == 'components':
+                query = RECURSIVE_OBJECT_NXQL.format(self.nuxeo.get('current_nuxeo_path'))
             url = u'/'.join([API_BASE, API_PATH, "path/@search"])
             headers = {
                 "Accept": "application/json",
@@ -116,13 +123,19 @@ class NuxeoFetcher(Fetcher):
         response = http_resp.json()
         # filter documents here
         documents = [self.build_id(doc) for doc in response['entries']]
-        for doc in response['entries']:
-            self.nuxeo['parent_list'].append(
-                {
-                    'path': doc['path'],
-                    'uid': doc['uid']
-                }
-            )
+
+        if self.nuxeo.get('current_structural_type') == 'parents':
+            for doc in response['entries']:
+                self.nuxeo['parent_list'].append(
+                    {
+                        'path': doc['path'],
+                        'uid': doc['uid']
+                    }
+                )
+
+        if self.nuxeo.get('current_structural_type') == 'components':
+            self.nuxeo['component_count'] = self.nuxeo['component_count'] + len(response['entries'])
+            print(f"{self.nuxeo['component_count']=}")
 
         return documents
 
@@ -145,15 +158,19 @@ class NuxeoFetcher(Fetcher):
 
                 print("******************************")
             else:
-                print("******************************")
-                print(f"Total parent objects fetched: {len(self.nuxeo['parent_list'])}")
                 # end of parents and we're not fetching components
                 if not self.nuxeo.get('fetch_components'):
+                    print("******************************")
+                    print(f"Total parent objects fetched: {len(self.nuxeo['parent_list'])}")
+                    print("******************************")
                     self.nuxeo['current_page_index'] = -1
                 # we are fetching components
                 else:
                     # fetch components for next item
                     if self.nuxeo.get('current_structural_type') == 'parents':
+                        print("******************************")
+                        print(f"Total parent objects fetched: {len(self.nuxeo['parent_list'])}")
+                        print("******************************")
                         self.nuxeo['current_structural_type'] = 'components'
                     if len(self.nuxeo['parent_list']) > 0:
                         self.nuxeo['current_nuxeo_path'] = self.nuxeo['parent_list'][0]['path'] + '/'
@@ -162,8 +179,10 @@ class NuxeoFetcher(Fetcher):
                         self.nuxeo['current_page_index'] = 0
                         self.write_page = 0
                     else:
+                        print("******************************")
+                        print(f"Total component objects fetched: {self.nuxeo['component_count']}")
+                        print("******************************")
                         self.nuxeo['current_page_index'] = -1
-
 
     def json(self):
         if self.nuxeo.get('current_page_index') == -1:
