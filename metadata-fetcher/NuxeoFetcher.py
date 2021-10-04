@@ -8,28 +8,34 @@ TOKEN = os.environ.get('NUXEO')
 API_BASE = 'https://nuxeo.cdlib.org/Nuxeo/site'
 API_PATH = 'api/v1'
 
+RECURSIVE_FOLDER_NXQL = "SELECT * FROM Organization " \
+                        "WHERE ecm:path STARTSWITH '{}' " \
+                        "AND ecm:isTrashed = 0"
+
 # for some reason, using `ORDER BY ecm:name` in the query avoids the
 # bug where the API was returning duplicate records from Nuxeo
-PARENT_NXQL = "SELECT * FROM Document WHERE ecm:parentId = '{}' AND " \
+PARENT_NXQL = "SELECT * FROM SampleCustomPicture, CustomFile, CustomVideo, CustomAudio, CustomThreeD " \
+              "WHERE ecm:parentId = '{}' AND " \
               "ecm:isTrashed = 0 ORDER BY ecm:name"
 
-CHILD_NXQL = "SELECT * FROM Document WHERE ecm:parentId = '{}' AND " \
+CHILD_NXQL = "SELECT * FROM SampleCustomPicture, CustomFile, CustomVideo, CustomAudio, CustomThreeD WHERE ecm:parentId = '{}' AND " \
              "ecm:isTrashed = 0 ORDER BY ecm:pos"
 
 class NuxeoFetcher(Fetcher):
     def __init__(self, params):
         super(NuxeoFetcher, self).__init__(params)
         self.nuxeo = params.get('nuxeo')
-        if not self.nuxeo.get('current_page_index'):
+        if self.nuxeo.get('current_page_index') is None:
             self.nuxeo['current_page_index'] = 0
-        if not self.nuxeo.get('current_structural_type'):
+        if self.nuxeo.get('current_structural_type') is None:
             self.nuxeo['current_structural_type'] = 'parents'
-        if not self.nuxeo.get('current_nuxeo_path'):
+        if self.nuxeo.get('folder_list') is None:
+            self.nuxeo['folder_list'] = self.get_folder_list(self.nuxeo.get('path'))
+        if self.nuxeo.get('current_nuxeo_path') is None:
             self.nuxeo['current_nuxeo_path'] = self.nuxeo.get('path')
-        if not self.nuxeo.get('current_nuxeo_uid'):
+        if self.nuxeo.get('current_nuxeo_uid') is None:
             self.nuxeo['current_nuxeo_uid'] = self.get_nuxeo_id(self.nuxeo['current_nuxeo_path'])
-        print(f"{self.nuxeo.get('current_nuxeo_uid')=}")
-        if not self.nuxeo.get('parent_list'):
+        if self.nuxeo.get('parent_list') is None:
             self.nuxeo['parent_list'] = []
 
     def get_nuxeo_id(self, path):
@@ -50,6 +56,30 @@ class NuxeoFetcher(Fetcher):
 
         return json_response['uid']
 
+    def get_folder_list(self, path):
+        ''' get list of folders for path '''
+        query = RECURSIVE_FOLDER_NXQL.format(path)
+        url = u'/'.join([API_BASE, API_PATH, "path/@search"])
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-NXDocumentProperties": "*",
+            "X-NXRepository": "default",
+            "X-Authentication-Token": TOKEN
+        }
+        params = {
+            'pageSize': '100',
+            'currentPageIndex': 0, # FIXME allow for multiple pages
+            'query': query
+        }
+        request = {'url': url, 'headers': headers, 'params': params}
+        response = requests.get(**request)
+        response.raise_for_status()
+        json_response = response.json()
+
+        folders = [{'path': doc['path'], 'uid': doc['uid']} for doc in json_response['entries']]
+
+        return folders
 
     def build_fetch_request(self):
         page = self.nuxeo.get('current_page_index')
@@ -72,7 +102,10 @@ class NuxeoFetcher(Fetcher):
             print(
                 f"Fetching page"
                 f" {request.get('params').get('currentPageIndex')} "
-                f"at {request.get('url')}")
+                f"at {request.get('url')} "
+                f"with query {request.get('params').get('query')} "
+                f"for path {self.nuxeo.get('current_nuxeo_path')}"
+                )
         else:
             request = None
             print("No more pages to fetch")
@@ -89,8 +122,8 @@ class NuxeoFetcher(Fetcher):
                     'path': doc['path'],
                     'uid': doc['uid']
                 }
-                
             )
+
         return documents
 
     def increment(self, http_resp):
@@ -101,22 +134,36 @@ class NuxeoFetcher(Fetcher):
             current_page = self.nuxeo.get('current_page_index', 0)
             self.nuxeo['current_page_index'] = current_page + 1
         else:
-            # end of parents and we're not fetching components
-            if not self.nuxeo.get('fetch_components'):
+            if not self.nuxeo['folder_list'] and not self.nuxeo.get('fetch_components'):
                 self.nuxeo['current_page_index'] = -1
-            # we are fetching components
+            if len(self.nuxeo['folder_list']) > 0:
+                self.nuxeo['current_nuxeo_path'] = self.nuxeo['folder_list'][0]['path'] + '/'
+                self.nuxeo['current_nuxeo_uid'] = self.nuxeo['folder_list'][0]['uid']
+                self.nuxeo['folder_list'].pop(0)
+                self.nuxeo['current_page_index'] = 0
+                self.write_page = self.write_page + 1
+
+                print("******************************")
             else:
-                # fetch components for next item
-                if self.nuxeo.get('current_structural_type') == 'parents':
-                    self.nuxeo['current_structural_type'] = 'components'
-                if len(self.nuxeo['parent_list']) > 0:
-                    self.nuxeo['current_nuxeo_path'] = self.nuxeo['parent_list'][0]['path'] + '/'
-                    self.nuxeo['current_nuxeo_uid'] = self.nuxeo['parent_list'][0]['uid']
-                    self.nuxeo['parent_list'].pop(0)
-                    self.nuxeo['current_page_index'] = 0
-                    self.write_page = 0
-                else:
+                print("******************************")
+                print(f"Total parent objects fetched: {len(self.nuxeo['parent_list'])}")
+                # end of parents and we're not fetching components
+                if not self.nuxeo.get('fetch_components'):
                     self.nuxeo['current_page_index'] = -1
+                # we are fetching components
+                else:
+                    # fetch components for next item
+                    if self.nuxeo.get('current_structural_type') == 'parents':
+                        self.nuxeo['current_structural_type'] = 'components'
+                    if len(self.nuxeo['parent_list']) > 0:
+                        self.nuxeo['current_nuxeo_path'] = self.nuxeo['parent_list'][0]['path'] + '/'
+                        self.nuxeo['current_nuxeo_uid'] = self.nuxeo['parent_list'][0]['uid']
+                        self.nuxeo['parent_list'].pop(0)
+                        self.nuxeo['current_page_index'] = 0
+                        self.write_page = 0
+                    else:
+                        self.nuxeo['current_page_index'] = -1
+
 
     def json(self):
         if self.nuxeo.get('current_page_index') == -1:

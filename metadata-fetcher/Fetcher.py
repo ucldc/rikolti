@@ -82,7 +82,7 @@ class Fetcher(object):
             else:
                 self.fetchtos3(records)
 
-            self.increment(response)
+        self.increment(response)
 
     def build_fetch_request(self):
         """build parameters for the institution's http_client.get()
