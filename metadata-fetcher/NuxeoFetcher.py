@@ -37,7 +37,7 @@ class NuxeoFetcher(Fetcher):
             self.nuxeo['current_nuxeo_path'] = self.nuxeo.get('path')
         if self.nuxeo.get('current_nuxeo_uid') is None:
             self.nuxeo['current_nuxeo_uid'] = self.get_nuxeo_id(self.nuxeo['current_nuxeo_path'])
-        if self.nuxeo['fetch_components'] is None:
+        if self.nuxeo.get('fetch_components') is None:
             self.nuxeo['fetch_components'] = False
         if self.nuxeo.get('parent_list') is None:
             self.nuxeo['parent_list'] = []
