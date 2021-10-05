@@ -37,6 +37,8 @@ class NuxeoFetcher(Fetcher):
             self.nuxeo['current_nuxeo_path'] = self.nuxeo.get('path')
         if self.nuxeo.get('current_nuxeo_uid') is None:
             self.nuxeo['current_nuxeo_uid'] = self.get_nuxeo_id(self.nuxeo['current_nuxeo_path'])
+        if self.nuxeo['fetch_components'] is None:
+            self.nuxeo['fetch_components'] = False
         if self.nuxeo.get('parent_list') is None:
             self.nuxeo['parent_list'] = []
         if self.nuxeo.get('component_count') is None:
@@ -135,7 +137,6 @@ class NuxeoFetcher(Fetcher):
 
         if self.nuxeo.get('current_structural_type') == 'components':
             self.nuxeo['component_count'] = self.nuxeo['component_count'] + len(response['entries'])
-            print(f"{self.nuxeo['component_count']=}")
 
         return documents
 
@@ -162,6 +163,7 @@ class NuxeoFetcher(Fetcher):
                 if not self.nuxeo.get('fetch_components'):
                     print("******************************")
                     print(f"Total parent objects fetched: {len(self.nuxeo['parent_list'])}")
+                    print(f"Not fetching components")
                     print("******************************")
                     self.nuxeo['current_page_index'] = -1
                 # we are fetching components
@@ -170,6 +172,7 @@ class NuxeoFetcher(Fetcher):
                     if self.nuxeo.get('current_structural_type') == 'parents':
                         print("******************************")
                         print(f"Total parent objects fetched: {len(self.nuxeo['parent_list'])}")
+                        print(f"Fetching components now")
                         print("******************************")
                         self.nuxeo['current_structural_type'] = 'components'
                     if len(self.nuxeo['parent_list']) > 0:
@@ -214,7 +217,11 @@ class NuxeoFetcher(Fetcher):
                 os.mkdir(uid_path)
             return uid_path
 
-
-
+    def get_s3_key(self):
+        collection_key = self.s3_data['Key']
+        if self.nuxeo.get(('current_structural_type')) == 'parents':
+            return collection_key
+        else:
+            return f"{collection_key}components/{self.nuxeo.get('current_nuxeo_uid')}/"
 
 
