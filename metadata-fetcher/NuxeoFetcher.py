@@ -51,6 +51,8 @@ class NuxeoFetcher(Fetcher):
             self.nuxeo['parent_list'] = []
         if self.nuxeo.get('component_count') is None:
             self.nuxeo['component_count'] = 0
+        if self.nuxeo.get('last_request_doc_count') is None:
+            self.nuxeo['last_request_doc_count'] = 0
 
     def get_nuxeo_id(self, path):
         ''' get nuxeo uid of doc given path '''
@@ -127,6 +129,8 @@ class NuxeoFetcher(Fetcher):
         if self.nuxeo.get('current_structural_type') == 'components':
             self.nuxeo['component_count'] = self.nuxeo['component_count'] + len(response['entries'])
 
+        self.nuxeo['last_request_doc_count'] = len(documents)
+
         return documents
 
     def increment(self, http_resp):
@@ -168,7 +172,8 @@ class NuxeoFetcher(Fetcher):
 
         self.nuxeo['current_page_index'] = 0
 
-        self.write_page = self.write_page + 1 # FIXME but only we wrote a previous page
+        if self.nuxeo['last_request_doc_count'] > 0:
+            self.write_page = self.write_page + 1
 
     def increment_for_components(self):
         self.nuxeo['current_nuxeo_path'] = self.nuxeo['parent_list'][0]['path'] + '/'
