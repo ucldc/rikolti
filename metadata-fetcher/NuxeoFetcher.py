@@ -23,6 +23,14 @@ RECURSIVE_OBJECT_NXQL = "SELECT * FROM SampleCustomPicture, CustomFile, CustomVi
                        "AND ecm:isTrashed = 0 " \
                        "ORDER BY ecm:pos"
 
+NUXEO_REQUEST_HEADERS = {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-NXDocumentProperties": "*",
+                "X-NXRepository": "default",
+                "X-Authentication-Token": TOKEN
+                }
+
 class NuxeoFetcher(Fetcher):
     def __init__(self, params):
         super(NuxeoFetcher, self).__init__(params)
@@ -38,7 +46,7 @@ class NuxeoFetcher(Fetcher):
         if self.nuxeo.get('current_nuxeo_uid') is None:
             self.nuxeo['current_nuxeo_uid'] = self.get_nuxeo_id(self.nuxeo['current_nuxeo_path'])
         if self.nuxeo.get('fetch_components') is None:
-            self.nuxeo['fetch_components'] = False
+            self.nuxeo['fetch_components'] = True
         if self.nuxeo.get('parent_list') is None:
             self.nuxeo['parent_list'] = []
         if self.nuxeo.get('component_count') is None:
@@ -48,13 +56,7 @@ class NuxeoFetcher(Fetcher):
         ''' get nuxeo uid of doc given path '''
         escaped_path = urllib.parse.quote(path, safe=' /')
         url = u'/'.join([API_BASE, API_PATH, "path", escaped_path.strip('/')])
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "X-NXDocumentProperties": "*",
-            "X-NXRepository": "default",
-            "X-Authentication-Token": TOKEN
-        }
+        headers = NUXEO_REQUEST_HEADERS
         request = {'url': url, 'headers': headers}
         response = requests.get(**request)
         response.raise_for_status()
@@ -66,13 +68,7 @@ class NuxeoFetcher(Fetcher):
         ''' get list of folders for path '''
         query = RECURSIVE_FOLDER_NXQL.format(path)
         url = u'/'.join([API_BASE, API_PATH, "path/@search"])
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "X-NXDocumentProperties": "*",
-            "X-NXRepository": "default",
-            "X-Authentication-Token": TOKEN
-        }
+        headers = NUXEO_REQUEST_HEADERS
         params = {
             'pageSize': '100',
             'currentPageIndex': 0, # FIXME allow for multiple pages
@@ -95,13 +91,7 @@ class NuxeoFetcher(Fetcher):
             elif self.nuxeo.get('current_structural_type') == 'components':
                 query = RECURSIVE_OBJECT_NXQL.format(self.nuxeo.get('current_nuxeo_path'))
             url = u'/'.join([API_BASE, API_PATH, "path/@search"])
-            headers = {
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "X-NXDocumentProperties": "*",
-                "X-NXRepository": "default",
-                "X-Authentication-Token": TOKEN
-            }
+            headers = NUXEO_REQUEST_HEADERS
             params = {
                 'pageSize': '100',
                 'currentPageIndex': self.nuxeo.get('current_page_index'),
@@ -123,7 +113,6 @@ class NuxeoFetcher(Fetcher):
 
     def get_records(self, http_resp):
         response = http_resp.json()
-        # filter documents here
         documents = [self.build_id(doc) for doc in response['entries']]
 
         if self.nuxeo.get('current_structural_type') == 'parents':
@@ -142,50 +131,53 @@ class NuxeoFetcher(Fetcher):
 
     def increment(self, http_resp):
         resp = http_resp.json()
-        # if next page is available, whether parent or component, fetch it
+
         if resp.get('isNextPageAvailable'):
             self.write_page = self.write_page + 1
             current_page = self.nuxeo.get('current_page_index', 0)
             self.nuxeo['current_page_index'] = current_page + 1
-        else:
-            if not self.nuxeo['folder_list'] and not self.nuxeo.get('fetch_components'):
-                self.nuxeo['current_page_index'] = -1
-            if len(self.nuxeo['folder_list']) > 0:
-                self.nuxeo['current_nuxeo_path'] = self.nuxeo['folder_list'][0]['path'] + '/'
-                self.nuxeo['current_nuxeo_uid'] = self.nuxeo['folder_list'][0]['uid']
-                self.nuxeo['folder_list'].pop(0)
-                self.nuxeo['current_page_index'] = 0
-                self.write_page = self.write_page + 1
+            return
 
-                print("******************************")
+        if self.nuxeo['current_structural_type'] == 'parents':
+            if len(self.nuxeo['folder_list']) > 0:
+                self.increment_for_nested_parents()
+                return
             else:
-                # end of parents and we're not fetching components
-                if not self.nuxeo.get('fetch_components'):
-                    print("******************************")
-                    print(f"Total parent objects fetched: {len(self.nuxeo['parent_list'])}")
-                    print(f"Not fetching components")
-                    print("******************************")
-                    self.nuxeo['current_page_index'] = -1
-                # we are fetching components
+                self.nuxeo['parent_count'] = len(self.nuxeo['parent_list'])
+                if self.nuxeo.get('fetch_components'):
+                    self.nuxeo['current_structural_type'] = 'components'
                 else:
-                    # fetch components for next item
-                    if self.nuxeo.get('current_structural_type') == 'parents':
-                        print("******************************")
-                        print(f"Total parent objects fetched: {len(self.nuxeo['parent_list'])}")
-                        print(f"Fetching components now")
-                        print("******************************")
-                        self.nuxeo['current_structural_type'] = 'components'
-                    if len(self.nuxeo['parent_list']) > 0:
-                        self.nuxeo['current_nuxeo_path'] = self.nuxeo['parent_list'][0]['path'] + '/'
-                        self.nuxeo['current_nuxeo_uid'] = self.nuxeo['parent_list'][0]['uid']
-                        self.nuxeo['parent_list'].pop(0)
-                        self.nuxeo['current_page_index'] = 0
-                        self.write_page = 0
-                    else:
-                        print("******************************")
-                        print(f"Total component objects fetched: {self.nuxeo['component_count']}")
-                        print("******************************")
-                        self.nuxeo['current_page_index'] = -1
+                    print(f"TOTAL OBJECTS FETCHED: {self.nuxeo['parent_count']}")
+                    self.nuxeo['current_page_index'] = -1
+                    return
+
+        if self.nuxeo['current_structural_type'] == 'components':
+            if len(self.nuxeo['parent_list']) > 0:
+                self.increment_for_components()
+                return
+            else:
+                print(f"TOTAL PARENT OBJECTS FETCHED: {self.nuxeo['parent_count']}")
+                print(f"TOTAL COMPONENTS FETCHED: {self.nuxeo['component_count']}")
+                self.nuxeo['current_page_index'] = -1
+                return
+
+    def increment_for_nested_parents(self):
+        self.nuxeo['current_nuxeo_path'] = self.nuxeo['folder_list'][0]['path'] + '/'
+        self.nuxeo['current_nuxeo_uid'] = self.nuxeo['folder_list'][0]['uid']
+        self.nuxeo['folder_list'].pop(0)
+
+        self.nuxeo['current_page_index'] = 0
+
+        self.write_page = self.write_page + 1 # FIXME but only we wrote a previous page
+
+    def increment_for_components(self):
+        self.nuxeo['current_nuxeo_path'] = self.nuxeo['parent_list'][0]['path'] + '/'
+        self.nuxeo['current_nuxeo_uid'] = self.nuxeo['parent_list'][0]['uid']
+        self.nuxeo['parent_list'].pop(0)
+
+        self.nuxeo['current_page_index'] = 0
+
+        self.write_page = 0
 
     def json(self):
         if self.nuxeo.get('current_page_index') == -1:
