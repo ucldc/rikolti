@@ -40,7 +40,8 @@ class NuxeoFetcher(Fetcher):
         if self.nuxeo.get('current_structural_type') is None:
             self.nuxeo['current_structural_type'] = 'parents'
         if self.nuxeo.get('folder_list') is None:
-            self.nuxeo['folder_list'] = self.get_folder_list(self.nuxeo.get('path'))
+            self.nuxeo['folder_list'] = []
+            self.build_folder_list()
         if self.nuxeo.get('current_nuxeo_path') is None:
             self.nuxeo['current_nuxeo_path'] = self.nuxeo.get('path')
         if self.nuxeo.get('current_nuxeo_uid') is None:
@@ -66,24 +67,31 @@ class NuxeoFetcher(Fetcher):
 
         return json_response['uid']
 
-    def get_folder_list(self, path):
-        ''' get list of folders for path '''
-        query = RECURSIVE_FOLDER_NXQL.format(path)
+    def build_folder_list(self, current_page_index=0):
+        ''' get list of subfolders for collection path '''
+        http_resp = self.fetch_folders(current_page_index)
+        json_response = http_resp.json()
+        folders = [{'path': doc['path'], 'uid': doc['uid']} for doc in json_response['entries']]
+        self.nuxeo['folder_list'].extend(folders)
+
+        if json_response.get('isNextPageAvailable'):
+            current_page_index = current_page_index + 1
+            self.build_folder_list(current_page_index)
+
+    def fetch_folders(self, current_page_index):
+        query = RECURSIVE_FOLDER_NXQL.format(self.nuxeo.get('path'))
         url = u'/'.join([API_BASE, API_PATH, "path/@search"])
         headers = NUXEO_REQUEST_HEADERS
         params = {
             'pageSize': '100',
-            'currentPageIndex': 0, # FIXME allow for multiple pages
+            'currentPageIndex': current_page_index,
             'query': query
         }
         request = {'url': url, 'headers': headers, 'params': params}
         response = requests.get(**request)
         response.raise_for_status()
-        json_response = response.json()
 
-        folders = [{'path': doc['path'], 'uid': doc['uid']} for doc in json_response['entries']]
-
-        return folders
+        return response
 
     def build_fetch_request(self):
         page = self.nuxeo.get('current_page_index')
