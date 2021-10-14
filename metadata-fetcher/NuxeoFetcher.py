@@ -34,26 +34,32 @@ NUXEO_REQUEST_HEADERS = {
 class NuxeoFetcher(Fetcher):
     def __init__(self, params):
         super(NuxeoFetcher, self).__init__(params)
-        self.nuxeo = params.get('nuxeo')
-        if self.nuxeo.get('current_page_index') is None:
-            self.nuxeo['current_page_index'] = 0
-        if self.nuxeo.get('current_structural_type') is None:
-            self.nuxeo['current_structural_type'] = 'parents'
+
+        nuxeo_defaults = {
+            'fetch_components': True,
+            'current_page_index': 0,
+            'current_structural_type': 'parents',
+            'component_count': 0,
+            'last_request_doc_count': 0,
+            'current_nx_query_path': None,
+            'current_nx_query_uid': None,
+            'folder_list': None,
+            'parent_list': None,
+        }
+        nuxeo_defaults.update(params.get('nuxeo'))
+        self.nuxeo = nuxeo_defaults
+
+        if self.nuxeo.get('current_nx_query_path') is None:
+            self.nuxeo['current_nx_query_path'] = self.nuxeo.get('path')
+        if self.nuxeo.get('current_nx_query_uid') is None:
+            self.nuxeo['current_nx_query_uid'] = self.get_nuxeo_id(self.nuxeo['current_nx_query_path'])
         if self.nuxeo.get('folder_list') is None:
+            # build folder list only on first initializiation of the NuxeoFetcher
             self.nuxeo['folder_list'] = []
             self.build_folder_list()
-        if self.nuxeo.get('current_nuxeo_path') is None:
-            self.nuxeo['current_nuxeo_path'] = self.nuxeo.get('path')
-        if self.nuxeo.get('current_nuxeo_uid') is None:
-            self.nuxeo['current_nuxeo_uid'] = self.get_nuxeo_id(self.nuxeo['current_nuxeo_path'])
-        if self.nuxeo.get('fetch_components') is None:
-            self.nuxeo['fetch_components'] = True
         if self.nuxeo.get('parent_list') is None:
+            # set parent list to empty only on first initialization of NuxeoFetcher
             self.nuxeo['parent_list'] = []
-        if self.nuxeo.get('component_count') is None:
-            self.nuxeo['component_count'] = 0
-        if self.nuxeo.get('last_request_doc_count') is None:
-            self.nuxeo['last_request_doc_count'] = 0
 
     def get_nuxeo_id(self, path):
         ''' get nuxeo uid of doc given path '''
@@ -97,9 +103,9 @@ class NuxeoFetcher(Fetcher):
         page = self.nuxeo.get('current_page_index')
         if (page and page != -1) or page == 0:
             if self.nuxeo.get('current_structural_type') == 'parents':
-                query = PARENT_NXQL.format(self.nuxeo.get('current_nuxeo_uid'))
+                query = PARENT_NXQL.format(self.nuxeo.get('current_nx_query_uid'))
             elif self.nuxeo.get('current_structural_type') == 'components':
-                query = RECURSIVE_OBJECT_NXQL.format(self.nuxeo.get('current_nuxeo_path'))
+                query = RECURSIVE_OBJECT_NXQL.format(self.nuxeo.get('current_nx_query_path'))
             url = u'/'.join([API_BASE, API_PATH, "path/@search"])
             headers = NUXEO_REQUEST_HEADERS
             params = {
@@ -113,7 +119,7 @@ class NuxeoFetcher(Fetcher):
                 f" {request.get('params').get('currentPageIndex')} "
                 f"at {request.get('url')} "
                 f"with query {request.get('params').get('query')} "
-                f"for path {self.nuxeo.get('current_nuxeo_path')}"
+                f"for path {self.nuxeo.get('current_nx_query_path')}"
                 )
         else:
             request = None
@@ -174,8 +180,8 @@ class NuxeoFetcher(Fetcher):
                 return
 
     def increment_for_nested_parents(self):
-        self.nuxeo['current_nuxeo_path'] = self.nuxeo['folder_list'][0]['path'] + '/'
-        self.nuxeo['current_nuxeo_uid'] = self.nuxeo['folder_list'][0]['uid']
+        self.nuxeo['current_nx_query_path'] = self.nuxeo['folder_list'][0]['path'] + '/'
+        self.nuxeo['current_nx_query_uid'] = self.nuxeo['folder_list'][0]['uid']
         self.nuxeo['folder_list'].pop(0)
 
         self.nuxeo['current_page_index'] = 0
@@ -184,8 +190,8 @@ class NuxeoFetcher(Fetcher):
             self.write_page = self.write_page + 1
 
     def increment_for_components(self):
-        self.nuxeo['current_nuxeo_path'] = self.nuxeo['parent_list'][0]['path'] + '/'
-        self.nuxeo['current_nuxeo_uid'] = self.nuxeo['parent_list'][0]['uid']
+        self.nuxeo['current_nx_query_path'] = self.nuxeo['parent_list'][0]['path'] + '/'
+        self.nuxeo['current_nx_query_uid'] = self.nuxeo['parent_list'][0]['uid']
         self.nuxeo['parent_list'].pop(0)
 
         self.nuxeo['current_page_index'] = 0
@@ -217,7 +223,7 @@ class NuxeoFetcher(Fetcher):
             if not os.path.exists(components_path):
                 os.mkdir(components_path)
 
-            uid_path = os.path.join(basepath, "components", f"{self.nuxeo.get('current_nuxeo_uid')}")
+            uid_path = os.path.join(basepath, "components", f"{self.nuxeo.get('current_nx_query_uid')}")
             if not os.path.exists(uid_path):
                 os.mkdir(uid_path)
             return uid_path
@@ -227,6 +233,6 @@ class NuxeoFetcher(Fetcher):
         if self.nuxeo.get(('current_structural_type')) == 'parents':
             return collection_key
         else:
-            return f"{collection_key}components/{self.nuxeo.get('current_nuxeo_uid')}/"
+            return f"{collection_key}components/{self.nuxeo.get('current_nx_query_uid')}/"
 
 
