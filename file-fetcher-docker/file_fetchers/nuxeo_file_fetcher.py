@@ -4,9 +4,6 @@ import subprocess
 
 NUXEO_BASIC_USER = os.environ['NUXEO_BASIC_USER']
 NUXEO_BASIC_AUTH = os.environ['NUXEO_BASIC_AUTH']
-magick_convert_location = os.environ.get('PATH_MAGICK_CONVERT', '/usr/bin/convert')
-ffmpeg_location = os.environ.get('PATH_FFMPEG', '/usr/bin/ffmpeg')
-ffprobe_location = os.environ.get('PATH_FFPROBE','/usr/bin/ffprobe')
 
 class NuxeoFileFetcher(FileFetcher):
     def __init__(self, collection_id, fetcher_type, clean):
