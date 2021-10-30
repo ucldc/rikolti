@@ -1,40 +1,41 @@
 import sys
 import argparse
-from file_fetchers.file_fetcher import FileFetcher
-from file_fetchers.nuxeo_file_fetcher import NuxeoFileFetcher
+from file_fetchers.fetcher import Fetcher
+from file_fetchers.nuxeo_fetcher import NuxeoFetcher
 
 """ fetch content files for a given collection """
-def get_fetcher(collection_id, fetcher_type, clean):
-
+def get_fetcher(collection_id, harvest_type, clean):
     try:
-        globals()[fetcher_type]
+        globals()[harvest_type]
     except KeyError:
-        print(f"{ fetcher_type } not imported")
+        print(f"{ harvest_type } not imported")
         exit()
 
-    if globals()[fetcher_type] not in FileFetcher.__subclasses__():
-        print(f"{ fetcher_type } not a subclass of Fetcher")
+    if globals()[harvest_type] not in Fetcher.__subclasses__():
+        print(f"{ harvest_type } not a subclass of Fetcher")
         exit()
 
     try:
-        fetcher = eval(fetcher_type)(collection_id, fetcher_type, clean)
+        fetcher = eval(harvest_type)(collection_id, clean=clean)
     except NameError:
-        print(f"bad file fetcher type: { fetcher_type }")
+        print(f"bad harvest type: { harvest_type }")
         exit()
 
     return fetcher
 
-def main(collection_id, fetcher_type, clean):
+def main(collection_id, harvest_type, clean):
 
-    file_fetcher = get_fetcher(collection_id, fetcher_type, clean)
-    file_fetcher.fetch_content_files()
+    fetcher = get_fetcher(collection_id, harvest_type, clean)
+
+    fetcher.fetch_files()
+    #next_item = fetcher.json()
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('collection_id')
-    parser.add_argument('fetcher_type')
+    parser.add_argument('harvest_type')
     parser.add_argument('--clean', action='store_true', help='clean restash')
     args = parser.parse_args()
 
-    sys.exit(main(args.collection_id, args.fetcher_type, args.clean))
+    sys.exit(main(args.collection_id, args.harvest_type, clean=args.clean))
