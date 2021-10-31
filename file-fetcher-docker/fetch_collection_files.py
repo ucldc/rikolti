@@ -28,7 +28,6 @@ def main(collection_id, harvest_type, clean):
     fetcher = get_fetcher(collection_id, harvest_type, clean)
 
     fetcher.fetch_files()
-    #next_item = fetcher.json()
 
 if __name__ == "__main__":
 

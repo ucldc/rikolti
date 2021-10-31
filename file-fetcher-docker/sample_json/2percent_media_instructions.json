@@ -1,0 +1,24 @@
+{
+    "calisphere-id": "27755--f9618e47-f8ca-4481-b009-702f99c232bc",
+    "children": [
+        {
+            "contentFile": {
+                "filename": "The 2% Navigating UCI as a Black Student transcript.pdf",
+                "mime-type": "application/pdf",
+                "url": "https://nuxeo.cdlib.org/nuxeo/nxfile/default/f1fb2db8-e856-43de-9135-287b77a4654c/file:content/The%202%25%20Navigating%20UCI%20as%20a%20Black%20Student%20transcript.pdf?changeToken=4-0"
+            },
+            "id": "f1fb2db8-e856-43de-9135-287b77a4654c",
+            "thumbnail": null
+        }
+    ],
+    "contentFile": {
+        "filename": "[CC]_Blackburn_Iyanna_doc_finalcut_The 2_percent.mp4",
+        "mime-type": "video/mp4",
+        "url": "https://nuxeo.cdlib.org/nuxeo/nxfile/default/f9618e47-f8ca-4481-b009-702f99c232bc/vid:transcodedVideos/0/content/%5BCC%5D_Blackburn_Iyanna_doc_finalcut_The%202_percent.mp4?changeToken=15-0"
+    },
+    "thumbnail": {
+        "filename": "StaticPlayerView_video-screenshot-00130.000.jpg",
+        "mime-type": "image/jpeg",
+        "url": "https://nuxeo.cdlib.org/nuxeo/nxfile/default/f9618e47-f8ca-4481-b009-702f99c232bc/picture:views/1/content/StaticPlayerView_video-screenshot-00130.000.jpg?changeToken=15-0"
+    }
+}
