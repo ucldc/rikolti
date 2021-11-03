@@ -1,14 +1,22 @@
 import os
 from file_fetchers.fetcher import Fetcher
 import json
+import tempfile
+import subprocess
+import boto3
+from botocore.exceptions import ClientError
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+#S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
+S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
 #S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
 S3_PRIVATE_BUCKET = 'barbarahui_test_bucket'
 S3_MEDIA_INSTRUCTIONS_FOLDER = os.environ['S3_MEDIA_INSTRUCTIONS_FOLDER']
+S3_CONTENT_FILES_FOLDER = os.environ['S3_CONTENT_FILES_FOLDER']
 NUXEO_BASIC_USER = os.environ['NUXEO_BASIC_USER']
 NUXEO_BASIC_AUTH = os.environ['NUXEO_BASIC_AUTH']
+MAGICK_CONVERT = os.environ.get('MAGICK_CONVERT', '/usr/bin/convert')
 
 class NuxeoFetcher(Fetcher):
     def __init__(self, collection_id, **kwargs):
@@ -25,13 +33,15 @@ class NuxeoFetcher(Fetcher):
             # Validate instructions. What values must be provided?
 
             # preprocess parent component
-            instructions['contentFile'] = self.preprocess_content_file(instructions)
-            instructions['thumbnail'] = self.preprocess_thumbnail(instructions)
+            if instructions.get('contentFile'):
+                instructions['contentFile'] = self.preprocess_content_file(instructions)
+                instructions['thumbnail'] = self.preprocess_thumbnail(instructions)
 
             # preprocess child components
             for child in instructions['children']:
-                child['contentFile'] = self.preprocess_content_file(child)
-                child['thumbnail'] = self.preprocess_thumbnail(child)
+                if child.get('contentFile'):
+                    child['contentFile'] = self.preprocess_content_file(child)
+                    child['thumbnail'] = self.preprocess_thumbnail(child)
             
             # set object thumbnail (this will go into the ElasticSearch index)
             if not instructions.get('objectThumbnail'):
@@ -50,22 +60,23 @@ class NuxeoFetcher(Fetcher):
             # stash object thumbnail
             instructions['objectThumbnail']['md5hash'] = self.stash_thumbnail(instructions)
 
-            self.update_instructions(s3key, instructions)
+            # stash media.json
+            self.stash_media_json(s3key, instructions)
 
             # return a json representation of stashed files
 
     def preprocess_content_file(self, instructions):
+        instructions['contentFile']['url'] = instructions['contentFile']['url'].replace('/nuxeo/', '/Nuxeo/')
+
         if instructions['contentFile']['mime-type'].startswith('image/'):
             instructions['contentFile'] = self.create_jp2(instructions)
-
-        if instructions['contentFile']['mime-type'] == 'application/pdf':
-            instructions['thumbnail'] = self.create_pdf_thumb(instructions)
-
         return instructions['contentFile']
 
     def preprocess_thumbnail(self, instructions):
-        if not instructions['thumbnail']:
-            instructions['thumbnail'] = {}
+        if instructions['contentFile']['mime-type'] == 'application/pdf':
+            instructions['thumbnail'] = self.create_pdf_thumbnail(instructions)
+        else:
+            instructions['thumbnail'] = {} # FIXME
         return instructions['thumbnail']
 
     def create_jp2(self, instructions):
@@ -74,23 +85,45 @@ class NuxeoFetcher(Fetcher):
         return instructions['contentFile']
 
     def create_pdf_thumbnail(self, instructions):
-        # download pdf
-        '''
-        fetch_request = self.build_fetch_request(instructions)
-        response = self.http.get(**fetch_request)
-        response.raise_for_status()
 
-        tmpfile = ''
-        with open(tmpfile, 'wb') as f:
-            for block in response.iter_content(chunk_size=None):
-                f.write(block)
-        '''
+        filename = f"{instructions['contentFile']['filename']}"
+        basename_no_ext = f"{os.path.splitext(os.path.basename(filename))[0]}"
+        filename_png = f"first_page-{basename_no_ext}.png"
+        s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_png}"
 
-        # create jpg of first page
-        # see: https://github.com/barbarahui/nuxeo-calisphere/blob/master/s3stash/nxstash_thumb.py#L158-L190
+        if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):
+            # download pdf
+            fetch_request = self.build_fetch_request(instructions)
+            response = self.http.get(**fetch_request)
+            response.raise_for_status()
 
-        # stash on s3
+            pdf_tmpfile = tempfile.NamedTemporaryFile(delete=False)
+            with pdf_tmpfile as f:
+                for block in response.iter_content(chunk_size=None):
+                    f.write(block)
+
+            # create png of first page
+            pdf_fullpath = f"{pdf_tmpfile.name}[0]" # [0] to specify first page of PDF
+            png_fullpath = f"{tempfile.gettempdir()}/{filename_png}"
+
+            args = [MAGICK_CONVERT, "-strip", "-format", "png", "-quality", "75", pdf_fullpath, png_fullpath]
+            print(f"Run subprocess {args}")
+            subprocess.run(args, check=True)
+
+            # stash on s3
+            self.s3.upload_file(png_fullpath, S3_PUBLIC_BUCKET, s3_key)
+            print(f"stashed on s3: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
+
+            # delete local files
+            os.remove(pdf_tmpfile.name)
+            os.remove(png_fullpath)
+
         # update instructions['thumbnail']
+        instructions['thumbnail'] = {
+            "filename": filename_png,
+            "mime-type": "image/png",
+            "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}"
+        }
         return instructions['thumbnail']
 
     def build_fetch_request(self, instructions):
@@ -112,15 +145,15 @@ class NuxeoFetcher(Fetcher):
         return request
 
     def build_instruction_list(self):
-        prefix = f"{S3_MEDIA_INSTRUCTIONS_FOLDER}/{self.collection_id}"
+        prefix = f"{S3_MEDIA_INSTRUCTIONS_FOLDER}/{self.collection_id}/"
 
         response = self.s3.list_objects_v2(
             Bucket=S3_PRIVATE_BUCKET,
             Prefix=prefix
         )
 
-        return ['media_instructions/76/uid=a0df3f41-8c54-42dd-b7f3-f3bf95011c9f/a0df3f41-8c54-42dd-b7f3-f3bf95011c9f.jsonl']
-        return [content['Key'] for content in response['Contents']]
+        # FIXME figure out how to only return the objects within the folder, not the folder itself
+        return [content['Key'] for content in response['Contents'] if content['Key'] != f"{S3_MEDIA_INSTRUCTIONS_FOLDER}/{self.collection_id}/"]
 
     def fetch_instructions(self, s3key):
         response = self.s3.get_object(
@@ -133,18 +166,15 @@ class NuxeoFetcher(Fetcher):
 
     def stash_content_file(self, instructions):
         """ stash content file(s) for one object on s3 """
-        if instructions.get('calisphere-id'):
+        if instructions.get('contentFile'):
             identifier = instructions['calisphere-id']
-        elif instructions.get('id'):
-            identifier = instructions['id']
+            filename = instructions['contentFile']['filename']
+
+            fetch_request = self.build_fetch_request(instructions)
+
+            return Fetcher.stash_content_file(self, identifier, filename, fetch_request)
         else:
-            print("raise an error! no ID")
-
-        filename = instructions['contentFile']['filename']
-
-        fetch_request = self.build_fetch_request(instructions)
-
-        return Fetcher.stash_content_file(self, identifier, filename, fetch_request)
+            return None
 
     def stash_thumbnail(self, instructions):
         # run md5s3stash 
@@ -158,7 +188,17 @@ class NuxeoFetcher(Fetcher):
         url = "<source_url_for_object_thumbnail>"
         return url
 
-    def update_instructions(self, s3key, instructions):
-        print(f"update on s3: {s3key}\n")
-        #pp.pprint(instructions)
+    def stash_media_json(self, s3key, instructions):
+        path = os.path.join(os.getcwd(), f"{self.collection_id}")
+        if not os.path.exists(path):
+            os.mkdir(path)
+
+        mediajson_path = os.path.join(path, "media_json")
+        if not os.path.exists(mediajson_path):
+            os.mkdir(mediajson_path)
+
+        filename = os.path.join(mediajson_path, f"{instructions['calisphere-id']}")
+        f = open(filename, "w")
+        media_json = json.dumps(instructions)
+        f.write(media_json)
 

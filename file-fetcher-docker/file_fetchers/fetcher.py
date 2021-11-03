@@ -37,23 +37,7 @@ class Fetcher(object):
 
         s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{id}::{filename}"
 
-        # check to see if key already exists on s3
-        if self.clean_stash:
-            do_stash = True
-        else:
-            try:
-                response = self.s3.head_object(
-                    Bucket=S3_PUBLIC_BUCKET,
-                    Key=s3_key
-                )
-                do_stash = False
-                print(f"not stashed, already exists: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
-                return f"s3://{S3_PUBLIC_BUCKET}/{s3_key}"
-            except botocore.exceptions.ClientError as e:
-                if e.response['Error']['Code'] == "404":
-                    do_stash = True
-
-        if do_stash:
+        if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):
             # fetch file
             response = self.http.get(**fetch_request)
             response.raise_for_status()
@@ -65,7 +49,20 @@ class Fetcher(object):
                 conf = boto3.s3.transfer.TransferConfig(multipart_threshold=10000, max_concurrency=4)
                 self.s3.upload_fileobj(part.raw, S3_PUBLIC_BUCKET, s3_key, Config=conf)
             print(f"stashed on s3: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
-            return f"s3://{S3_PUBLIC_BUCKET}/{s3_key}" 
+
+        return f"s3://{S3_PUBLIC_BUCKET}/{s3_key}"
+
+    def already_stashed(self, bucket, key):
+        try:
+            response = self.s3.head_object(
+                Bucket=S3_PUBLIC_BUCKET,
+                Key=key
+            )
+            print(f"already stashed: s3://{S3_PUBLIC_BUCKET}/{key}")
+            return True
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == "404":
+                return False
 
     def set_request_session(self):
         retry_strategy = Retry(
@@ -75,7 +72,7 @@ class Fetcher(object):
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.http = requests.Session()
         self.http.mount("https://", adapter)
-        self.http.mount("http://", adapter)        
+        self.http.mount("http://", adapter)
 
     def stash_thumbnail(self):
         """ stash thumbnail files using md5s3stash """
