@@ -82,49 +82,73 @@ class NuxeoFetcher(Fetcher):
     def create_jp2(self, instructions):
         # recreate this using openJPEG instead of Kakadu: 
         # https://github.com/barbarahui/ucldc-iiif/blob/master/ucldc_iiif/convert.py
+        basename_no_ext = self.get_basename_no_ext(instructions['contentFile']['filename'])
+        filename_jp2 = f"{basename_no_ext}.jp2"
+        s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_jp2}"
+
+        if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):source_fullpath = self.fetch_to_temp(instructions)
+            jp2_fullpath = f"{tempfile.gettempdir()}/{filename_jp2}"
+
+            # create jp2 copy of source image
+            args = [MAGICK_CONVERT, source_fullpath, jp2_fullpath]
+            subprocess.run(args, check=True)
+
+            self.s3.upload_file(jp2_fullpath, S3_PUBLIC_BUCKET, s3_key)
+            print(f"stashed on s3: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
+
+            os.remove(source_fullpath)
+            os.remove(jp2_fullpath)
+
+        instructions['contentFile'] = {
+            "filename": filename_jp2,
+            "mime-type": "image/jp2",
+            "s3_uri": f"s3://{S3_PUBLIC_BUCKET}/{s3_key}"
+        }
+
         return instructions['contentFile']
 
     def create_pdf_thumbnail(self, instructions):
-
-        filename = f"{instructions['contentFile']['filename']}"
-        basename_no_ext = f"{os.path.splitext(os.path.basename(filename))[0]}"
+        basename_no_ext = self.get_basename_no_ext(instructions['contentFile']['filename'])
         filename_png = f"first_page-{basename_no_ext}.png"
         s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_png}"
 
         if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):
-            # download pdf
-            fetch_request = self.build_fetch_request(instructions)
-            response = self.http.get(**fetch_request)
-            response.raise_for_status()
-
-            pdf_tmpfile = tempfile.NamedTemporaryFile(delete=False)
-            with pdf_tmpfile as f:
-                for block in response.iter_content(chunk_size=None):
-                    f.write(block)
-
-            # create png of first page
-            pdf_fullpath = f"{pdf_tmpfile.name}[0]" # [0] to specify first page of PDF
+            pdf_fullpath = self.fetch_to_temp(instructions)
             png_fullpath = f"{tempfile.gettempdir()}/{filename_png}"
 
-            args = [MAGICK_CONVERT, "-strip", "-format", "png", "-quality", "75", pdf_fullpath, png_fullpath]
-            print(f"Run subprocess {args}")
+            # create png of first page of PDF
+            args = [MAGICK_CONVERT, "-strip", "-format", "png", "-quality", "75", f"{pdf_fullpath}[0]", png_fullpath]
             subprocess.run(args, check=True)
 
-            # stash on s3
             self.s3.upload_file(png_fullpath, S3_PUBLIC_BUCKET, s3_key)
             print(f"stashed on s3: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
 
-            # delete local files
-            os.remove(pdf_tmpfile.name)
+            os.remove(pdf_fullpath)
             os.remove(png_fullpath)
 
-        # update instructions['thumbnail']
         instructions['thumbnail'] = {
             "filename": filename_png,
             "mime-type": "image/png",
             "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}"
         }
+
         return instructions['thumbnail']
+
+    def get_basename_no_ext(self, filename):
+        return f"{os.path.splitext(os.path.basename(filename))[0]}"
+
+    def fetch_to_temp(self, instructions):
+        # download file
+        fetch_request = self.build_fetch_request(instructions)
+        response = self.http.get(**fetch_request)
+        response.raise_for_status()
+
+        tmpfile = tempfile.NamedTemporaryFile(delete=False)
+        with tmpfile as f:
+            for block in response.iter_content(chunk_size=None):
+                f.write(block)
+
+        return tmpfile.name
 
     def build_fetch_request(self, instructions):
         # https://github.com/barbarahui/nuxeo-calisphere/blob/master/s3stash/nxstashref.py#L78-L106
@@ -165,14 +189,18 @@ class NuxeoFetcher(Fetcher):
         return instructions
 
     def stash_content_file(self, instructions):
-        """ stash content file(s) for one object on s3 """
+        """ stash content file(s) for one object on s3
+            return s3_uri of stashed file
+        """
         if instructions.get('contentFile'):
-            identifier = instructions['calisphere-id']
-            filename = instructions['contentFile']['filename']
+            if instructions['contentFile'].get('s3_uri'):
+                return instructions['contentFile'].get('s3_uri')
+            else:
+                identifier = instructions['calisphere-id']
+                filename = instructions['contentFile']['filename']
 
-            fetch_request = self.build_fetch_request(instructions)
-
-            return Fetcher.stash_content_file(self, identifier, filename, fetch_request)
+                fetch_request = self.build_fetch_request(instructions)
+                return Fetcher.stash_content_file(self, identifier, filename, fetch_request)
         else:
             return None
 
