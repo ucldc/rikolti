@@ -86,11 +86,13 @@ class NuxeoFetcher(Fetcher):
         filename_jp2 = f"{basename_no_ext}.jp2"
         s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_jp2}"
 
-        if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):source_fullpath = self.fetch_to_temp(instructions)
+        if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):
+            source_fullpath = self.fetch_to_temp(instructions)
             jp2_fullpath = f"{tempfile.gettempdir()}/{filename_jp2}"
 
             # create jp2 copy of source image
-            args = [MAGICK_CONVERT, source_fullpath, jp2_fullpath]
+            rate = 10 # factor of compression. 20 means 20 times compressed.
+            args = [MAGICK_CONVERT, source_fullpath, "-format", "-jp2", "-define", f"jp2:rate={rate}",jp2_fullpath]
             subprocess.run(args, check=True)
 
             self.s3.upload_file(jp2_fullpath, S3_PUBLIC_BUCKET, s3_key)
