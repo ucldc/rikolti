@@ -3,15 +3,13 @@ from file_fetchers.fetcher import Fetcher
 import json
 import tempfile
 import subprocess
-import boto3
-from botocore.exceptions import ClientError
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-#S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
-S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
-#S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
-S3_PRIVATE_BUCKET = 'barbarahui_test_bucket'
+S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
+#S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
+S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
+#S3_PRIVATE_BUCKET = 'barbarahui_test_bucket'
 S3_MEDIA_INSTRUCTIONS_FOLDER = os.environ['S3_MEDIA_INSTRUCTIONS_FOLDER']
 S3_CONTENT_FILES_FOLDER = os.environ['S3_CONTENT_FILES_FOLDER']
 NUXEO_BASIC_USER = os.environ['NUXEO_BASIC_USER']
@@ -37,15 +35,14 @@ class NuxeoFetcher(Fetcher):
                 instructions['thumbnail'] = self.stash_thumbnail(instructions)
 
             # stash child files
-            for child in instructions['children']:
-                if child.get('contentFile'):
-                    child['contentFile'] = self.stash_content_file(child)
-                    child['thumbnail'] = self.stash_thumbnail(child)
+            if instructions.get('children'):
+                for child in instructions['children']:
+                    if child.get('contentFile'):
+                        child['contentFile'] = self.stash_content_file(child)
+                        child['thumbnail'] = self.stash_thumbnail(child)
 
-            # stash object thumbnail
+            # set object thumbnail md5hash
             instructions['objectThumbnail'] = self.set_object_thumbnail(instructions)
-            if instructions['objectThumbnail'].get('url'):
-                instructions['objectThumbnail']['md5hash'] = Fetcher.stash_thumbnail(instructions['objectThumbnail']['url'])
 
             # stash media.json
             self.stash_media_json(s3key, instructions)
@@ -67,6 +64,9 @@ class NuxeoFetcher(Fetcher):
         if instructions['contentFile']['mime-type'] == 'application/pdf':
             instructions['thumbnail'] = self.stash_pdf_thumbnail(instructions)
         else:
+            if isinstance(instructions['thumbnail'], str):
+                url = instructions['thumbnail']
+                instructions['thumbnail'] = {'url': url}
             instructions['thumbnail']['md5hash'] = Fetcher.stash_thumbnail(instructions['thumbnail']['url'])
 
         return instructions['thumbnail']
@@ -81,9 +81,9 @@ class NuxeoFetcher(Fetcher):
             source_fullpath = self.fetch_to_temp(instructions)
             jp2_fullpath = f"{tempfile.gettempdir()}/{filename_jp2}"
 
-            # create jp2 copy of source image
+            # create jp2 copy of first page/layer/frame of source image
             rate = 10 # factor of compression. 20 means 20 times compressed.
-            args = [MAGICK_CONVERT, source_fullpath, "-format", "-jp2", "-define", f"jp2:rate={rate}",jp2_fullpath]
+            args = [MAGICK_CONVERT, "-quiet", "-format", "-jp2", "-define", f"jp2:rate={rate}", f"{source_fullpath}[0]", jp2_fullpath]
             subprocess.run(args, check=True)
 
             self.s3.upload_file(jp2_fullpath, S3_PUBLIC_BUCKET, s3_key)
@@ -111,7 +111,7 @@ class NuxeoFetcher(Fetcher):
             png_fullpath = f"{tempfile.gettempdir()}/{filename_png}"
 
             # create png of first page of PDF
-            args = [MAGICK_CONVERT, "-strip", "-format", "png", "-quality", "75", f"{pdf_fullpath}[0]", png_fullpath]
+            args = [MAGICK_CONVERT, "-quiet", "-strip", "-format", "png", "-quality", "75", f"{pdf_fullpath}[0]", png_fullpath]
             subprocess.run(args, check=True)
 
             # FIXME stash using md5s3stash instead!!
@@ -125,7 +125,7 @@ class NuxeoFetcher(Fetcher):
             "filename": filename_png,
             "mime-type": "image/png",
             "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}",
-            "md5hash": "<md5hash>"
+            "md5hash": None
         }
 
         return instructions['thumbnail']
@@ -187,54 +187,60 @@ class NuxeoFetcher(Fetcher):
         return instructions
 
     def set_object_thumbnail(self, instructions):
-        # try to find a thumbnail url for an image type component first
+        ''' set md5hash of thumbnail for object.
+
+            for complex objects, this may be different from the thumbnail of
+            the parent component.
+        '''
+        # try to find a thumbnail for an image type component first
         # check parent
-        url = self.get_thumb_url_image_source_only(instructions)
-        if url:
-            return {'url': url}
+        md5hash = self.get_thumb_md5_image_source_only(instructions)
+        if md5hash:
+            return md5hash
 
         # check children
-        for child in instructions['children']:
-            url = self.get_thumb_url_image_source_only(child)
-            if url:
-                return {'url': url}
+        if instructions.get('children'):
+            for child in instructions['children']:
+                md5hash = self.get_thumb_md5_image_source_only(child)
+                if md5hash:
+                    return md5hash
 
-        # failing that, find any thumbnail url
+        # failing that, find any thumbnail
         # check parent
-        url = self.get_thumb_url(instructions)
-        if url:
-            return {'url': url}
+        md5hash = self.get_thumb_md5(instructions)
+        if md5hash:
+            return md5hash
 
         # check children
-        for child in instructions['children']:
-            url = self.get_thumb_url(child)
-            return {'url': url}
+        if instructions.get('children'):
+            for child in instructions['children']:
+                md5hash = self.get_thumb_md5(child)
+                return md5hash
 
-        return {'url': None}
+        return None
 
-    def get_thumb_url_image_source_only(self, instructions):
+    def get_thumb_md5_image_source_only(self, instructions):
         ''' if component json contains url suitable as input for thumbnailer, return it
             the source content file must be of type image
         '''
-        url = None
+        md5hash = None
         try:
             if instructions['contentFile']['mime-type'].startswith('image/'):
-                url = instructions['thumbnail']['url']
+                md5hash = instructions['thumbnail']['md5hash']
         except KeyError:
             pass
 
-        return url
+        return md5hash
 
-
-    def get_thumb_url(self, instructions):
+    def get_thumb_md5(self, instructions):
         ''' if component json contains url suitable as input for thumbnailer, return it '''
-        url = None
+        md5hash = None
         try:
-            url = instructions['thumbnail']['url']
+            md5hash = instructions['thumbnail']['md5hash']
         except KeyError:
             pass
 
-        return url
+        return md5hash
 
     def stash_media_json(self, s3key, instructions):
         path = os.path.join(os.getcwd(), f"{self.collection_id}")

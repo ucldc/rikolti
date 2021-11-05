@@ -5,10 +5,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-#S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
-S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
-#S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
-S3_PRIVATE_BUCKET = 'barbarahui_test_bucket'
+S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
+#S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
 S3_CONTENT_FILES_FOLDER = os.environ['S3_CONTENT_FILES_FOLDER']
 
 class Fetcher(object):
