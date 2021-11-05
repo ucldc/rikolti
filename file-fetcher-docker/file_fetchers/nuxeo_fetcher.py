@@ -24,64 +24,55 @@ class NuxeoFetcher(Fetcher):
 
     def fetch_files(self):
         """ Fetch and stash all files needed by Calisphere for a Nuxeo object
+
             For Nuxeo objects, this is based on the media_instructions.jsonl for the object
             Return updated media_instructions.jsonl
         """
         for s3key in self.build_instruction_list():
             instructions = self.fetch_instructions(s3key)
 
-            # Validate instructions. What values must be provided?
-
-            # preprocess parent component
-            if instructions.get('contentFile'):
-                instructions['contentFile'] = self.preprocess_content_file(instructions)
-                instructions['thumbnail'] = self.preprocess_thumbnail(instructions)
-
-            # preprocess child components
-            for child in instructions['children']:
-                if child.get('contentFile'):
-                    child['contentFile'] = self.preprocess_content_file(child)
-                    child['thumbnail'] = self.preprocess_thumbnail(child)
-            
-            # set object thumbnail (this will go into the ElasticSearch index)
-            if not instructions.get('objectThumbnail'):
-                instructions['objectThumbnail'] = {}
-            instructions['objectThumbnail']['url'] = self.get_object_thumbnail_url(instructions)
-
             # stash parent files
-            instructions['contentFile']['s3_uri'] = self.stash_content_file(instructions)
-            instructions['thumbnail']['md5hash'] = self.stash_thumbnail(instructions)
+            if instructions.get('contentFile'):
+                instructions['contentFile'] = self.stash_content_file(instructions)
+                instructions['thumbnail'] = self.stash_thumbnail(instructions)
 
             # stash child files
             for child in instructions['children']:
-                child['contentFile']['s3_uri'] = self.stash_content_file(child)
-                child['thumbnail']['md5hash'] = self.stash_thumbnail(child)
+                if child.get('contentFile'):
+                    child['contentFile'] = self.stash_content_file(child)
+                    child['thumbnail'] = self.stash_thumbnail(child)
 
             # stash object thumbnail
-            instructions['objectThumbnail']['md5hash'] = self.stash_thumbnail(instructions)
+            instructions['objectThumbnail'] = self.set_object_thumbnail(instructions)
+            if instructions['objectThumbnail'].get('url'):
+                instructions['objectThumbnail']['md5hash'] = Fetcher.stash_thumbnail(instructions['objectThumbnail']['url'])
 
             # stash media.json
             self.stash_media_json(s3key, instructions)
 
             # return a json representation of stashed files
 
-    def preprocess_content_file(self, instructions):
-        instructions['contentFile']['url'] = instructions['contentFile']['url'].replace('/nuxeo/', '/Nuxeo/')
-
+    def stash_content_file(self, instructions):
         if instructions['contentFile']['mime-type'].startswith('image/'):
-            instructions['contentFile'] = self.create_jp2(instructions)
+            instructions['contentFile'] = self.stash_jp2(instructions)
+        else:
+            identifier = instructions['calisphere-id']
+            filename = instructions['contentFile']['filename']
+            fetch_request = self.build_fetch_request(instructions)
+            instructions['contentFile']['s3_uri'] = Fetcher.stash_content_file(self, identifier, filename, fetch_request)
+
         return instructions['contentFile']
 
-    def preprocess_thumbnail(self, instructions):
+    def stash_thumbnail(self, instructions):
         if instructions['contentFile']['mime-type'] == 'application/pdf':
-            instructions['thumbnail'] = self.create_pdf_thumbnail(instructions)
+            instructions['thumbnail'] = self.stash_pdf_thumbnail(instructions)
         else:
-            instructions['thumbnail'] = {} # FIXME
+            instructions['thumbnail']['md5hash'] = Fetcher.stash_thumbnail(instructions['thumbnail']['url'])
+
         return instructions['thumbnail']
 
-    def create_jp2(self, instructions):
-        # recreate this using openJPEG instead of Kakadu: 
-        # https://github.com/barbarahui/ucldc-iiif/blob/master/ucldc_iiif/convert.py
+    def stash_jp2(self, instructions):
+        """ create a jp2 copy of the image and stash it on s3 """
         basename_no_ext = self.get_basename_no_ext(instructions['contentFile']['filename'])
         filename_jp2 = f"{basename_no_ext}.jp2"
         s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_jp2}"
@@ -101,15 +92,16 @@ class NuxeoFetcher(Fetcher):
             os.remove(source_fullpath)
             os.remove(jp2_fullpath)
 
-        instructions['contentFile'] = {
+        instructions['contentFile'].update({
             "filename": filename_jp2,
             "mime-type": "image/jp2",
+            "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}",
             "s3_uri": f"s3://{S3_PUBLIC_BUCKET}/{s3_key}"
-        }
+        })
 
         return instructions['contentFile']
 
-    def create_pdf_thumbnail(self, instructions):
+    def stash_pdf_thumbnail(self, instructions):
         basename_no_ext = self.get_basename_no_ext(instructions['contentFile']['filename'])
         filename_png = f"first_page-{basename_no_ext}.png"
         s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_png}"
@@ -122,6 +114,7 @@ class NuxeoFetcher(Fetcher):
             args = [MAGICK_CONVERT, "-strip", "-format", "png", "-quality", "75", f"{pdf_fullpath}[0]", png_fullpath]
             subprocess.run(args, check=True)
 
+            # FIXME stash using md5s3stash instead!!
             self.s3.upload_file(png_fullpath, S3_PUBLIC_BUCKET, s3_key)
             print(f"stashed on s3: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
 
@@ -131,7 +124,8 @@ class NuxeoFetcher(Fetcher):
         instructions['thumbnail'] = {
             "filename": filename_png,
             "mime-type": "image/png",
-            "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}"
+            "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}",
+            "md5hash": "<md5hash>"
         }
 
         return instructions['thumbnail']
@@ -153,15 +147,17 @@ class NuxeoFetcher(Fetcher):
         return tmpfile.name
 
     def build_fetch_request(self, instructions):
-        # https://github.com/barbarahui/nuxeo-calisphere/blob/master/s3stash/nxstashref.py#L78-L106
-        # timeouts based on those used by nuxeo-python-client
-        # see: https://github.com/nuxeo/nuxeo-python-client/blob/master/nuxeo/constants.py
-        # but tweaked to be slightly larger than a multiple of 3, which is recommended
-        # in the requests documentation.
-        # see: https://docs.python-requests.org/en/master/user/advanced/#timeouts
+        """
+        timeouts based on those used by nuxeo-python-client
+        see: https://github.com/nuxeo/nuxeo-python-client/blob/master/nuxeo/constants.py
+        but tweaked to be slightly larger than a multiple of 3, which is recommended
+        in the requests documentation.
+        see: https://docs.python-requests.org/en/master/user/advanced/#timeouts
+        """
         timeout_connect = 12.05
         timeout_read = (60 * 10) + 0.05
         source_url = instructions['contentFile']['url']
+        source_url = source_url.replace('/nuxeo/', '/Nuxeo/')
         request = {
             'url': source_url,
             'auth': (NUXEO_BASIC_USER, NUXEO_BASIC_AUTH),
@@ -190,32 +186,54 @@ class NuxeoFetcher(Fetcher):
 
         return instructions
 
-    def stash_content_file(self, instructions):
-        """ stash content file(s) for one object on s3
-            return s3_uri of stashed file
-        """
-        if instructions.get('contentFile'):
-            if instructions['contentFile'].get('s3_uri'):
-                return instructions['contentFile'].get('s3_uri')
-            else:
-                identifier = instructions['calisphere-id']
-                filename = instructions['contentFile']['filename']
+    def set_object_thumbnail(self, instructions):
+        # try to find a thumbnail url for an image type component first
+        # check parent
+        url = self.get_thumb_url_image_source_only(instructions)
+        if url:
+            return {'url': url}
 
-                fetch_request = self.build_fetch_request(instructions)
-                return Fetcher.stash_content_file(self, identifier, filename, fetch_request)
-        else:
-            return None
+        # check children
+        for child in instructions['children']:
+            url = self.get_thumb_url_image_source_only(child)
+            if url:
+                return {'url': url}
 
-    def stash_thumbnail(self, instructions):
-        # run md5s3stash 
-        # https://github.com/ucldc/md5s3stash
-        # 
-        # if source copy is the pdf thumbnail just created, we can now delete the source copy from s3
-        return "<md5hash>"
+        # failing that, find any thumbnail url
+        # check parent
+        url = self.get_thumb_url(instructions)
+        if url:
+            return {'url': url}
 
-    def get_object_thumbnail_url(self, instructions):
-        # recreate this logic: https://github.com/ucldc/harvester/blob/master/harvester/fetcher/nuxeo_fetcher.py#L79-L141
-        url = "<source_url_for_object_thumbnail>"
+        # check children
+        for child in instructions['children']:
+            url = self.get_thumb_url(child)
+            return {'url': url}
+
+        return {'url': None}
+
+    def get_thumb_url_image_source_only(self, instructions):
+        ''' if component json contains url suitable as input for thumbnailer, return it
+            the source content file must be of type image
+        '''
+        url = None
+        try:
+            if instructions['contentFile']['mime-type'].startswith('image/'):
+                url = instructions['thumbnail']['url']
+        except KeyError:
+            pass
+
+        return url
+
+
+    def get_thumb_url(self, instructions):
+        ''' if component json contains url suitable as input for thumbnailer, return it '''
+        url = None
+        try:
+            url = instructions['thumbnail']['url']
+        except KeyError:
+            pass
+
         return url
 
     def stash_media_json(self, s3key, instructions):
@@ -231,4 +249,3 @@ class NuxeoFetcher(Fetcher):
         f = open(filename, "w")
         media_json = json.dumps(instructions)
         f.write(media_json)
-

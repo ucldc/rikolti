@@ -52,6 +52,11 @@ class Fetcher(object):
 
         return f"s3://{S3_PUBLIC_BUCKET}/{s3_key}"
 
+    def stash_thumbnail(self):
+        """ stash thumbnail files using md5s3stash """
+        md5hash = None
+        return md5hash
+
     def already_stashed(self, bucket, key):
         try:
             response = self.s3.head_object(
@@ -73,10 +78,6 @@ class Fetcher(object):
         self.http = requests.Session()
         self.http.mount("https://", adapter)
         self.http.mount("http://", adapter)
-
-    def stash_thumbnail(self):
-        """ stash thumbnail files using md5s3stash """
-        raise NotImplementedError
 
     def build_fetch_request(self):
         """build parameters for the institution's http_client.get()
