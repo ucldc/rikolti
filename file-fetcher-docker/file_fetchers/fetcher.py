@@ -4,9 +4,10 @@ import botocore
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from md5s3stash import md5s3stash
 
-S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
-#S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
+#S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
+S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
 S3_CONTENT_FILES_FOLDER = os.environ['S3_CONTENT_FILES_FOLDER']
 
 class Fetcher(object):
@@ -32,7 +33,7 @@ class Fetcher(object):
         raise NotImplementedError
 
     def stash_content_file(self, id, filename, fetch_request):
-
+        """ stash content file on s3 """
         s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{id}::{filename}"
 
         if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):
@@ -50,18 +51,38 @@ class Fetcher(object):
 
         return f"s3://{S3_PUBLIC_BUCKET}/{s3_key}"
 
-    def stash_thumbnail(self):
-        """ stash thumbnail files using md5s3stash """
-        md5hash = None
-        return md5hash
+    def stash_thumbnail(self, url, **kwargs):
+        """ stash thumbnail files on s3 """
+        # https://github.com/ucldc/harvester/blob/master/harvester/image_harvest.py#L106-L165
+        # check that this is a link to an image
+
+        # FIXME this is awkward
+        if 'basic_auth' in kwargs:
+            basic_auth = kwargs['basic_auth']
+        else:
+            basic_auth = False
+
+        stasher = md5s3stash(url=url, basic_auth=basic_auth)
+        stasher.stash()
+
+        return stasher.md5hash
+
+    def build_fetch_request(self):
+        """build parameters for the institution's http_client.get()
+
+        this should minimally return {'url': str} but may also include
+        {'headers': {}, 'params': {}} or any other options accepted by
+        requests.get()
+        """
+        raise NotImplementedError
 
     def already_stashed(self, bucket, key):
         try:
             response = self.s3.head_object(
-                Bucket=S3_PUBLIC_BUCKET,
+                Bucket=bucket,
                 Key=key
             )
-            print(f"already stashed: s3://{S3_PUBLIC_BUCKET}/{key}")
+            print(f"already stashed: s3://{bucket}/{key}")
             return True
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == "404":
@@ -76,13 +97,4 @@ class Fetcher(object):
         self.http = requests.Session()
         self.http.mount("https://", adapter)
         self.http.mount("http://", adapter)
-
-    def build_fetch_request(self):
-        """build parameters for the institution's http_client.get()
-
-        this should minimally return {'url': str} but may also include
-        {'headers': {}, 'params': {}} or any other options accepted by
-        requests.get()
-        """
-        raise NotImplementedError
 

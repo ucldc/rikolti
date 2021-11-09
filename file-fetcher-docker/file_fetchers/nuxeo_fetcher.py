@@ -1,19 +1,18 @@
 import os
 from file_fetchers.fetcher import Fetcher
+from md5s3stash import md5s3stash
 import json
 import tempfile
 import subprocess
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
 
-S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
-#S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
-S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
-#S3_PRIVATE_BUCKET = 'barbarahui_test_bucket'
+#S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
+S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
+#S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
+S3_PRIVATE_BUCKET = 'barbarahui_test_bucket'
 S3_MEDIA_INSTRUCTIONS_FOLDER = os.environ['S3_MEDIA_INSTRUCTIONS_FOLDER']
 S3_CONTENT_FILES_FOLDER = os.environ['S3_CONTENT_FILES_FOLDER']
-NUXEO_BASIC_USER = os.environ['NUXEO_BASIC_USER']
-NUXEO_BASIC_AUTH = os.environ['NUXEO_BASIC_AUTH']
+BASIC_USER = os.environ['BASIC_USER']
+BASIC_PASS = os.environ['BASIC_PASS']
 MAGICK_CONVERT = os.environ.get('MAGICK_CONVERT', '/usr/bin/convert')
 
 class NuxeoFetcher(Fetcher):
@@ -53,9 +52,9 @@ class NuxeoFetcher(Fetcher):
         if instructions['contentFile']['mime-type'].startswith('image/'):
             instructions['contentFile'] = self.stash_jp2(instructions)
         else:
+            fetch_request = self.build_fetch_request(instructions)
             identifier = instructions['calisphere-id']
             filename = instructions['contentFile']['filename']
-            fetch_request = self.build_fetch_request(instructions)
             instructions['contentFile']['s3_uri'] = Fetcher.stash_content_file(self, identifier, filename, fetch_request)
 
         return instructions['contentFile']
@@ -67,9 +66,30 @@ class NuxeoFetcher(Fetcher):
             if isinstance(instructions['thumbnail'], str):
                 url = instructions['thumbnail']
                 instructions['thumbnail'] = {'url': url}
-            instructions['thumbnail']['md5hash'] = Fetcher.stash_thumbnail(instructions['thumbnail']['url'])
+            instructions['thumbnail']['url'] = instructions['thumbnail']['url'].replace('/nuxeo/', '/Nuxeo/') # FIXME do this when creating media instructions
+            instructions['thumbnail']['md5hash'] = Fetcher.stash_thumbnail(self, instructions['thumbnail']['url'], basic_auth=True)
 
         return instructions['thumbnail']
+
+    def build_fetch_request(self, instructions):
+        """
+        timeouts based on those used by nuxeo-python-client
+        see: https://github.com/nuxeo/nuxeo-python-client/blob/master/nuxeo/constants.py
+        but tweaked to be slightly larger than a multiple of 3, which is recommended
+        in the requests documentation.
+        see: https://docs.python-requests.org/en/master/user/advanced/#timeouts
+        """
+        timeout_connect = 12.05
+        timeout_read = (60 * 10) + 0.05
+        source_url = instructions['contentFile']['url']
+        source_url = source_url.replace('/nuxeo/', '/Nuxeo/') # FIXME do this when creating media instructions
+        request = {
+            'url': source_url,
+            'auth': (BASIC_USER, BASIC_PASS),
+            'stream': True,
+            'timeout': (timeout_connect, timeout_read)
+        }
+        return request
 
     def stash_jp2(self, instructions):
         """ create a jp2 copy of the image and stash it on s3 """
@@ -106,26 +126,27 @@ class NuxeoFetcher(Fetcher):
         filename_png = f"first_page-{basename_no_ext}.png"
         s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_png}"
 
-        if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):
-            pdf_fullpath = self.fetch_to_temp(instructions)
-            png_fullpath = f"{tempfile.gettempdir()}/{filename_png}"
+        # fetch pdf to /tmp
+        # FIXME if the thumbnail already exists on s3, we can skip this
+        pdf_fullpath = self.fetch_to_temp(instructions)
+        png_fullpath = f"{tempfile.gettempdir()}/{filename_png}"
 
-            # create png of first page of PDF
-            args = [MAGICK_CONVERT, "-quiet", "-strip", "-format", "png", "-quality", "75", f"{pdf_fullpath}[0]", png_fullpath]
-            subprocess.run(args, check=True)
+        # create png of first page of PDF
+        args = [MAGICK_CONVERT, "-quiet", "-strip", "-format", "png", "-quality", "75", f"{pdf_fullpath}[0]", png_fullpath]
+        subprocess.run(args, check=True)
 
-            # FIXME stash using md5s3stash instead!!
-            self.s3.upload_file(png_fullpath, S3_PUBLIC_BUCKET, s3_key)
-            print(f"stashed on s3: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
+        stasher = md5s3stash(localpath=png_fullpath, mime_type='image/png', basic_auth=True)
+        stasher.stash()
+        md5hash = stasher.md5hash
 
-            os.remove(pdf_fullpath)
-            os.remove(png_fullpath)
+        os.remove(pdf_fullpath)
+        os.remove(png_fullpath)
 
         instructions['thumbnail'] = {
             "filename": filename_png,
             "mime-type": "image/png",
             "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}",
-            "md5hash": None
+            "md5hash": md5hash
         }
 
         return instructions['thumbnail']
@@ -145,26 +166,6 @@ class NuxeoFetcher(Fetcher):
                 f.write(block)
 
         return tmpfile.name
-
-    def build_fetch_request(self, instructions):
-        """
-        timeouts based on those used by nuxeo-python-client
-        see: https://github.com/nuxeo/nuxeo-python-client/blob/master/nuxeo/constants.py
-        but tweaked to be slightly larger than a multiple of 3, which is recommended
-        in the requests documentation.
-        see: https://docs.python-requests.org/en/master/user/advanced/#timeouts
-        """
-        timeout_connect = 12.05
-        timeout_read = (60 * 10) + 0.05
-        source_url = instructions['contentFile']['url']
-        source_url = source_url.replace('/nuxeo/', '/Nuxeo/')
-        request = {
-            'url': source_url,
-            'auth': (NUXEO_BASIC_USER, NUXEO_BASIC_AUTH),
-            'stream': True,
-            'timeout': (timeout_connect, timeout_read)
-        }
-        return request
 
     def build_instruction_list(self):
         prefix = f"{S3_MEDIA_INSTRUCTIONS_FOLDER}/{self.collection_id}/"
