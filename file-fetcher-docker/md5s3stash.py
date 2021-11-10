@@ -12,6 +12,7 @@ import botocore
 import tempfile
 import hashlib
 from PIL import Image
+from PIL import UnidentifiedImageError
 import magic
 
 S3_THUMBNAIL_BUCKET = os.environ.get('S3_THUMBNAIL_BUCKET')
@@ -24,24 +25,25 @@ TIMEOUT_READ = (60 * 10) + 0.05
 class md5s3stash(object):
     ''' fetch an image and stash on s3 using md5hash as key '''
     def __init__(self, **kwargs):
+
+        self.url = None
+        self.localpath = None
+        self.basic_auth = False
+
         if 'url' in kwargs:
             self.url = kwargs['url']
-        else:
-            self.url = None
 
         if 'localpath' in kwargs:
             self.localpath = kwargs['localpath']
-        else:
-            self.localpath = None
+
+        if self.url is None and self.localpath is None:
+            raise TypeError("Must provide either url or localpath.")
+
+        if self.url and self.localpath:
+            print(f"Both url and localpath provided! Uploading from localpath.")
 
         if BASIC_USER or BASIC_PASS:
             self.basic_auth = True
-        else:
-            self.basic_auth = False
-
-        if self.url and self.localpath:
-            # FIXME raise warning
-            print("Both url and localpath provided! Uploading from localpath.")
 
         self.s3 = boto3.client('s3')
         self.md5hash = None
@@ -54,6 +56,12 @@ class md5s3stash(object):
 
     def stash_local(self):
 
+        self.get_file_info()
+
+        if not self.is_image:
+            print(f"File is not of type image. Not stashing: {self.localpath}")
+            return
+
         # get md5hash
         hasher = hashlib.md5()
         f = open(self.localpath, "rb")
@@ -61,9 +69,6 @@ class md5s3stash(object):
             hasher.update(chunk)
 
         self.md5hash = hasher.hexdigest()
-        
-        self.get_mime_type()
-        self.get_dimensions()
 
         # upload file to s3
         self.s3stash()
@@ -96,8 +101,11 @@ class md5s3stash(object):
                 f.write(block)
         self.md5hash = hasher.hexdigest()
 
-        self.get_mime_type()
-        self.get_dimensions()
+        self.get_file_info()
+
+        if not self.is_image:
+            print(f"File is not of type image. Not stashing: {self.url}")
+            return
 
         # if the md5hash is in the hash_cache, delete tempfile and return
 
@@ -174,9 +182,16 @@ class md5s3stash(object):
             if e.response['Error']['Code'] == "404":
                 return False
 
-    def get_mime_type(self):
-        self.mime_type = magic.Magic(mime=True).from_file(self.localpath)
+    def get_file_info(self):
+        try:
+            self.dimensions = Image.open(self.localpath).size
+        except UnidentifiedImageError:
+            self.dimensions = (0,0)
+            self.is_image = False
+            self.mime_type = None
+        else:
+            self.is_image = True
+            self.mime_type = magic.Magic(mime=True).from_file(self.localpath)
 
-    def get_dimensions(self):
-        self.dimensions = Image.open(self.localpath).size
+
 
