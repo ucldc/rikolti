@@ -1,3 +1,4 @@
+import sys
 import os
 from file_fetchers.fetcher import Fetcher
 from md5s3stash import md5s3stash
@@ -5,10 +6,8 @@ import json
 import tempfile
 import subprocess
 
-#S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
-S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
-#S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
-S3_PRIVATE_BUCKET = 'barbarahui_test_bucket'
+S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
+S3_PRIVATE_BUCKET = os.environ['S3_PRIVATE_BUCKET']
 S3_MEDIA_INSTRUCTIONS_FOLDER = os.environ['S3_MEDIA_INSTRUCTIONS_FOLDER']
 S3_CONTENT_FILES_FOLDER = os.environ['S3_CONTENT_FILES_FOLDER']
 BASIC_USER = os.environ['BASIC_USER']
@@ -20,10 +19,8 @@ class NuxeoFetcher(Fetcher):
         super(NuxeoFetcher, self).__init__(collection_id, **kwargs)
 
     def fetch_files(self):
-        """ Fetch and stash all files needed by Calisphere for a Nuxeo object
-
-            For Nuxeo objects, this is based on the media_instructions.jsonl for the object
-            Return updated media_instructions.jsonl
+        """ Fetch and stash all files needed by Calisphere for a Nuxeo object.
+            This is based on the media_instructions.jsonl for the object.
         """
         for s3key in self.build_instruction_list():
             instructions = self.fetch_instructions(s3key)
@@ -46,8 +43,6 @@ class NuxeoFetcher(Fetcher):
             # stash media.json
             self.stash_media_json(s3key, instructions)
 
-            # return a json representation of stashed files
-
     def stash_content_file(self, instructions):
         if instructions['contentFile']['mime-type'].startswith('image/'):
             instructions['contentFile'] = self.stash_jp2(instructions)
@@ -67,7 +62,10 @@ class NuxeoFetcher(Fetcher):
                 url = instructions['thumbnail']
                 instructions['thumbnail'] = {'url': url}
             instructions['thumbnail']['url'] = instructions['thumbnail']['url'].replace('/nuxeo/', '/Nuxeo/') # FIXME do this when creating media instructions
-            instructions['thumbnail']['md5hash'] = Fetcher.stash_thumbnail(self, instructions['thumbnail']['url'], basic_auth=True)
+            (md5hash, mime_type, dimensions) = Fetcher.stash_thumbnail(self, instructions['thumbnail']['url'])
+            instructions['thumbnail']['md5hash'] = md5hash
+            instructions['thumbnail']['mime-type'] = mime_type
+            instructions['thumbnail']['dimensions'] = dimensions
 
         return instructions['thumbnail']
 
@@ -106,6 +104,7 @@ class NuxeoFetcher(Fetcher):
             args = [MAGICK_CONVERT, "-quiet", "-format", "-jp2", "-define", f"jp2:rate={rate}", f"{source_fullpath}[0]", jp2_fullpath]
             subprocess.run(args, check=True)
 
+            # stash on s3
             self.s3.upload_file(jp2_fullpath, S3_PUBLIC_BUCKET, s3_key)
             print(f"stashed on s3: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
 
@@ -122,12 +121,11 @@ class NuxeoFetcher(Fetcher):
         return instructions['contentFile']
 
     def stash_pdf_thumbnail(self, instructions):
+        # FIXME if the thumbnail already exists on s3, we can skip this. Use hash_cache?
         basename_no_ext = self.get_basename_no_ext(instructions['contentFile']['filename'])
         filename_png = f"first_page-{basename_no_ext}.png"
-        s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_png}"
 
         # fetch pdf to /tmp
-        # FIXME if the thumbnail already exists on s3, we can skip this
         pdf_fullpath = self.fetch_to_temp(instructions)
         png_fullpath = f"{tempfile.gettempdir()}/{filename_png}"
 
@@ -135,9 +133,11 @@ class NuxeoFetcher(Fetcher):
         args = [MAGICK_CONVERT, "-quiet", "-strip", "-format", "png", "-quality", "75", f"{pdf_fullpath}[0]", png_fullpath]
         subprocess.run(args, check=True)
 
-        stasher = md5s3stash(localpath=png_fullpath, mime_type='image/png', basic_auth=True)
+        # stash on s3
+        stasher = md5s3stash(localpath=png_fullpath)
         stasher.stash()
         md5hash = stasher.md5hash
+        dimensions = stasher.dimensions
 
         os.remove(pdf_fullpath)
         os.remove(png_fullpath)
@@ -145,8 +145,8 @@ class NuxeoFetcher(Fetcher):
         instructions['thumbnail'] = {
             "filename": filename_png,
             "mime-type": "image/png",
-            "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}",
-            "md5hash": md5hash
+            "md5hash": md5hash,
+            "dimensions": dimensions
         }
 
         return instructions['thumbnail']
@@ -175,8 +175,11 @@ class NuxeoFetcher(Fetcher):
             Prefix=prefix
         )
 
-        # FIXME figure out how to only return the objects within the folder, not the folder itself
-        return [content['Key'] for content in response['Contents'] if content['Key'] != f"{S3_MEDIA_INSTRUCTIONS_FOLDER}/{self.collection_id}/"]
+        try:
+            return [content['Key'] for content in response['Contents'] if content['Key'] != f"{S3_MEDIA_INSTRUCTIONS_FOLDER}/{self.collection_id}/"]
+        except KeyError:
+            print(f"No media instruction files found at s3://{S3_MEDIA_INSTRUCTIONS_FOLDER}/{self.collection_id}/")
+            return []
 
     def fetch_instructions(self, s3key):
         response = self.s3.get_object(
@@ -221,9 +224,7 @@ class NuxeoFetcher(Fetcher):
         return None
 
     def get_thumb_md5_image_source_only(self, instructions):
-        ''' if component json contains url suitable as input for thumbnailer, return it
-            the source content file must be of type image
-        '''
+        ''' get md5hash for component of type image '''
         md5hash = None
         try:
             if instructions['contentFile']['mime-type'].startswith('image/'):
@@ -234,7 +235,7 @@ class NuxeoFetcher(Fetcher):
         return md5hash
 
     def get_thumb_md5(self, instructions):
-        ''' if component json contains url suitable as input for thumbnailer, return it '''
+        ''' get md5hash for any component '''
         md5hash = None
         try:
             md5hash = instructions['thumbnail']['md5hash']

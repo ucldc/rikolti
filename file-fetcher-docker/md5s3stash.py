@@ -11,9 +11,10 @@ from boto3.s3.transfer import TransferConfig
 import botocore
 import tempfile
 import hashlib
+from PIL import Image
+import magic
 
-#S3_THUMBNAIL_BUCKET = os.environ.get('S3_THUMBNAIL_BUCKET')
-S3_THUMBNAIL_BUCKET = 'barbarahui_test_bucket'
+S3_THUMBNAIL_BUCKET = os.environ.get('S3_THUMBNAIL_BUCKET')
 S3_THUMBNAIL_FOLDER = os.environ.get('s3_THUMBNAIL_FOLDER')
 BASIC_USER = os.environ.get('BASIC_USER')
 BASIC_PASS = os.environ.get('BASIC_PASS')
@@ -33,24 +34,14 @@ class md5s3stash(object):
         else:
             self.localpath = None
 
-        if 'mime_type' in kwargs:
-            self.mime_type = kwargs['mime_type']
+        if BASIC_USER or BASIC_PASS:
+            self.basic_auth = True
         else:
-            self.mime_type = None
-
-        if self.localpath and not self.mime_type:
-            # FIXME raise an error
-            print(f"mime_type must be provided! {localpath=}")
-            sys.exit()
+            self.basic_auth = False
 
         if self.url and self.localpath:
             # FIXME raise warning
             print("Both url and localpath provided! Uploading from localpath.")
-
-        if 'basic_auth' in kwargs:
-            self.basic_auth = kwargs['basic_auth']
-        else:
-            self.basic_auth = False
 
         self.s3 = boto3.client('s3')
         self.md5hash = None
@@ -61,33 +52,37 @@ class md5s3stash(object):
         else:
             self.stash_remote()
 
-        # TODO: update hash-cache with s3_url, mime-type, dimensions
-
     def stash_local(self):
+
+        # get md5hash
         hasher = hashlib.md5()
         f = open(self.localpath, "rb")
-
         while chunk := f.read(4096):
             hasher.update(chunk)
 
         self.md5hash = hasher.hexdigest()
         
-        # TODO: get self.dimensions
+        self.get_mime_type()
+        self.get_dimensions()
 
         # upload file to s3
         self.s3stash()
 
     def stash_remote(self):
+        # replicate hash_cache? right now this is stored in redis
+        # it allows us to be polite and not re-fetch files if we have them already
         self.validate_url()
         self.set_request_session()
         fetch_request = self.build_fetch_request()
         response = self.http.get(**fetch_request)
         response.raise_for_status()
-        # replicate hash_cache? right now this is stored in redis.
-        # if md5 in hash-cache and 304 Not Modified since last time fetched, return m5hash
+
+        # if md5 in hash-cache and 304 Not Modified since last time fetched, return md5hash
+
+        # skip if Content-Type header isn't for an image?
+        #self.mime_type = response.headers['Content-Type']
 
         # get values from headers for hash_cache:
-        self.mime_type = response.headers['Content-Type']
         # set 'If-None-Match' = 'ETag' in cache
         # set 'If-Modified-Since' = 'Last-Modified' in cache
 
@@ -101,14 +96,18 @@ class md5s3stash(object):
                 f.write(block)
         self.md5hash = hasher.hexdigest()
 
-        # if the md5hash is in the hash_cache, delete tempfile and return
+        self.get_mime_type()
+        self.get_dimensions()
 
-        # TODO: get self.dimensions
+        # if the md5hash is in the hash_cache, delete tempfile and return
 
         # upload file to s3
         self.s3stash()
 
         os.remove(tmpfile.name)
+
+        # update hash-cache with s3_url, mime-type, dimensions
+        # these values must get written to solr at some point?
 
     def build_fetch_request(self):
         request = {
@@ -174,4 +173,10 @@ class md5s3stash(object):
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == "404":
                 return False
+
+    def get_mime_type(self):
+        self.mime_type = magic.Magic(mime=True).from_file(self.localpath)
+
+    def get_dimensions(self):
+        self.dimensions = Image.open(self.localpath).size
 

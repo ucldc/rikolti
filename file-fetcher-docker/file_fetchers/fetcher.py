@@ -6,9 +6,10 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from md5s3stash import md5s3stash
 
-#S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
-S3_PUBLIC_BUCKET = 'barbarahui_test_bucket'
+S3_PUBLIC_BUCKET = os.environ['S3_PUBLIC_BUCKET']
 S3_CONTENT_FILES_FOLDER = os.environ['S3_CONTENT_FILES_FOLDER']
+BASIC_USER = os.environ.get('BASIC_USER')
+BASIC_PASS = os.environ.get('BASIC_PASS')
 
 class Fetcher(object):
     def __init__(self, collection_id, **kwargs):
@@ -24,8 +25,6 @@ class Fetcher(object):
 
     def fetch_files(self):
         """ Fetch files for a collection and stash on s3
-
-            Return json representation of what was stashed
 
             For most sources, this will just be one thumbnail per item
             For sources like Nuxeo, override this class to fetch other files
@@ -51,21 +50,13 @@ class Fetcher(object):
 
         return f"s3://{S3_PUBLIC_BUCKET}/{s3_key}"
 
-    def stash_thumbnail(self, url, **kwargs):
+    def stash_thumbnail(self, url):
         """ stash thumbnail files on s3 """
         # https://github.com/ucldc/harvester/blob/master/harvester/image_harvest.py#L106-L165
-        # check that this is a link to an image
-
-        # FIXME this is awkward
-        if 'basic_auth' in kwargs:
-            basic_auth = kwargs['basic_auth']
-        else:
-            basic_auth = False
-
-        stasher = md5s3stash(url=url, basic_auth=basic_auth)
+        stasher = md5s3stash(url=url)
         stasher.stash()
 
-        return stasher.md5hash
+        return (stasher.md5hash, stasher.mime_type, stasher.dimensions)
 
     def build_fetch_request(self):
         """build parameters for the institution's http_client.get()
