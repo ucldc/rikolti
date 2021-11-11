@@ -86,6 +86,7 @@ class md5s3stash(object):
         content_type = content_type.split('/', 1)[0].lower()
         if content_type != 'image':
             print(f"Content-Type header is not for image. Not stashing: {self.url}")
+            return
 
         # get values from headers for hash_cache:
         # set 'If-None-Match' = 'ETag' in cache
@@ -135,8 +136,6 @@ class md5s3stash(object):
 
     def s3stash(self):
         # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3.html#multipart-transfers
-        # raise error if not self.md5hash, self.mime_type, self.localpath?
-
         self.s3key = f"{S3_THUMBNAIL_FOLDER}/{self.md5hash}"
         if not self.already_stashed():
             # Set the desired multipart threshold value (5GB)
@@ -150,15 +149,9 @@ class md5s3stash(object):
 
     def validate_url(self):
         parsed = urlparse(self.url)
-        try:
-            (scheme, netloc, path) = (parsed.scheme, parsed.netloc, parsed.path)
-        except:
-            print(f"Invalid URL! {self.url}")
-            sys.exit()
-
+        scheme = parsed.scheme
         if self.basic_auth and scheme != 'https':
-            print(f"Basic Auth not over HTTPS is a bad idea!: {self.url}")
-            sys.exit()
+            raise ValueError(f"Basic Auth not over HTTPS is a bad idea!: {self.url}")
 
     def set_request_session(self):
         retry_strategy = Retry(
