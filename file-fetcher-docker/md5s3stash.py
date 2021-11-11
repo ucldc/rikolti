@@ -5,7 +5,6 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from urllib.parse import urlparse
-import base64
 import boto3
 from boto3.s3.transfer import TransferConfig
 import botocore
@@ -25,7 +24,6 @@ TIMEOUT_READ = (60 * 10) + 0.05
 class md5s3stash(object):
     ''' fetch an image and stash on s3 using md5hash as key '''
     def __init__(self, **kwargs):
-
         self.url = None
         self.localpath = None
         self.basic_auth = False
@@ -55,7 +53,6 @@ class md5s3stash(object):
             self.stash_remote()
 
     def stash_local(self):
-
         self.get_file_info()
 
         if not self.is_image:
@@ -84,8 +81,11 @@ class md5s3stash(object):
 
         # if md5 in hash-cache and 304 Not Modified since last time fetched, return md5hash
 
-        # skip if Content-Type header isn't for an image?
-        #self.mime_type = response.headers['Content-Type']
+        # skip if Content-Type header isn't for an image
+        content_type = response.headers['Content-Type']
+        content_type = content_type.split('/', 1)[0].lower()
+        if content_type != 'image':
+            print(f"Content-Type header is not for image. Not stashing: {self.url}")
 
         # get values from headers for hash_cache:
         # set 'If-None-Match' = 'ETag' in cache

@@ -24,10 +24,11 @@ class Fetcher(object):
         self.set_request_session()
 
     def fetch_files(self):
-        """ Fetch files for a collection and stash on s3
+        """ Fetch files for a collection (or an arbitrary set of objects within a
+            single collection) and stash on s3.
 
-            For most sources, this will just be one thumbnail per item
-            For sources like Nuxeo, override this class to fetch other files
+            For most sources, this will just be one thumbnail per object.
+            For sources like Nuxeo, override this class to fetch other files.
         """
         raise NotImplementedError
 

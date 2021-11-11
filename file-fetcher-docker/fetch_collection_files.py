@@ -3,7 +3,6 @@ import argparse
 from file_fetchers.fetcher import Fetcher
 from file_fetchers.nuxeo_fetcher import NuxeoFetcher
 
-""" fetch content files for a given collection """
 def get_fetcher(collection_id, harvest_type, clean):
     try:
         globals()[harvest_type]
@@ -24,7 +23,7 @@ def get_fetcher(collection_id, harvest_type, clean):
     return fetcher
 
 def main(collection_id, harvest_type, clean):
-
+    """ fetch all files for a given collection """
     fetcher = get_fetcher(collection_id, harvest_type, clean)
 
     fetcher.fetch_files()

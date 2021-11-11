@@ -19,8 +19,8 @@ class NuxeoFetcher(Fetcher):
         super(NuxeoFetcher, self).__init__(collection_id, **kwargs)
 
     def fetch_files(self):
-        """ Fetch and stash all files needed by Calisphere for a Nuxeo object.
-            This is based on the media_instructions.jsonl for the object.
+        """ Fetch and stash all files needed by Calisphere for a Nuxeo collection.
+            This is based on the media_instructions.jsonl for each object.
         """
         for s3key in self.build_instruction_list():
             instructions = self.fetch_instructions(s3key)
