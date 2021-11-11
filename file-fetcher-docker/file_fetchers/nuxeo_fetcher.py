@@ -19,8 +19,11 @@ class NuxeoFetcher(Fetcher):
         super(NuxeoFetcher, self).__init__(collection_id, **kwargs)
 
     def fetch_files(self):
-        """ Fetch and stash all files needed by Calisphere for a Nuxeo collection.
+        """ Fetch, create and stash all files needed by Calisphere for a Nuxeo collection.
             This is based on the media_instructions.jsonl for each object.
+
+            The media_instructions dict is updated as the files are fetched and this becomes
+            the media.json file for the object.
         """
         for s3key in self.build_instruction_list():
             instructions = self.fetch_instructions(s3key)
@@ -43,33 +46,35 @@ class NuxeoFetcher(Fetcher):
             # stash media.json
             self.stash_media_json(s3key, instructions)
 
-    def stash_content_file(self, instructions):
-        if instructions['contentFile']['mime-type'].startswith('image/'):
-            instructions['contentFile'] = self.stash_jp2(instructions)
+    def stash_content_file(self, component):
+        if component['contentFile']['mime-type'].startswith('image/'):
+            component['contentFile'] = self.stash_jp2(component)
         else:
-            fetch_request = self.build_fetch_request(instructions)
-            identifier = instructions['calisphere-id']
-            filename = instructions['contentFile']['filename']
-            instructions['contentFile']['s3_uri'] = Fetcher.stash_content_file(self, identifier, filename, fetch_request)
+            fetch_request = self.build_fetch_request(component)
+            identifier = component['calisphere-id']
+            filename = component['contentFile']['filename']
+            component['contentFile']['s3_key'] = Fetcher.stash_content_file(self, identifier, filename, fetch_request)
 
-        return instructions['contentFile']
+        return component['contentFile']
 
-    def stash_thumbnail(self, instructions):
-        if instructions['contentFile']['mime-type'] == 'application/pdf':
-            instructions['thumbnail'] = self.stash_pdf_thumbnail(instructions)
+    def stash_thumbnail(self, component):
+        if component['contentFile']['mime-type'] == 'application/pdf':
+            component['thumbnail'] = self.stash_pdf_thumbnail(component)
         else:
-            if isinstance(instructions['thumbnail'], str):
-                url = instructions['thumbnail']
-                instructions['thumbnail'] = {'url': url}
-            instructions['thumbnail']['url'] = instructions['thumbnail']['url'].replace('/nuxeo/', '/Nuxeo/') # FIXME do this when creating media instructions
-            (md5hash, mime_type, dimensions) = Fetcher.stash_thumbnail(self, instructions['thumbnail']['url'])
-            instructions['thumbnail']['md5hash'] = md5hash
-            instructions['thumbnail']['mime-type'] = mime_type
-            instructions['thumbnail']['dimensions'] = dimensions
+            # FIXME make thumbnail a dict when creating media instructions
+            if isinstance(component['thumbnail'], str):
+                url = component['thumbnail']
+                component['thumbnail'] = {'url': url}
+            # FIXME do this when creating media instructions
+            component['thumbnail']['url'] = component['thumbnail']['url'].replace('/nuxeo/', '/Nuxeo/')
+            (md5hash, mime_type, dimensions) = Fetcher.stash_thumbnail(self, component['thumbnail']['url'])
+            component['thumbnail']['md5hash'] = md5hash
+            component['thumbnail']['mime-type'] = mime_type
+            component['thumbnail']['dimensions'] = dimensions
 
-        return instructions['thumbnail']
+        return component['thumbnail']
 
-    def build_fetch_request(self, instructions):
+    def build_fetch_request(self, component):
         """
         timeouts based on those used by nuxeo-python-client
         see: https://github.com/nuxeo/nuxeo-python-client/blob/master/nuxeo/constants.py
@@ -79,8 +84,9 @@ class NuxeoFetcher(Fetcher):
         """
         timeout_connect = 12.05
         timeout_read = (60 * 10) + 0.05
-        source_url = instructions['contentFile']['url']
-        source_url = source_url.replace('/nuxeo/', '/Nuxeo/') # FIXME do this when creating media instructions
+        source_url = component['contentFile']['url']
+        # FIXME do this when creating media instructions
+        source_url = source_url.replace('/nuxeo/', '/Nuxeo/')
         request = {
             'url': source_url,
             'auth': (BASIC_USER, BASIC_PASS),
@@ -89,14 +95,14 @@ class NuxeoFetcher(Fetcher):
         }
         return request
 
-    def stash_jp2(self, instructions):
+    def stash_jp2(self, component):
         """ create a jp2 copy of the image and stash it on s3 """
-        basename_no_ext = self.get_basename_no_ext(instructions['contentFile']['filename'])
+        basename_no_ext = self.get_basename_no_ext(component['contentFile']['filename'])
         filename_jp2 = f"{basename_no_ext}.jp2"
-        s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{instructions['calisphere-id']}::{filename_jp2}"
+        s3_key = f"{S3_CONTENT_FILES_FOLDER}/{self.collection_id}/{component['calisphere-id']}::{filename_jp2}"
 
         if self.clean_stash or not self.already_stashed(S3_PUBLIC_BUCKET, s3_key):
-            source_fullpath = self.fetch_to_temp(instructions)
+            source_fullpath = self.fetch_to_temp(component)
             jp2_fullpath = f"{tempfile.gettempdir()}/{filename_jp2}"
 
             # create jp2 copy of first page/layer/frame of source image
@@ -111,22 +117,22 @@ class NuxeoFetcher(Fetcher):
             os.remove(source_fullpath)
             os.remove(jp2_fullpath)
 
-        instructions['contentFile'].update({
+        component['contentFile'].update({
             "filename": filename_jp2,
             "mime-type": "image/jp2",
-            "url": f"https://s3.amazonaws.com/{S3_PUBLIC_BUCKET}/{s3_key}",
-            "s3_uri": f"s3://{S3_PUBLIC_BUCKET}/{s3_key}"
+            "s3_key": s3_key
         })
 
-        return instructions['contentFile']
+        return component['contentFile']
 
-    def stash_pdf_thumbnail(self, instructions):
-        # FIXME if the thumbnail already exists on s3, we can skip this. Use hash_cache?
-        basename_no_ext = self.get_basename_no_ext(instructions['contentFile']['filename'])
+    def stash_pdf_thumbnail(self, component):
+        """ create a jpeg image of the first page of the PDF and stash on s3 """
+        # TODO if the thumbnail already exists on s3, we can skip this. Use hash_cache?
+        basename_no_ext = self.get_basename_no_ext(component['contentFile']['filename'])
         filename_png = f"first_page-{basename_no_ext}.png"
 
         # fetch pdf to /tmp
-        pdf_fullpath = self.fetch_to_temp(instructions)
+        pdf_fullpath = self.fetch_to_temp(component)
         png_fullpath = f"{tempfile.gettempdir()}/{filename_png}"
 
         # create png of first page of PDF
@@ -136,27 +142,25 @@ class NuxeoFetcher(Fetcher):
         # stash on s3
         stasher = md5s3stash(localpath=png_fullpath)
         stasher.stash()
-        md5hash = stasher.md5hash
-        dimensions = stasher.dimensions
 
         os.remove(pdf_fullpath)
         os.remove(png_fullpath)
 
-        instructions['thumbnail'] = {
+        component['thumbnail'] = {
             "filename": filename_png,
-            "mime-type": "image/png",
-            "md5hash": md5hash,
-            "dimensions": dimensions
+            "mime-type": stasher.mime_type,
+            "md5hash": stasher.md5hash,
+            "dimensions": stasher.dimensions
         }
 
-        return instructions['thumbnail']
+        return component['thumbnail']
 
     def get_basename_no_ext(self, filename):
         return f"{os.path.splitext(os.path.basename(filename))[0]}"
 
-    def fetch_to_temp(self, instructions):
+    def fetch_to_temp(self, component):
         # download file
-        fetch_request = self.build_fetch_request(instructions)
+        fetch_request = self.build_fetch_request(component)
         response = self.http.get(**fetch_request)
         response.raise_for_status()
 
@@ -223,22 +227,22 @@ class NuxeoFetcher(Fetcher):
 
         return None
 
-    def get_thumb_md5_image_source_only(self, instructions):
+    def get_thumb_md5_image_source_only(self, component):
         ''' get md5hash for component of type image '''
         md5hash = None
         try:
-            if instructions['contentFile']['mime-type'].startswith('image/'):
-                md5hash = instructions['thumbnail']['md5hash']
+            if component['contentFile']['mime-type'].startswith('image/'):
+                md5hash = component['thumbnail']['md5hash']
         except KeyError:
             pass
 
         return md5hash
 
-    def get_thumb_md5(self, instructions):
+    def get_thumb_md5(self, component):
         ''' get md5hash for any component '''
         md5hash = None
         try:
-            md5hash = instructions['thumbnail']['md5hash']
+            md5hash = component['thumbnail']['md5hash']
         except KeyError:
             pass
 
