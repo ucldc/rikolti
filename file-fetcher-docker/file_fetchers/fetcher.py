@@ -49,7 +49,7 @@ class Fetcher(object):
                 self.s3.upload_fileobj(part.raw, S3_PUBLIC_BUCKET, s3_key, Config=conf)
             print(f"stashed on s3: s3://{S3_PUBLIC_BUCKET}/{s3_key}")
 
-        return f"{s3_key}"
+        return s3_key
 
     def stash_thumbnail(self, url):
         """ stash thumbnail files on s3 """
