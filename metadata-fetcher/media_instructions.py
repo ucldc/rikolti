@@ -136,8 +136,9 @@ def main(collection_id, page):
                 for line in child_page['Body'].iter_lines():
                     record = json.loads(line)
                     if validate_object(record):
-                        record_id = record['uid']                        
-                        children.append(dict({"id": record_id}, 
+                        #record_id = record['uid']
+                        child_calisphere_id = f"{collection_id}--{record['uid']}"
+                        children.append(dict({"calisphere-id": child_calisphere_id},
                                              **make_instructions(record)))
                 # child_page.close()
             media_instructions[calisphere_id].update({"children": children})
