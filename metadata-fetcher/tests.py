@@ -95,6 +95,16 @@ citrus_test = {
   }
 }
 
+two_percent_test = {
+  "collection_id": 27755,
+  "harvest_type": "NuxeoFetcher",
+  "write_page": 0,
+  "nuxeo": {
+    "path": "/asset-library/UCI/SCA_UniversityArchives/AS-221/PUBLISH",
+    "fetch_components": True
+  }
+}
+
 
 # 27414
 # 26710 - nuxeo video
@@ -104,4 +114,4 @@ citrus_test = {
 # lambda_handler(json.dumps(ramicova_test), {})
 # lambda_handler(json.dumps(nordskogpapers), {})
 # lambda_handler(json.dumps(oai_test), {})
-lambda_handler(json.dumps(citrus_test), {})
+lambda_handler(json.dumps(two_percent_test), {})
