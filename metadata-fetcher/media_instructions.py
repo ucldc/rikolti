@@ -92,7 +92,10 @@ def main(collection_id, page):
     child_folders = s3_client.list_objects_v2(
         Bucket=bucket,
         Prefix=f'vernacular_metadata/{collection_id}/children/')
-    child_folders = [child['Key'] for child in child_folders['Contents']]
+    try:
+        child_folders = [child['Key'] for child in child_folders['Contents']]
+    except KeyError:
+        child_folders = []
 
     # path = os.path.join(os.getcwd(), collection_id)
     # filename = os.path.join(path, f"{page}.jsonl")
