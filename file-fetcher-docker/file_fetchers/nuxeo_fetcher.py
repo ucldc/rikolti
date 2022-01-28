@@ -58,19 +58,18 @@ class NuxeoFetcher(Fetcher):
         return component['contentFile']
 
     def stash_thumbnail(self, component):
-        if component['contentFile']['mime-type'] == 'application/pdf':
-            component['thumbnail'] = self.stash_pdf_thumbnail(component)
-        else:
-            # FIXME make thumbnail a dict when creating media instructions
-            if isinstance(component['thumbnail'], str):
-                url = component['thumbnail']
-                component['thumbnail'] = {'url': url}
-            # FIXME do this when creating media instructions
-            component['thumbnail']['url'] = component['thumbnail']['url'].replace('/nuxeo/', '/Nuxeo/')
+        '''
+            The url for the nuxeo thumbnail will be in the media instructions for images and videos
+            We need to create and stash a thumbnail image for PDFs
+            Other file types (e.g. audio) do not have a thumbnail image
+        '''
+        if component['thumbnail']:
             (md5hash, mime_type, dimensions) = Fetcher.stash_thumbnail(self, component['thumbnail']['url'])
             component['thumbnail']['md5hash'] = md5hash
             component['thumbnail']['mime-type'] = mime_type
             component['thumbnail']['dimensions'] = dimensions
+        elif component['contentFile']['mime-type'] == 'application/pdf':
+            component['thumbnail'] = self.stash_pdf_thumbnail(component)
 
         return component['thumbnail']
 
@@ -85,8 +84,6 @@ class NuxeoFetcher(Fetcher):
         timeout_connect = 12.05
         timeout_read = (60 * 10) + 0.05
         source_url = component['contentFile']['url']
-        # FIXME do this when creating media instructions
-        source_url = source_url.replace('/nuxeo/', '/Nuxeo/')
         request = {
             'url': source_url,
             'auth': (BASIC_USER, BASIC_PASS),
