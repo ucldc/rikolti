@@ -1,2 +1,5 @@
 boto3
 requests
+authlib
+jwt
+nuxeo

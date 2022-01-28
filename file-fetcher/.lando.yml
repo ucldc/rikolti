@@ -1,4 +1,4 @@
-name: jp2-playground
+name: rikolti-file-fetcher
 env_file:
   - env.local
 services:
