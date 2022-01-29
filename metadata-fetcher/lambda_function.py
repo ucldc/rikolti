@@ -7,15 +7,15 @@ from NuxeoFetcher import NuxeoFetcher
 
 DEBUG = os.environ.get('DEBUG', False)
 
-def get_fetcher(payload):
-    harvest_type = payload.get('harvest_type')
+
+def get_fetcher(harvest_type):
     try:
-        globals()[harvest_type]
+        locals()[harvest_type]
     except KeyError:
         print(f"{ harvest_type } not imported")
         exit()
 
-    if globals()[harvest_type] not in Fetcher.__subclasses__():
+    if locals()[harvest_type] not in Fetcher.__subclasses__():
         print(f"{ harvest_type } not a subclass of Fetcher")
         exit()
 
@@ -24,15 +24,15 @@ def get_fetcher(payload):
     except NameError:
         print(f"bad harvest type: { harvest_type }")
         exit()
-
     return fetcher
+
 
 def lambda_handler(payload, context):
     if DEBUG:
         payload = json.loads(payload)
 
     harvest_type = payload.get('harvest_type')
-    fetcher = get_fetcher(payload)
+    fetcher = get_fetcher(harvest_type)
 
     fetcher.fetch_page()
     next_page = fetcher.json()

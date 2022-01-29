@@ -24,32 +24,29 @@ class Fetcher(object):
             "Key": f"vernacular_metadata/{self.collection_id}/"
         }
         if not self.collection_id:
-           print('no collection id!')
+            print('no collection id!')
 
     def fetchtolocal(self, records):
-        path = self.get_local_path()
-
-        filename = os.path.join(path, f"{self.write_page}.jsonl")
-        f = open(filename, "w+")
-
-        jsonl = "\n".join([json.dumps(record) for record in records])
-        f.write(jsonl)
-        f.write("\n")
-
-    def get_local_path(self):
         path = os.path.join(os.getcwd(), f"{self.collection_id}")
         if not os.path.exists(path):
             os.mkdir(path)
 
         date_path = os.path.join(path, f"{time.strftime('%Y-%m-%d')}")
         if not os.path.exists(date_path):
-            os.mkdir(date_path)      
+            os.mkdir(date_path)
 
-        return date_path  
+        filename = (
+            f"{self.collection_id}/{time.strftime('%Y-%m-%d')}/"
+            f"{self.write_page}.jsonl"
+        )
+        f = open(filename, "w+")
+
+        jsonl = "\n".join([json.dumps(record) for record in records])
+        f.write(jsonl)
+        f.write("\n")
 
     def fetchtos3(self, records):
         s3_client = boto3.client('s3')
-        s3_key = self.get_s3_key()
 
         jsonl = "\n".join([json.dumps(record) for record in records])
         try:
@@ -58,27 +55,22 @@ class Fetcher(object):
                 ACL=self.s3_data['ACL'],
                 Bucket=self.s3_data['Bucket'],
                 Key=(
-                    f"{s3_key}"
+                    f"{self.s3_data['Key']}"
                     f"{self.write_page}.jsonl"
                 ),
                 Body=jsonl)
         except Exception as e:
             print(e)
 
-    def get_s3_key(self):
-        return self.s3_data['Key']
-
     def fetch_page(self):
         page = self.build_fetch_request()
         response = requests.get(**page)
-        response.raise_for_status()
         records = self.get_records(response)
 
-        if len(records) > 0:
-            if DEBUG:
-                self.fetchtolocal(records)
-            else:
-                self.fetchtos3(records)
+        if DEBUG:
+            self.fetchtolocal(records)
+        else:
+            self.fetchtos3(records)
 
         self.increment(response)
 
