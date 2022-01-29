@@ -61,7 +61,7 @@ nightingale_test = {
   "write_page": 0,
   "nuxeo": {
     "path": "/asset-library/UCM/NightingaleDiaries/",
-    "fetch_children": True
+    "fetch_components": True
   }
 }
 
@@ -71,7 +71,7 @@ mcdaniel_test = {
   "write_page": 0,
   "nuxeo": {
     "path": "/asset-library/UCM/Wilma_McDaniel/Publish/",
-    "fetch_children": True
+    "fetch_components": True
   }
 }
 
@@ -81,7 +81,7 @@ halpern_test = {
   "write_page": 0,
   "nuxeo": {
     "path": "/asset-library/UCR/SCUA/Archival/MS075",
-    "fetch_children": True
+    "fetch_components": True
   }
 }
 
@@ -91,7 +91,7 @@ citrus_test = {
   "write_page": 0,
   "nuxeo": {
     "path": "/asset-library/UCR/SCUA/Archival/UA042/published",
-    "fetch_children": True
+    "fetch_components": True
   }
 }
 
