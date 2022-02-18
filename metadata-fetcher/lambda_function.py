@@ -4,6 +4,7 @@ import boto3
 
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
+from OACFetcher import OACFetcher
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -40,12 +41,13 @@ def lambda_handler(payload, context):
         if DEBUG:
             lambda_handler(next_page, {})
 
-        lambda_client = boto3.client('lambda', region_name="us-west-2",)
-        lambda_client.invoke(
-            FunctionName="fetch-metadata",
-            InvocationType="Event",  # invoke asynchronously
-            Payload=next_page.encode('utf-8')
-        )
+        else:
+            lambda_client = boto3.client('lambda', region_name="us-west-2",)
+            lambda_client.invoke(
+                FunctionName="fetch-metadata",
+                InvocationType="Event",  # invoke asynchronously
+                Payload=next_page.encode('utf-8')
+            )
 
     return {
         'statusCode': 200,

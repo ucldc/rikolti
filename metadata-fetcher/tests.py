@@ -38,6 +38,34 @@ oac_test = {
         'url': "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/tf1z09n955",
     }
 }
+
+tudor_engineering = {
+  'collection_id': 22973,
+  'harvest_type': "OACFetcher",
+  'write_page': 0,
+  'oac': {
+    'url': 'http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/kt28702559'
+  }
+}
+
+multipage_oac = {
+  'collection_id': 22456,
+  'harvest_type': "OACFetcher",
+  'write_page': 0,
+  'oac': {
+    'url': 'http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/c8pn97ch'
+  }
+}
+
+large_oac = {
+  'collection_id': 25496,
+  'harvest_type': "OACFetcher",
+  'write_page': 0,
+  'oac': {
+    'url': 'http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/hb8779p2cx&publisher=%22bancroft%22'
+  }
+}
+
 nordskogpapers = {
   "collection_id": 26746,
   "harvest_type": "NuxeoFetcher",
@@ -104,4 +132,7 @@ citrus_test = {
 # lambda_handler(json.dumps(ramicova_test), {})
 # lambda_handler(json.dumps(nordskogpapers), {})
 # lambda_handler(json.dumps(oai_test), {})
-lambda_handler(json.dumps(citrus_test), {})
+# lambda_handler(json.dumps(citrus_test), {})
+# lambda_handler(json.dumps(tudor_engineering), {})
+# lambda_handler(json.dumps(multipage_oac), {})
+lambda_handler(json.dumps(large_oac), {})
