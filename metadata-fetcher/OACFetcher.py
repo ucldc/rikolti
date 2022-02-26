@@ -2,18 +2,13 @@ import json
 import requests
 from xml.etree import ElementTree
 import xmltodict
-
-
 from Fetcher import Fetcher, FetchError
-
-import os
-TOKEN = os.environ['NUXEO']
-CONTENT_SERVER = 'http://content.cdlib.org/'
 
 
 class OACFetcher(Fetcher):
     # params['oac'] = {
-    #     "url": "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/kt28702559",
+    #     "url": ("http://dsc.cdlib.org/search?facet=type-tab"
+    #             "&style=cui&raw=1&relation=ark:/13030/kt28702559"),
     #     "counts": {
     #         "total": 145,
     #         "image": 128,
