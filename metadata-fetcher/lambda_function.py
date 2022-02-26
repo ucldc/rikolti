@@ -4,8 +4,10 @@ import boto3
 
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
+from OAIFetcher import OAIFetcher
 
 DEBUG = os.environ.get('DEBUG', False)
+
 
 def get_fetcher(payload):
     harvest_type = payload.get('harvest_type')
@@ -26,6 +28,7 @@ def get_fetcher(payload):
         exit()
 
     return fetcher
+
 
 def lambda_handler(payload, context):
     if DEBUG:

@@ -95,6 +95,27 @@ citrus_test = {
   }
 }
 
+oai_test = {
+  "collection_id": 27836,
+  "harvest_type": "OAIFetcher",
+  "write_page": 0,
+  "oai": {
+    "url": (
+      "http://www.adc-exhibits.museum.ucsb.edu/"
+      "oai-pmh-repository/request"),
+    "set": 38
+  }
+}
+
+large_oai_test = {
+  "collection_id": 26673,
+  "harvest_type": "OAIFetcher",
+  "write_page": 0,
+  "oai": {
+    "url": "http://exhibits.sos.ca.gov/oai-pmh-repository/request",
+    "set": 1
+  }
+}
 
 # 27414
 # 26710 - nuxeo video
@@ -104,4 +125,6 @@ citrus_test = {
 # lambda_handler(json.dumps(ramicova_test), {})
 # lambda_handler(json.dumps(nordskogpapers), {})
 # lambda_handler(json.dumps(oai_test), {})
-lambda_handler(json.dumps(citrus_test), {})
+# lambda_handler(json.dumps(citrus_test), {})
+# lambda_handler(json.dumps(oai_test), {})
+lambda_handler(json.dumps(large_oai_test), {})
