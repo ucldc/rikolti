@@ -137,22 +137,7 @@ def main(database, table):
     # oac_mapped.printSchema()
 
     oac_mapped = oac_mapped.withColumn('collection_id', lit(table))
-
-    # convert to glue dynamic frame
-    transformed_dyf = DynamicFrame.fromDF(
-        oac_mapped, glue_context, "transformed_dyf")
-
-    # write transformed data to target
-    path = "s3://rikolti/mapped_metadata/"
-
-    partition_keys = ["collection_id"]
-    glue_context.write_dynamic_frame.from_options(
-       frame=transformed_dyf,
-       connection_type="s3",
-       connection_options={"path": path, "partitionKeys": partition_keys},
-       format="json")
-
-    return True
+    return oac_mapped
 
 
 def has_column(df, col):
@@ -401,4 +386,19 @@ if __name__ == "__main__":
     spark = glue_context.spark_session
 
     print(args['collection_id'])
-    main("rikolti", args['collection_id'])
+    oac_mapped = main("rikolti", args['collection_id'])
+
+    # convert to glue dynamic frame
+    transformed_dyf = DynamicFrame.fromDF(
+        oac_mapped, glue_context, "transformed_dyf")
+
+    # write transformed data to target
+    path = "s3://rikolti/mapped_metadata/"
+
+    partition_keys = ["collection_id"]
+    glue_context.write_dynamic_frame.from_options(
+       frame=transformed_dyf,
+       connection_type="s3",
+       connection_options={"path": path, "partitionKeys": partition_keys},
+       format="json")
+
