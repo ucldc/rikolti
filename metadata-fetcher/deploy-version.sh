@@ -21,7 +21,7 @@ set -u
 ZIP="fetcher-$1.zip"
 
 #package the app and upload to s3
-pip install --target ./package requests
+pip install --target ./package -r requirements.txt
 cd package
 zip -r ../$ZIP .
 cd ..
@@ -32,7 +32,8 @@ rm -r package
 aws lambda update-function-code \
   --function-name fetch-metadata \
   --s3-bucket $S3_BUCKET \
-  --s3-key deployments/metadata-fetcher/$ZIP
+  --s3-key deployments/metadata-fetcher/$ZIP \
+  --region us-west-2
 
 rm $ZIP
 

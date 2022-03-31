@@ -40,28 +40,28 @@ oac_test = {
 }
 
 tudor_engineering = {
-  'collection_id': 22973,
-  'harvest_type': "OACFetcher",
-  'write_page': 0,
-  'oac': {
-    'url': 'http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/kt28702559'
+  "collection_id": 22973,
+  "harvest_type": "OACFetcher",
+  "write_page": 0,
+  "oac": {
+    "url": "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/kt28702559"
   }
 }
 
 multipage_oac = {
-  'collection_id': 22456,
-  'harvest_type': "OACFetcher",
-  'write_page': 0,
-  'oac': {
-    'url': 'http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/c8pn97ch'
+  "collection_id": 22456,
+  "harvest_type": "OACFetcher",
+  "write_page": 0,
+  "oac": {
+    "url": "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/c8pn97ch"
   }
 }
 
 large_oac = {
-  'collection_id': 25496,
-  'harvest_type': "OACFetcher",
-  'write_page': 0,
-  'oac': {
+  "collection_id": 25496,
+  "harvest_type": "OACFetcher",
+  "write_page": 0,
+  "oac": {
     'url': 'http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/hb8779p2cx&publisher=%22bancroft%22'
   }
 }
@@ -135,4 +135,4 @@ citrus_test = {
 # lambda_handler(json.dumps(citrus_test), {})
 # lambda_handler(json.dumps(tudor_engineering), {})
 # lambda_handler(json.dumps(multipage_oac), {})
-lambda_handler(json.dumps(large_oac), {})
+lambda_handler(json.dumps(tudor_engineering), {})
