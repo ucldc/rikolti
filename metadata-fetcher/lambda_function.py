@@ -1,11 +1,15 @@
 import json
 import os
 import boto3
+import sys
+from threading import Thread
 
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
 
+
 DEBUG = os.environ.get('DEBUG', False)
+
 
 def get_fetcher(payload):
     harvest_type = payload.get('harvest_type')
@@ -27,25 +31,29 @@ def get_fetcher(payload):
 
     return fetcher
 
+
 def lambda_handler(payload, context):
     if DEBUG:
         payload = json.loads(payload)
 
-    harvest_type = payload.get('harvest_type')
     fetcher = get_fetcher(payload)
 
     fetcher.fetch_page()
     next_page = fetcher.json()
     if next_page:
         if DEBUG:
-            lambda_handler(next_page, {})
+            Thread(
+                target=lambda_handler,
+                args=(next_page, {})
+            ).start()
 
-        lambda_client = boto3.client('lambda', region_name="us-west-2",)
-        lambda_client.invoke(
-            FunctionName="fetch-metadata",
-            InvocationType="Event",  # invoke asynchronously
-            Payload=next_page.encode('utf-8')
-        )
+        else:
+            lambda_client = boto3.client('lambda', region_name="us-west-2",)
+            lambda_client.invoke(
+                FunctionName="fetch-metadata",
+                InvocationType="Event",  # invoke asynchronously
+                Payload=next_page.encode('utf-8')
+            )
 
     return {
         'statusCode': 200,
