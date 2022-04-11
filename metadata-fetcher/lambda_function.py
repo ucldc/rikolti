@@ -2,7 +2,7 @@ import json
 import os
 import boto3
 import sys
-from threading import Thread
+import subprocess
 
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
@@ -42,11 +42,11 @@ def lambda_handler(payload, context):
     next_page = fetcher.json()
     if next_page:
         if DEBUG:
-            Thread(
-                target=lambda_handler,
-                args=(next_page, {})
-            ).start()
-
+            subprocess.run([
+                'python',
+                'lambda_function.py',
+                next_page.encode('utf-8')
+            ])
         else:
             lambda_client = boto3.client('lambda', region_name="us-west-2",)
             lambda_client.invoke(
@@ -59,3 +59,12 @@ def lambda_handler(payload, context):
         'statusCode': 200,
         'body': json.dumps(payload)
     }
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Fetch metadata in the institution's vernacular")
+    parser.add_argument('payload', help='json payload')
+    args = parser.parse_args(sys.argv[1:])
+    lambda_handler(args.payload, {})
