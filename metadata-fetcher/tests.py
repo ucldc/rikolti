@@ -19,6 +19,18 @@ ramicova_test = {
     }
 }
 
+# max recursion level test
+UC_cooperative_extension = {
+  "collection_id": 27012,
+  "harvest_type": "NuxeoFetcher",
+  "write_page": 0,
+  "nuxeo": {
+    # "path": "/asset-library/UCM/McLean/Publish/" - 68
+    "path": "/asset-library/UCM/UCCE/Merced/PUBLISH/"
+    # "path": "/asset-library/UCM/Wilma_McDaniel/Publish/" - 14256
+  }
+}
+
 oai_test = {
     'collection_id': 27435,
     'harvest_type': 'oai',
@@ -65,6 +77,7 @@ nightingale_test = {
   }
 }
 
+# complex nested
 mcdaniel_test = {
   "collection_id": 14256,
   "harvest_type": "NuxeoFetcher",
@@ -104,4 +117,4 @@ citrus_test = {
 # lambda_handler(json.dumps(ramicova_test), {})
 # lambda_handler(json.dumps(nordskogpapers), {})
 # lambda_handler(json.dumps(oai_test), {})
-lambda_handler(json.dumps(citrus_test), {})
+lambda_handler(json.dumps(mcdaniel_test), {})
