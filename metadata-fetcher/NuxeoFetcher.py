@@ -87,8 +87,20 @@ class NuxeoFetcher(Fetcher):
         if not self.nuxeo.get('current_path'):
             self.nuxeo['current_path'] = get_path_uid(self.nuxeo.get('path'))
 
-        write_page = self.nuxeo['prefix'] + [f"{self.nuxeo['api_page']}"]
-        self.write_page = '-'.join(write_page)
+        if self.nuxeo['query_type'] == 'children':
+            if DEBUG:
+                path = self.get_local_path()
+                children_path = os.path.join(path, "children")
+                if not os.path.exists(children_path):
+                    os.mkdir(children_path)
+            self.write_page = (
+                "children/"
+                f"{self.nuxeo['current_path']['uid']}-"
+                f"{self.nuxeo['api_page']}"
+            )
+        else:
+            write_page = self.nuxeo['prefix'] + [f"{self.nuxeo['api_page']}"]
+            self.write_page = '-'.join(write_page)
 
     def build_fetch_request(self):
         query_type = self.nuxeo.get('query_type')
@@ -97,8 +109,8 @@ class NuxeoFetcher(Fetcher):
 
         if query_type == 'documents':
             query = PARENT_NXQL.format(current_path['uid'])
-        # if query_type == 'children':
-        #     query = RECURSIVE_OBJECT_NXQL.format(current_path['path'])
+        if query_type == 'children':
+            query = RECURSIVE_OBJECT_NXQL.format(current_path['path'])
         if query_type == 'folders':
             query = RECURSIVE_FOLDER_NXQL.format(current_path['path'])
 
@@ -111,7 +123,7 @@ class NuxeoFetcher(Fetcher):
                 'query': query
             }
         }
-        print(f"Fetching page {page} of {query_type}")
+        print(f"Fetching page {page} of {query_type} at {current_path['path']}")
 
         return request
 
@@ -122,6 +134,36 @@ class NuxeoFetcher(Fetcher):
         documents = []
         if query_type in ['documents', 'children']:
             documents = [self.build_id(doc) for doc in resp.get('entries')]
+
+        if ((query_type == 'documents' and self.nuxeo['fetch_children'])
+                or query_type == 'folders'):
+
+            down = None
+            if query_type == 'documents':
+                down = 'children'
+            if query_type == 'folders':
+                down = 'documents'
+
+            for i, entry in enumerate(resp.get('entries')):
+                recurse({
+                    "harvest_type": self.harvest_type,
+                    "collection_id": self.collection_id,
+                    "write_page": 0,
+                    "nuxeo": {
+                        'path': self.nuxeo['path'],
+                        'fetch_children': self.nuxeo['fetch_children'],
+                        'current_path': {
+                            'path': entry.get('path'),
+                            'uid': entry.get('uid')
+                        },
+                        'query_type': down,
+                        'api_page': 0,
+                        'prefix': (
+                            self.nuxeo['prefix'] +
+                            [f"fp{self.nuxeo['api_page']}", f'f{i}']
+                        )
+                    }
+                })
 
         return documents
 
@@ -144,45 +186,8 @@ class NuxeoFetcher(Fetcher):
                     'prefix': self.nuxeo['prefix'],
                 }
             })
-        
-        if query_type == 'folders':
-            for i, folder in enumerate(resp.get('entries')):
-                recurse({
-                    "harvest_type": self.harvest_type,
-                    "collection_id": self.collection_id,
-                    "write_page": 0,
-                    "nuxeo": {
-                        'path': self.nuxeo['path'],
-                        'fetch_children': self.nuxeo['fetch_children'],
-                        'current_path': {
-                            'path': folder.get('path'),
-                            'uid': folder.get('uid'),
-                        },
-                        'query_type': 'documents',
-                        'api_page': 0,
-                        'prefix': (
-                            self.nuxeo['prefix'] +
-                            [f"fp{self.nuxeo['api_page']}", f'f{i}']
-                        )
-                    }
-                })
 
-        if query_type == 'folders' and next_page_bool:
-            recurse({
-                "harvest_type": self.harvest_type,
-                "collection_id": self.collection_id,
-                "write_page": 0,
-                "nuxeo": {
-                    'path': self.nuxeo['path'],
-                    'fetch_children': self.nuxeo['fetch_children'],
-                    'current_path': self.nuxeo['current_path'],
-                    'query_type': self.nuxeo['query_type'],
-                    'api_page': self.nuxeo['api_page'] + 1,
-                    'prefix': self.nuxeo['prefix'],
-                }
-            })
-
-        if query_type == 'documents' and next_page_bool:
+        if next_page_bool:
             self.nuxeo['api_page'] += 1
             self.write_page = 0
         else:
