@@ -36,51 +36,71 @@ NUXEO_REQUEST_HEADERS = {
                 }
 
 
+def get_path_uid(path):
+    # get nuxeo uid for doc at given path
+    escaped_path = urllib_quote(path, safe=' /')
+    request = {
+        'url': f"{API_BASE}/{API_PATH}/path/{escaped_path.strip('/')}",
+        'headers': NUXEO_REQUEST_HEADERS
+    }
+    response = requests.get(**request)
+    response.raise_for_status()
+    uid = response.json().get('uid')
+    current_path = {
+        'path': path,
+        'uid': uid
+    }
+    return current_path
+
+
+def recurse(lambda_query):
+    if DEBUG:
+        subprocess.run([
+            'python',
+            'lambda_function.py',
+            json.dumps(lambda_query).encode('utf-8')
+        ])
+    else:
+        lambda_client = boto3.client('lambda', region_name="us-west-2",)
+        lambda_client.invoke(
+            FunctionName="fetch-metadata",
+            InvocationType="Event",  # invoke asynchronously
+            Payload=json.dumps(lambda_query).encode('utf-8')
+        )
+
+
 class NuxeoFetcher(Fetcher):
     def __init__(self, params):
         super(NuxeoFetcher, self).__init__(params)
 
         nuxeo_defaults = {
-            'query_type': 'documents',
+            'path': None,
+            'fetch_children': True,
             'current_path': None,
+            'query_type': 'documents',
             'api_page': 0,
-            'prefix': []
+            'prefix': ['r'],
         }
         nuxeo_defaults.update(params.get('nuxeo'))
+
         self.nuxeo = nuxeo_defaults
-
         if not self.nuxeo.get('current_path'):
-            # get nuxeo uid for doc at given path
-            escaped_path = urllib_quote(self.nuxeo.get('path'), safe=' /')
-            request = {
-                'url': f"{API_BASE}/{API_PATH}/path/{escaped_path.strip('/')}", 
-                'headers': NUXEO_REQUEST_HEADERS
-            }
-            response = requests.get(**request)
-            response.raise_for_status()
-            uid = response.json().get('uid')
-            self.nuxeo['current_path'] = {
-                'path': self.nuxeo.get('path'), 
-                'uid': uid
-            }
+            self.nuxeo['current_path'] = get_path_uid(self.nuxeo.get('path'))
 
-        self.page_holder = self.write_page
-        write_page = [str(p) for p in self.nuxeo.get('prefix')] + [str(self.write_page)]
+        write_page = self.nuxeo['prefix'] + [f"{self.nuxeo['api_page']}"]
         self.write_page = '-'.join(write_page)
 
     def build_fetch_request(self):
         query_type = self.nuxeo.get('query_type')
         current_path = self.nuxeo.get('current_path')
+        page = self.nuxeo.get('api_page')
 
         if query_type == 'documents':
             query = PARENT_NXQL.format(current_path['uid'])
-            page = self.nuxeo.get('api_page')
         # if query_type == 'children':
         #     query = RECURSIVE_OBJECT_NXQL.format(current_path['path'])
-        #     page = self.nuxeo.get('child_page')
         if query_type == 'folders':
             query = RECURSIVE_FOLDER_NXQL.format(current_path['path'])
-            page = self.nuxeo.get('api_page')
 
         request = {
             'url': f"{API_BASE}/{API_PATH}/path/@search", 
@@ -91,13 +111,7 @@ class NuxeoFetcher(Fetcher):
                 'query': query
             }
         }
-
-        print(
-            f"--------------------------------\n"
-            f"{self}\n"
-            f"Fetching page {page} of {query_type}\n"
-            f"    {current_path}\n"
-        )
+        print(f"Fetching page {page} of {query_type}")
 
         return request
 
@@ -109,16 +123,6 @@ class NuxeoFetcher(Fetcher):
         if query_type in ['documents', 'children']:
             documents = [self.build_id(doc) for doc in resp.get('entries')]
 
-        folders = []
-        if query_type == 'folders':
-            folders = resp.get('entries')
-
-        print(
-            f"--------------------------------\n"
-            f"{self}\n"
-            f"{len(resp.get('entries'))} entries: "
-            f"{len(documents)} documents, {len(folders)} folders\n"
-        )
         return documents
 
     def increment(self, http_resp):
@@ -126,69 +130,62 @@ class NuxeoFetcher(Fetcher):
         query_type = self.nuxeo.get('query_type')
         next_page_bool = resp.get('isNextPageAvailable')
 
-        if next_page_bool:
-            self.nuxeo['api_page'] += 1
-            self.write_page = self.page_holder + 1
-        
         if query_type == 'documents' and not next_page_bool:
-            folder_query = json.loads(self.json())
-            folder_query['nuxeo']['query_type'] = 'folders'
-            folder_query['nuxeo']['api_page'] = 0
-            folder_query['write_page'] = 0
-
-            if DEBUG:
-                print(
-                    f"--------------------------------\n"
-                    f"{self}\n"
-                    "no more documents - getting folders:\n"
-                    f"{json.dumps(folder_query, indent=4)}\n"
-                )
-                subprocess.run([
-                    'python',
-                    'lambda_function.py',
-                    json.dumps(folder_query).encode('utf-8')
-                ])
-            else:
-                lambda_client = boto3.client('lambda', region_name="us-west-2",)
-                lambda_client.invoke(
-                    FunctionName="fetch-metadata",
-                    InvocationType="Event",  # invoke asynchronously
-                    Payload=json.dumps(folder_query).encode('utf-8')
-                )
+            recurse({
+                "harvest_type": self.harvest_type,
+                "collection_id": self.collection_id,
+                "write_page": 0,
+                "nuxeo": {
+                    'path': self.nuxeo['path'],
+                    'fetch_children': self.nuxeo['fetch_children'],
+                    'current_path': self.nuxeo['current_path'],
+                    'query_type': 'folders',
+                    'api_page': 0,
+                    'prefix': self.nuxeo['prefix'],
+                }
+            })
         
         if query_type == 'folders':
-            folders = [{
-                'path': entry.get('path'), 
-                'uid': entry.get('uid')
-            } for entry in resp.get('entries')]
-            for i, folder in enumerate(folders):
-                sub_folder_query = json.loads(self.json())
-                sub_folder_query['nuxeo']['query_type'] = 'documents'
-                sub_folder_query['nuxeo']['current_path'] = folder
-                sub_folder_query['nuxeo']['api_page'] = 0
-                sub_folder_query['write_page'] = 0
-                sub_folder_query['nuxeo']['prefix'] = [i] + sub_folder_query['nuxeo']['prefix']
-                if DEBUG:
-                    print(
-                        f"--------------------------------\n"
-                        f"{self}\n"
-                        f"fetching documents for folder {folder}:"
-                        f"{json.dumps(sub_folder_query, indent=4)}\n"
-                    )
-                    subprocess.run([
-                        'python',
-                        'lambda_function.py',
-                        json.dumps(sub_folder_query).encode('utf-8')
-                    ])
-                else:
-                    lambda_client = boto3.client('lambda', region_name="us-west-2",)
-                    lambda_client.invoke(
-                        FunctionName="fetch-metadata",
-                        InvocationType="Event",  # invoke asynchronously
-                        Payload=json.dumps(sub_folder_query).encode('utf-8')
-                    )
+            for i, folder in enumerate(resp.get('entries')):
+                recurse({
+                    "harvest_type": self.harvest_type,
+                    "collection_id": self.collection_id,
+                    "write_page": 0,
+                    "nuxeo": {
+                        'path': self.nuxeo['path'],
+                        'fetch_children': self.nuxeo['fetch_children'],
+                        'current_path': {
+                            'path': folder.get('path'),
+                            'uid': folder.get('uid'),
+                        },
+                        'query_type': 'documents',
+                        'api_page': 0,
+                        'prefix': (
+                            self.nuxeo['prefix'] +
+                            [f"fp{self.nuxeo['api_page']}", f'f{i}']
+                        )
+                    }
+                })
 
-        if not next_page_bool:
+        if query_type == 'folders' and next_page_bool:
+            recurse({
+                "harvest_type": self.harvest_type,
+                "collection_id": self.collection_id,
+                "write_page": 0,
+                "nuxeo": {
+                    'path': self.nuxeo['path'],
+                    'fetch_children': self.nuxeo['fetch_children'],
+                    'current_path': self.nuxeo['current_path'],
+                    'query_type': self.nuxeo['query_type'],
+                    'api_page': self.nuxeo['api_page'] + 1,
+                    'prefix': self.nuxeo['prefix'],
+                }
+            })
+
+        if query_type == 'documents' and next_page_bool:
+            self.nuxeo['api_page'] += 1
+            self.write_page = 0
+        else:
             self.nuxeo = None
 
     def json(self):

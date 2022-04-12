@@ -24,16 +24,11 @@ class Fetcher(object):
             "Key": f"vernacular_metadata/{self.collection_id}/"
         }
         if not self.collection_id:
-           print('no collection id!')
+            print('no collection id!')
 
     def fetchtolocal(self, records):
         path = self.get_local_path()
 
-        print(
-            f"---------------------------------\n"
-            f"{self}\n"
-            f"WRITE PAGE {self.write_page}"
-        )
         filename = os.path.join(path, f"{self.write_page}.jsonl")
         f = open(filename, "w+")
 
