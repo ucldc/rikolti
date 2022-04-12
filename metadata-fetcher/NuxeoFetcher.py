@@ -36,7 +36,7 @@ NUXEO_REQUEST_HEADERS = {
                 }
 
 
-def get_path_uid(path):
+def get_path_uid(path): 
     # get nuxeo uid for doc at given path
     escaped_path = urllib_quote(path, safe=' /')
     request = {
@@ -51,22 +51,6 @@ def get_path_uid(path):
         'uid': uid
     }
     return current_path
-
-
-def recurse(lambda_query):
-    if DEBUG:
-        subprocess.run([
-            'python',
-            'lambda_function.py',
-            json.dumps(lambda_query).encode('utf-8')
-        ])
-    else:
-        lambda_client = boto3.client('lambda', region_name="us-west-2",)
-        lambda_client.invoke(
-            FunctionName="fetch-metadata",
-            InvocationType="Event",  # invoke asynchronously
-            Payload=json.dumps(lambda_query).encode('utf-8')
-        )
 
 
 class NuxeoFetcher(Fetcher):
@@ -128,66 +112,41 @@ class NuxeoFetcher(Fetcher):
         return request
 
     def get_records(self, http_resp):
+        response = http_resp.json()
         query_type = self.nuxeo.get('query_type')
-        resp = http_resp.json()
 
         documents = []
         if query_type in ['documents', 'children']:
-            documents = [self.build_id(doc) for doc in resp.get('entries')]
+            documents = [self.build_id(doc) for doc in response.get('entries')]
 
         if ((query_type == 'documents' and self.nuxeo['fetch_children'])
                 or query_type == 'folders'):
 
-            down = None
-            if query_type == 'documents':
-                down = 'children'
-            if query_type == 'folders':
-                down = 'documents'
-
-            for i, entry in enumerate(resp.get('entries')):
-                recurse({
-                    "harvest_type": self.harvest_type,
-                    "collection_id": self.collection_id,
-                    "write_page": 0,
-                    "nuxeo": {
-                        'path': self.nuxeo['path'],
-                        'fetch_children': self.nuxeo['fetch_children'],
-                        'current_path': {
-                            'path': entry.get('path'),
-                            'uid': entry.get('uid')
-                        },
-                        'query_type': down,
-                        'api_page': 0,
-                        'prefix': (
-                            self.nuxeo['prefix'] +
-                            [f"fp{self.nuxeo['api_page']}", f'f{i}']
-                        )
-                    }
-                })
+            next_qt = 'children' if query_type == 'documents' else 'documents'
+            for i, entry in enumerate(response.get('entries')):
+                self.recurse(
+                    path={
+                        'path': entry.get('path'),
+                        'uid': entry.get('uid')
+                    }, 
+                    query_type=next_qt, 
+                    prefix=(
+                       self.nuxeo['prefix'] +
+                       [f"fp{self.nuxeo['api_page']}", f'f{i}']
+                    )
+                )
 
         return documents
 
     def increment(self, http_resp):
         resp = http_resp.json()
         query_type = self.nuxeo.get('query_type')
-        next_page_bool = resp.get('isNextPageAvailable')
+        has_next_page = resp.get('isNextPageAvailable')
 
-        if query_type == 'documents' and not next_page_bool:
-            recurse({
-                "harvest_type": self.harvest_type,
-                "collection_id": self.collection_id,
-                "write_page": 0,
-                "nuxeo": {
-                    'path': self.nuxeo['path'],
-                    'fetch_children': self.nuxeo['fetch_children'],
-                    'current_path': self.nuxeo['current_path'],
-                    'query_type': 'folders',
-                    'api_page': 0,
-                    'prefix': self.nuxeo['prefix'],
-                }
-            })
+        if query_type == 'documents' and not has_next_page:
+            self.recurse(query_type='folders')
 
-        if next_page_bool:
+        if has_next_page:
             self.nuxeo['api_page'] += 1
             self.write_page = 0
         else:
@@ -197,25 +156,43 @@ class NuxeoFetcher(Fetcher):
         if not self.nuxeo:
             return None
 
-        next_page = {
+        return json.dumps({
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": self.write_page,
             "nuxeo": self.nuxeo
-        }
-
-        return json.dumps(next_page)
+        })
 
     def build_id(self, document):
         calisphere_id = f"{self.collection_id}--{document.get('uid')}"
         document['calisphere-id'] = calisphere_id
         return document
 
-    def __str__(self):
-        return (
-            f"{self.nuxeo['current_path'].get('path')} - "
-            f"{self.nuxeo.get('query_type')} - "
-            f"{self.nuxeo.get('api_page')} - "
-            f"{self.nuxeo.get('prefix')} - "
-            f"{self.write_page}"
-        )
+    def recurse(self, path=None, query_type=None, prefix=None):
+        lambda_query = {
+            "harvest_type": self.harvest_type,
+            "collection_id": self.collection_id,
+            "write_page": 0,
+            "nuxeo": {
+                'path': self.nuxeo['path'],
+                'fetch_children': self.nuxeo['fetch_children'],
+                'current_path': path if path else self.nuxeo['current_path'],
+                'query_type': (query_type if query_type else 
+                               self.nuxeo['query_type']),
+                'api_page': 0,
+                'prefix': prefix if prefix else self.nuxeo['prefix']
+            }
+        }
+        if DEBUG:
+            subprocess.run([
+                'python',
+                'lambda_function.py',
+                json.dumps(lambda_query).encode('utf-8')
+            ])
+        else:
+            lambda_client = boto3.client('lambda', region_name="us-west-2",)
+            lambda_client.invoke(
+                FunctionName="fetch-metadata",
+                InvocationType="Event",  # invoke asynchronously
+                Payload=json.dumps(lambda_query).encode('utf-8')
+            )
