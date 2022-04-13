@@ -37,7 +37,7 @@ NUXEO_REQUEST_HEADERS = {
 
 
 def get_path_uid(path): 
-    # get nuxeo uid for doc at given path
+    ''' get nuxeo {path, uid} for doc at given path '''
     escaped_path = urllib_quote(path, safe=' /')
     request = {
         'url': f"{API_BASE}/{API_PATH}/path/{escaped_path.strip('/')}",
@@ -83,6 +83,14 @@ class NuxeoFetcher(Fetcher):
                 f"{self.nuxeo['api_page']}"
             )
         else:
+            # prefix starts as ['r'] (read as "root")
+            # as we traverse the tree, we add ["fp0", "f0"]
+            # read as [root, folder page 0, folder 0]
+            # 
+            # api_page is the current page we are on - regardless
+            # of query type, but we only actually produce an output file
+            # when the query type is a document or child document
+            # in which case, api_page corresponds to document page
             write_page = self.nuxeo['prefix'] + [f"{self.nuxeo['api_page']}"]
             self.write_page = '-'.join(write_page)
 
@@ -112,6 +120,18 @@ class NuxeoFetcher(Fetcher):
         return request
 
     def get_records(self, http_resp):
+        """Gets the metadata records from the http_resp
+        
+        Also recurses down into documents & folders, calling
+        a new fetching process to retrieve children of
+        each document and documents inside each folder.
+        Prefix is set to fp (folder page, since folders can
+        paginate) and f (folder count) - and can be read as
+        "folder page 0 - folder 1"
+
+        Returns:
+            An array of metadata record documents
+        """
         response = http_resp.json()
         query_type = self.nuxeo.get('query_type')
 
@@ -139,6 +159,17 @@ class NuxeoFetcher(Fetcher):
         return documents
 
     def increment(self, http_resp):
+        """Increment the request given an http_resp 
+
+        Checks isNextPageAvailable in the http_resp and increases
+        api_page by 1
+        
+        Also kicks off a new lambda function to look for folders
+        in the current folder, if we've finished fetching all the
+        documents in the current folder
+
+        Sets self.nuxeo to None if no next page available
+        """
         resp = http_resp.json()
         query_type = self.nuxeo.get('query_type')
         has_next_page = resp.get('isNextPageAvailable')
@@ -169,6 +200,7 @@ class NuxeoFetcher(Fetcher):
         return document
 
     def recurse(self, path=None, query_type=None, prefix=None):
+        """Starts a new lambda function"""
         lambda_query = {
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
