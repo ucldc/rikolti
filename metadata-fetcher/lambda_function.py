@@ -6,6 +6,7 @@ import subprocess
 
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
+from OACFetcher import OACFetcher
 
 
 DEBUG = os.environ.get('DEBUG', False)
