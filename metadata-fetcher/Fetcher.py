@@ -24,7 +24,7 @@ class Fetcher(object):
             "Key": f"vernacular_metadata/{self.collection_id}/"
         }
         if not self.collection_id:
-           print('no collection id!')
+            print('no collection id!')
 
     def fetchtolocal(self, records):
         path = self.get_local_path()
