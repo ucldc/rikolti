@@ -1,9 +1,12 @@
 import json
 import os
 import boto3
+import sys
+import subprocess
 
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
+from OACFetcher import OACFetcher
 from OAIFetcher import OAIFetcher
 
 DEBUG = os.environ.get('DEBUG', False)
@@ -34,23 +37,35 @@ def lambda_handler(payload, context):
     if DEBUG:
         payload = json.loads(payload)
 
-    harvest_type = payload.get('harvest_type')
     fetcher = get_fetcher(payload)
 
     fetcher.fetch_page()
     next_page = fetcher.json()
     if next_page:
         if DEBUG:
-            lambda_handler(next_page, {})
-
-        lambda_client = boto3.client('lambda', region_name="us-west-2",)
-        lambda_client.invoke(
-            FunctionName="fetch-metadata",
-            InvocationType="Event",  # invoke asynchronously
-            Payload=next_page.encode('utf-8')
-        )
+            subprocess.run([
+                'python',
+                'lambda_function.py',
+                next_page.encode('utf-8')
+            ])
+        else:
+            lambda_client = boto3.client('lambda', region_name="us-west-2",)
+            lambda_client.invoke(
+                FunctionName="fetch-metadata",
+                InvocationType="Event",  # invoke asynchronously
+                Payload=next_page.encode('utf-8')
+            )
 
     return {
         'statusCode': 200,
         'body': json.dumps(payload)
     }
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Fetch metadata in the institution's vernacular")
+    parser.add_argument('payload', help='json payload')
+    args = parser.parse_args(sys.argv[1:])
+    lambda_handler(args.payload, {})

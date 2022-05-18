@@ -24,7 +24,7 @@ class Fetcher(object):
             "Key": f"vernacular_metadata/{self.collection_id}/"
         }
         if not self.collection_id:
-           print('no collection id!')
+            print('no collection id!')
 
     def fetchtolocal(self, records):
         path = self.get_local_path()
@@ -49,7 +49,7 @@ class Fetcher(object):
 
     def fetchtos3(self, records):
         s3_client = boto3.client('s3')
-        s3_key = self.get_s3_key()
+        s3_key = self.s3_data['Key']
 
         jsonl = "\n".join([json.dumps(record) for record in records])
         try:
@@ -64,9 +64,6 @@ class Fetcher(object):
                 Body=jsonl)
         except Exception as e:
             print(e)
-
-    def get_s3_key(self):
-        return self.s3_data['Key']
 
     def fetch_page(self):
         page = self.build_fetch_request()
@@ -83,20 +80,20 @@ class Fetcher(object):
         self.increment(response)
 
     def build_fetch_request(self):
-        """build parameters for the institution's http_client.get()
+        """build parameters for the institution's requests.get()
 
-        this should minimally return {'url': str} but may also include
-        {'headers': {}, 'params': {}} or any other options accepted by
-        https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.get
+        this should minimally return {'url': str} but may also include 
+        {'headers': {}, 'params': {}} or any other options accepted by 
+        https://docs.python-requests.org/en/latest/api/#requests.get
         """
         pass
 
     def get_records(self, http_resp):
-        """parse http_resp from institution API into a list of records
+        """parses http_resp from institutional API into a list of records
 
-        should return a list of dictionaries which can easily be serialized
+        should return a list of dictionaries which can easily be serialized 
         by json.dumps into json line format; takes as an argument:
-        https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientResponse
+        https://docs.python-requests.org/en/latest/api/#requests.Response
         """
         pass
 
