@@ -10,6 +10,15 @@ nuxeo_test = {
     }
 }
 
+anthill = {
+  "collection_id": 26695,
+  "harvest_type": "NuxeoFetcher",
+  "write_page": 0,
+  "nuxeo": {
+    "path": "/asset-library/UCI/SCA_UniversityArchives/Publications/Anthill/"
+  }
+}
+
 ramicova_test = {
     'collection_id': 26098,
     'harvest_type': 'NuxeoFetcher',
