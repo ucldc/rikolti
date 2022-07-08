@@ -95,7 +95,7 @@ class OACFetcher(Fetcher):
             f"&group={current_group}"
         )}
         print(
-            f"Fetching page "
+            f"{self.collection_id}: Fetching page "
             f"at {request.get('url')}")
 
         return request

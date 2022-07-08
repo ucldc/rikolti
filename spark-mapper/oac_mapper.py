@@ -245,10 +245,10 @@ def main(database, table):
     direct_fields = [
         'contributor',
         'creator', 
-        'extent',
+        # 'extent',
         'language',
         'publisher',
-        'provenance'
+        # 'provenance'
     ]
 
     # check if these field are represented in this source

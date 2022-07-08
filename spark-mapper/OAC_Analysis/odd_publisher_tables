@@ -1,0 +1,16 @@
+Odd Publisher Tables:
+
+('143_oac_datel', 'array<struct<mix():string>>')
+('145_oac_datel', 'array<struct<mix():string,text():string>>')
+('25496_oac_datel', 'array<struct<mix():string,text():string>>')
+('26657_oac_datel', 'array<struct<mix():string>>')
+('26780_oac_datel', 'array<struct<mix():string>>')
+('26781_oac_datel', 'array<struct<mix():string>>')
+('26783_oac_datel', 'array<struct<mix():string>>')
+('26786_oac_datel', 'array<struct<mix():string>>')
+('26787_oac_datel', 'array<struct<mix():string>>')
+('26788_oac_datel', 'array<struct<mix():string>>')
+('26789_oac_datel', 'array<struct<mix():string>>')
+('26790_oac_datel', 'array<struct<mix():string>>')
+('26947_oac_datel', 'array<struct<mix():string>>')
+
