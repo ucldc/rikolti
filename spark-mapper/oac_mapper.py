@@ -333,11 +333,91 @@ def get_source_field(df, src_field, exclusions=None, specifics=None):
             set(["array", "struct", "string"]) &
             set([f.name for f in xml_df.select(f"{src_field}.*").schema])
         )
-        if len(resolve_choice_fields) > 0:
-            # handle resolve choice
-            for field in resolve_choice_fields:
-                choice_df = (xml_df
-                    .withColumn(f"{src_field}_{field}", col(f"{src_field}.{field}"))
+    elif src_field_type == "array<struct<#text:string,@q:string>>" or src_field_type == "array<struct<@q:string,#text:string>>":
+        xml_df = xml_df.withColumn(src_field, explode(src_field))
+        xml_df = get_struct_field(xml_df, src_field, exclusions, specifics)
+        # xml_df.show(10, truncate=False)
+        xml_df = xml_df.groupBy(calisphere_id).agg(collect_list(src_field).alias(src_field))
+    elif src_field_type == "array<string>":
+        xml_df = get_array_field(xml_df, src_field, exclusions, specifics)
+    elif src_field_type == "array<struct<string:string,struct:struct<@q:string,#text:string>>>":
+        xml_df = (xml_df
+            .withColumn(f"{src_field}_string", col(f"{src_field}.string"))
+            .withColumn(f"{src_field}_struct", col(f"{src_field}.struct"))
+        )
+        str_field = get_source_field(xml_df, f"{src_field}_string", exclusions, specifics)
+        struct_field = get_source_field(xml_df, f"{src_field}_struct", exclusions, specifics)
+        xml_df = struct_field.join(str_field, calisphere_id)
+        xml_df = (xml_df
+            .select(
+                calisphere_id,
+                concat(f"{src_field}_string",f"{src_field}_struct").alias(src_field)
+            )
+        )
+
+    return xml_df
+
+# ------------ LOCAL DEV -------------- #
+# def main(oac_file):
+#     spark = (SparkSession
+#         .builder
+#         .appName("OAC Mapper")
+#         .getOrCreate())
+#     oac_source = (spark.read.format("json")
+#         .option("header", True)
+#         .option("inferSchema", True)
+#         .load(oac_file))
+#     oac_source.printSchema()
+# ------------ LOCAL DEV -------------- #
+
+# ------------ GLUE JOB -------------- #
+def main(database, table):
+    # Create a glue DynamicFrame
+    original_DyF = glueContext.create_dynamic_frame.from_catalog(database=database, table_name=table)
+    # Resolve Choice fields before converting to data frame
+    original_DyF = original_DyF.resolveChoice(specs = [("identifier[]", "make_struct")])
+    # original_DyF.toDF().select('identifier').withColumn('identifier_string', col('identifier.string')).show(10, truncate=False)
+
+    # convert to apache spark dataframe
+    oac_source = original_DyF.toDF() \
+        .distinct()
+# ------------ GLUE JOB -------------- #
+
+    ### these fields directly map to a field of the same name
+    direct_fields = [
+        'contributor',
+        'creator', 
+        # 'extent',
+        'language',
+        'publisher',
+        # 'provenance'
+    ]
+
+    # check if these field are represented in this source
+    direct_fields = [f for f in direct_fields if f in oac_source.columns]
+    if direct_fields:
+        direct_fields.append(calisphere_id)
+        oac_mapped = oac_source.select(direct_fields)
+    
+
+    ### these fields (1) are concatenated to the destination field (2)
+    combine_fields = [
+        (['abstract', 'description', 'tableOfContents'], 'description'),
+        (['identifier', 'bibliographicCitation'], 'identifier'),
+        (['accessRights', 'rights'], 'rights')
+    ]
+
+    for source_fields, destination_field in combine_fields:
+        # check if these fields are represented in this source
+        source_fields = [f for f in source_fields if f in oac_source.columns]
+        if source_fields:
+            # coalesce allows us to concat even if one of source_fields is NULL
+            # https://stackoverflow.com/questions/37284077/combine-pyspark-dataframe-arraytype-fields-into-single-arraytype-field
+            
+            source_df = oac_source.select(calisphere_id)
+            for sf in source_fields:
+                join_df = (get_source_field(oac_source, sf)
+                    .withColumn(sf, coalesce(col(sf), array()))
                 )
                 choice_df.show(10, truncate=True)
                 result_field = get_source_field(choice_df, f"{src_field}_{field}", exclusions, specifics)

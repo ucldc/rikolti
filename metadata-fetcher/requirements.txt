@@ -4,3 +4,4 @@ authlib
 jwt
 nuxeo
 xmltodict
+https://github.com/tingletech/datel/archive/refs/heads/main.tar.gz
