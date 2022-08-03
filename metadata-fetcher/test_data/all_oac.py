@@ -1,4 +1,4 @@
-oac_datel_tests = [
+all_oac_collections = [
     {
         "collection_id": "17399-oac-datel",
         "harvest_type": "DatelOACFetcher",

@@ -1,33 +1,43 @@
-# OAC Harvests
-oac_509_alameda_county_1913_views = {
-    'collection_id': 509,
-    'harvest_type': 'oac',
-    'write_page': 0,
-    'oac': {
-        'url': "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/tf1z09n955",
+oac_harvests = [
+  { # 22973: Tudor Engineering
+    "collection_id": 22973,
+    "harvest_type": "OACFetcher",
+    "write_page": 0,
+    "oac": {
+      "url": "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/kt28702559"
     }
-}
-oac_22973_tudor_engineering = {
-  "collection_id": 22973,
-  "harvest_type": "OACFetcher",
+  },
+  { # 22456: Tech and Env Postwar House SoCal
+    "collection_id": 22456,
+    "harvest_type": "OACFetcher",
+    "write_page": 0,
+    "oac": {
+      "url": "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/c8pn97ch"
+    }
+  },
+  { # 25496: 1906 San Francisco Earthquake and Fire
+    "collection_id": 25496,
+    "harvest_type": "OACFetcher",
+    "write_page": 0,
+    "oac": {
+      'url': 'http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/hb8779p2cx&publisher=%22bancroft%22'
+    }
+  }
+]
+
+oac_datel_harvests = [{
+  'collection_id': f"{harvest['collection_id']}-datel",
+  'harvest_type': 'DatelOACFetcher',
+  'write_page': 0,
+  'oac': harvest['oac']
+} for harvest in oac_harvests]
+
+json_endpoint_url = "http://dsc-dsc2-dev.cdlib.org/search?facet=type-tab&style=cui&rmode=json&relation="
+oac_json_harvests = [{
+  "collection_id": f"{harvest['collection_id']}-json",
+  "harvest_type": "JsonOAC",
   "write_page": 0,
   "oac": {
-    "url": "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/kt28702559"
+    "url": json_endpoint_url + harvest['oac']['url'].split('&relation=')[1]
   }
-}
-oac_multipage_22456_tech_and_env_postwar_house_socal = {
-  "collection_id": 22456,
-  "harvest_type": "OACFetcher",
-  "write_page": 0,
-  "oac": {
-    "url": "http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/c8pn97ch"
-  }
-}
-oac_large_25496_1906_sf_earthquake_and_fire = {
-  "collection_id": 25496,
-  "harvest_type": "OACFetcher",
-  "write_page": 0,
-  "oac": {
-    'url': 'http://dsc.cdlib.org/search?facet=type-tab&style=cui&raw=1&relation=ark:/13030/hb8779p2cx&publisher=%22bancroft%22'
-  }
-}
+} for harvest in oac_harvests]
