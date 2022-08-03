@@ -119,8 +119,8 @@ class NuxeoFetcher(Fetcher):
 
         return request
 
-    def get_records(self, http_resp):
-        """Gets the metadata records from the http_resp
+    def check_page(self, http_resp):
+        """Checks that the http_resp contains metadata records
         
         Also recurses down into documents & folders, calling
         a new fetching process to retrieve children of
@@ -130,18 +130,22 @@ class NuxeoFetcher(Fetcher):
         "folder page 0 - folder 1"
 
         Returns:
-            An array of metadata record documents
+            A boolean indicating if the page contains records
         """
         response = http_resp.json()
         query_type = self.nuxeo.get('query_type')
 
-        documents = []
-        if query_type in ['documents', 'children']:
-            documents = [self.build_id(doc) for doc in response.get('entries')]
+        documents = False
+        if query_type in ['documents', 'children'] and response.get('entries'):
+            print(
+                f"Fetched page {self.nuxeo.get('api_page')} of "
+                f"{query_type} at {self.nuxeo.get('current_path')['path']}"
+                f"with {len(response.get('entries'))} records"
+            )
+            documents = True
 
         if ((query_type == 'documents' and self.nuxeo['fetch_children'])
                 or query_type == 'folders'):
-
             next_qt = 'children' if query_type == 'documents' else 'documents'
             for i, entry in enumerate(response.get('entries')):
                 self.recurse(
@@ -193,11 +197,6 @@ class NuxeoFetcher(Fetcher):
             "write_page": self.write_page,
             "nuxeo": self.nuxeo
         })
-
-    def build_id(self, document):
-        calisphere_id = f"{self.collection_id}--{document.get('uid')}"
-        document['calisphere-id'] = calisphere_id
-        return document
 
     def recurse(self, path=None, query_type=None, prefix=None):
         """Starts a new lambda function"""

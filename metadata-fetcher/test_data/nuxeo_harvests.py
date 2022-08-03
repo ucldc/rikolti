@@ -4,15 +4,6 @@
 # 9513 - nuxeo image
 
 nuxeo_harvests = [
-  { # 466: AIDS
-    'collection_id': 466,
-    'harvest_type': 'NuxeoFetcher',
-    'write_page': 0,
-    'nuxeo': {
-        'fetch_children': False,
-        'path': "/asset-library/UCSF/MSS 2000-31 AIDS Ephemera Collection/"
-    }
-  },
   { # 26695: Anthill
     "collection_id": 26695,
     "harvest_type": "NuxeoFetcher",
@@ -66,6 +57,14 @@ nuxeo_harvests = [
 ]
 
 nuxeo_complex_object_harvests = [
+  { # 466: AIDS
+    'collection_id': 466,
+    'harvest_type': 'NuxeoFetcher',
+    'write_page': 0,
+    'nuxeo': {
+        'path': "/asset-library/UCSF/MSS 2000-31 AIDS Ephemera Collection/"
+    }
+  },
   { # 27012: UC Cooperative Extension
     "collection_id": 27012,
     "harvest_type": "NuxeoFetcher",
