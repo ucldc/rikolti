@@ -23,9 +23,7 @@ def lambda_handler(payload, context):
         payload = json.loads(payload)
     mapper = get_mapper(payload)
 
-    vernacular_page = mapper.get_local_page() if DEBUG else mapper.get_s3_page()
-    mapped_page = mapper.map_page(vernacular_page)
-    write_page = mapper.write_local_page(mapped_page) if DEBUG else mapper.write_s3_page(mapped_page)
+    mapper.map_page()
     
     lambda_handler(json.dumps(mapper.increment()), {})
 

@@ -1,7 +1,24 @@
 import json
+import os
 from mapper import Mapper
 
-class NuxeoMapper(Mapper):    
+DEBUG = os.environ.get('DEBUG', False)
+
+class NuxeoMapper(Mapper): 
+
+    def list_pages(self):
+        if DEBUG:
+            collection_path = self.local_path('vernacular_metadata')
+            page_list = [f for f in os.listdir(collection_path) 
+                        if os.path.isfile(os.path.join(collection_path, f))]
+            page_list.sort(key=lambda page_name: int(page_name.split('-')[1]))
+        else:
+            s3 = boto3.resource('s3')
+            rikolti_bucket = s3.Bucket('rikolti')
+            page_list = rikolti_bucket.objects.filter(
+                Prefix=f'vernacular_metadata/{self.collection_id}')
+        return page_list
+
     def get_records(self, vernacular_page):
         records = json.loads(vernacular_page)['entries']
         return records
@@ -13,7 +30,11 @@ class NuxeoMapper(Mapper):
             return [f[subfield] for f in source_metadata.get(field, [])]
 
         mapped_data = {
-            "isShownAt": f"https://calisphere.org/item/{source_metadata.get('uid', '')}",
+            "calisphere-id": record.get("uid"),
+            "isShownAt": (
+                f"https://calisphere.org/item/"
+                f"{record.get('uid', '')}"
+            ),
             "source": source_metadata.get("ucldc_schema:source"),
             'location': source_metadata.get('ucldc_schema:physlocation', None),
             'rightsHolder': (
@@ -24,8 +45,10 @@ class NuxeoMapper(Mapper):
                 (source_metadata.get('ucldc_schema:rightsnotice', []) or []) +
                 [source_metadata.get('ucldc_schema:rightsnote', '')]
             ),
-            'dateCopyrighted': source_metadata.get('ucldc_schema:rightsstartdate', None),
-            'transcription': source_metadata.get('ucldc_schema:transcription', None),
+            'dateCopyrighted': source_metadata.get(
+                'ucldc_schema:rightsstartdate', None),
+            'transcription': source_metadata.get(
+                'ucldc_schema:transcription', None),
             'contributor': collate_subfield(
                 'ucldc_schema:contributor', 'name'),
             'creator': collate_subfield('ucldc_schema:creator', 'name'),
@@ -148,3 +171,14 @@ class NuxeoMapper(Mapper):
             if place['coordinates']:
                 spatial.append(place['coordinates'])
         return [{'text': s} for s in spatial]
+
+    def increment(self):
+        next_page = {
+            'collection_id': self.collection_id,
+            'mapper_type': self.mapper_type,
+        }
+        page_list = self.list_pages()
+        # print(page_list)        
+        page_index = page_list.index(self.page_filename)
+        next_page['page_filename'] = page_list[page_index+1]
+        return next_page
