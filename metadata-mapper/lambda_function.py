@@ -22,10 +22,11 @@ def lambda_handler(payload, context):
     if DEBUG:
         payload = json.loads(payload)
     mapper = get_mapper(payload)
-
     mapper.map_page()
-    
-    lambda_handler(json.dumps(mapper.increment()), {})
+
+    next_page = mapper.increment()
+    if next_page:
+        lambda_handler(json.dumps(next_page), {})
 
     return {
         'statusCode': 200,

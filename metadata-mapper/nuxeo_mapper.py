@@ -4,19 +4,31 @@ from mapper import Mapper
 
 DEBUG = os.environ.get('DEBUG', False)
 
+def sort_tree(page_name):
+    tree = [item for item in page_name.split('-') if item.isdigit()]
+    return int(''.join(tree))
+
 class NuxeoMapper(Mapper): 
+    def __init__(self, params):
+        super(NuxeoMapper, self).__init__(params)
+        if not params.get('page_filename'):
+            self.page_filename = self.list_pages()[0]
 
     def list_pages(self):
         if DEBUG:
             collection_path = self.local_path('vernacular_metadata')
             page_list = [f for f in os.listdir(collection_path) 
                         if os.path.isfile(os.path.join(collection_path, f))]
-            page_list.sort(key=lambda page_name: int(page_name.split('-')[1]))
+            # TODO: not sure this sorting algorithm reliably works,
+            # it was written while sick, serializes "r-fp-0-f-0-0"
+            # (read as "root, folder-page 0, folder 0, page 0") to 000
+            page_list.sort(key=sort_tree)
         else:
             s3 = boto3.resource('s3')
             rikolti_bucket = s3.Bucket('rikolti')
             page_list = rikolti_bucket.objects.filter(
                 Prefix=f'vernacular_metadata/{self.collection_id}')
+            # TODO: add sorting algorithm here
         return page_list
 
     def get_records(self, vernacular_page):
@@ -36,7 +48,7 @@ class NuxeoMapper(Mapper):
                 f"{record.get('uid', '')}"
             ),
             "source": source_metadata.get("ucldc_schema:source"),
-            'location': source_metadata.get('ucldc_schema:physlocation', None),
+            'location': [source_metadata.get('ucldc_schema:physlocation', None)],
             'rightsHolder': (
                 collate_subfield('ucldc_schema:rightsholder', 'name') + 
                 [source_metadata.get('ucldc_schema:rightscontact')]
@@ -54,9 +66,13 @@ class NuxeoMapper(Mapper):
             'creator': collate_subfield('ucldc_schema:creator', 'name'),
             'date': collate_subfield('ucldc_schema:date', 'date'),
             'description': self.map_description(source_metadata),
-            'extent': source_metadata.get('ucldc_schema:extent', None),
-            'format': source_metadata.get('ucldc_schema:physdesc', None),
+            'extent': [source_metadata.get('ucldc_schema:extent', None)],
+            'format': [source_metadata.get('ucldc_schema:physdesc', None)],
             'identifier': (
+                [source_metadata.get('ucldc_schema:identifier')] +
+                source_metadata.get('ucldc_schema:localidentifier', [])
+            ),
+            'id': (
                 [source_metadata.get('ucldc_schema:identifier')] +
                 source_metadata.get('ucldc_schema:localidentifier', [])
             ),
@@ -74,7 +90,7 @@ class NuxeoMapper(Mapper):
             'temporalCoverage': list(
                 source_metadata.get('ucldc_schema:temporalcoverage', [])),
             'title': [source_metadata.get('dc:title')],
-            'type': source_metadata.get('ucldc_schema:type', None),
+            'type': [source_metadata.get('ucldc_schema:type', None)],
             'provenance': source_metadata.get('ucldc_schema:provenance', None),
             'alternativeTitle': list(
                 source_metadata.get('ucldc_schema:alternativetitle', [])),
@@ -142,7 +158,8 @@ class NuxeoMapper(Mapper):
                 languages.append(lang['language'])
             if lang['languagecode']:
                 languages.append(lang['languagecode'])
-        return [{'iso639_3': l} for l in languages]
+        return languages
+        # return [{'iso639_3': l} for l in languages]
 
     def map_rights_codes(self, rights_str):
         '''Map the "coded" values of the rights status to a nice one for
@@ -177,8 +194,11 @@ class NuxeoMapper(Mapper):
             'collection_id': self.collection_id,
             'mapper_type': self.mapper_type,
         }
+
         page_list = self.list_pages()
-        # print(page_list)        
         page_index = page_list.index(self.page_filename)
-        next_page['page_filename'] = page_list[page_index+1]
-        return next_page
+        if page_index < len(page_list)-1:
+            next_page['page_filename'] = page_list[page_index+1]
+            return next_page
+        else:
+            return None
