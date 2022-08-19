@@ -42,34 +42,59 @@ def validate_mapped_page(collection_id, page_filename):
         s3_obj_summary = s3.Object(bucket, key).get()
         mapped_metadata = s3_obj_summary['Body'].read()
 
-    enrichment_fields = [
-        'url_item', 
-        'structmap_url', 
-        'harvest_id_s', 
-        'sort_title', 
-        'campus_name', 
-        'facet_decade', 
-        'campus_data', 
-        'repository_url', 
-        'collection_url', 
-        'repository_name', 
-        'reference_image_md5', 
-        'repository_data',
-        'collection_data',
+    repository_fields = [
+        'campus_data',
+        'campus_name',
         'campus_url',
+        'collection_data',
         'collection_name',
-        '_version_',
-        'timestamp',
+        'collection_url',
+        'repository_data',
+        'repository_name',
+        'repository_url',
         'sort_collection_data',
-        'reference_image_dimensions',
-        'sort_date_end',
-        'sort_date_start'
     ]
+
+    content_fields = [
+        'reference_image_md5',
+        'reference_image_dimensions',
+        'structmap_url',
+        'url_item',
+    ]
+
+    search_fields = [
+        'facet_decade',
+        'sort_date_end',
+        'sort_date_start',
+        'sort_title',
+    ]
+
+    harvest_fields = [
+        '_version_',
+        'harvest_id_s',
+        'timestamp',
+    ]
+
+    enrichment_fields = (
+        repository_fields + 
+        content_fields +
+        search_fields + 
+        harvest_fields
+    )
 
     mapped_metadata = json.loads(mapped_metadata)
     for rikolti_record in mapped_metadata:
         # print(f"-----{rikolti_record['calisphere-id']} - {rikolti_record['type']}-----")
         query = {"q": rikolti_record['calisphere-id']}
+        # TODO: really inefficient to query for each item individually;
+        # could we filter by collection and retrieve first 100 items in solr? 
+        # would need to manage solr pagination against rikolti pagination, no guarantee
+        # the order will be the same...but maybe it's close enough to just take a 
+        # greedy approach?
+        # Also, as updates are made to the mapper to accomodate future collections, 
+        # we'd want to ensure that we aren't breaking any past collections
+        # that already work. Again, it's inefficient to keep hitting solr, but
+        # maybe this is an optimization for much later. 
         solr_record = SOLR(**query)
         for field, value in solr_record.items():
             if field in enrichment_fields or field[-3:] == "_ss":
