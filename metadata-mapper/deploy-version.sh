@@ -26,15 +26,16 @@ cd package
 zip -r ../$ZIP .
 cd ..
 zip -g $ZIP *.py
-aws s3 cp $ZIP s3://$S3_BUCKET/deployments/metadata-mapper/$ZIP
+zip -g $ZIP lxml*
+# aws s3 cp $ZIP s3://$S3_BUCKET/deployments/metadata-mapper/$ZIP
 rm -r package
 
-aws lambda update-function-code \
-  --function-name map-metadata \
-  --s3-bucket $S3_BUCKET \
-  --s3-key deployments/metadata-mapper/$ZIP \
-  --region us-west-2
+# aws lambda update-function-code \
+#   --function-name map-metadata \
+#   --s3-bucket $S3_BUCKET \
+#   --s3-key deployments/metadata-mapper/$ZIP \
+#   --region us-west-2
 
-rm $ZIP
+# rm $ZIP
 
 
