@@ -1,36 +1,7 @@
 import json
 import requests
-# import xmltodict
 from xml.etree import ElementTree
-# from lxml import etree
 from Fetcher import Fetcher, FetchError
-
-
-def serialize_json(xml_tree):
-    doc = {}
-    for elem in xml_tree:
-        field = elem.tag
-
-        # prefixseri all attributes with @ sign
-        attributes = dict(elem.attrib)
-        node = {}
-        for key in attributes.keys():
-            node[f"@{key}"] = attributes[key]
-        # add #text to attributes dict
-        if elem.text and not elem.text.isspace():
-            node.update({'#text': elem.text})
-        # add children to attributes dict
-        if len(elem) > 0:
-            node.update(serialize_json(elem))
-
-        if field in doc:
-            if not isinstance(doc[field], list):
-                doc[field] = [doc[field]]
-            doc[field].append(node)
-        else:
-            doc[field] = node
-
-    return doc
 
 
 class OACFetcher(Fetcher):
@@ -100,47 +71,23 @@ class OACFetcher(Fetcher):
 
         return request
 
-    def get_records(self, http_resp):
-        # response = ElementTree.fromstring(http_resp.content)
-        # doc_hits = (response.find('facet')
-        #                     .findall('./group/docHit'))
-
-        # documents = []
-        # for doc_hit in doc_hits:
-        #     doc_xml = doc_hit.find('meta')
-        #     document = xmltodict.parse(
-        #         ElementTree.tostring(doc_xml))['meta']
-        #     document['calisphere-id'] = self.build_id(doc_xml)
-
-        #     documents.append(document)
-        # print(json.dumps(documents))
-
+    def check_page(self, http_resp):
         xml_resp = ElementTree.fromstring(http_resp.content)
         xml_hits = (xml_resp.find('facet').findall('./group/docHit'))
-        xml_docs = []
-        for xml_hit in xml_hits:
-            meta = xml_hit.find('meta')
-            xml_doc = serialize_json(meta)
-            xml_doc['calisphere-id'] = self.build_id(meta)
-            xml_docs.append(xml_doc)
-
-        # print(json.dumps(xml_docs))
-
-        return xml_docs
-
-    def build_id(self, document):
-        '''Return the object's ark from the xml etree docHit'''
-        ids = document.findall('identifier')
-        ark = None
-        for i in ids:
-            if i.attrib.get('q', None) != 'local':
-                try:
-                    split = i.text.split('ark:')
-                except AttributeError:
-                    continue
-                if len(split) > 1:
-                    ark = ''.join(('ark:', split[1]))
-        return f"{self.collection_id}--{ark}"
+        if len(xml_hits) > 0:
+            current_group = self.oac.get('current_group')
+            harvested = self.oac.get('counts')[f'harvested_{current_group}']
+            requested_url = (
+                f"{self.oac.get('url')}&docsPerPage=100&"
+                f"startDoc={harvested+1}&group={current_group}"
+            )
+            print(
+                f"{self.collection_id}: Fetched page "
+                f"at {requested_url} "
+                f"with {len(xml_hits)} hits"
+            )
+            return True
+        return False
 
     def increment(self, http_resp):
         super(OACFetcher, self).increment(http_resp)

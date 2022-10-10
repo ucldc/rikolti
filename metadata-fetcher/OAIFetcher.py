@@ -76,26 +76,36 @@ class OAIFetcher(Fetcher):
             f"at {request.get('url')}")
         return request
 
-    def get_records(self, http_resp):
+    def check_page(self, http_resp):
         response = xmltodict.parse(http_resp.text)
         records = (response
                    .get("OAI-PMH")
                    .get("ListRecords")
                    .get("record"))
 
-        documents = []
-        for record in records:
-            doc = record.get('metadata')
-            doc.update({
-                "calisphere-id": self.build_id(record)
-            })
-            documents.append(doc)
+        if len(records) > 0:
+            url = self.oai.get('url')
+            metadata_set = self.oai.get('metadata_set')
+            metadata_prefix = self.oai.get('metadata_prefix')
+            resumption_token = self.oai.get('resumption_token')
 
-        return documents
-
-    def build_id(self, document):
-        oai_id = document.get('header').get('identifier')
-        return f"{self.collection_id}--{oai_id}"
+            if not resumption_token:
+                requested_url = (
+                    f'{url}?verb=ListRecords'
+                    f'&metadataPrefix={metadata_prefix}&set={metadata_set}'
+                )
+            else:
+                requested_url = (
+                    f'{url}?verb=ListRecords'
+                    f'&resumptionToken={resumption_token}'
+                )
+            print(
+                f"{self.collection_id}: Fetched page "
+                f"at {requested_url} "
+                f"with {len(records)} records"
+            )
+            return True
+        return False
 
     def increment(self, http_resp):
         super(OAIFetcher, self).increment(http_resp)
