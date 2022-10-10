@@ -84,7 +84,7 @@ class NuxeoFetcher(Fetcher):
             )
         else:
             # prefix starts as ['r'] (read as "root")
-            # as we traverse the tree, we add ["fp0", "f0"]
+            # as we traverse the tree, we add ["fp-0", "f-0"]
             # read as [root, folder page 0, folder 0]
             # 
             # api_page is the current page we are on - regardless
@@ -156,7 +156,7 @@ class NuxeoFetcher(Fetcher):
                     query_type=next_qt, 
                     prefix=(
                        self.nuxeo['prefix'] +
-                       [f"fp{self.nuxeo['api_page']}", f'f{i}']
+                       [f"fp-{self.nuxeo['api_page']}", f'f-{i}']
                     )
                 )
 

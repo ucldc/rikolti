@@ -35,15 +35,17 @@ class Fetcher(object):
         f.write(page)
 
     def get_local_path(self):
-        path = os.path.join(os.getcwd(), f"{self.collection_id}")
-        if not os.path.exists(path):
-            os.mkdir(path)
+        parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
+        local_path = os.sep.join([
+            parent_dir,
+            'rikolti_bucket',
+            'vernacular_metadata',
+            str(self.collection_id),
+        ])
+        if not os.path.exists(local_path):
+            os.mkdir(local_path)
 
-        date_path = os.path.join(path, f"{time.strftime('%Y-%m-%d')}")
-        if not os.path.exists(date_path):
-            os.mkdir(date_path)      
-
-        return date_path  
+        return local_path
 
     def fetchtos3(self, page):
         s3_client = boto3.client('s3')

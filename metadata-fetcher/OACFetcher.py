@@ -26,6 +26,11 @@ class OACFetcher(Fetcher):
         counts = self.oac.get('counts')
         current_group = self.oac.get('current_group')
 
+        # the OAC API returns items sorted out into groups,
+        # so we need to track which groups exist in this collection
+        # and how many items exist in each group
+        # TODO: see if there's a different OAC endpoint we can hit
+        # that doesn't put everything out into groups like this
         if not counts and not current_group:
             response = requests.get(f'{url}&docsPerPage=0')
             response.raise_for_status()
@@ -86,8 +91,7 @@ class OACFetcher(Fetcher):
                 f"at {requested_url} "
                 f"with {len(xml_hits)} hits"
             )
-            return True
-        return False
+        return bool(len(xml_hits))
 
     def increment(self, http_resp):
         super(OACFetcher, self).increment(http_resp)
