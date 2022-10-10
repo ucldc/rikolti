@@ -7,8 +7,6 @@ import subprocess
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
 from OACFetcher import OACFetcher
-from JsonOAC import JsonOAC
-from DatelOACFetcher import DatelOACFetcher
 from OAIFetcher import OAIFetcher
 
 DEBUG = os.environ.get('DEBUG', False)

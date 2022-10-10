@@ -26,32 +26,31 @@ class Fetcher(object):
         if not self.collection_id:
             print('no collection id!')
 
-    def fetchtolocal(self, records):
+    def fetchtolocal(self, page):
         path = self.get_local_path()
 
-        filename = os.path.join(path, f"{self.write_page}.jsonl")
+        filename = os.path.join(path, f"{self.write_page}")
         f = open(filename, "w+")
 
-        jsonl = "\n".join([json.dumps(record) for record in records])
-        f.write(jsonl)
-        f.write("\n")
+        f.write(page)
 
     def get_local_path(self):
-        path = os.path.join(os.getcwd(), f"{self.collection_id}")
-        if not os.path.exists(path):
-            os.mkdir(path)
+        parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
+        local_path = os.sep.join([
+            parent_dir,
+            'rikolti_bucket',
+            'vernacular_metadata',
+            str(self.collection_id),
+        ])
+        if not os.path.exists(local_path):
+            os.mkdir(local_path)
 
-        date_path = os.path.join(path, f"{time.strftime('%Y-%m-%d')}")
-        if not os.path.exists(date_path):
-            os.mkdir(date_path)      
+        return local_path
 
-        return date_path  
-
-    def fetchtos3(self, records):
+    def fetchtos3(self, page):
         s3_client = boto3.client('s3')
         s3_key = self.s3_data['Key']
 
-        jsonl = "\n".join([json.dumps(record) for record in records])
         try:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.put_object
             s3_client.put_object(
@@ -59,9 +58,9 @@ class Fetcher(object):
                 Bucket=self.s3_data['Bucket'],
                 Key=(
                     f"{s3_key}"
-                    f"{self.write_page}.jsonl"
+                    f"{self.write_page}"
                 ),
-                Body=jsonl)
+                Body=page)
         except Exception as e:
             print(e)
 
@@ -69,13 +68,12 @@ class Fetcher(object):
         page = self.build_fetch_request()
         response = requests.get(**page)
         response.raise_for_status()
-        records = self.get_records(response)
 
-        if len(records) > 0:
+        if self.check_page(response):
             if DEBUG:
-                self.fetchtolocal(records)
+                self.fetchtolocal(response.text)
             else:
-                self.fetchtos3(records)
+                self.fetchtos3(response.text)
 
         self.increment(response)
 
