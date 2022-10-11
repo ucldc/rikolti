@@ -14,11 +14,12 @@ URL_OAC_CONTENT_BASE = os.environ.get(
 Anum_re = re.compile('A\d\d\d\d')
 CONTENT_SERVER = 'http://content.cdlib.org/'
 
-class OAC_Parser(VernacularReader):
+class OAC_Vernacular(VernacularReader):
     def __init__(self, payload):
-        super(OAC_Parser, self).__init__(payload)
+        super(OAC_Vernacular, self).__init__(payload)
         self.record_cls = OAC_DCRecord
     
+    # Directly copied from harvester codebase; not sure if this belongs here
     def _get_doc_ark(self, docHit):
         '''Return the object's ark from the xml etree docHit'''
         ids = docHit.find('meta').findall('identifier')
@@ -33,6 +34,7 @@ class OAC_Parser(VernacularReader):
                     ark = ''.join(('ark:', split[1]))
         return ark
     
+    # Directly copied from harvester codebase; not sure if this belongs here
     def parse_reference_image(self, tag):
         try:
             x = int(tag.attrib['X'])
@@ -51,6 +53,7 @@ class OAC_Parser(VernacularReader):
         }
         return data
 
+    # Directly copied from harvester codebase; not sure if this belongs here
     def parse_thumbnail(self, tag, document):
         ark = self._get_doc_ark(document)
         try:
@@ -69,6 +72,7 @@ class OAC_Parser(VernacularReader):
             'src': src,
         }
 
+    # Directly copied from harvester codebase
     def parse(self, api_response):
         crossQueryResult = ET.fromstring(api_response)
         facet_type_tab = crossQueryResult.find('facet')

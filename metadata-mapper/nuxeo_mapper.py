@@ -3,9 +3,9 @@ import os
 import boto3
 from mapper import VernacularReader, Record
 
-class NuxeoParser(VernacularReader):
+class NuxeoVernacular(VernacularReader):
     def __init__(self, payload):
-        super(NuxeoParser, self).__init__(payload)
+        super(NuxeoVernacular, self).__init__(payload)
         self.record_cls = NuxeoRecord
 
     def parse(self, api_response):
