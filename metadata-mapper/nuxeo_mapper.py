@@ -1,7 +1,6 @@
 import json
-import os
-import boto3
 from mapper import VernacularReader, Record
+
 
 class NuxeoVernacular(VernacularReader):
     def __init__(self, payload):
@@ -10,9 +9,11 @@ class NuxeoVernacular(VernacularReader):
 
     def parse(self, api_response):
         records = json.loads(api_response)['entries']
-        return [self.record_cls(record) for record in records]
+        return [self.record_cls(self.collection_id, record)
+                for record in records]
 
-class NuxeoRecord(Record): 
+
+class NuxeoRecord(Record):
     def to_UCLDC(self):
         source_metadata = self.source_metadata.get('properties')
 
@@ -23,9 +24,10 @@ class NuxeoRecord(Record):
                 f"{self.source_metadata.get('uid', '')}"
             ),
             "source": source_metadata.get("ucldc_schema:source"),
-            'location': [source_metadata.get('ucldc_schema:physlocation', None)],
+            'location': [source_metadata.get(
+                'ucldc_schema:physlocation', None)],
             'rightsHolder': (
-                self.collate_subfield('ucldc_schema:rightsholder', 'name') + 
+                self.collate_subfield('ucldc_schema:rightsholder', 'name') +
                 [source_metadata.get('ucldc_schema:rightscontact')]
             ),
             'rightsNote': (
@@ -59,7 +61,8 @@ class NuxeoRecord(Record):
             'rights': self.map_rights(),
             'spatial': self.map_spatial(),
             'subject': (
-                    self.collate_subfield('ucldc_schema:subjecttopic', 'heading') +
+                    self.collate_subfield(
+                        'ucldc_schema:subjecttopic', 'heading') +
                     self.collate_subfield('ucldc_schema:subjectname', 'name')
             ),
             'temporalCoverage': list(
@@ -69,10 +72,14 @@ class NuxeoRecord(Record):
             'provenance': source_metadata.get('ucldc_schema:provenance', None),
             'alternativeTitle': list(
                 source_metadata.get('ucldc_schema:alternativetitle', [])),
-            'genre': self.collate_subfield('ucldc_schema:formgenre', 'heading'),
+            'genre': self.collate_subfield('ucldc_schema:formgenre', 'heading')
         }
 
-        return mapped_data
+        self.mapped_data = mapped_data
+        return self
+
+    def to_dict(self):
+        return self.mapped_data
 
     description_type_labels = {
         'scopecontent': 'Scope/Content',
@@ -152,7 +159,8 @@ class NuxeoRecord(Record):
     def map_rights(self):
         rights_status = self.source_metadata.get('ucldc_schema:rightsstatus')
         rights_status = [self.map_rights_codes(rights_status)]
-        rights_statement = [self.source_metadata.get('ucldc_schema:rightsstatement')]
+        rights_statement = [self.source_metadata.get(
+            'ucldc_schema:rightsstatement')]
         return rights_status + rights_statement
 
     def map_spatial(self):

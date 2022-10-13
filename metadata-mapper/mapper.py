@@ -2,6 +2,7 @@ import os
 import boto3
 import json
 
+
 class VernacularReader(object):
     def __init__(self, payload):
         self.collection_id = payload.get('collection_id')
@@ -31,6 +32,7 @@ class VernacularReader(object):
         s3_obj_summary = s3.Object(bucket, key).get()
         api_response = s3_obj_summary['Body'].read()
         return api_response
+
 
 class UCLDCWriter(object):
     def __init__(self, payload):
@@ -65,10 +67,12 @@ class UCLDCWriter(object):
             Key=key,
             Body=json.dumps(mapped_metadata))
 
+
 class Record(object):
-    def __init__(self, record):
+    def __init__(self, col_id, record):
+        self.collection_id = col_id
         self.source_metadata = record
 
+    # Mapper Helpers
     def collate_subfield(self, field, subfield):
         return [f[subfield] for f in self.source_metadata.get(field, [])]
-

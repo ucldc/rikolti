@@ -24,7 +24,7 @@ def get_fetcher(payload):
         exit()
 
     try:
-        fetcher = eval(harvest_type)(payload)
+        fetcher = globals()[harvest_type](payload)
     except NameError:
         print(f"bad harvest type: { harvest_type }")
         exit()
