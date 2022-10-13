@@ -76,3 +76,28 @@ class Record(object):
     # Mapper Helpers
     def collate_subfield(self, field, subfield):
         return [f[subfield] for f in self.source_metadata.get(field, [])]
+
+    # Enrichments
+    def enrich(self, enrichment_function, **kwargs):
+        func = getattr(self, enrichment_function)
+        return func(**kwargs)
+
+    def select_id(self, prop):
+        if len(prop) > 1:
+            raise Exception("select_id only accepts one property")
+        if not isinstance(prop, list):
+            raise Exception("select_id only accepts a list of length 1")
+        prop = prop[0]
+
+        # original dpla_ingestion/lib/akamod/select-id.py
+        # does two things not implemented here:
+        # 1. a tree traversal get instead of a simple .get(prop)
+        # 2. handles if the id_handle is not just a simple string
+        # not sure if we need to do either of these things, so
+        # making a simple implementation for now
+
+        id_handle = self.source_metadata.get(prop)
+        lname = id_handle.strip().replace(" ", "__")
+
+        self.legacy_couch_db_id = (f"{self.collection_id}--{lname}")
+        return self

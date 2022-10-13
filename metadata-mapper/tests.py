@@ -1,11 +1,11 @@
 from lambda_function import lambda_handler
-from validate_mapping import validate_mapped_collection
+# from validate_mapping import validate_mapped_collection
 from test_data.nuxeo_harvests import *
-from test_data.oac_harvests import *
+# from test_data.oac_harvests import *
 # from test_data.oai_harvests import *
 import json
 
-harvests = oac_harvests
+harvests = nuxeo_harvests
 
 for harvest in harvests:
     print(f"mapping tests: {json.dumps(harvest)}")

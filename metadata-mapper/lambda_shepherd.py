@@ -3,6 +3,7 @@ import os
 import boto3
 import sys
 import subprocess
+import requests
 from lambda_function import lambda_handler
 
 DEBUG = os.environ.get('DEBUG', False)
@@ -18,6 +19,17 @@ def local_path(folder, collection_id):
     ])
     return local_path
 
+def get_collection_enrichments(collection_id):
+    collection = requests.get(
+        f'https://registry.cdlib.org/api/v1/'
+        f'rikolticollection/{collection_id}/?format=json'
+    ).json()
+    return {
+        'pre_mapping': collection.get('rikolti__pre_mapping'),
+        'mapper_type': collection.get('rikolti__mapper_type'),
+        'enrichments': collection.get('rikolti__enrichments'),
+    }
+
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # {"collection_id": 26098, "source_type": "nuxeo"}
 def lambda_shepherd(payload, context):
@@ -25,6 +37,8 @@ def lambda_shepherd(payload, context):
         payload = json.loads(payload)
 
     collection_id = payload.get('collection_id')
+    payload.update({
+        'enrichments': get_collection_enrichments(collection_id)})
     if not collection_id:
         print("ERROR ERROR ERROR")
         print('collection_id required')
