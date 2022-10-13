@@ -8,3 +8,4 @@ env.local
 **/.env
 .vscode/
 local_settings.py
+rikolti_bucket/
