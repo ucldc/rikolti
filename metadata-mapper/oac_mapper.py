@@ -14,11 +14,12 @@ URL_OAC_CONTENT_BASE = os.environ.get(
 Anum_re = re.compile('A\d\d\d\d')
 CONTENT_SERVER = 'http://content.cdlib.org/'
 
+
 class OAC_Vernacular(VernacularReader):
     def __init__(self, payload):
         super(OAC_Vernacular, self).__init__(payload)
         self.record_cls = OAC_DCRecord
-    
+
     # Directly copied from harvester codebase; not sure if this belongs here
     def _get_doc_ark(self, docHit):
         '''Return the object's ark from the xml etree docHit'''
@@ -33,7 +34,7 @@ class OAC_Vernacular(VernacularReader):
                 if len(split) > 1:
                     ark = ''.join(('ark:', split[1]))
         return ark
-    
+
     # Directly copied from harvester codebase; not sure if this belongs here
     def parse_reference_image(self, tag):
         try:
@@ -71,6 +72,7 @@ class OAC_Vernacular(VernacularReader):
             'Y': y,
             'src': src,
         }
+        return data     # was not copied from harvester codebase - not sure?
 
     # Directly copied from harvester codebase
     def parse(self, api_response):
@@ -95,15 +97,20 @@ class OAC_Vernacular(VernacularReader):
                     for innertext in tag.itertext():
                         data = ''.join((data, innertext.strip()))
                     if data:
-                        obj[tag.tag].append({'attrib': tag.attrib, 'text': data})
+                        obj[tag.tag].append({
+                            'attrib': tag.attrib, 
+                            'text': data
+                        })
                 else:
                     if tag.text:  # don't add blank ones
-                        obj[tag.tag].append({'attrib': tag.attrib, 'text': tag.text})
+                        obj[tag.tag].append({
+                            'attrib': tag.attrib, 
+                            'text': tag.text
+                        })
             objset.append(obj)
-        
-        objset = [self.record_cls(obj) for obj in objset]
-        return objset
 
+        objset = [self.record_cls(self.collection_id, obj) for obj in objset]
+        return objset
 
 
 class OAC_DCRecord(Record):
@@ -239,7 +246,7 @@ class OAC_DCRecord(Record):
         if provider_data:
             values = [
                 d.get('text') for d in provider_data
-                if d.get('attrib') if d.get('attrib',{}).get('q') == specify
+                if d.get('attrib') if d.get('attrib', {}).get('q') == specify
             ]
         return values
 
@@ -250,7 +257,8 @@ class OAC_DCRecord(Record):
             dim = 0
             # 'thumbnail' might be represented different in xmltodict 
             # vs. the custom fetching mark was doing
-            thumb = self.source_metadata.get('originalRecord', {}).get('thumbnail', None)
+            thumb = self.source_metadata.get(
+                'originalRecord', {}).get('thumbnail', None)
             if thumb:
                 if 'src' in thumb:
                     dim = max(int(thumb.get('X')), int(thumb.get('Y')))
@@ -277,8 +285,8 @@ class OAC_DCRecord(Record):
         item_count = None
         image_count = 0
         if 'originalRecord' in self.source_metadata:  # guard weird input
-            ref_image_count = self.source_metadata.get('originalRecord',{}).get(
-                'reference-image-count')
+            ref_image_count = self.source_metadata.get(
+                'originalRecord', {}).get('reference-image-count')
             if ref_image_count:
                 image_count = ref_image_count[0]['text']
             if image_count > "1":
@@ -290,15 +298,22 @@ class OAC_DCRecord(Record):
         if 'originalRecord' in self.source_metadata:  # guard weird input
             if 'coverage' in self.source_metadata.get('originalRecord'):
                 coverage_data = iterify(
-                    getprop(self.source_metadata.get('originalRecord'), "coverage"))
+                    getprop(
+                        self.source_metadata.get('originalRecord'), 
+                        "coverage"
+                    ))
                 # remove arks from data
                 # and move the "text" value to
                 for c in coverage_data:
-                    if (not isinstance(c, basestring) and
+                    if (not isinstance(c, str) and
                             not c.get('text').startswith('ark:')):
-                        if 'q' in c.get('attrib', {}) and 'temporal' not in c.get('attrib',{}).get('q'):
+                        if ('q' in c.get('attrib', {}) and
+                                'temporal' not in c.get(
+                                    'attrib', {}).get('q')):
                             coverage.append(c.get('text'))
-                        if 'q' not in c.get('attrib', {}) and c.get('attrib', {}) is not None and not Anum_re.match(c.get('text')):
+                        if ('q' not in c.get('attrib', {}) and
+                                c.get('attrib', {}) is not None and
+                                not Anum_re.match(c.get('text'))):
                             coverage.append(c.get('text'))
         return coverage
 
@@ -306,10 +321,11 @@ class OAC_DCRecord(Record):
         temporal = []
         if 'originalRecord' in self.source_metadata:  # guard weird input
             if 'coverage' in self.source_metadata.get('originalRecord'):
-                time_data = iterify(
-                    getprop(self.source_metadata.get('originalRecord'), "coverage"))
+                time_data = iterify(getprop(
+                    self.source_metadata.get('originalRecord'), "coverage"))
                 for t in time_data:
-                    if 'q' in t.get('attrib', {}) and 'temporal' in t.get('attrib',{}).get('q'):
+                    if ('q' in t.get('attrib', {})
+                            and 'temporal' in t.get('attrib', {}).get('q')):
                         temporal.append(t.get('text'))
         return temporal
 
