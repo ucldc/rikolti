@@ -7,6 +7,7 @@ import subprocess
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
 from OACFetcher import OACFetcher
+from OAIFetcher import OAIFetcher
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -59,7 +60,6 @@ def lambda_handler(payload, context):
         'statusCode': 200,
         'body': json.dumps(payload)
     }
-
 
 if __name__ == "__main__":
     import argparse
