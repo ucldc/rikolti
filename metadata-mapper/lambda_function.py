@@ -5,6 +5,7 @@ import sys
 from nuxeo_mapper import NuxeoVernacular
 from mapper import UCLDCWriter
 from oac_mapper import OAC_Vernacular
+from islandora_oai_dc_mapper import IslandoraVernacular
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -14,6 +15,8 @@ def get_source_vernacular(source_type):
         return NuxeoVernacular
     if source_type == 'oac_dc':
         return OAC_Vernacular
+    if source_type == 'islandora_oai_dc_mapper':
+        return IslandoraVernacular
 
 
 # {"collection_id": 26098, "source_type": "nuxeo", "page_filename": "r-0"}
