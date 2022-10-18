@@ -1,7 +1,7 @@
 import os
 import requests
 import json
-
+import re
 
 class VernacularReader(object):
     def __init__(self, payload):
@@ -167,3 +167,39 @@ class Record(object):
             # self.mapped_metadata["@context"] = "http://dp.la/api/items/context"
         return self
 
+    def shred(self, field, delim=";"):
+        """
+        Based on DPLA-Ingestion service that accepts a JSON document and
+        "shreds" the value of the field named by the "prop" parameter
+
+        Splits values by delimeter; handles some complex edge cases beyond what
+        split() expects. For example:
+            ["a,b,c", "d,e,f"] -> ["a","b","c","d","e","f"]
+            'a,b(,c)' -> ['a', 'b(,c)']
+        Duplicate values are removed.
+        """
+        if field not in self.mapped_metadata:
+            return self
+
+        value = self.mapped_metadata[field]
+        if isinstance(value, list):
+            try:
+                value = delim.join(value)
+                value = value.replace(f"{delim}{delim}", delim)
+            except Exception as e:
+                print(
+                    f"Can't join list {value} on delim for "
+                    f"{self.mapped_metadata['id']}, {e}"
+                )
+        if delim not in value:
+            return self
+
+        shredded = value.split(re.escape(delim))
+        shredded = [s.strip() for s in shredded if s.strip()]
+        result = []
+        for s in shredded:
+            if s not in result:
+                result.append(s)
+        self.mapped_metadata[field] = result
+
+        return self
