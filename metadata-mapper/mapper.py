@@ -1,5 +1,5 @@
 import os
-import boto3
+import requests
 import json
 
 
@@ -68,6 +68,33 @@ class UCLDCWriter(object):
             Body=json.dumps(mapped_metadata))
 
 
+# repeating self here, how to get from avram?
+RIGHTS_STATUS = {
+    'CR': 'copyrighted',
+    'PD': 'public domain',
+    'UN': 'copyright unknown',
+    # 'X':  'rights status unknown', # or should throw error?
+}
+RIGHTS_STATEMENT_DEFAULT = (
+    "Please contact the contributing institution for more information "
+    "regarding the copyright status of this object."
+)
+DCMI_TYPES = {
+    'C': 'Collection',
+    'D': 'Dataset',
+    'E': 'Event',
+    'I': 'Image',
+    'F': 'Moving Image',
+    'R': 'Interactive Resource',
+    'V': 'Service',
+    'S': 'Software',
+    'A': 'Sound',   # A for audio
+    'T': 'Text',
+    'P': 'Physical Object',
+    # 'X': 'type unknown' # default, not set
+}
+
+
 class Record(object):
     def __init__(self, col_id, record):
         self.collection_id = col_id
@@ -101,3 +128,42 @@ class Record(object):
 
         self.legacy_couch_db_id = (f"{self.collection_id}--{lname}")
         return self
+
+    def required_values_from_collection_registry(self, field, mode=None):
+        collection = requests.get(
+            f"https://registry.cdlib.org/api/v1/collection/"
+            f"{self.collection_id}?format=json"
+        ).json()
+
+        if field == "rights":
+            rights = [
+                RIGHTS_STATUS.get(collection.get('rights_status')),
+                collection.get('rights_statement')
+            ]
+            rights = [r for r in rights if r]
+            if not rights:
+                rights = [RIGHTS_STATEMENT_DEFAULT]
+            field_value = rights
+
+        if field == "type":
+            field_value = [DCMI_TYPES.get(collection.get('dcmi_type'), None)]
+
+        if field == "title":
+            field_value = ["Title unknown"]
+
+        if mode == "overwrite":
+            self.mapped_metadata[field] = field_value
+        elif mode == "append":
+            if field in self.mapped_metadata:
+                self.mapped_metadata[field] += (field_value)
+            else:
+                self.mapped_metadata[field] = field_value
+        else:   # default is fill if empty
+            if field not in self.mapped_metadata:
+                self.mapped_metadata[field] = field_value
+
+        # not sure what this is about
+        # if not exists(data, "@context"):
+            # self.mapped_metadata["@context"] = "http://dp.la/api/items/context"
+        return self
+
