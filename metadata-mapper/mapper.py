@@ -76,3 +76,16 @@ class Record(object):
     # Mapper Helpers
     def collate_subfield(self, field, subfield):
         return [f[subfield] for f in self.source_metadata.get(field, [])]
+
+    def collate_fields(self, fieldlist):
+        ''' collate multiple field values into a single list '''
+        collated = []
+        for field in fieldlist:
+            value = self.source_metadata.get(field)
+            if value:
+                if isinstance(value, str):
+                    collated.append(value)
+                else:
+                    collated.extend(value)
+
+        return collated
