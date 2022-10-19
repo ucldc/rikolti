@@ -228,3 +228,58 @@ class Record(object):
 
         return self
 
+    def copy_prop(self, prop, to_prop, skip_if_exists=[False]):
+        """
+        no_overwrite is specified in one of the enrichment chain items, but is
+        not implemented in the dpla-ingestion code.
+
+        sourceResource%4Fpublisher is specified in one of the enrichment chain
+        items, probably a typo; not sure what happens in the existing
+        enrichment chain (does it just skip this enrichment?)
+
+        we don't really quite have 'originalRecord', 'provider', or
+        'sourceResource' in the Rikolti data model. Currently splitting on '/'
+        and copying from whatever is after the '/', but will need to keep an
+        eye on this. not sure what 'dataProvider' is, either or if we use it
+
+        called with the following parameters:
+        1105 times: prop=["originalRecord/collection"],   to_prop=["dataProvider"]
+        1000 times: prop=["provider/name"],               to_prop=["dataProvider"],
+        675 times:  prop=["sourceResource/publisher"],    to_prop=["dataProvider"]    skip_if_exists=["True"]
+        549 times:  prop=["provider/name"],               to_prop=["dataProvider"],   no_overwrite=["True"]   # no_overwrite not implemented in dpla-ingestion
+        440 times:  prop=["provider/name"],               to_prop=["dataProvider"],   skip_if_exists=["true"]
+        293 times:  prop=["sourceResource%4Fpublisher"],  to_prop=["dataProvider"]
+        86 times:   prop=["provider/name"],               to_prop=["dataProvider"]
+        11 times:   prop=["originalRecord/type"],         to_prop=["sourceResource/format"]
+        1 times:    prop=["sourceResource/spatial"],      to_prop=["sourceResource/temporal"], skip_if_exists=["true"]
+        1 times:    prop=["sourceResource/description"],  to_prop=["sourceResource/title"]
+        """
+
+        src = prop[0].split('/')[1:]
+        dest = to_prop[0].split('/')[1:]
+        skip_if_exists = bool(skip_if_exists[0] in ['True', 'true'])
+
+        if ((dest in self.mapped_data and skip_if_exists) or
+                (src not in self.mapped_data)):
+            # dpla-ingestion code "passes" here, but I'm not sure what that
+            # means - does it skip this enrichment or remove this record?
+            return self
+
+        src_value = self.mapped_data.get(src)
+        dest_value = self.mapped_data.get(dest, [])
+        if ((not (isinstance(src_value, list) or isinstance(src_value, str))) or
+            (not (isinstance(dest_value, list) or isinstance(dest_value, str)))):
+            print(
+                f"Prop {src} is {type(src_value)} and prop {dest} is "
+                f"{type(dest_value)} - not a string/list for record "
+                f"{self.mapped_data.get('id')}"
+            )
+            return self
+
+        if isinstance(src_value, str):
+            src_value = [src_value]
+        if isinstance(dest_value, str):
+            dest_value = [dest_value]
+
+        self.mapped_data[dest] = dest_value + src_value
+        return self
