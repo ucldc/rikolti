@@ -7,7 +7,6 @@ DEBUG = os.environ.get('DEBUG', False)
 if not DEBUG:
     import boto3
 
-
 class FetchError(Exception):
     pass
 
@@ -43,7 +42,7 @@ class Fetcher(object):
             str(self.collection_id),
         ])
         if not os.path.exists(local_path):
-            os.mkdir(local_path)
+            os.makedirs(local_path)
 
         return local_path
 
