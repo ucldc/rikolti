@@ -3,8 +3,8 @@ import os
 import boto3
 import requests
 import json
-from mapper import Mapper
-from lambda_function import get_mapper
+from mapper import VernacularReader
+from lambda_function import get_source_vernacular
 DEBUG = os.environ.get('DEBUG', False)
 SOLR_URL = os.environ.get('UCLDC_SOLR_URL', False)
 SOLR_API_KEY = os.environ.get('UCLDC_SOLR_API_KEY', False)
