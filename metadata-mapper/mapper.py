@@ -101,6 +101,19 @@ DCMI_TYPES = {
     'P': 'Physical Object',
     # 'X': 'type unknown' # default, not set
 }
+REGSEARCH = [
+    "\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}",
+    "\d{1,2}\s*[-/]\s*\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{4}",
+    "\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{4}\s*[-/]\s*\d{1,2}",
+    "\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}",
+    "\d{4}\s*[-/]\s*\d{4}",
+    "\d{1,2}\s*[-/]\s*\d{4}",
+    "\d{4}\s*[-/]\s*\d{1,2}",
+    "\d{4}s?",
+    "\d{1,2}\s*(?:st|nd|rd|th)\s*century",
+    ".*circa.*",
+    ".*[pP]eriod(?!.)"
+]
 
 
 class Record(object):
@@ -282,4 +295,49 @@ class Record(object):
             dest_value = [dest_value]
 
         self.mapped_data[dest] = dest_value + src_value
+        return self
+
+    def move_date_values(self, prop, dest="temporal"):
+        """
+        this is a fairly straight copy of the dpla-ingestion code
+        dest is sourceResource/temporal in the dpla-ingestion code, but we
+        don't have a sourceResource in the Rikolti data model. dest is also
+        previously called 'to_prop'. 
+
+        called with the following parameters:
+        # 2079 times: prop=["sourceResource/subject"]
+        # 2079 times: prop=["sourceResource/spatial"]
+        """
+        src = prop[0].split('/')[-1]   # remove sourceResource
+        if src not in self.mapped_data:
+            return self
+
+        src_values = self.mapped_data[src]
+        if isinstance(src_values, str):
+            src_values = [src_values]
+        remove = []
+        dest_values = self.mapped_data.get(dest, [])
+        if isinstance(dest_values, str):
+            dest_values = [dest_values]
+
+        for value in src_values:
+            cleaned_value = re.sub("[\(\)\.\?]", "", value)
+            cleaned_value = cleaned_value.strip()
+            for pattern in REGSEARCH:
+                matches = re.compile(pattern, re.I).findall(cleaned_value)
+                if (len(matches) == 1 and
+                        (not re.sub(matches[0], "", cleaned_value).strip())):
+                    if matches[0] not in dest_values:
+                        dest_values.append(matches[0])
+                    remove.append(value)
+                    break
+
+        if dest_values:
+            self.mapped_data[dest] = dest_values
+            if len(src_values) == len(remove):
+                del self.mapped_data[src]
+            else:
+                self.mapped_data[src] = [
+                    v for v in src_values if v not in remove]
+
         return self
