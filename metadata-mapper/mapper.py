@@ -2,6 +2,8 @@ import os
 import json
 import re
 
+DEBUG = os.environ.get('DEBUG', False)
+
 
 class VernacularReader(object):
     def __init__(self, payload):
@@ -17,6 +19,12 @@ class VernacularReader(object):
             str(self.collection_id),
         ])
         return local_path
+
+    def get_api_response(self):
+        if DEBUG:
+            return self.get_local_api_response()
+        else:
+            return self.get_s3_api_response()
 
     def get_local_api_response(self):
         local_path = self.local_path('vernacular_metadata')

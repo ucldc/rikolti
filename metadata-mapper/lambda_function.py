@@ -18,6 +18,17 @@ def get_source_vernacular(payload):
         return OAC_Vernacular(payload)
 
 
+def parse_enrichment_url(enrichment_url):
+    enrichment_func = (urlparse(enrichment_url)
+                       .path
+                       .strip('/')
+                       .replace('-', '_'))
+    kwargs = parse_qs(urlparse(enrichment_url).query)
+    if enrichment_func not in dir(Record):
+        raise Exception(f"ERROR: {enrichment_func} not found in {Record}")
+    return enrichment_func, kwargs
+
+
 # {"collection_id": 26098, "source_type": "nuxeo", "page_filename": "r-0"}
 # {"collection_id": 26098, "source_type": "nuxeo", "page_filename": 2}
 def lambda_handler(payload, context):
@@ -25,22 +36,12 @@ def lambda_handler(payload, context):
         payload = json.loads(payload)
 
     vernacular = get_source_vernacular(payload)
-    if DEBUG:
-        api_resp = vernacular.get_local_api_response()
-    else:
-        api_resp = vernacular.get_s3_api_response()
-
+    api_resp = vernacular.get_api_response()
     source_metadata_records = vernacular.parse(api_resp)
     collection = payload.get('collection', {})
 
-    for enrichment in payload.get('rikolti__pre_mapping', []):
-        enrichment_func = (urlparse(enrichment)
-                           .path
-                           .strip('/')
-                           .replace('-', '_'))
-        kwargs = parse_qs(urlparse(enrichment).query)
-        if enrichment_func not in dir(Record):
-            raise Exception(f"ERROR: {enrichment_func} not found in {Record}")
+    for enrichment_url in collection.get('rikolti__pre_mapping'):
+        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         print(f"running enrichment: {enrichment_func} with {kwargs}")
         source_metadata_records = [
             record.enrich(enrichment_func, **kwargs)
@@ -48,21 +49,13 @@ def lambda_handler(payload, context):
         ]
 
     mapped_records = [record.to_UCLDC() for record in source_metadata_records]
-
     writer = UCLDCWriter(payload)
     if DEBUG:
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
     for enrichment_url in collection.get('rikolti__enrichments'):
-        enrichment_func = (urlparse(enrichment_url)
-                           .path
-                           .strip('/')
-                           .replace('-', '_'))
-        kwargs = parse_qs(urlparse(enrichment_url).query)
-        if enrichment_func not in dir(Record):
-            raise Exception(f"ERROR: {enrichment_func} not found in {Record}")
-        print(f"running enrichment: {enrichment_func} with {kwargs}")
+        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         if enrichment_func in ['required_values_from_collection_registry']:
             kwargs.update({'collection': collection})
         print(f"running enrichment: {enrichment_func} with {kwargs}")
@@ -70,6 +63,12 @@ def lambda_handler(payload, context):
             record.enrich(enrichment_func, **kwargs)
             for record in mapped_records
         ]
+
+    # some enrichments had previously happened at ingest into Solr
+    # TODO: these are just two, investigate further
+    # mapped_records = [record.add_sort_title() for record in mapped_records]
+    # mapped_records = [record.map_registry_data(collection)
+    #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
     if DEBUG:
