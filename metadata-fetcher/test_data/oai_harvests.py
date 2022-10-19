@@ -1,17 +1,84 @@
-
 oai_harvests = [
-  { # 2206: Big Pine Citizen Newspaper
-    # 19 items
-    # extra_data: big-pine-citizen-newspaper
-    # curl 'http://oai.quartexcollections.com/lmudigitalcollections/oai2?verb=ListMetadataFormats'
-    "collection_id": 2206,
+  {
+    # 26773 OAI Marineland - 18 items
+    "collection_id": 26773,
     "harvest_type": "OAIFetcher",
     "write_page": 0,
     "oai": {
-      "url": "http://oai.quartexcollections.com/lmudigitalcollections/oai2",
-      "oai_qs_args": "big-pine-citizen-newspaper"
+      "url": "http://www.palosverdeshistory.org/oai2",
+      "oai_qs_args": "pvld_4833"
     }
-  }
+  },
+  {
+    # 26774 OAI Palos Verdes Bulletin - 82 items
+    "collection_id": 26774,
+    "harvest_type": "OAIFetcher",
+    "write_page": 0,
+    "oai": {
+      "url": "http://www.palosverdeshistory.org/oai2",
+      "oai_qs_args": "pvld_4048"
+    }
+  },
+  {
+    # 26775 OAI Palos Verdes College Photo Collection - 225 items
+    "collection_id": 26775,
+    "harvest_type": "OAIFetcher",
+    "write_page": 0,
+    "oai": {
+      "url": "http://www.palosverdeshistory.org/oai2",
+      "oai_qs_args": "pvld_4020"
+    }
+  },
+  {
+    # 26776 OAI Phillips Ranch Photo Collection - 69 items
+    "collection_id": 26776,
+    "harvest_type": "OAIFetcher",
+    "write_page": 0,
+    "oai": {
+      "url": "http://www.palosverdeshistory.org/oai2",
+      "oai_qs_args": "pvld_4017"
+    }
+  },
+  {
+    # 26777 OAI Postcard Collection - 95 items
+    "collection_id": 26777,
+    "harvest_type": "OAIFetcher",
+    "write_page": 0,
+    "oai": {
+      "url": "http://www.palosverdeshistory.org/oai2",
+      "oai_qs_args": "pvld_2"
+    }
+  },
+  {
+    # 26778 OAI Your Story is the Peninsula's Story Collection - 90 items
+    "collection_id": 26778,
+    "harvest_type": "OAIFetcher",
+    "write_page": 0,
+    "oai": {
+      "url": "http://www.palosverdeshistory.org/oai2",
+      "oai_qs_args": "pvld_4256"
+    }
+  },
+  {
+    # 26779 OAI Malaga Cove Star Newspaper - 28 items
+    "collection_id": 26779,
+    "harvest_type": "OAIFetcher",
+    "write_page": 0,
+    "oai": {
+      "url": "http://www.palosverdeshistory.org/oai2",
+      "oai_qs_args": "pvld_4406"
+    }
+  },
+  {
+    # 26885 OAI Palos Verdes Homes Association Photo Collection - 1775 items
+    "collection_id": 26885,
+    "harvest_type": "OAIFetcher",
+    "write_page": 0,
+    "oai": {
+      "url": "http://www.palosverdeshistory.org/oai2",
+      "oai_qs_args": "pvld_homes"
+    }
+  },
 ]
 
 '''
