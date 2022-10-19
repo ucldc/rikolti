@@ -8,16 +8,6 @@ from sickle import Sickle
 NS = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 
 # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
-'''
-The fetcher must gracefully fail in the following particular cases: 
-1. We have for one reason or another been unable to hit an institution's API
-2. The institution's API has returned something other than a 2xx status code
-3. The institution's API has returned a 2xx status code, but the response is empty or we are otherwise unable to understand it
-4. We are unable to stash the response locally
-5. We are unable to increment the next page of results
-
-In these cases, failing gracefully typically means continuing to retrieve as much as we are able, while reporting out as much detail as possible about what we were unable to fetch. It also means that our fetcher should be able to operate at both a collection level (paginating over many pages of data), as well as the singular page level such that we can try again manually. 
-'''
 class OAIFetcher(Fetcher):
 
     def __init__(self, params):
