@@ -1,7 +1,7 @@
 import os
-import requests
 import json
 import re
+
 
 class VernacularReader(object):
     def __init__(self, payload):
@@ -129,11 +129,17 @@ class Record(object):
         self.legacy_couch_db_id = (f"{self.collection_id}--{lname}")
         return self
 
-    def required_values_from_collection_registry(self, field, mode=None):
-        collection = requests.get(
-            f"https://registry.cdlib.org/api/v1/collection/"
-            f"{self.collection_id}?format=json"
-        ).json()
+    def required_values_from_collection_registry(self, collection, field, mode=None):
+        """
+        called with the following parameters:
+        2308 times: field=["rights"],   mode=["fill"]
+        1961 times: field=["type"],     mode=["fill"]
+        2035 times: field=["title"],    mode=["fill"]
+        373 times:  field=["type"],     mode=["overwrite"]
+        34 times:   field["rights"],    mode=["overwrite"]
+        """
+        field = field[0]
+        mode = mode[0]
 
         if field == "rights":
             rights = [
@@ -152,19 +158,19 @@ class Record(object):
             field_value = ["Title unknown"]
 
         if mode == "overwrite":
-            self.mapped_metadata[field] = field_value
+            self.mapped_data[field] = field_value
         elif mode == "append":
-            if field in self.mapped_metadata:
-                self.mapped_metadata[field] += (field_value)
+            if field in self.mapped_data:
+                self.mapped_data[field] += (field_value)
             else:
-                self.mapped_metadata[field] = field_value
+                self.mapped_data[field] = field_value
         else:   # default is fill if empty
-            if field not in self.mapped_metadata:
-                self.mapped_metadata[field] = field_value
+            if field not in self.mapped_data:
+                self.mapped_data[field] = field_value
 
         # not sure what this is about
         # if not exists(data, "@context"):
-            # self.mapped_metadata["@context"] = "http://dp.la/api/items/context"
+            # self.mapped_data["@context"] = "http://dp.la/api/items/context"
         return self
 
     def shred(self, field, delim=";"):
@@ -177,11 +183,21 @@ class Record(object):
             ["a,b,c", "d,e,f"] -> ["a","b","c","d","e","f"]
             'a,b(,c)' -> ['a', 'b(,c)']
         Duplicate values are removed.
+
+        called with the following parameters:
+        2,078 times:    field=["sourceResource/spatial"],       delim = ["--"]
+        1,021 times:    field=["sourceResource/subject/name"]
+        1,021 times:    field=["sourceResource/creator"]
+        1,021 times:    field=["sourceResource/type"]
+        5 times:        field=["sourceResource/description"],   delim=["<br>"]
         """
-        if field not in self.mapped_metadata:
+        field = field[0].split('/')[1:] # remove sourceResource
+        delim = delim[0]
+
+        if field not in self.mapped_data:
             return self
 
-        value = self.mapped_metadata[field]
+        value = self.mapped_data[field]
         if isinstance(value, list):
             try:
                 value = delim.join(value)
@@ -189,7 +205,7 @@ class Record(object):
             except Exception as e:
                 print(
                     f"Can't join list {value} on delim for "
-                    f"{self.mapped_metadata['id']}, {e}"
+                    f"{self.mapped_data['id']}, {e}"
                 )
         if delim not in value:
             return self
@@ -200,6 +216,7 @@ class Record(object):
         for s in shredded:
             if s not in result:
                 result.append(s)
-        self.mapped_metadata[field] = result
+        self.mapped_data[field] = result
 
         return self
+

@@ -2,7 +2,6 @@ import json
 import os
 import boto3
 import sys
-import subprocess
 import requests
 from lambda_function import lambda_handler
 
@@ -19,16 +18,14 @@ def local_path(folder, collection_id):
     ])
     return local_path
 
-def get_collection_enrichments(collection_id):
+
+def get_collection(collection_id):
     collection = requests.get(
         f'https://registry.cdlib.org/api/v1/'
         f'rikolticollection/{collection_id}/?format=json'
     ).json()
-    return {
-        'pre_mapping': collection.get('rikolti__pre_mapping'),
-        'mapper_type': collection.get('rikolti__mapper_type'),
-        'enrichments': collection.get('rikolti__enrichments'),
-    }
+    return collection
+
 
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # {"collection_id": 26098, "source_type": "nuxeo"}
@@ -38,12 +35,12 @@ def lambda_shepherd(payload, context):
 
     collection_id = payload.get('collection_id')
     payload.update({
-        'enrichments': get_collection_enrichments(collection_id)})
+        'collection': get_collection(collection_id)})
     if not collection_id:
         print("ERROR ERROR ERROR")
         print('collection_id required')
         exit()
-    
+
     if DEBUG:
         vernacular_path = local_path('vernacular_metadata', collection_id)
         page_list = [f for f in os.listdir(vernacular_path) 
@@ -56,7 +53,7 @@ def lambda_shepherd(payload, context):
         s3 = boto3.resource('s3')
         rikolti_bucket = s3.Bucket('rikolti')
         page_list = rikolti_bucket.objects.filter(
-            Prefix=f'vernacular_metadata/{self.collection_id}')
+            Prefix=f'vernacular_metadata/{collection_id}')
 
 
 if __name__ == "__main__":
