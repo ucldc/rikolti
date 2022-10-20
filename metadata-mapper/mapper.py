@@ -2,6 +2,7 @@ import os
 import json
 import re
 import boto3
+from markupsafe import Markup   # used in Record.strip_html()
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -500,4 +501,27 @@ class Record(object):
             '@id': collection['id']
         }
         self.mapped_data['stateLocatedIn'] = [{'name': 'California'}]
+        return self
+
+    def strip_html(self):
+        """Strip HTML tags and whitespace from strings within the given object
+
+        Remove HTML tags and convert HTML entities to UTF-8 characters.
+        Compacts consecutive whitespace to single space characters, and strips
+        whitespace from ends of strings.
+
+        1660 times: no parameters
+        """
+
+        def _strip_html(obj):
+            if isinstance(obj, str):
+                return Markup(obj).striptags().strip()
+            elif isinstance(obj, list):
+                return [_strip_html(v) for v in obj]
+            elif isinstance(obj, dict):
+                return {k: _strip_html(v) for k, v in obj.items()}
+            else:
+                return obj
+
+        self.mapped_data = _strip_html(self.mapped_data)
         return self
