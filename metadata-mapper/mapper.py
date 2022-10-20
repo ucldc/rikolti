@@ -435,3 +435,24 @@ class Record(object):
         self.mapped_data[dest] = dest_values
 
         return self
+
+    def enrich_location(self, prop=["sourceResource/spatial"]):
+        """
+        the enrich_location.py file in dpla-ingestion includes the functions:
+        `get_isostate` and `from_abbrev`, as well as the constants `STATES` and
+        `ABBREV`; oddly, though, the `enrich_location` enrichment service
+        doesn't actually use any of these functions or constants. I've not
+        implemented them here, choosing instead only to implement the function
+        `enrichlocation`, which seemingly cleans whitespace around semicolons
+        and then makes a dictionary? This code is so convoluted, I'm not
+        implementing it until I have proper sample data to test it against.
+
+        called with the following parameters:
+        1785 times: no parameters
+        2080 times: prop=["sourceResource/stateLocatedIn"]
+        """
+        src = prop[0].split('/')[-1]  # remove sourceResource
+        if src not in self.mapped_data():
+            return self
+
+        return self
