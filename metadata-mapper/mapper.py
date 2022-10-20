@@ -552,3 +552,56 @@ class Record(object):
         elif self.mapped_data.get("ingestType"):
             self.mapped_data.update(collection_context)
 
+    def cleanup_value(self):
+        """
+        2076 times: no parameters
+        """
+        default_fields = [
+            "sourceResource/language", "sourceResource/title",
+            "sourceResource/creator", "sourceResource/relation",
+            "sourceResource/publisher", "sourceResource/subject",
+            "sourceResource/date",
+            "sourceResource/collection/title",
+            "sourceResource/collection/description",
+            "sourceResource/contributor", "sourceResource/spatial/name"
+        ]
+        dont_strip_trailing_dot = [
+            "hasView/format", "sourceResource/format", "sourceResource/extent",
+            "sourceResource/rights",
+            "sourceResource/place", "sourceResource/collection/title"
+        ]
+
+        def cleanup(value, field):
+            strip_dquote = '"' if field not in ["title", "description"] else ''
+            strip_dot = '.' if field not in dont_strip_trailing_dot else ''
+            strip_leading = '[\.\' \r\t\n;,%s]*' % (strip_dquote)
+            strip_trailing = '[%s\' \r\t\n;,%s]*' % (strip_dot, strip_dquote)
+
+            regexps = ('\( ', '('), \
+                      (' \)', ')'), \
+                      (' *-- *', '--'), \
+                      ('[\t ]{2,}', ' '), \
+                      ('^' + strip_leading, ''), \
+                      (strip_trailing + '$', '')
+
+            if isinstance(value, str):
+                value = value.strip()
+                for pattern, replacement in regexps:
+                    value = re.sub(pattern, replacement, value)
+            return value
+
+        for field in default_fields + dont_strip_trailing_dot:
+            # TODO: this won't work for deeply nested fields
+            field.split('/')[1]     # remove sourceResource
+
+            if field not in self.mapped_data:
+                continue
+            if isinstance(self.mapped_data[field], str):
+                self.mapped_data[field] = cleanup(
+                    self.mapped_data[field], field)
+            elif isinstance(self.mapped_data[field], list):
+                self.mapped_data[field] = [
+                    cleanup(v, field) for v in self.mapped_data[field]
+                ]
+
+        return self
