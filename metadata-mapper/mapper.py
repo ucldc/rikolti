@@ -525,3 +525,30 @@ class Record(object):
 
         self.mapped_data = _strip_html(self.mapped_data)
         return self
+
+    def set_context(self):
+        """
+        We don't have an ingestType so this is a no-op. I don't think it
+        matters much though - these URLs are 404s anyway. Keeping it here for
+        posterity, and because it is a part of our existing enrichment chains.
+        Once we have migrated to using Rikolti, it would be good to revisit
+        simplifying the enrichment chain.
+
+        994 times: no parameters
+        """
+        item_context = {
+            "@context": "http://dp.la/api/items/context",
+            "aggregatedCHO": "#sourceResource",
+            "@type": "ore:Aggregation"
+        }
+
+        collection_context = {
+            "@context": "http://dp.la/api/collections/context",
+            "@type": "dcmitype:Collection"
+        }
+
+        if self.mapped_data.get("ingestType") == "item":
+            self.mapped_data.update(item_context)
+        elif self.mapped_data.get("ingestType"):
+            self.mapped_data.update(collection_context)
+
