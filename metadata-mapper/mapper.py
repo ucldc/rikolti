@@ -455,4 +455,24 @@ class Record(object):
         if src not in self.mapped_data():
             return self
 
+        print('enrich_location not implemented')
+        return self
+
+    def set_ucldc_dataprovider(self, collection):
+        """
+        2333 times: no parameters
+        """
+        repo = collection['repository'][0]
+        campus = None
+        if len(repo['campus']):
+            campus = repo['campus'][0]
+        dataProvider = repo['name']
+        if campus:
+            dataProvider = f"{campus['name']}, {repo['name']}"
+        self.mapped_data['dataProvider'] = dataProvider
+        self.mapped_data['provider'] = {
+            'name': dataProvider,
+            '@id': collection['id']
+        }
+        self.mapped_data['stateLocatedIn'] = [{'name': 'California'}]
         return self

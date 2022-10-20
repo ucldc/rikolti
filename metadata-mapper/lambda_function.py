@@ -56,7 +56,8 @@ def lambda_handler(payload, context):
 
     for enrichment_url in collection.get('rikolti__enrichments'):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
-        if enrichment_func in ['required_values_from_collection_registry']:
+        if enrichment_func in ['required_values_from_collection_registry',
+                               'set_ucldc_dataprovider']:
             kwargs.update({'collection': collection})
         print(f"running enrichment: {enrichment_func} with {kwargs}")
         mapped_records = [
