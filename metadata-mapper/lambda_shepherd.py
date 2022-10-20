@@ -11,9 +11,9 @@ DEBUG = os.environ.get('DEBUG', False)
 def local_path(folder, collection_id):
     parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
     local_path = os.sep.join([
-        parent_dir, 
-        'rikolti_bucket', 
-        folder, 
+        parent_dir,
+        'rikolti_bucket',
+        folder,
         str(collection_id),
     ])
     return local_path
@@ -43,8 +43,8 @@ def lambda_shepherd(payload, context):
 
     if DEBUG:
         vernacular_path = local_path('vernacular_metadata', collection_id)
-        page_list = [f for f in os.listdir(vernacular_path) 
-                    if os.path.isfile(os.path.join(vernacular_path, f))]
+        page_list = [f for f in os.listdir(vernacular_path)
+                     if os.path.isfile(os.path.join(vernacular_path, f))]
         for page in page_list:
             payload.update({'page_filename': page})
             lambda_handler(json.dumps(payload), {})
