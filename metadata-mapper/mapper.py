@@ -114,6 +114,41 @@ REGSEARCH = [
     ".*circa.*",
     ".*[pP]eriod(?!.)"
 ]
+SCDL_FIX_FORMAT = {
+    "Pamphlet": "Pamphlets",
+    "Pamplet": "Pamphlets",
+    "Pamplets": "Pamphlets",
+    "Pamplets\n": "Pamphlets",
+    "pamphlets": "Pamphlets",
+    "Manuscript": "Manuscripts",
+    "manuscripts": "Manuscripts",
+    "Photograph": "Photographs",
+    "Baskets (Containers)": "Baskets (containers)",
+    "color print": "Color prints",
+    "color prints": "Color prints",
+    "Image": "Images",
+    "Manuscript": "Manuscripts",
+    "Masks (costume)": "Masks (costumes)",
+    "Newspaper": "Newspapers",
+    "Object": "Objects",
+    "Still image": "Still images",
+    "Still Image": "Still images",
+    "StillImage": "Still images",
+    "Text\nText": "Texts",
+    "Text": "Texts",
+    "Batik": "Batiks",
+    "Book": "Books",
+    "Map": "Maps",
+    "maps": "Maps",
+    "Picture Postcards": "Picture postcards",
+    "Religous objects": "Religious objects",
+    "Tray": "Trays",
+    "Wall hanging": "Wall hangings",
+    "Wood carving": "Wood carvings",
+    "Woodcarving": "Wood carvings",
+    "Cartoons (humourous images)": "Cartoons (humorous images)",
+    "black-and-white photographs": "Black-and-white photographs"
+}
 
 
 class Record(object):
@@ -339,5 +374,64 @@ class Record(object):
             else:
                 self.mapped_data[src] = [
                     v for v in src_values if v not in remove]
+
+        return self
+
+    def lookup(self, prop, target, substitution, inverse=False):
+        """
+        dpla-ingestion code has a delnonexisting parameter that is not used by
+        our enrichment chain, so I've not implemented it here.
+
+        since we don't have a sourceResource data structure, I'm not actually
+        sure where these properties will exist in our new data model - will
+        they still exist in some sort of nested `language: {name: "English"}`
+        structure?
+
+        dpla-ingestion codebase uses function `the_same_beginning` to check
+        that the prop and target fields have the same beginning before doing
+        the lookup, looks like it matters because you provide 1 path to both
+        the source field and the destination field (in function `convert`).
+
+        dpla-ingestion codebase uses function `find_conversion_dictionary` to
+        look in akara.conf for 'lookup_mapping' and select, for example:
+        `dict_name = lookup_mapping["iso639_3"]`. Using dict_name, it then
+        looks in `globals()[dict_name]` for the actual lookup dictionary. I
+        can't seem to find iso639_3 in the dpla-ingestion codebase.
+        SCDL_FIX_FORMAT is right in the lookup.py file, though.
+
+        2031 times: prop=["sourceResource/language/name"],
+                    target=["sourceResource/language/name"],
+                    substitution=["iso639_3"]
+        1946 times: prop=["sourceResource/language/name"],
+                    target=["sourceResource/language/iso639_3"],
+                    substitution=["iso639_3"],
+                    inverse=["True"]
+        3 times:    prop=["sourceResource/format"],
+                    target=["sourceResource/format"],
+                    substitution=["scdl_fix_format"]
+        """
+        src = prop[0].split('/')[-1]  # remove sourceResource
+        dest = target[0].split('/')[-1]  # remove sourceResource
+        substitution = substitution[0]
+        inverse = bool(inverse[0] in ['True', 'true'])
+
+        # TODO: this won't actually work for deeply nested fields
+
+        if src not in self.mapped_data:
+            print(f"Source field {src} not in record {self.mapped_data.get('id')}")
+            return self
+
+        src_values = self.mapped_data[src]
+        if isinstance(src_values, str):
+            src_values = [src_values]
+
+        substitution_dict = {}
+        if substitution == 'scdl_fix_format':
+            substitution_dict = SCDL_FIX_FORMAT
+        if inverse:
+            substitution_dict = {v: k for k, v in substitution_dict.items()}
+
+        dest_values = [substitution_dict.get(v, v) for v in src_values]
+        self.mapped_data[dest] = dest_values
 
         return self
