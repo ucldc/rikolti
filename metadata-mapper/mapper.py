@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import boto3
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -13,9 +14,9 @@ class VernacularReader(object):
     def local_path(self, folder):
         parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
         local_path = os.sep.join([
-            parent_dir, 
-            'rikolti_bucket', 
-            folder, 
+            parent_dir,
+            'rikolti_bucket',
+            folder,
             str(self.collection_id),
         ])
         return local_path
@@ -50,9 +51,9 @@ class UCLDCWriter(object):
     def local_path(self, folder):
         parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
         local_path = os.sep.join([
-            parent_dir, 
-            'rikolti_bucket', 
-            folder, 
+            parent_dir,
+            'rikolti_bucket',
+            folder,
             str(self.collection_id),
         ])
         return local_path
@@ -102,17 +103,20 @@ DCMI_TYPES = {
     # 'X': 'type unknown' # default, not set
 }
 REGSEARCH = [
-    "\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}",
-    "\d{1,2}\s*[-/]\s*\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{4}",
-    "\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{4}\s*[-/]\s*\d{1,2}",
-    "\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}",
-    "\d{4}\s*[-/]\s*\d{4}",
-    "\d{1,2}\s*[-/]\s*\d{4}",
-    "\d{4}\s*[-/]\s*\d{1,2}",
-    "\d{4}s?",
-    "\d{1,2}\s*(?:st|nd|rd|th)\s*century",
-    ".*circa.*",
-    ".*[pP]eriod(?!.)"
+    (
+        r"\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*"
+        r"\d{1,4}\s*[-/]\s*\d{1,4}"
+    ),
+    r"\d{1,2}\s*[-/]\s*\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{4}",
+    r"\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{4}\s*[-/]\s*\d{1,2}",
+    r"\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}",
+    r"\d{4}\s*[-/]\s*\d{4}",
+    r"\d{1,2}\s*[-/]\s*\d{4}",
+    r"\d{4}\s*[-/]\s*\d{1,2}",
+    r"\d{4}s?",
+    r"\d{1,2}\s*(?:st|nd|rd|th)\s*century",
+    r".*circa.*",
+    r".*[pP]eriod(?!.)"
 ]
 SCDL_FIX_FORMAT = {
     "Pamphlet": "Pamphlets",
@@ -185,7 +189,8 @@ class Record(object):
         self.legacy_couch_db_id = (f"{self.collection_id}--{lname}")
         return self
 
-    def required_values_from_collection_registry(self, collection, field, mode=None):
+    def required_values_from_collection_registry(
+            self, collection, field, mode=None):
         """
         called with the following parameters:
         2308 times: field=["rights"],   mode=["fill"]
@@ -247,7 +252,7 @@ class Record(object):
         1,021 times:    field=["sourceResource/type"]
         5 times:        field=["sourceResource/description"],   delim=["<br>"]
         """
-        field = field[0].split('/')[1:] # remove sourceResource
+        field = field[0].split('/')[1:]     # remove sourceResource
         delim = delim[0]
 
         if field not in self.mapped_data:
@@ -291,16 +296,31 @@ class Record(object):
         eye on this. not sure what 'dataProvider' is, either or if we use it
 
         called with the following parameters:
-        1105 times: prop=["originalRecord/collection"],   to_prop=["dataProvider"]
-        1000 times: prop=["provider/name"],               to_prop=["dataProvider"],
-        675 times:  prop=["sourceResource/publisher"],    to_prop=["dataProvider"]    skip_if_exists=["True"]
-        549 times:  prop=["provider/name"],               to_prop=["dataProvider"],   no_overwrite=["True"]   # no_overwrite not implemented in dpla-ingestion
-        440 times:  prop=["provider/name"],               to_prop=["dataProvider"],   skip_if_exists=["true"]
-        293 times:  prop=["sourceResource%4Fpublisher"],  to_prop=["dataProvider"]
-        86 times:   prop=["provider/name"],               to_prop=["dataProvider"]
-        11 times:   prop=["originalRecord/type"],         to_prop=["sourceResource/format"]
-        1 times:    prop=["sourceResource/spatial"],      to_prop=["sourceResource/temporal"], skip_if_exists=["true"]
-        1 times:    prop=["sourceResource/description"],  to_prop=["sourceResource/title"]
+        1105 times: prop=["originalRecord/collection"]
+                    to_prop=["dataProvider"]
+        1000 times: prop=["provider/name"],
+                    to_prop=["dataProvider"],
+        675 times:  prop=["sourceResource/publisher"],
+                    to_prop=["dataProvider"]
+                    skip_if_exists=["True"]
+        549 times:  prop=["provider/name"],
+                    to_prop=["dataProvider"],
+                    no_overwrite=["True"]
+                    # no_overwrite not implemented in dpla-ingestion
+        440 times:  prop=["provider/name"],
+                    to_prop=["dataProvider"],
+                    skip_if_exists=["true"]
+        293 times:  prop=["sourceResource%4Fpublisher"],
+                    to_prop=["dataProvider"]
+        86 times:   prop=["provider/name"],
+                    to_prop=["dataProvider"]
+        11 times:   prop=["originalRecord/type"],
+                    to_prop=["sourceResource/format"]
+        1 times:    prop=["sourceResource/spatial"],
+                    to_prop=["sourceResource/temporal"],
+                    skip_if_exists=["true"]
+        1 times:    prop=["sourceResource/description"],
+                    to_prop=["sourceResource/title"]
         """
 
         src = prop[0].split('/')[1:]
@@ -313,23 +333,25 @@ class Record(object):
             # means - does it skip this enrichment or remove this record?
             return self
 
-        src_value = self.mapped_data.get(src)
-        dest_value = self.mapped_data.get(dest, [])
-        if ((not (isinstance(src_value, list) or isinstance(src_value, str))) or
-            (not (isinstance(dest_value, list) or isinstance(dest_value, str)))):
+        src_val = self.mapped_data.get(src)
+        dest_val = self.mapped_data.get(dest, [])
+        if (
+              (not (isinstance(src_val, list) or isinstance(src_val, str))) or
+              (not (isinstance(dest_val, list) or isinstance(dest_val, str)))
+        ):
             print(
-                f"Prop {src} is {type(src_value)} and prop {dest} is "
-                f"{type(dest_value)} - not a string/list for record "
+                f"Prop {src} is {type(src_val)} and prop {dest} is "
+                f"{type(dest_val)} - not a string/list for record "
                 f"{self.mapped_data.get('id')}"
             )
             return self
 
-        if isinstance(src_value, str):
-            src_value = [src_value]
-        if isinstance(dest_value, str):
-            dest_value = [dest_value]
+        if isinstance(src_val, str):
+            src_val = [src_val]
+        if isinstance(dest_val, str):
+            dest_val = [dest_val]
 
-        self.mapped_data[dest] = dest_value + src_value
+        self.mapped_data[dest] = dest_val + src_val
         return self
 
     def move_date_values(self, prop, dest="temporal"):
@@ -337,7 +359,7 @@ class Record(object):
         this is a fairly straight copy of the dpla-ingestion code
         dest is sourceResource/temporal in the dpla-ingestion code, but we
         don't have a sourceResource in the Rikolti data model. dest is also
-        previously called 'to_prop'. 
+        previously called 'to_prop'.
 
         called with the following parameters:
         # 2079 times: prop=["sourceResource/subject"]
@@ -356,7 +378,7 @@ class Record(object):
             dest_values = [dest_values]
 
         for value in src_values:
-            cleaned_value = re.sub("[\(\)\.\?]", "", value)
+            cleaned_value = re.sub(r"[\(\)\.\?]", "", value)
             cleaned_value = cleaned_value.strip()
             for pattern in REGSEARCH:
                 matches = re.compile(pattern, re.I).findall(cleaned_value)
@@ -418,7 +440,10 @@ class Record(object):
         # TODO: this won't actually work for deeply nested fields
 
         if src not in self.mapped_data:
-            print(f"Source field {src} not in record {self.mapped_data.get('id')}")
+            print(
+                f"Source field {src} not in "
+                "record {self.mapped_data.get('id')}"
+            )
             return self
 
         src_values = self.mapped_data[src]
@@ -466,12 +491,12 @@ class Record(object):
         campus = None
         if len(repo['campus']):
             campus = repo['campus'][0]
-        dataProvider = repo['name']
+        data_provider = repo['name']
         if campus:
-            dataProvider = f"{campus['name']}, {repo['name']}"
-        self.mapped_data['dataProvider'] = dataProvider
+            data_provider = f"{campus['name']}, {repo['name']}"
+        self.mapped_data['dataProvider'] = data_provider
         self.mapped_data['provider'] = {
-            'name': dataProvider,
+            'name': data_provider,
             '@id': collection['id']
         }
         self.mapped_data['stateLocatedIn'] = [{'name': 'California'}]
