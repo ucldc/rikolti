@@ -171,6 +171,14 @@ class Record(object):
         return func(**kwargs)
 
     def select_id(self, prop):
+        """
+        called with the following parameters:
+        278 times:  prop=["uid"]
+        1429 tiems: prop=["id"]
+        3 times:    prop=["PID"]
+        7 times:    prop=["metadata/identifier"]
+        3 times:    prop=["identifier"]
+        """
         if len(prop) > 1:
             raise Exception("select_id only accepts one property")
         if not isinstance(prop, list):
@@ -551,6 +559,53 @@ class Record(object):
             self.mapped_data.update(item_context)
         elif self.mapped_data.get("ingestType"):
             self.mapped_data.update(collection_context)
+
+    def capitalize_value(self, exclude):
+        """
+        the dpla-ingestion codebase takes parameters `prop` and `exclude`
+        we never actually use the `prop` paramter, so I haven't implemented
+        it here, instead just supplying the default list as part of the
+        function definition.
+
+        called with parameters:
+        994 times:  exclude=["sourceResource/relation"]
+
+        TODO: since this is always called with the same exclude pattern, we
+        could just modify this to always exclude relation.
+        """
+        props = [
+            "sourceResource/language",
+            "sourceResource/title",
+            "sourceResource/rights",
+            "sourceResource/creator",
+            "sourceResource/relation",
+            "sourceResource/publisher",
+            "sourceResource/subject",
+            "sourceResource/description",
+            "sourceResource/collection/title",
+            "sourceResource/contributor",
+            "sourceResource/extent",
+            "sourceResource/format",
+            # "sourceResource/spatial/currentLocation",  # State Located In
+            # "sourceResource/spatial",  # place name?
+            "dataProvider",
+            "provider/name"
+        ]
+        for field in props:
+            if field in exclude:
+                continue
+            field = field.split('/')[-1] if field.startswith(
+                'sourceResource')
+            if field in self.mapped_data:
+                if isinstance(self.mapped_data[field], str):
+                    val = self.mapped_data[field]
+                    self.mapped_data[field] = f"{val[0].upper()}{val[1:]}"
+                elif isinstance(self.mapped_data[field], list):
+                    self.mapped_data[field] = [
+                        f"{v[0].upper()}{v[1:]}"
+                        for v in self.mapped_data[field] if isinstance(v, str)
+                    ]
+        return self
 
     def cleanup_value(self):
         """
