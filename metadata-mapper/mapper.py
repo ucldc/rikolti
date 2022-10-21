@@ -492,6 +492,20 @@ class Record(object):
         print('enrich_location not implemented')
         return self
 
+    def filter_fields(self, keys):
+        """
+        called with the following parameters:
+        2333 times: keys=["sourceResource"]
+
+        TODO: this recursed in the dpla-ingestion codebase.
+        afaik, we're not implementing a deeply nested data structure
+        so I'm not implementing recursion here.
+        """
+        for key, val in self.mapped_data.items():
+            if not val:
+                del self.mapped_data[key]
+        return self
+
     def set_ucldc_dataprovider(self, collection):
         """
         2333 times: no parameters
@@ -594,8 +608,8 @@ class Record(object):
         for field in props:
             if field in exclude:
                 continue
-            field = field.split('/')[-1] if field.startswith(
-                'sourceResource')
+            if field.startswith('sourceResource'):
+                field = field.split('/')[-1]
             if field in self.mapped_data:
                 if isinstance(self.mapped_data[field], str):
                     val = self.mapped_data[field]
