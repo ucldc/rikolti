@@ -525,6 +525,28 @@ class Record(object):
         self.mapped_data['stateLocatedIn'] = [{'name': 'California'}]
         return self
 
+    def dedupe_sourceresource(self):
+        """
+        Remove blank values and duplicate values from self.mapped_data
+
+        2333 times: no parameters
+        """
+        for key, value in self.mapped_data.items():
+            if not value:
+                del self.mapped_data[key]
+            if value == [u'none'] or value == [u'[none]']:
+                del self.mapped_data[key]
+
+        for key, value in self.mapped_data.items():
+            if isinstance(value, list):
+                # can't use set() because of dict values (non-hashable)
+                new_list = []
+                for item in value:
+                    if item not in new_list:
+                        new_list.append(item)
+                self.mapped_data[key] = new_list
+        return self
+
     def strip_html(self):
         """Strip HTML tags and whitespace from strings within the given object
 
