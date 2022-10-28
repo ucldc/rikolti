@@ -6,7 +6,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "oai_qs_args": "pvld_4833"
+      "query_params": "pvld_4833"
     }
   },
   {
@@ -16,7 +16,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "oai_qs_args": "pvld_4048"
+      "query_params": "pvld_4048"
     }
   },
   {
@@ -26,7 +26,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "oai_qs_args": "pvld_4020"
+      "query_params": "pvld_4020"
     }
   },
   {
@@ -36,7 +36,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "oai_qs_args": "pvld_4017"
+      "query_params": "pvld_4017"
     }
   },
   {
@@ -46,7 +46,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "oai_qs_args": "pvld_2"
+      "query_params": "pvld_2"
     }
   },
   {
@@ -56,7 +56,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "oai_qs_args": "pvld_4256"
+      "query_params": "pvld_4256"
     }
   },
   {
@@ -66,7 +66,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "oai_qs_args": "pvld_4406"
+      "query_params": "pvld_4406"
     }
   },
   {
@@ -76,7 +76,18 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "oai_qs_args": "pvld_homes"
+      "query_params": "pvld_homes"
+    }
+  },
+  { # 27435: Sugoroku
+    # 155 items
+    # extra_data: metadataPrefix=marcxml&set=sugoroku
+    'collection_id': 27435,
+    'harvest_type': "OAIFetcher",
+    'write_page': 0,
+    'oai': {
+        'url': "https://digicoll.lib.berkeley.edu/oai2d",
+        'query_params': "metadataPrefix=marcxml&set=sugoroku"
     }
   },
 ]
@@ -92,7 +103,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "http://oai.quartexcollections.com/lmudigitalcollections/oai2",
-      "oai_qs_args": "big-pine-citizen-newspaper"
+      "query_params": "big-pine-citizen-newspaper"
     }
   },
   { # 27435: Sugoroku
@@ -103,7 +114,7 @@ oai_harvests = [
     'write_page': 0,
     'oai': {
         'url': "https://digicoll.lib.berkeley.edu/oai2d",
-        'oai_qs_args': "metadataPrefix=marcxml&set=sugoroku"
+        'query_params': "metadataPrefix=marcxml&set=sugoroku"
     }
   },
   { # 26693: Fritz-Metcalf
@@ -116,7 +127,7 @@ oai_harvests = [
     "write_page": 0, 
     "oai": {
       "url": "https://digicoll.lib.berkeley.edu/oai2d",
-      "oai_qs_args": "metadataPrefix=marcxml&set=fritz-metcalf"
+      "query_params": "metadataPrefix=marcxml&set=fritz-metcalf"
     }
   },
   { # 27934: San Francisco Gay Men's Chorus records, 2009-01
@@ -128,7 +139,7 @@ oai_harvests = [
     "write_page": 0,
     "oai": {
       "url": "https://glbt.i8.dgicloud.com/oai/request",
-      "oai_qs_args": "node:23758"
+      "query_params": "node:23758"
     }
   }
 ]

@@ -15,51 +15,34 @@ class OAIFetcher(Fetcher):
 
         self.oai = params.get('oai')
 
-        oai_qs_args = self.oai.get('oai_qs_args')
+        if self.oai.get('query_params'):
+            # see if we have a query string, e.g. "metadataPrefix=marcxml&set=fritz-metcalf"
+            self.oai_request_args = {k: v[0] for k, v in parse_qs(self.oai.get('query_params')).items()}
 
-        # set
-        self.oai_set = self.oai.get('oai_set')
-        if not self.oai_set:
-            if oai_qs_args and 'set' in oai_qs_args:
-                self.oai_set = self.get_value_from_qs(oai_qs_args, 'set')
-            else:
-                self.oai_set = oai_qs_args
-
-        # metadataPrefix
-        self.oai_metadata_prefix = self.oai.get('oai_metadata_prefix')
-        if not self.oai_metadata_prefix and oai_qs_args:
-            self.set_oai_md_prefix(oai_qs_args)
-
-    def get_value_from_qs(self, query_string, key):
-        ''' Parse query_string and return the value of key
-            See https://docs.python.org/3/library/urllib.parse.html#urllib.parse.parse_qs
-        '''
-        if key in query_string:
-            qs_dict = parse_qs(query_string)
-            return qs_dict.get(key)[0]
+            # if not, then assume we just have a string value for set, e.g. "big-pine-citizen-newspaper"
+            if not self.oai_request_args:
+                self.oai_request_args = {'set': self.oai.get('query_params')}
         else:
-            return None
+            self.oai_request_args = {
+                'metadataPrefix': self.oai.get('metadata_prefix'),
+                'set': self.oai.get('metadata_set')
+            }
 
-    def set_oai_md_prefix(self, query_string):
-        ''' Set metadata prefix for the OAI feed
+        if not self.oai_request_args.get('metadataPrefix'):
+            self.oai_request_args['metadataPrefix'] = self.get_md_prefix_from_feed()
 
-            First check oai_qs_args
-            Then, if `oai_qdc` is supported, use it
-            Finally, use `oai_dc`
+    def get_md_prefix_from_feed(self):
+        ''' check vernacular metadata to see which metadata formats are supported
+
+            if `oai_qdc` is supported, use it; otherwise use `oai_dc`
         '''
-        if query_string:
-            if 'metadataPrefix' in query_string:
-                self.oai_metadata_prefix = self.get_value_from_qs(query_string, 'metadataPrefix')
-                return
-
         sickle_client = Sickle(self.oai.get('url'))
         md_formats = [x for x in sickle_client.ListMetadataFormats()]
         for f in md_formats:
             if f.metadataPrefix == 'oai_qdc':
-                self.oai_metadata_prefix = 'oai_qdc'
-                return
+                return 'oai_qdc'
 
-        self.oai_metadata_prefix = 'oai_dc'
+        return 'oai_dc'
 
     def build_fetch_request(self):
 
@@ -73,8 +56,8 @@ class OAIFetcher(Fetcher):
             url = (
                 f"{self.oai.get('url')}"
                 f"?verb=ListRecords"
-                f"&metadataPrefix={self.oai_metadata_prefix}"
-                f"&set={self.oai_set}"
+                f"&metadataPrefix={self.oai_request_args.get('metadataPrefix')}"
+                f"&set={self.oai_request_args.get('set')}"
             )
 
         request = {"url": url}
@@ -92,8 +75,8 @@ class OAIFetcher(Fetcher):
         if len(xml_hits) > 0:
             requested_url = (
                 f"{self.oai.get('url')}"
-                f"?verb=ListRecords&metadataPrefix={self.oai_metadata_prefix}"
-                f"&set={self.oai_set}"
+                f"?verb=ListRecords&metadataPrefix={self.oai_request_args.get('metadataPrefix')}"
+                f"&set={self.oai_request_args.get('set')}"
             )
             print(
                 f"{self.collection_id}: Fetched page {self.write_page} "
