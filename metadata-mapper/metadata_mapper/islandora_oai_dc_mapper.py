@@ -9,11 +9,7 @@ NS = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 
 # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
 # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
-class IslandoraVernacular(VernacularReader):
-
-    def __init__(self, payload):
-            super(IslandoraVernacular, self).__init__(payload)
-            self.record_cls = IslandoraRecord
+class OAIVernacular(VernacularReader):
 
     def parse(self, api_response):
         page = etree.XML(api_response)
@@ -47,6 +43,11 @@ class IslandoraVernacular(VernacularReader):
         page = open(page_path, "rb")
         api_response = page.read()
         return api_response
+
+class IslandoraVernacular(OAIVernacular):
+    def __init__(self, payload):
+            super(IslandoraVernacular, self).__init__(payload)
+            self.record_cls = IslandoraRecord
 
 class IslandoraRecord(Record):
 
