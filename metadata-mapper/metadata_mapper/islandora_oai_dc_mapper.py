@@ -5,7 +5,7 @@ from lxml import etree
 from sickle import models
 import requests
 
-NS = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
+NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 
 # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
 # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
@@ -14,13 +14,13 @@ class OAIVernacular(VernacularReader):
     def parse(self, api_response):
         page = etree.XML(api_response)
 
-        request_elem = page.find('oai2:request', NS)
+        request_elem = page.find('oai2:request', NAMESPACE)
         if request_elem is not None:
             request_url = request_elem.text
         else:
             request_url = None
 
-        record_elements = page.find('oai2:ListRecords', NS).findall('oai2:record', NS)
+        record_elements = page.find('oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
 
         records = []
         for re in record_elements:

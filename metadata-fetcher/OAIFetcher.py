@@ -5,7 +5,7 @@ from Fetcher import Fetcher, FetchError
 from urllib.parse import parse_qs
 from sickle import Sickle
 
-NS = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
+NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 
 # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
 class OAIFetcher(Fetcher):
@@ -87,7 +87,7 @@ class OAIFetcher(Fetcher):
 
     def check_page(self, http_resp):
         xml_resp = ElementTree.fromstring(http_resp.content)
-        xml_hits = xml_resp.find('oai2:ListRecords', NS).findall('oai2:record', NS)
+        xml_hits = xml_resp.find('oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
 
         if len(xml_hits) > 0:
             requested_url = (
@@ -107,7 +107,7 @@ class OAIFetcher(Fetcher):
 
         # if there is a resumption token, then increment
         xml_resp = ElementTree.fromstring(http_resp.content)
-        resumption_token_node = xml_resp.find('oai2:ListRecords/oai2:resumptionToken', NS)
+        resumption_token_node = xml_resp.find('oai2:ListRecords/oai2:resumptionToken', NAMESPACE)
 
         if resumption_token_node is not None:
             self.oai['resumption_token'] = resumption_token_node.text
