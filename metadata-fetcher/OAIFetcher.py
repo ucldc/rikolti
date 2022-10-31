@@ -17,19 +17,19 @@ class OAIFetcher(Fetcher):
 
         if self.oai.get('query_params'):
             # see if we have a query string, e.g. "metadataPrefix=marcxml&set=fritz-metcalf"
-            self.oai_request_args = {k: v[0] for k, v in parse_qs(self.oai.get('query_params')).items()}
+            parsed_params = {k: v[0] for k, v in parse_qs(self.oai.get('query_params')).items()}
+            self.metadata_prefix = parsed_params.get('metadataPrefix')
+            self.metadata_set = parsed_params.get('set')
 
             # if not, then assume we just have a string value for set, e.g. "big-pine-citizen-newspaper"
-            if not self.oai_request_args:
-                self.oai_request_args = {'set': self.oai.get('query_params')}
+            if not parsed_params:
+                self.metadata_set = self.oai.get('query_params')
         else:
-            self.oai_request_args = {
-                'metadataPrefix': self.oai.get('metadata_prefix'),
-                'set': self.oai.get('metadata_set')
-            }
+            self.metadata_prefix = self.oai.get('metadata_prefix')
+            self.metadata_set = self.oai.get('metadata_set')
 
-        if not self.oai_request_args.get('metadataPrefix'):
-            self.oai_request_args['metadataPrefix'] = self.get_md_prefix_from_feed()
+        if not self.metadata_prefix:
+            self.metadata_prefix = self.get_md_prefix_from_feed()
 
     def get_md_prefix_from_feed(self):
         ''' check vernacular metadata to see which metadata formats are supported
@@ -56,8 +56,8 @@ class OAIFetcher(Fetcher):
             url = (
                 f"{self.oai.get('url')}"
                 f"?verb=ListRecords"
-                f"&metadataPrefix={self.oai_request_args.get('metadataPrefix')}"
-                f"&set={self.oai_request_args.get('set')}"
+                f"&metadataPrefix={self.metadata_prefix}"
+                f"&set={self.metadata_set}"
             )
 
         request = {"url": url}
@@ -75,8 +75,8 @@ class OAIFetcher(Fetcher):
         if len(xml_hits) > 0:
             requested_url = (
                 f"{self.oai.get('url')}"
-                f"?verb=ListRecords&metadataPrefix={self.oai_request_args.get('metadataPrefix')}"
-                f"&set={self.oai_request_args.get('set')}"
+                f"?verb=ListRecords&metadataPrefix={self.metadata_prefix}"
+                f"&set={self.metadata_set}"
             )
             print(
                 f"{self.collection_id}: Fetched page {self.write_page} "
