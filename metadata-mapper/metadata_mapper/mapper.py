@@ -717,6 +717,42 @@ class Record(object):
 
         return self
 
+    def replace_regex(self, prop, regex, new=''):
+        """
+        Replaces a regex in prop
+
+        called with the following parameters:
+        10 times:   prop=sourceResource/publisher     regex=\$\S  new=--
+        3 times:    prop=sourceResource/subject       regex=\$\S  new=--
+        3 times:    prop=sourceResource/contributor   regex=\$\S  new=--
+        1 time:     prop=sourceResource/creator       regex=\$\S  new=--
+        """
+
+        def recursive_regex_replace(value, regex_s, new):
+            """Replace the regexs found in various types of data.
+            Can be strings, lists or dictionaries
+            This uses a regex to replace
+            """
+            if isinstance(value, str):
+                regex = re.compile(regex_s)
+                return regex.sub(new, value).strip()
+            if isinstance(value, list):
+                newlist = []
+                for v in value:
+                    newlist.append(recursive_regex_replace(v, regex_s, new))
+                return newlist
+            if isinstance(value, dict):
+                for k, v in value.items():
+                    value[k] = recursive_regex_replace(v, regex_s, new)
+                return value
+            return None
+
+        prop = prop.split('/')[-1]  # remove sourceResource
+        value = self.mapped_data[prop]
+        new_value = recursive_regex_replace(value, regex, new)
+        self.mapped_data[prop] = new_value
+        return self
+
     def filter_fields(self, keys):
         """
         called with the following parameters:
