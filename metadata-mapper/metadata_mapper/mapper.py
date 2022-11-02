@@ -647,6 +647,54 @@ class Record(object):
             del self.mapped_data[prop]
         return self
 
+    def jsonfy_prop(self):
+        """
+        Some data is packed as strings that contain json. (UCSD)
+        Take the data in the given property and turn any sub-values that can be
+        read by json.loads into json object.
+
+        called with the following parameters:
+        293 times: no parameters
+        """
+
+        def jsonfy_obj(data):
+            '''Jsonfy a python dict object. For immediate sub items (not fully
+            recursive yet) if the data can be turned into a json object, do so.
+            Unpacks string json objects buried in some blacklight/solr feeds.
+            '''
+            obj_jsonfied = {}
+            if isinstance(data, numbers.Number) or isinstance(data, bool):
+                return data
+            if isinstance(data, str):
+                try:
+                    x = json.loads(data)
+                except (ValueError, TypeError) as e:
+                    x = data
+                return x
+            for key, value in list(data.items()):
+                if isinstance(value, list):
+                    new_list = []
+                    for v in value:
+                        try:
+                            x = jsonfy_obj(v)
+                            new_list.append(x)
+                        except (ValueError, TypeError) as e:
+                            new_list.append(v)
+                    obj_jsonfied[key] = new_list
+                else:  # usually singlevalue string, not json
+                    try:
+                        x = json.loads(value)
+                        # catch numbers already typed as singlevalue strings
+                        if isinstance(x, int):
+                            x = value
+                    except (ValueError, TypeError) as e:
+                        x = value
+                    obj_jsonfied[key] = x
+            return obj_jsonfied
+
+        obj_jsonfied = jsonfy_obj(self.mapped_data)
+        return json.dumps(obj_jsonfied)
+
     def filter_fields(self, keys):
         """
         called with the following parameters:
