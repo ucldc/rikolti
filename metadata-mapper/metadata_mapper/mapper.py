@@ -162,6 +162,32 @@ class Record(object):
         self.mapped_data["isShownBy"] = f"{calisphere_id}/thumbnail"
         return self
 
+    def select_cmis_atom_id(self):
+        """
+        called 21 times with no parameters
+        """
+        calisphere_id = None
+        # the json representation is crazy
+        core_namespace = "{http://docs.oasis-open.org/ns/cmis/core/200908/}"
+        rest_namespace = "{http://docs.oasis-open.org/ns/cmis/restatom/200908/}"
+        id_values = (
+            self.mapped_data
+            .get("{http://www.w3.org/2005/Atom}entry", {})
+            .get(f"{rest_namespace}object", {})
+            .get(f"{core_namespace}properties", {})
+            .get(f"{core_namespace}propertyId", None)
+        )
+        for id_value in id_values:
+            if id_value.get("@propertyDefinitionId", '') == "cmis:objectId":
+                calisphere_id = id_value[f"{core_namespace}value"]["$"]
+
+        if not calisphere_id:
+            raise ValueError("Couldn't find property to extract id")
+
+        calisphere_id = calisphere_id.split('|')[1]
+
+        self.mapped_data['id'] = f"{self.collection_id}--{calisphere_id}"
+
     def required_values_from_collection_registry(
             self, collection, field, mode=None):
         """
