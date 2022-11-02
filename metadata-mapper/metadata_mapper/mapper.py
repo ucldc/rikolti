@@ -617,6 +617,36 @@ class Record(object):
             self.mapped_data['language'] = mapped_language
         return self
 
+    def set_prop(self, prop, value):
+        """
+        set_prop is called with a prop, value, condition prop, condition
+        value, and _dict flag (to indicate that value is a dict and should be
+        loaded using json.loads()). We don't use condition prop, condition
+        value, or _dict flag, so I've not implemented them here.
+
+        called with the following parameters:
+        2080 times: prop=sourceResource/stateLocatedIn
+                    value=California
+        """
+        prop = prop.split('/')[-1]  # remove sourceResource
+        self.mapped_data[prop] = value
+        return self
+
+    def unset_prop(self, prop, value):
+        """
+        unset_prop is called with a prop, condition, and condition_prop. We
+        don't ever use condition or condition_prop so I've not implemented
+        them here.
+
+        called with the following parameters:
+        1: prop=sourceResource/spatial
+        2: prop=sourceResource/provenance
+        """
+        prop = prop.split('/')[-1]  # remove sourceResource
+        if prop in self.mapped_data:
+            del self.mapped_data[prop]
+        return self
+
     def filter_fields(self, keys):
         """
         called with the following parameters:
