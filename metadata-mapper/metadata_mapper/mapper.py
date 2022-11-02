@@ -466,6 +466,41 @@ class Record(object):
         self.mapped_data['type'] = mapped_type
         return self
 
+    def enrich_subject(self):
+        """
+        called with the following parameters:
+        2080 times: no parameters
+        """
+        # normalize subject
+        subjects = self.mapped_data.get('subject', [])
+        if isinstance(subjects, str):
+            subjects = [subjects]
+        subjects = [
+            subject.get('name') for subject in subjects
+            if isinstance(subject, dict)
+        ]
+
+        def clean_subject(value):
+            value = value.strip()
+            regexps = (
+                ('\s*-{2,4}\s*', '--'),
+                ('\s*-\s*-\s*', '--'),
+                ('^[\.\' ";]*', ''),
+                ('[\.\' ";]*$', '')
+            )
+            for regexp, replacement in regexps:
+                value = re.sub(regexp, replacement, value)
+            value = value[:1].upper() + value[1:]
+            return value
+
+        # clean subject
+        cleaned_subjects = [clean_subject(value) for value in subjects]
+        # remove falsy values
+        filtered_subjects = [{"name": s} for s in cleaned_subjects if s]
+        # set subject
+        self.mapped_data['subject'] = filtered_subjects
+        return self
+
     def filter_fields(self, keys):
         """
         called with the following parameters:
