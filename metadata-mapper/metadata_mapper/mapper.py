@@ -432,6 +432,40 @@ class Record(object):
         print('enrich_location not implemented')
         return self
 
+    def enrich_type(self):
+        """
+        called with the following parameters:
+        2081 times: no parameters
+        """
+        record_types = self.mapped_data.get('type', [])
+        if not isinstance(record_types, list):
+            record_types = [record_types]
+        record_types = [
+            t.get('#text', t.get('text'))
+            if isinstance(t, dict) else t
+            for t in record_types
+        ]
+        record_types = [t.lower().rstrip('s') for t in record_types]
+        mapped_type = None
+        for record_type in record_types:
+            if constants.type_mape[record_type]:
+                mapped_type = constants.type_map[record_type]
+                break
+
+        if not mapped_type:
+            # try to get type from format
+            record_formats = self.mapped_data.get('format', [])
+            if not isinstance(record_formats, list):
+                record_formats = [record_formats]
+            record_formats = [f.lower().rstrip('s') for f in record_formats]
+            for record_format in record_formats:
+                if constants.format_map[record_format]:
+                    mapped_type = constants.format_map[record_format]
+                    break
+
+        self.mapped_data['type'] = mapped_type
+        return self
+
     def filter_fields(self, keys):
         """
         called with the following parameters:
