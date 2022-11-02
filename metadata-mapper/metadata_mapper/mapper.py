@@ -994,3 +994,25 @@ class Record(object):
                 ]
 
         return self
+
+    def geocode(self):
+        """
+        Geocode is only applied to two collections:
+        https://calisphere.org/collections/6711/ (2 items)
+        https://calisphere.org/collections/22322/ (1 item)
+
+        the geocode enrichment is long and complex - if it turns out we need
+        the geocode enrichment, we can add it back in.
+        """
+        return self
+
+    def unescape_xhtml_entities(self):
+        """
+        unescape xhtml entities is only applied to one collection:
+        https://calisphere.org/collections/27106
+        with parameter ?field=sourceResource
+
+        leaving implementation of this for later
+        """
+
+        return self
