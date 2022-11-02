@@ -180,3 +180,5 @@ format_map = {
     "postcard": "image",
     "image": "image"
 }
+imt_types = ['application', 'audio', 'image', 'message', 'model',
+             'multipart', 'text', 'video']

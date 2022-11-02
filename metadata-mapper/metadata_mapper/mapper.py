@@ -501,6 +501,69 @@ class Record(object):
         self.mapped_data['subject'] = filtered_subjects
         return self
 
+    def enrich_format(self):
+        """
+        called with the following parameters:
+        2080 times: no parameters
+        """
+        format_regexps = [
+            ('audio/mp3', 'audio/mpeg'), ('images/jpeg', 'image/jpeg'),
+            ('image/jpg', 'image/jpeg'), ('image/jp$', 'image/jpeg'),
+            ('img/jpg', 'image/jpeg'), ('^jpeg$', 'image/jpeg'),
+            ('^jpg$', 'image/jpeg'), ('\W$', '')
+        ]
+
+        record_formats = self.mapped_data.get('format', [])
+        if isinstance(record_formats, str):
+            record_formats = [record_formats]
+
+        mapped_format = []
+        imt_values = []
+
+        for record_format in record_formats:
+            if record_format.startswith("http"):
+                ext = os.path.splitext(record_format)[1].split('.')
+                record_format = ext[1] if len(ext) == 2 else ""
+
+            cleaned_format = record_format.lower().strip()
+            for pattern, replace in format_regexps:
+                cleaned_format = re.sub(pattern, replace, cleaned_format)
+                cleaned_format = re.sub(
+                    r"^([a-z0-9/]+)\s.*",
+                    r"\1",
+                    cleaned_format
+                )
+
+            imt_regexes = [re.compile('^' + x + '(/)') for x in constants.imt_types]
+            if any(regex.match(cleaned_format) for regex in imt_regexes):
+                # format is an IMT type as defined by dpla-ingestion
+                if cleaned_format not in mapped_format:
+                    mapped_format.append(cleaned_format)
+                if cleaned_format not in imt_values:
+                    imt_values.append(cleaned_format)
+            else:
+                if record_format not in mapped_format:
+                    mapped_format.append(record_format)
+
+        if mapped_format:
+            self.mapped_data['format'] = mapped_format
+
+        if imt_values:
+            if not self.mapped_data.get('hasView/format'):
+                self.mapped_data['hasView/format'] = imt_values
+            if not self.mapped_data.get('type'):
+                split_imt = [imt.split("/")[0] for imt in imt_values]
+                format_2_type = {
+                    "audio": "sound",
+                    "image": "image",
+                    "video": "moving image",
+                    "text": "text"
+                }
+                type_map_imt = [format_2_type.get(imt) for imt in split_imt]
+                self.mapped_data['type'] = type_map_imt
+
+        return self
+
     def filter_fields(self, keys):
         """
         called with the following parameters:
