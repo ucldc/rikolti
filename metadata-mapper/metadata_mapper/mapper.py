@@ -187,6 +187,12 @@ class Record(object):
         calisphere_id = calisphere_id.split('|')[1]
 
         self.mapped_data['id'] = f"{self.collection_id}--{calisphere_id}"
+        return self
+
+    def select_preservica_id(self):
+        calisphere_id = self.mapped_data.get("preservica_id", {}).get('$')
+        self.mapped_data['id'] = f"{self.collection_id}--{calisphere_id}"
+        return self
 
     def required_values_from_collection_registry(
             self, collection, field, mode=None):
