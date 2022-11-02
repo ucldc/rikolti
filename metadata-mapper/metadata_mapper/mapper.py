@@ -3,7 +3,9 @@ import json
 import re
 import boto3
 from markupsafe import Markup   # used in Record.strip_html()
-import constants 
+import constants
+from iso639_1 import iso_639_1
+from iso639_3 import iso_639_3, language_regexes, wb_language_regexes
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -562,6 +564,57 @@ class Record(object):
                 type_map_imt = [format_2_type.get(imt) for imt in split_imt]
                 self.mapped_data['type'] = type_map_imt
 
+        return self
+
+    def enrich_language(self):
+        """
+        called with the following parameters:
+        2079 times: no parameters
+        """
+        languages = self.mapped_data.get('language', [])
+        if isinstance(languages, str):
+            languages = [languages]
+
+        iso_codes = []
+        for language in languages:
+            if language in iso_639_3:
+                iso_codes.append(language)
+                continue
+
+            # try to get an iso1 code from the language name
+            stripped_language = re.sub("[\.\[\]\(\)]", "", language)
+            cleaned_language = stripped_language.lower().strip()
+            subbed_language = re.sub("[-_/].*$", "", cleaned_language)
+            iso1 = subbed_language.strip()
+            iso3 = iso_639_1.get(iso1, iso1)
+            if iso3 in iso_639_3:
+                iso_codes.append(iso3)
+                continue
+
+            # try to match a language regex
+            match = None
+            for regex, iso3 in language_regexes.items():
+                match = regex.match(language.strip())
+                if match:
+                    iso_codes.append(iso3)
+                    break
+
+            # try to match wb_language_regexes
+            if not match:
+                for regex, iso3 in wb_language_regexes.items():
+                    if regex.search(language):
+                        iso_codes.append(iso3)
+
+        if iso_codes:
+            seen = set()
+            # dedupe iso_codes
+            iso_codes = [iso3 for iso3 in iso_codes
+                         if not (iso3 in seen and seen.add(iso3))]
+            mapped_language = [
+                {"iso639_3": iso3, "name": iso_639_3[iso3]}
+                for iso3 in iso_codes
+            ]
+            self.mapped_data['language'] = mapped_language
         return self
 
     def filter_fields(self, keys):
