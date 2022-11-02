@@ -3,6 +3,7 @@ import json
 import re
 import boto3
 from markupsafe import Markup   # used in Record.strip_html()
+import constants 
 
 DEBUG = os.environ.get('DEBUG', False)
 
@@ -78,83 +79,6 @@ class UCLDCWriter(object):
             Body=json.dumps(mapped_metadata))
 
 
-# repeating self here, how to get from avram?
-RIGHTS_STATUS = {
-    'CR': 'copyrighted',
-    'PD': 'public domain',
-    'UN': 'copyright unknown',
-    # 'X':  'rights status unknown', # or should throw error?
-}
-RIGHTS_STATEMENT_DEFAULT = (
-    "Please contact the contributing institution for more information "
-    "regarding the copyright status of this object."
-)
-DCMI_TYPES = {
-    'C': 'Collection',
-    'D': 'Dataset',
-    'E': 'Event',
-    'I': 'Image',
-    'F': 'Moving Image',
-    'R': 'Interactive Resource',
-    'V': 'Service',
-    'S': 'Software',
-    'A': 'Sound',   # A for audio
-    'T': 'Text',
-    'P': 'Physical Object',
-    # 'X': 'type unknown' # default, not set
-}
-REGSEARCH = [
-    (
-        r"\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*"
-        r"\d{1,4}\s*[-/]\s*\d{1,4}"
-    ),
-    r"\d{1,2}\s*[-/]\s*\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{4}",
-    r"\d{4}\s*[-/]\s*\d{1,2}\s*[-/]\s*\d{4}\s*[-/]\s*\d{1,2}",
-    r"\d{1,4}\s*[-/]\s*\d{1,4}\s*[-/]\s*\d{1,4}",
-    r"\d{4}\s*[-/]\s*\d{4}",
-    r"\d{1,2}\s*[-/]\s*\d{4}",
-    r"\d{4}\s*[-/]\s*\d{1,2}",
-    r"\d{4}s?",
-    r"\d{1,2}\s*(?:st|nd|rd|th)\s*century",
-    r".*circa.*",
-    r".*[pP]eriod(?!.)"
-]
-SCDL_FIX_FORMAT = {
-    "Pamphlet": "Pamphlets",
-    "Pamplet": "Pamphlets",
-    "Pamplets": "Pamphlets",
-    "Pamplets\n": "Pamphlets",
-    "pamphlets": "Pamphlets",
-    "Manuscript": "Manuscripts",
-    "manuscripts": "Manuscripts",
-    "Photograph": "Photographs",
-    "Baskets (Containers)": "Baskets (containers)",
-    "color print": "Color prints",
-    "color prints": "Color prints",
-    "Image": "Images",
-    "Manuscript": "Manuscripts",
-    "Masks (costume)": "Masks (costumes)",
-    "Newspaper": "Newspapers",
-    "Object": "Objects",
-    "Still image": "Still images",
-    "Still Image": "Still images",
-    "StillImage": "Still images",
-    "Text\nText": "Texts",
-    "Text": "Texts",
-    "Batik": "Batiks",
-    "Book": "Books",
-    "Map": "Maps",
-    "maps": "Maps",
-    "Picture Postcards": "Picture postcards",
-    "Religous objects": "Religious objects",
-    "Tray": "Trays",
-    "Wall hanging": "Wall hangings",
-    "Wood carving": "Wood carvings",
-    "Woodcarving": "Wood carvings",
-    "Cartoons (humourous images)": "Cartoons (humorous images)",
-    "black-and-white photographs": "Black-and-white photographs"
-}
-
 
 class Record(object):
     def __init__(self, col_id, record):
@@ -179,6 +103,9 @@ class Record(object):
         return collated
 
     # Enrichments
+    # The enrichment chain is a dpla construction that we are porting to Rikolti
+    # The enrichment chain is implemented as methods on Rikolti's Record() class
+
     def enrich(self, enrichment_function, **kwargs):
         func = getattr(self, enrichment_function)
         return func(**kwargs)
@@ -226,16 +153,16 @@ class Record(object):
 
         if field == "rights":
             rights = [
-                RIGHTS_STATUS.get(collection.get('rights_status')),
+                constants.rights_status.get(collection.get('rights_status')),
                 collection.get('rights_statement')
             ]
             rights = [r for r in rights if r]
             if not rights:
-                rights = [RIGHTS_STATEMENT_DEFAULT]
+                rights = [constants.rights_statement_default]
             field_value = rights
 
         if field == "type":
-            field_value = [DCMI_TYPES.get(collection.get('dcmi_type'), None)]
+            field_value = [constants.dcmi_types.get(collection.get('dcmi_type'), None)]
 
         if field == "title":
             field_value = ["Title unknown"]
@@ -402,7 +329,7 @@ class Record(object):
         for value in src_values:
             cleaned_value = re.sub(r"[\(\)\.\?]", "", value)
             cleaned_value = cleaned_value.strip()
-            for pattern in REGSEARCH:
+            for pattern in constants.move_date_value_reg_search:
                 matches = re.compile(pattern, re.I).findall(cleaned_value)
                 if (len(matches) == 1 and
                         (not re.sub(matches[0], "", cleaned_value).strip())):
@@ -441,7 +368,7 @@ class Record(object):
         `dict_name = lookup_mapping["iso639_3"]`. Using dict_name, it then
         looks in `globals()[dict_name]` for the actual lookup dictionary. I
         can't seem to find iso639_3 in the dpla-ingestion codebase.
-        SCDL_FIX_FORMAT is right in the lookup.py file, though.
+        scdl_fix_format is right in the lookup.py file, though.
 
         2031 times: prop=["sourceResource/language/name"],
                     target=["sourceResource/language/name"],
@@ -474,7 +401,7 @@ class Record(object):
 
         substitution_dict = {}
         if substitution == 'scdl_fix_format':
-            substitution_dict = SCDL_FIX_FORMAT
+            substitution_dict = constants.scdl_fix_format
         if inverse:
             substitution_dict = {v: k for k, v in substitution_dict.items()}
 
