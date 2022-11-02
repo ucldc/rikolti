@@ -753,6 +753,43 @@ class Record(object):
         self.mapped_data[prop] = new_value
         return self
 
+    def replace_substring(self, prop, old, new=''):
+        """
+        Replaces a substring in prop
+
+        called with the following parameters:
+        2 times: prop=sourceResource/subject    old=[lcsh]      new=
+        1 time:  prop=sourceResource/subject    old=[lcna]      new=
+        1 time:  prop=sourceResource/subject    old=[aacr2]     new=
+        3 times: prop=sourceResource/title      old=[graphic]   new=
+        3 times: prop=sourceResource/title      old=[graphic    new=
+        3 times: prop=sourceResource/title      old=graphic]    new=
+        3 times: prop=sourceResource/title      old=[graphic[   new=
+        """
+
+        def recursive_substring_replace(value, old, new):
+            '''Replace the substrings found in various types of data.
+            Can be strings, lists or dictionaries
+            '''
+            if isinstance(value, str):
+                return value.replace(old, new).strip()
+            if isinstance(value, list):
+                newlist = []
+                for v in value:
+                    newlist.append(recursive_substring_replace(v, old, new))
+                return newlist
+            if isinstance(value, dict):
+                for k, v in list(value.items()):
+                    value[k] = recursive_substring_replace(v, old, new)
+                return value
+            return None
+
+        prop = prop.split('/')[-1]  # remove sourceResource
+        value = self.mapped_data[prop]
+        new_value = recursive_substring_replace(value, old, new)
+        self.mapped_data[prop] = new_value
+        return self
+
     def filter_fields(self, keys):
         """
         called with the following parameters:
