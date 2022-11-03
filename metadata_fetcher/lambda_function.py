@@ -1,6 +1,7 @@
 import json
 import boto3
 import sys
+import subprocess
 import settings
 import importlib
 from Fetcher import Fetcher
@@ -16,12 +17,8 @@ def import_fetcher(harvest_type):
     return fetcher_class
 
 
-invocation_stack = None
-
-
 # AWS Lambda entry point
 def fetch_collection(payload, context):
-    global invocation_stack
     if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
@@ -32,12 +29,11 @@ def fetch_collection(payload, context):
     next_page = fetcher.json()
     if next_page:
         if settings.LOCAL_RUN:
-            if invocation_stack is None:
-                invocation_stack = [next_page.encode('utf-8')]
-                while invocation_stack:
-                    fetch_collection(invocation_stack.pop(), {})
-            else:
-                invocation_stack.append(next_page.encode('utf-8'))
+            subprocess.run([
+                'python',
+                'lambda_function.py',
+                next_page.encode('utf-8')
+            ])
         else:
             lambda_client = boto3.client('lambda', region_name="us-west-2",)
             lambda_client.invoke(
