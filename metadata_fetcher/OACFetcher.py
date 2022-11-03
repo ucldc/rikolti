@@ -1,7 +1,7 @@
 import json
 import requests
 from xml.etree import ElementTree
-from Fetcher import Fetcher, FetchError
+from Fetcher import Fetcher
 
 
 class OACFetcher(Fetcher):

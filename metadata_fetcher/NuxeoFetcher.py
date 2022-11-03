@@ -22,8 +22,6 @@ class NuxeoFetcher(Fetcher):
         }
         nuxeo_defaults.update(params.get('nuxeo'))
         self.nuxeo = nuxeo_defaults
-        if not self.nuxeo.get('current_path'):
-            self.nuxeo['current_path'] = self.get_path_uid()
 
         self.nuxeo_request_headers = {
             "Accept": "application/json",
@@ -32,6 +30,9 @@ class NuxeoFetcher(Fetcher):
             "X-NXRepository": "default",
             "X-Authentication-Token": settings.TOKEN
         }
+
+        if not self.nuxeo.get('current_path'):
+            self.nuxeo['current_path'] = self.get_path_uid()
 
         if self.nuxeo['query_type'] == 'children':
             if settings.LOCAL_STORE:
