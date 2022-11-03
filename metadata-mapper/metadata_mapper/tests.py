@@ -1,8 +1,8 @@
 from lambda_function import lambda_handler
 # from validate_mapping import validate_mapped_collection
-from test_data.nuxeo_harvests import *
-from test_data.oac_harvests import *
-from test_data.islandora_harvests import *
+from sample_data.nuxeo_harvests import *
+from sample_data.oac_harvests import *
+from sample_data.islandora_harvests import *
 import json
 
 harvests = islandora_harvests
