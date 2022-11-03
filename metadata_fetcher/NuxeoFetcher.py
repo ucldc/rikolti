@@ -48,7 +48,7 @@ class NuxeoFetcher(Fetcher):
             # prefix starts as ['r'] (read as "root")
             # as we traverse the tree, we add ["fp-0", "f-0"]
             # read as [root, folder page 0, folder 0]
-            # 
+            #
             # api_page is the current page we are on - regardless
             # of query type, but we only actually produce an output file
             # when the query type is a document or child document
@@ -62,7 +62,8 @@ class NuxeoFetcher(Fetcher):
         escaped_path = urllib_quote(path, safe=' /').strip('/')
         request = {
             'url': (
-                f"https://nuxeo.cdlib.org/Nuxeo/site/api/v1/path/{escaped_path}"
+                "https://nuxeo.cdlib.org/Nuxeo/site/api/"
+                f"v1/path/{escaped_path}"
             ),
             'headers': self.nuxeo_request_headers
         }
@@ -81,8 +82,8 @@ class NuxeoFetcher(Fetcher):
         page = self.nuxeo.get('api_page')
 
         if query_type == 'documents':
-            # for some reason, using `ORDER BY ecm:name` in the query avoids the
-            # bug where the API was returning duplicate records from Nuxeo
+            # for some reason, using `ORDER BY ecm:name` in the query avoids
+            # the bug where the API was returning duplicate records from Nuxeo
             parent_nxql = (
                 "SELECT * FROM SampleCustomPicture, CustomFile, "
                 "CustomVideo, CustomAudio, CustomThreeD "
@@ -115,13 +116,14 @@ class NuxeoFetcher(Fetcher):
                 'query': query
             }
         }
-        print(f"Fetching page {page} of {query_type} at {current_path['path']}")
+        print(
+            f"Fetching page {page} of {query_type} at {current_path['path']}")
 
         return request
 
     def check_page(self, http_resp):
         """Checks that the http_resp contains metadata records
-        
+
         Also recurses down into documents & folders, calling
         a new fetching process to retrieve children of
         each document and documents inside each folder.
@@ -152,8 +154,8 @@ class NuxeoFetcher(Fetcher):
                     path={
                         'path': entry.get('path'),
                         'uid': entry.get('uid')
-                    }, 
-                    query_type=next_qt, 
+                    },
+                    query_type=next_qt,
                     prefix=(
                        self.nuxeo['prefix'] +
                        [f"fp-{self.nuxeo['api_page']}", f'f-{i}']
@@ -208,7 +210,7 @@ class NuxeoFetcher(Fetcher):
                 'path': self.nuxeo['path'],
                 'fetch_children': self.nuxeo['fetch_children'],
                 'current_path': path if path else self.nuxeo['current_path'],
-                'query_type': (query_type if query_type else 
+                'query_type': (query_type if query_type else
                                self.nuxeo['query_type']),
                 'api_page': 0,
                 'prefix': prefix if prefix else self.nuxeo['prefix']
