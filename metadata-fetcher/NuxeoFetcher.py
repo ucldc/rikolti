@@ -4,9 +4,9 @@ import os
 import requests
 from urllib.parse import quote as urllib_quote
 import boto3
+import settings
 import subprocess
 
-DEBUG = os.environ.get('DEBUG', False)
 
 TOKEN = os.environ.get('NUXEO')
 API_BASE = 'https://nuxeo.cdlib.org/Nuxeo/site'
@@ -72,7 +72,7 @@ class NuxeoFetcher(Fetcher):
             self.nuxeo['current_path'] = get_path_uid(self.nuxeo.get('path'))
 
         if self.nuxeo['query_type'] == 'children':
-            if DEBUG:
+            if settings.LOCAL_STORE:
                 path = self.get_local_path()
                 children_path = os.path.join(path, "children")
                 if not os.path.exists(children_path):
@@ -214,7 +214,7 @@ class NuxeoFetcher(Fetcher):
                 'prefix': prefix if prefix else self.nuxeo['prefix']
             }
         }
-        if DEBUG:
+        if settings.LOCAL_RUN:
             subprocess.run([
                 'python',
                 'lambda_function.py',

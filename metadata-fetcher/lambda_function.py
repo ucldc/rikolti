@@ -3,14 +3,12 @@ import os
 import boto3
 import sys
 import subprocess
+import settings
 
 from Fetcher import Fetcher, FetchError
 from NuxeoFetcher import NuxeoFetcher
 from OACFetcher import OACFetcher
 from OAIFetcher import OAIFetcher
-
-DEBUG = os.environ.get('DEBUG', False)
-
 
 def get_fetcher(payload):
     harvest_type = payload.get('harvest_type')
@@ -32,9 +30,9 @@ def get_fetcher(payload):
 
     return fetcher
 
-
-def lambda_handler(payload, context):
-    if DEBUG:
+# AWS Lambda entry point
+def fetch_collection(payload, context):
+    if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
     fetcher = get_fetcher(payload)
@@ -42,7 +40,7 @@ def lambda_handler(payload, context):
     fetcher.fetch_page()
     next_page = fetcher.json()
     if next_page:
-        if DEBUG:
+        if settings.LOCAL_RUN:
             subprocess.run([
                 'python',
                 'lambda_function.py',
@@ -61,10 +59,11 @@ def lambda_handler(payload, context):
         'body': json.dumps(payload)
     }
 
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Fetch metadata in the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    lambda_handler(args.payload, {})
+    fetch_collection(args.payload, {})

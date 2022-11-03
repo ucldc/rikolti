@@ -1,11 +1,8 @@
-import json
 import requests
-import time
 import os
+import settings
+import boto3
 
-DEBUG = os.environ.get('DEBUG', False)
-if not DEBUG:
-    import boto3
 
 class FetchError(Exception):
     pass
@@ -69,7 +66,7 @@ class Fetcher(object):
         response.raise_for_status()
 
         if self.check_page(response):
-            if DEBUG:
+            if settings.LOCAL_STORE:
                 self.fetchtolocal(response.text)
             else:
                 self.fetchtos3(response.text)

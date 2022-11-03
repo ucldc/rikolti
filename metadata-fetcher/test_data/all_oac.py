@@ -2002,4 +2002,4 @@ all_oac_collections = [
 ]
 
 for oac_datel_test in oac_datel_tests:
-  lambda_handler(json.dumps(oac_datel_test), {})
+  fetch_collection(json.dumps(oac_datel_test), {})
