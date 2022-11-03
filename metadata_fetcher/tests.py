@@ -1,7 +1,7 @@
 from lambda_function import fetch_collection
-from test_data.nuxeo_harvests import *
-from test_data.oac_harvests import *
-from test_data.oai_harvests import *
+from sample_data.nuxeo_harvests import *
+from sample_data.oac_harvests import *
+from sample_data.oai_harvests import *
 import json
 
 harvests = oac_harvests
