@@ -1,56 +1,11 @@
 import json
-from Fetcher import Fetcher, FetchError
+from Fetcher import Fetcher
 import os
 import requests
 from urllib.parse import quote as urllib_quote
 import boto3
 import settings
 import subprocess
-
-
-TOKEN = os.environ.get('NUXEO')
-API_BASE = 'https://nuxeo.cdlib.org/Nuxeo/site'
-API_PATH = 'api/v1'
-
-RECURSIVE_FOLDER_NXQL = "SELECT * FROM Organization " \
-                        "WHERE ecm:path STARTSWITH '{}' " \
-                        "AND ecm:isTrashed = 0"
-
-# for some reason, using `ORDER BY ecm:name` in the query avoids the
-# bug where the API was returning duplicate records from Nuxeo
-PARENT_NXQL = "SELECT * FROM SampleCustomPicture, CustomFile, CustomVideo, CustomAudio, CustomThreeD " \
-              "WHERE ecm:parentId = '{}' AND " \
-              "ecm:isTrashed = 0 ORDER BY ecm:name"
-
-RECURSIVE_OBJECT_NXQL = "SELECT * FROM SampleCustomPicture, CustomFile, CustomVideo, CustomAudio, CustomThreeD " \
-                       "WHERE ecm:path STARTSWITH '{}' " \
-                       "AND ecm:isTrashed = 0 " \
-                       "ORDER BY ecm:pos"
-
-NUXEO_REQUEST_HEADERS = {
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "X-NXDocumentProperties": "*",
-                "X-NXRepository": "default",
-                "X-Authentication-Token": TOKEN
-                }
-
-
-def get_path_uid(path): 
-    ''' get nuxeo {path, uid} for doc at given path '''
-    escaped_path = urllib_quote(path, safe=' /')
-    request = {
-        'url': f"{API_BASE}/{API_PATH}/path/{escaped_path.strip('/')}",
-        'headers': NUXEO_REQUEST_HEADERS
-    }
-    response = requests.get(**request)
-    response.raise_for_status()
-    uid = response.json().get('uid')
-    current_path = {
-        'path': path,
-        'uid': uid
-    }
-    return current_path
 
 
 class NuxeoFetcher(Fetcher):
@@ -66,10 +21,17 @@ class NuxeoFetcher(Fetcher):
             'prefix': ['r'],
         }
         nuxeo_defaults.update(params.get('nuxeo'))
-
         self.nuxeo = nuxeo_defaults
         if not self.nuxeo.get('current_path'):
-            self.nuxeo['current_path'] = get_path_uid(self.nuxeo.get('path'))
+            self.nuxeo['current_path'] = self.get_path_uid()
+
+        self.nuxeo_request_headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-NXDocumentProperties": "*",
+            "X-NXRepository": "default",
+            "X-Authentication-Token": settings.TOKEN
+        }
 
         if self.nuxeo['query_type'] == 'children':
             if settings.LOCAL_STORE:
@@ -94,21 +56,59 @@ class NuxeoFetcher(Fetcher):
             write_page = self.nuxeo['prefix'] + [f"{self.nuxeo['api_page']}"]
             self.write_page = '-'.join(write_page)
 
+    def get_path_uid(self):
+        ''' get nuxeo {path, uid} for doc at given path '''
+        path = self.nuxeo.get('path')
+        escaped_path = urllib_quote(path, safe=' /').strip('/')
+        request = {
+            'url': (
+                f"https://nuxeo.cdlib.org/Nuxeo/site/api/v1/path/{escaped_path}"
+            ),
+            'headers': self.nuxeo_request_headers
+        }
+        response = requests.get(**request)
+        response.raise_for_status()
+        uid = response.json().get('uid')
+        current_path = {
+            'path': path,
+            'uid': uid
+        }
+        return current_path
+
     def build_fetch_request(self):
         query_type = self.nuxeo.get('query_type')
         current_path = self.nuxeo.get('current_path')
         page = self.nuxeo.get('api_page')
 
         if query_type == 'documents':
-            query = PARENT_NXQL.format(current_path['uid'])
+            # for some reason, using `ORDER BY ecm:name` in the query avoids the
+            # bug where the API was returning duplicate records from Nuxeo
+            parent_nxql = (
+                "SELECT * FROM SampleCustomPicture, CustomFile, "
+                "CustomVideo, CustomAudio, CustomThreeD "
+                f"WHERE ecm:parentId = '{current_path['uid']}' AND "
+                "ecm:isTrashed = 0 ORDER BY ecm:name"
+            )
+            query = parent_nxql
         if query_type == 'children':
-            query = RECURSIVE_OBJECT_NXQL.format(current_path['path'])
+            recursive_object_nxql = (
+                "SELECT * FROM SampleCustomPicture, CustomFile, "
+                "CustomVideo, CustomAudio, CustomThreeD "
+                f"WHERE ecm:path STARTSWITH '{current_path['path']}' "
+                "AND ecm:isTrashed = 0 ORDER BY ecm:pos"
+            )
+            query = recursive_object_nxql
         if query_type == 'folders':
-            query = RECURSIVE_FOLDER_NXQL.format(current_path['path'])
+            recursive_folder_nxql = (
+                "SELECT * FROM Organization "
+                f"WHERE ecm:path STARTSWITH '{current_path['path']}' "
+                "AND ecm:isTrashed = 0"
+            )
+            query = recursive_folder_nxql
 
         request = {
-            'url': f"{API_BASE}/{API_PATH}/path/@search", 
-            'headers': NUXEO_REQUEST_HEADERS, 
+            'url': "https://nuxeo.cdlib.org/Nuxeo/site/api/v1/path/@search",
+            'headers': self.nuxeo_request_headers,
             'params': {
                 'pageSize': '100',
                 'currentPageIndex': page,
@@ -163,11 +163,11 @@ class NuxeoFetcher(Fetcher):
         return documents
 
     def increment(self, http_resp):
-        """Increment the request given an http_resp 
+        """Increment the request given an http_resp
 
         Checks isNextPageAvailable in the http_resp and increases
         api_page by 1
-        
+
         Also kicks off a new lambda function to look for folders
         in the current folder, if we've finished fetching all the
         documents in the current folder

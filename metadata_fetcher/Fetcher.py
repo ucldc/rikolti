@@ -13,7 +13,7 @@ class Fetcher(object):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        bucket = os.environ.get('S3_BUCKET', False)
+        bucket = settings.S3_BUCKET
         self.s3_data = {
             "ACL": 'bucket-owner-full-control',
             "Bucket": bucket,
