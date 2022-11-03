@@ -1,41 +1,28 @@
 import json
-import os
 import boto3
 import sys
 import subprocess
 import settings
+import importlib
+from Fetcher import Fetcher
 
-from Fetcher import Fetcher, FetchError
-from NuxeoFetcher import NuxeoFetcher
-from OACFetcher import OACFetcher
-from OAIFetcher import OAIFetcher
 
-def get_fetcher(payload):
-    harvest_type = payload.get('harvest_type')
-    try:
-        globals()[harvest_type]
-    except KeyError:
-        print(f"{ harvest_type } not imported")
-        exit()
-
-    if globals()[harvest_type] not in Fetcher.__subclasses__():
+def import_fetcher(harvest_type):
+    fetcher_module = importlib.import_module(harvest_type)
+    fetcher_class = getattr(fetcher_module, harvest_type)
+    if fetcher_class not in Fetcher.__subclasses__():
         print(f"{ harvest_type } not a subclass of Fetcher")
         exit()
+    return fetcher_class
 
-    try:
-        fetcher = globals()[harvest_type](payload)
-    except NameError:
-        print(f"bad harvest type: { harvest_type }")
-        exit()
-
-    return fetcher
 
 # AWS Lambda entry point
 def fetch_collection(payload, context):
     if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
-    fetcher = get_fetcher(payload)
+    fetcher_class = import_fetcher(payload.get('harvest_type'))
+    fetcher = fetcher_class(payload)
 
     fetcher.fetch_page()
     next_page = fetcher.json()
