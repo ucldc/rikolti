@@ -35,7 +35,7 @@ class NuxeoFetcher(Fetcher):
             self.nuxeo['current_path'] = self.get_path_uid()
 
         if self.nuxeo['query_type'] == 'children':
-            if settings.LOCAL_STORE:
+            if settings.DATA_DEST == 'local':
                 path = self.get_local_path()
                 children_path = os.path.join(path, "children")
                 if not os.path.exists(children_path):

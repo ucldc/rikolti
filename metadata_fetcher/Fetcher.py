@@ -66,7 +66,7 @@ class Fetcher(object):
         response.raise_for_status()
 
         if self.check_page(response):
-            if settings.LOCAL_STORE:
+            if settings.DATA_DEST == 'local':
                 self.fetchtolocal(response.text)
             else:
                 self.fetchtos3(response.text)
