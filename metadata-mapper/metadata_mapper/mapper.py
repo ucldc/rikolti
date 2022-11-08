@@ -6,8 +6,7 @@ from markupsafe import Markup   # used in Record.strip_html()
 import constants
 from iso639_1 import iso_639_1
 from iso639_3 import iso_639_3, language_regexes, wb_language_regexes
-
-DEBUG = os.environ.get('DEBUG', False)
+import settings
 
 
 class VernacularReader(object):
@@ -26,7 +25,7 @@ class VernacularReader(object):
         return local_path
 
     def get_api_response(self):
-        if DEBUG:
+        if settings.DATA_SRC == 'local':
             return self.get_local_api_response()
         else:
             return self.get_s3_api_response()

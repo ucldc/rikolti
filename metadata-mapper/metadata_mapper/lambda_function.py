@@ -2,13 +2,13 @@ import json
 import os
 import sys
 from urllib.parse import urlparse, parse_qs
+import settings
 
 from nuxeo_mapper import NuxeoVernacular
 from mapper import UCLDCWriter, Record
 from oac_mapper import OAC_Vernacular
 from islandora_oai_dc_mapper import IslandoraVernacular
 
-DEBUG = os.environ.get('DEBUG', False)
 
 
 def get_source_vernacular(payload):
@@ -35,7 +35,7 @@ def parse_enrichment_url(enrichment_url):
 # {"collection_id": 26098, "source_type": "nuxeo", "page_filename": "r-0"}
 # {"collection_id": 26098, "source_type": "nuxeo", "page_filename": 2}
 def lambda_handler(payload, context):
-    if DEBUG:
+    if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
     vernacular = get_source_vernacular(payload)
@@ -53,7 +53,7 @@ def lambda_handler(payload, context):
 
     mapped_records = [record.to_UCLDC() for record in source_metadata_records]
     writer = UCLDCWriter(payload)
-    if DEBUG:
+    if settings.DATA_DEST == 'local':
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
@@ -75,7 +75,7 @@ def lambda_handler(payload, context):
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    if DEBUG:
+    if settings.DATA_DEST == 'local':
         writer.write_local_mapped_metadata(mapped_metadata)
     else:
         writer.write_s3_mapped_metadata([

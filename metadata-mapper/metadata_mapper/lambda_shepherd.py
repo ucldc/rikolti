@@ -4,9 +4,7 @@ import boto3
 import sys
 import requests
 from lambda_function import lambda_handler
-
-DEBUG = os.environ.get('DEBUG', False)
-
+import settings
 
 def local_path(folder, collection_id):
     parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
@@ -50,7 +48,7 @@ def check_for_missing_enrichments(collection):
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # {"collection_id": 26098, "source_type": "nuxeo"}
 def lambda_shepherd(payload, context):
-    if DEBUG:
+    if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
     collection_id = payload.get('collection_id')
@@ -66,7 +64,7 @@ def lambda_shepherd(payload, context):
     if len(missing_enrichments) > 0:
         print(f"Missing enrichments: {missing_enrichments}")
 
-    if DEBUG:
+    if settings.DATA_SRC == 'local':
         vernacular_path = local_path('vernacular_metadata', collection_id)
         page_list = [f for f in os.listdir(vernacular_path)
                      if os.path.isfile(os.path.join(vernacular_path, f))]
