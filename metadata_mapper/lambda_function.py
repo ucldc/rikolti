@@ -9,7 +9,7 @@ from mapper import UCLDCWriter, Record, VernacularReader
 
 def import_vernacular_reader(mapper_type):
     mapper_module = importlib.import_module(
-        mapper_type, package="metadata_mapper")
+        f"{mapper_type}_mapper", package="metadata_mapper")
     mapper_class = getattr(mapper_module, mapper_type)
     if mapper_class not in VernacularReader.__subclasses__():
         print(f"{ mapper_type } not a subclass of VernacularReader")
