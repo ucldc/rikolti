@@ -3,22 +3,18 @@ import os
 import sys
 from urllib.parse import urlparse, parse_qs
 import settings
-
-from nuxeo_mapper import NuxeoVernacular
-from mapper import UCLDCWriter, Record
-from oac_mapper import OAC_Vernacular
-from islandora_oai_dc_mapper import IslandoraVernacular
+import importlib
+from mapper import UCLDCWriter, Record, VernacularReader
 
 
-
-def get_source_vernacular(payload):
-    source_type = payload.get('mapper_type')
-    if source_type == 'NuxeoMapper':
-        return NuxeoVernacular(payload)
-    if source_type == 'oac_dc':
-        return OAC_Vernacular(payload)
-    if source_type == 'islandora_oai_dc_mapper':
-        return IslandoraVernacular(payload)
+def import_vernacular_reader(mapper_type):
+    mapper_module = importlib.import_module(
+        mapper_type, package="metadata_mapper")
+    mapper_class = getattr(mapper_module, mapper_type)
+    if mapper_class not in VernacularReader.__subclasses__():
+        print(f"{ mapper_type } not a subclass of VernacularReader")
+        exit()
+    return mapper_class
 
 
 def parse_enrichment_url(enrichment_url):
@@ -32,16 +28,17 @@ def parse_enrichment_url(enrichment_url):
     return enrichment_func, kwargs
 
 
-# {"collection_id": 26098, "source_type": "nuxeo", "page_filename": "r-0"}
-# {"collection_id": 26098, "source_type": "nuxeo", "page_filename": 2}
+# {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": "r-0"}
+# {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
 # AWS Lambda entry point
 def map_page(payload, context):
     if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
-    vernacular = get_source_vernacular(payload)
-    api_resp = vernacular.get_api_response()
-    source_metadata_records = vernacular.parse(api_resp)
+    vernacular_reader = import_vernacular_reader(payload.get('mapper_type'))
+    source_vernacular = vernacular_reader(payload)
+    api_resp = source_vernacular.get_api_response()
+    source_metadata_records = source_vernacular.parse(api_resp)
     collection = payload.get('collection', {})
 
     for enrichment_url in collection.get('rikolti__pre_mapping'):
