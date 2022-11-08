@@ -5,22 +5,26 @@ from lxml import etree
 from sickle import models
 import requests
 
-NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 
 # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
 # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
 class OAIVernacular(VernacularReader):
 
     def parse(self, api_response):
+        namespace = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
         page = etree.XML(api_response)
 
-        request_elem = page.find('oai2:request', NAMESPACE)
+        request_elem = page.find('oai2:request', namespace)
         if request_elem is not None:
             request_url = request_elem.text
         else:
             request_url = None
 
-        record_elements = page.find('oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
+        record_elements = (
+            page
+            .find('oai2:ListRecords', namespace)
+            .findall('oai2:record', namespace)
+        )
 
         records = []
         for re in record_elements:
@@ -36,7 +40,8 @@ class OAIVernacular(VernacularReader):
         records = [self.record_cls(self.collection_id, rec) for rec in records]
         return records
 
-    # lxml parser requires bytes input or XML fragments without declaration, so use 'rb' mode
+    # lxml parser requires bytes input or XML fragments without declaration,
+    # so use 'rb' mode
     def get_local_api_response(self):
         local_path = self.local_path('vernacular_metadata')
         page_path = os.sep.join([local_path, str(self.page_filename)])
@@ -44,15 +49,11 @@ class OAIVernacular(VernacularReader):
         api_response = page.read()
         return api_response
 
-class IslandoraVernacular(OAIVernacular):
-    def __init__(self, payload):
-            super(IslandoraVernacular, self).__init__(payload)
-            self.record_cls = IslandoraRecord
 
 class IslandoraRecord(Record):
 
     def to_UCLDC(self):
-        #print(f"{self.source_metadata=}")
+        # print(f"{self.source_metadata=}")
 
         self.mapped_data = {
             'contributor': self.source_metadata.get('contributor'),
@@ -75,7 +76,8 @@ class IslandoraRecord(Record):
             ]),
             'extent': self.source_metadata.get('extent'),
             'format': self.collate_fields(["format", "medium"]),
-            'identifier': self.collate_fields(["bibliographicCitation", "identifier"]),
+            'identifier': self.collate_fields(
+                ["bibliographicCitation", "identifier"]),
             'is_shown_by': self.map_is_shown_by(),
             'is_shown_at': self.map_is_shown_at(),
             'provenance': self.source_metadata.get('provenance'),
@@ -118,7 +120,11 @@ class IslandoraRecord(Record):
 
     def map_is_shown_at(self):
         if self.source_metadata.get('request_url'):
-            coll_url = self.source_metadata.get('request_url').replace('/oai2', '')
+            coll_url = (
+                self.source_metadata
+                .get('request_url')
+                .replace('/oai2', '')
+            )
 
         ident = self.source_metadata.get('id', '')
         if ':' in ident:
@@ -131,17 +137,23 @@ class IslandoraRecord(Record):
 
     def map_is_shown_by(self):
         if self.source_metadata.get('request_url'):
-            coll_url = self.source_metadata.get('request_url').replace('/oai2', '')
+            coll_url = (
+                self.source_metadata
+                .get('request_url')
+                .replace('/oai2', '')
+            )
 
-        ident = self.source_metadata.get('id','')
+        ident = self.source_metadata.get('id', '')
         if ':' in ident:
             collID, recID = ident.rsplit(':', 1)
             newID = recID.replace('_', '%3A')
 
-            thumb_url = f"{coll_url}/islandora/object/{newID}/datastream/TN/view"
+            thumb_url = (
+                f"{coll_url}/islandora/object/{newID}/datastream/TN/view")
 
-            # Change URL from 'TN' to 'JPG' for larger versions of image objects & test to make sure the link resolves
-            if 'image' or 'StillImage' in self.source_metadata.get('type',''):
+            # Change URL from 'TN' to 'JPG' for larger versions of image
+            # objects & test to make sure the link resolves
+            if 'image' or 'StillImage' in self.source_metadata.get('type', ''):
                 jpg_url = thumb_url.replace("/TN/", "/JPG/")
                 request = requests.get(jpg_url)
                 if request.status_code == 200:
@@ -153,3 +165,7 @@ class IslandoraRecord(Record):
 
     def to_dict(self):
         return self.mapped_data
+
+
+class IslandoraVernacular(OAIVernacular):
+    record_cls = IslandoraRecord

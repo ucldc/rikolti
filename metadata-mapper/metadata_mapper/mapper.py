@@ -81,7 +81,6 @@ class UCLDCWriter(object):
             Body=json.dumps(mapped_metadata))
 
 
-
 class Record(object):
     def __init__(self, col_id, record):
         self.collection_id = col_id
