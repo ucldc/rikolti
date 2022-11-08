@@ -3,7 +3,7 @@ import os
 import boto3
 import sys
 import requests
-from lambda_function import lambda_handler
+from lambda_function import map_page
 import settings
 
 
@@ -37,7 +37,8 @@ def check_for_missing_enrichments(collection):
 
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # {"collection_id": 26098, "source_type": "nuxeo"}
-def lambda_shepherd(payload, context):
+# AWS Lambda entry point
+def map_collection(payload, context):
     if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
@@ -61,7 +62,7 @@ def lambda_shepherd(payload, context):
                      if os.path.isfile(os.path.join(vernacular_path, f))]
         for page in page_list:
             payload.update({'page_filename': page})
-            lambda_handler(json.dumps(payload), {})
+            map_page(json.dumps(payload), {})
     else:
         # SKETCHY
         s3 = boto3.resource('s3')
@@ -76,4 +77,4 @@ if __name__ == "__main__":
         description="Map metadata from the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    lambda_shepherd(args.payload, {})
+    map_collection(args.payload, {})

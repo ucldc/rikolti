@@ -34,7 +34,8 @@ def parse_enrichment_url(enrichment_url):
 
 # {"collection_id": 26098, "source_type": "nuxeo", "page_filename": "r-0"}
 # {"collection_id": 26098, "source_type": "nuxeo", "page_filename": 2}
-def lambda_handler(payload, context):
+# AWS Lambda entry point
+def map_page(payload, context):
     if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
@@ -93,4 +94,4 @@ if __name__ == "__main__":
         description="Map metadata from the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    lambda_handler(args.payload, {})
+    map_page(args.payload, {})
