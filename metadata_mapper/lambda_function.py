@@ -10,11 +10,21 @@ from mapper import UCLDCWriter, Record, VernacularReader
 def import_vernacular_reader(mapper_type):
     mapper_module = importlib.import_module(
         f"{mapper_type}_mapper", package="metadata_mapper")
-    mapper_class = getattr(mapper_module, mapper_type)
-    if mapper_class not in VernacularReader.__subclasses__():
+
+    # accept either Leadingcap or ALLCAPS conventions:
+    # e.g. NuxeoVernacular and OAC_DCVernacular;
+    # this might not be extensible.
+    try:
+        vernacular_class = getattr(
+            mapper_module, f"{mapper_type.capitalize()}Vernacular")
+    except AttributeError:
+        vernacular_class = getattr(
+            mapper_module, f"{mapper_type.upper()}Vernacular")
+
+    if vernacular_class not in VernacularReader.__subclasses__():
         print(f"{ mapper_type } not a subclass of VernacularReader")
         exit()
-    return mapper_class
+    return vernacular_class
 
 
 def parse_enrichment_url(enrichment_url):

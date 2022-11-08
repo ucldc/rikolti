@@ -232,8 +232,8 @@ class OAC_DCRecord(Record):
         return subject_objs
 
 
-class OAC_Vernacular(VernacularReader):
-    record_cls = OAC_DCRecord
+class OAC_DCVernacular(VernacularReader):
+    record_cls = OACRecord
 
     # Directly copied from harvester codebase; not sure if this belongs here
     def _get_doc_ark(self, docHit):
