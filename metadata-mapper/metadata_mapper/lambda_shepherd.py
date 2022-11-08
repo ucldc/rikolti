@@ -65,7 +65,6 @@ def lambda_shepherd(payload, context):
     missing_enrichments = check_for_missing_enrichments(collection)
     if len(missing_enrichments) > 0:
         print(f"Missing enrichments: {missing_enrichments}")
-        exit()
 
     if DEBUG:
         vernacular_path = local_path('vernacular_metadata', collection_id)
