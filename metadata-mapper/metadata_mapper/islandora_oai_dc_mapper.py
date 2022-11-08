@@ -4,6 +4,7 @@ from mapper import VernacularReader, Record
 from lxml import etree
 from sickle import models
 import requests
+import settings
 
 
 # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
@@ -43,7 +44,8 @@ class OAIVernacular(VernacularReader):
     # lxml parser requires bytes input or XML fragments without declaration,
     # so use 'rb' mode
     def get_local_api_response(self):
-        local_path = self.local_path('vernacular_metadata')
+        local_path = settings.local_path(
+            'vernacular_metadata', self.collection_id)
         page_path = os.sep.join([local_path, str(self.page_filename)])
         page = open(page_path, "rb")
         api_response = page.read()

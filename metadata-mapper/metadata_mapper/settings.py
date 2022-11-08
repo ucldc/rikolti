@@ -14,3 +14,13 @@ if not LOCAL_RUN and (DATA_SRC == 'local' or DATA_DEST == 'local'):
     )
     exit()
 
+
+def local_path(folder, collection_id):
+    parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
+    local_path = os.sep.join([
+        parent_dir,
+        'rikolti_bucket',
+        folder,
+        str(collection_id),
+    ])
+    return local_path

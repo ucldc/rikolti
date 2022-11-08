@@ -6,16 +6,6 @@ import requests
 from lambda_function import lambda_handler
 import settings
 
-def local_path(folder, collection_id):
-    parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
-    local_path = os.sep.join([
-        parent_dir,
-        'rikolti_bucket',
-        folder,
-        str(collection_id),
-    ])
-    return local_path
-
 
 def get_collection(collection_id):
     collection = requests.get(
@@ -65,7 +55,8 @@ def lambda_shepherd(payload, context):
         print(f"Missing enrichments: {missing_enrichments}")
 
     if settings.DATA_SRC == 'local':
-        vernacular_path = local_path('vernacular_metadata', collection_id)
+        vernacular_path = settings.local_path(
+            'vernacular_metadata', collection_id)
         page_list = [f for f in os.listdir(vernacular_path)
                      if os.path.isfile(os.path.join(vernacular_path, f))]
         for page in page_list:
