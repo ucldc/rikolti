@@ -27,6 +27,26 @@ def get_collection(collection_id):
     return collection
 
 
+def check_for_missing_enrichments(collection):
+    """Check for missing enrichments - used for development but
+    could likely be removed in production?"""
+    from mapper import Record
+    from urllib.parse import urlparse
+
+    not_yet_implemented = []
+    collection_enrichments = (
+        collection.get('rikolti__pre_enrichments', []) +
+        collection.get('rikolti__enrichments')
+    )
+    for e_url in collection_enrichments:
+        e_path = urlparse(e_url).path
+        e_func_name = e_path.strip('/').replace('-', '_')
+        if e_func_name not in dir(Record):
+            not_yet_implemented.append(e_func_name)
+
+    return not_yet_implemented
+
+
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # {"collection_id": 26098, "source_type": "nuxeo"}
 def lambda_shepherd(payload, context):
@@ -34,11 +54,17 @@ def lambda_shepherd(payload, context):
         payload = json.loads(payload)
 
     collection_id = payload.get('collection_id')
-    payload.update({
-        'collection': get_collection(collection_id)})
+    collection = get_collection(collection_id)
+    payload.update({'collection': collection})
+
     if not collection_id:
         print("ERROR ERROR ERROR")
         print('collection_id required')
+        exit()
+
+    missing_enrichments = check_for_missing_enrichments(collection)
+    if len(missing_enrichments) > 0:
+        print(f"Missing enrichments: {missing_enrichments}")
         exit()
 
     if DEBUG:
