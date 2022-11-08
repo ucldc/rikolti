@@ -6,14 +6,6 @@ from collections import defaultdict
 from mapper import VernacularReader, Record
 from utils import exists, getprop, iterify
 
-URL_OAC_CONTENT_BASE = os.environ.get(
-    'URL_OAC_CONTENT_BASE', 'http://content.cdlib.org')
-
-# collection 25496 has coverage values like A0800 & A1000
-# drop these
-Anum_re = re.compile('A\d\d\d\d')
-CONTENT_SERVER = 'http://content.cdlib.org/'
-
 
 class OAC_DCRecord(Record):
 
@@ -176,7 +168,7 @@ class OAC_DCRecord(Record):
                     dim = max(int(obj.get('X')), int(obj.get('Y')))
                     best_image = obj.get('src')
             if best_image and not best_image.startswith('http'):
-                best_image = '/'.join((URL_OAC_CONTENT_BASE, best_image))
+                best_image = f"http://content.cdlib.org/{best_image}"
         return best_image
 
     def map_item_count(self):
@@ -213,9 +205,12 @@ class OAC_DCRecord(Record):
                                 'temporal' not in c.get(
                                     'attrib', {}).get('q')):
                             coverage.append(c.get('text'))
+                        # collection 25496 has coverage values like 
+                        # A0800 & A1000 - drop these
+                        anum_re = re.compile('A\d\d\d\d')
                         if ('q' not in c.get('attrib', {}) and
                                 c.get('attrib', {}) is not None and
-                                not Anum_re.match(c.get('text'))):
+                                not anum_re.match(c.get('text'))):
                             coverage.append(c.get('text'))
         return coverage
 
@@ -266,7 +261,7 @@ class OAC_Vernacular(VernacularReader):
             y = int(tag.attrib['Y'])
         except ValueError:
             y = 0
-        src = ''.join((CONTENT_SERVER, tag.attrib['src']))
+        src = f"http://content.cdlib.org/{tag.attrib['src']}"
         src = src.replace('//', '/').replace('/', '//', 1)
         data = {
             'X': x,
@@ -286,7 +281,7 @@ class OAC_Vernacular(VernacularReader):
             y = int(tag.attrib['Y'])
         except ValueError:
             y = 0
-        src = ''.join((CONTENT_SERVER, '/', ark, '/thumbnail'))
+        src = f"http://content.cdlib.org/{ark}/thumbnail"
         src = src.replace('//', '/').replace('/', '//', 1)
         data = {
             'X': x,
