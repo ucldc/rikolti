@@ -4,10 +4,31 @@ calisphere harvester 2.0
 # Development
 
 ## Getting Started
-clone the repository:
-`git clone git@github.com:ucldc/rikolti.git`
+Clone the repository. This documentation assumes you've cloned into `~/Projects/`.
+```sh
+cd ~/Projects/
+git clone git@github.com:ucldc/rikolti.git
+```
 
-set up a python environment using python version 3.9
+Set up a python environment using python version 3.9. I'm working on a mac with a bash shell. I use [pyenv](https://github.com/pyenv/pyenv) to manage python versions and I use [python3 venv](https://docs.python.org/3/library/venv.html) to manage a python virtual environment located in `~/.venv/rikolti/`. 
+
+```sh
+brew update
+brew install pyenv
+echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
+source ~/.bash_profile
+pyenv install 3.9
+cd ~/Projects/rikolti/
+pyenv local 3.9
+python -m venv ~/.venv/rikolti/
+source ~/.venv/rikolti/bin/activate
+cd metadata-fetcher/
+pip install -r requirements.txt
+cd ../metadata-mapper/
+pip install -r requirements.txt
+```
+
+Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments. Alternatively, I'm currently working to integrate SAM across this repository, which may forgo any need to manage a virtual environment at all. (SAM local runs in Docker).
 
 ## Development Contribution Process
 The [Rikolti Wiki](https://github.com/ucldc/rikolti/wiki/) contains lots of helpful technical information. The [GitHub Issues](https://github.com/ucldc/rikolti/issues) tool tracks Rikolti development tasks. We organize issues using the GitHub project board [Rikolti MVP](https://github.com/orgs/ucldc/projects/1/views/1) to separate work out into [Milestones](https://github.com/ucldc/rikolti/milestones) and [Sprints](https://github.com/orgs/ucldc/projects/1/views/5). 
