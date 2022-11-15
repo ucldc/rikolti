@@ -18,24 +18,18 @@ brew update
 brew install pyenv
 echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
 source ~/.bash_profile
-```
 
-```sh
 # install python3.9 and set it as the local version
 pyenv install 3.9
 cd ~/Projects/rikolti/
 pyenv local 3.9
 python --version
 # > Python 3.9.15
-```
 
-```sh
 # create python virtual environment
 python -m venv ~/.venv/rikolti/
 source ~/.venv/rikolti/bin/activate
-```
 
-```sh
 # install dependencies
 cd metadata-fetcher/
 pip install -r requirements.txt
