@@ -3,6 +3,8 @@ calisphere harvester 2.0
 
 # Development
 
+Each folder in this repository corresponds to a separate component of the Rikolti data pipeline. As of this writing on November 14th, 2022, `metadata_fetcher` and `metadata_mapper` are the most developed while the others are left over from an earlier prototype. 
+
 ## Getting Started
 Clone the repository. This documentation assumes you've cloned into `~/Projects/`.
 ```sh
@@ -54,4 +56,11 @@ When finishing work on a given issue:
 1. Create a pull request to the main branch for a code owner to review. Be sure to link the pull request to the issue or set of issues it addresses, and add any relevant Labels ("mapper/fetcher"), Projects ("Rikolti MVP"), Milestones, and Sprints. 
 2. Indicate on the issue the date delivered, and move the issue to the "Ready for Review" state. 
 
-We use PR reviews to approve or reject, comment on, and request further iteration. 
+We use PR reviews to approve or reject, comment on, and request further iteration. It's the contributor's responsibility to keep their development branches up-to-date with `main` (or any other designated upstream branches). 
+
+## Code Style Guide
+
+- PEP 8 (enforced using flake8)
+- DRY
+- Readability & Transparency: Code as language
+- Favor explicitness over defensiveness
