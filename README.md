@@ -10,18 +10,24 @@ cd ~/Projects/
 git clone git@github.com:ucldc/rikolti.git
 ```
 
-Set up a python environment using python version 3.9. I'm working on a mac with a bash shell. I use [pyenv](https://github.com/pyenv/pyenv) to manage python versions and I use [python3 venv](https://docs.python.org/3/library/venv.html) to manage a python virtual environment located in `~/.venv/rikolti/`. 
+Set up a python environment using python version 3.9. I'm working on a mac with a bash shell. I use [pyenv](https://github.com/pyenv/pyenv) to manage python versions and I use [python3 venv](https://docs.python.org/3/library/venv.html) to manage a python virtual environment located in `~/.venv/rikolti/`. The following commands are meant to serve as a guide - please check the installation instructions for pyenv for your own environment. 
 
 ```sh
+# install pyenv
 brew update
 brew install pyenv
 echo 'eval "$(pyenv init -)"' >> ~/.bash_profile
 source ~/.bash_profile
+# install python3.9 and set it as the local version
 pyenv install 3.9
 cd ~/Projects/rikolti/
 pyenv local 3.9
+python --version
+# > Python 3.9.15
+# create python virtual environment
 python -m venv ~/.venv/rikolti/
 source ~/.venv/rikolti/bin/activate
+# install dependencies
 cd metadata-fetcher/
 pip install -r requirements.txt
 cd ../metadata-mapper/
