@@ -11,15 +11,16 @@ def import_vernacular_reader(mapper_type):
     mapper_module = importlib.import_module(
         f"{mapper_type}_mapper", package="metadata_mapper")
 
-    # accept either Leadingcap or ALLCAPS conventions:
-    # e.g. NuxeoVernacular and OAC_DCVernacular;
-    # this might not be extensible.
-    try:
-        vernacular_class = getattr(
-            mapper_module, f"{mapper_type.capitalize()}Vernacular")
-    except AttributeError:
-        vernacular_class = getattr(
-            mapper_module, f"{mapper_type.upper()}Vernacular")
+    # accept CamelCase class name conventions split on underscores,
+    # for example:
+    # mapper_type | mapper module       | class name
+    # ------------|---------------------|------------------
+    # nuxeo       | nuxeo_mapper        | NuxeoVernacular
+    # content_dm  | content_dm_mapper   | ContentDmVernacular
+    mapper_type_words = mapper_type.split('_')
+    class_type = ''.join([word.capitalize() for word in mapper_type_words])
+    vernacular_class = getattr(
+        mapper_module, f"{class_type}Vernacular")
 
     if vernacular_class not in VernacularReader.__subclasses__():
         print(f"{ mapper_type } not a subclass of VernacularReader")

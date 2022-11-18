@@ -6,7 +6,7 @@ from mapper import VernacularReader, Record
 from utils import exists, getprop, iterify
 
 
-class OAC_DCRecord(Record):
+class OacRecord(Record):
 
     def to_UCLDC(self):
         mapped_data = {"sourceResource": {}}
@@ -232,8 +232,8 @@ class OAC_DCRecord(Record):
         return subject_objs
 
 
-class OAC_DCVernacular(VernacularReader):
-    record_cls = OACRecord
+class OacVernacular(VernacularReader):
+    record_cls = OacRecord
 
     # Directly copied from harvester codebase; not sure if this belongs here
     def _get_doc_ark(self, docHit):

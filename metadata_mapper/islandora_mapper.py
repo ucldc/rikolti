@@ -9,7 +9,7 @@ import settings
 
 # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
 # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
-class OAIVernacular(VernacularReader):
+class OaiVernacular(VernacularReader):
 
     def parse(self, api_response):
         namespace = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
@@ -169,5 +169,5 @@ class IslandoraRecord(Record):
         return self.mapped_data
 
 
-class IslandoraVernacular(OAIVernacular):
+class IslandoraVernacular(OaiVernacular):
     record_cls = IslandoraRecord
