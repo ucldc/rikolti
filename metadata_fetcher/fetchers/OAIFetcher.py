@@ -1,6 +1,6 @@
 import json
 from xml.etree import ElementTree
-from Fetcher import Fetcher
+from .Fetcher import Fetcher
 from urllib.parse import parse_qs
 from sickle import Sickle
 

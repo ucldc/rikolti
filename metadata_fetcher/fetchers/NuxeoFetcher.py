@@ -1,5 +1,5 @@
 import json
-from Fetcher import Fetcher
+from .Fetcher import Fetcher
 import os
 import requests
 from urllib.parse import quote as urllib_quote

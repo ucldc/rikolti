@@ -4,12 +4,12 @@ import sys
 import subprocess
 import settings
 import importlib
-from Fetcher import Fetcher
+from fetchers.Fetcher import Fetcher
 
 
 def import_fetcher(harvest_type):
     fetcher_module = importlib.import_module(
-        harvest_type, package="metadata_fetcher")
+        f"fetchers.{harvest_type}", package="metadata_fetcher")
     fetcher_class = getattr(fetcher_module, harvest_type)
     if fetcher_class not in Fetcher.__subclasses__():
         print(f"{ harvest_type } not a subclass of Fetcher")
