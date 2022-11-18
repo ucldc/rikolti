@@ -8,16 +8,19 @@ NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 
 
 # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
-class OAIFetcher(Fetcher):
+class OaiFetcher(Fetcher):
 
     def __init__(self, params):
-        super(OAIFetcher, self).__init__(params)
+        super(OaiFetcher, self).__init__(params)
 
         self.oai = params.get('oai')
 
         if self.oai.get('query_params'):
             # see if we have a query string, e.g. "metadataPrefix=marcxml&set=fritz-metcalf"
-            parsed_params = {k: v[0] for k, v in parse_qs(self.oai.get('query_params')).items()}
+            parsed_params = {
+                k: v[0] 
+                for k, v in parse_qs(self.oai.get('query_params')).items()
+            }
             self.metadata_prefix = parsed_params.get('metadataPrefix')
             self.metadata_set = parsed_params.get('set')
 
@@ -86,7 +89,7 @@ class OAIFetcher(Fetcher):
         return bool(len(xml_hits))
 
     def increment(self, http_resp):
-        super(OAIFetcher, self).increment(http_resp)
+        super(OaiFetcher, self).increment(http_resp)
 
         # if there is a resumption token, then increment
         xml_resp = ElementTree.fromstring(http_resp.content)
