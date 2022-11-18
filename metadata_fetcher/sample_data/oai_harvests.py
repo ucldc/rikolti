@@ -2,7 +2,7 @@ oai_harvests = [
   {
     # 26773 OAI Marineland - 18 items
     "collection_id": 26773,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
@@ -12,7 +12,7 @@ oai_harvests = [
   {
     # 26774 OAI Palos Verdes Bulletin - 82 items
     "collection_id": 26774,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
@@ -22,7 +22,7 @@ oai_harvests = [
   {
     # 26775 OAI Palos Verdes College Photo Collection - 225 items
     "collection_id": 26775,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
@@ -32,7 +32,7 @@ oai_harvests = [
   {
     # 26776 OAI Phillips Ranch Photo Collection - 69 items
     "collection_id": 26776,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
@@ -42,7 +42,7 @@ oai_harvests = [
   {
     # 26777 OAI Postcard Collection - 95 items
     "collection_id": 26777,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
@@ -52,7 +52,7 @@ oai_harvests = [
   {
     # 26778 OAI Your Story is the Peninsula's Story Collection - 90 items
     "collection_id": 26778,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
@@ -62,7 +62,7 @@ oai_harvests = [
   {
     # 26779 OAI Malaga Cove Star Newspaper - 28 items
     "collection_id": 26779,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
@@ -72,7 +72,7 @@ oai_harvests = [
   {
     # 26885 OAI Palos Verdes Homes Association Photo Collection - 1775 items
     "collection_id": 26885,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://www.palosverdeshistory.org/oai2",
@@ -83,7 +83,7 @@ oai_harvests = [
     # 155 items
     # extra_data: metadataPrefix=marcxml&set=sugoroku
     'collection_id': 27435,
-    'harvest_type': "OAIFetcher",
+    'harvest_type': "oai",
     'write_page': 0,
     'oai': {
         'url': "https://digicoll.lib.berkeley.edu/oai2d",
@@ -99,7 +99,7 @@ oai_harvests = [
     # extra_data: big-pine-citizen-newspaper
     # curl 'http://oai.quartexcollections.com/lmudigitalcollections/oai2?verb=ListMetadataFormats'
     "collection_id": 2206,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "http://oai.quartexcollections.com/lmudigitalcollections/oai2",
@@ -110,7 +110,7 @@ oai_harvests = [
     # 155 items
     # extra_data: metadataPrefix=marcxml&set=sugoroku
     'collection_id': 27435,
-    'harvest_type': "OAIFetcher",
+    'harvest_type': "oai",
     'write_page': 0,
     'oai': {
         'url': "https://digicoll.lib.berkeley.edu/oai2d",
@@ -123,7 +123,7 @@ oai_harvests = [
     # curl 'https://digicoll.lib.berkeley.edu/oai2d?verb=ListRecords&metadataPrefix=marcxml' > sample_data/fritz-metcalf.xm
     # <resumptionToken completeListSize="46849" cursor="0" expirationDate="2022-10-12T21:50:56Z">___AzfqSX</resumptionToken>
     "collection_id": 26693,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0, 
     "oai": {
       "url": "https://digicoll.lib.berkeley.edu/oai2d",
@@ -135,7 +135,7 @@ oai_harvests = [
     # extra_data: node:23758
     # 
     "collection_id": 27934,
-    "harvest_type": "OAIFetcher",
+    "harvest_type": "oai",
     "write_page": 0,
     "oai": {
       "url": "https://glbt.i8.dgicloud.com/oai/request",

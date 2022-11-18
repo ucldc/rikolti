@@ -4,7 +4,7 @@ from xml.etree import ElementTree
 from .Fetcher import Fetcher
 
 
-class OACFetcher(Fetcher):
+class OacFetcher(Fetcher):
     # params['oac'] = {
     #     "url": ("http://dsc.cdlib.org/search?facet=type-tab"
     #             "&style=cui&raw=1&relation=ark:/13030/kt28702559"),
@@ -19,7 +19,7 @@ class OACFetcher(Fetcher):
     #     "current_group": "image"
     # }
     def __init__(self, params):
-        super(OACFetcher, self).__init__(params)
+        super(OacFetcher, self).__init__(params)
         self.oac = params.get('oac')
 
         url = self.oac.get('url')
