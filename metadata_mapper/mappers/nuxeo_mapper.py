@@ -1,5 +1,5 @@
 import json
-from mapper import VernacularReader, Record
+from .mapper import VernacularReader, Record
 
 
 class NuxeoRecord(Record):

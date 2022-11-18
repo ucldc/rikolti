@@ -2,8 +2,8 @@ import re
 # import lxml
 from xml.etree import ElementTree as ET
 from collections import defaultdict
-from mapper import VernacularReader, Record
-from utils import exists, getprop, iterify
+from .mapper import VernacularReader, Record
+from .utils import exists, getprop, iterify
 
 
 class OacRecord(Record):

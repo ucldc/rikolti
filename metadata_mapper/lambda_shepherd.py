@@ -18,7 +18,7 @@ def get_collection(collection_id):
 def check_for_missing_enrichments(collection):
     """Check for missing enrichments - used for development but
     could likely be removed in production?"""
-    from mapper import Record
+    from mappers.mapper import Record
     from urllib.parse import urlparse
 
     not_yet_implemented = []

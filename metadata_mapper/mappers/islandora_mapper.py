@@ -1,6 +1,6 @@
 import os
 import json
-from mapper import VernacularReader, Record
+from .mapper import VernacularReader, Record
 from lxml import etree
 from sickle import models
 import requests

@@ -3,9 +3,9 @@ import json
 import re
 import boto3
 from markupsafe import Markup   # used in Record.strip_html()
-import constants
-from iso639_1 import iso_639_1
-from iso639_3 import iso_639_3, language_regexes, wb_language_regexes
+from . import constants
+from .iso639_1 import iso_639_1
+from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
 import settings
 
 
@@ -833,9 +833,14 @@ class Record(object):
         afaik, we're not implementing a deeply nested data structure
         so I'm not implementing recursion here.
         """
+        del_keys = []
         for key, val in self.mapped_data.items():
             if not val:
-                del self.mapped_data[key]
+                del_keys.append(key)
+
+        for key in del_keys:
+            del self.mapped_data[key]
+
         return self
 
     def set_ucldc_dataprovider(self, collection):
