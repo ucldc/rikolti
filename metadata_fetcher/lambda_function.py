@@ -12,7 +12,7 @@ def import_fetcher(harvest_type):
         f"fetchers.{harvest_type}_fetcher", package="metadata_fetcher")
     fetcher_module_words = harvest_type.split('_')
     class_type = ''.join([word.capitalize() for word in fetcher_module_words])
-    fetcher_class = getattr(fetcher_module, f"{class_type}Fetcher)
+    fetcher_class = getattr(fetcher_module, f"{class_type}Fetcher")
     if fetcher_class not in Fetcher.__subclasses__():
         print(f"{ harvest_type } not a subclass of Fetcher")
         exit()
