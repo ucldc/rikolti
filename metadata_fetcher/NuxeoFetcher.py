@@ -226,7 +226,7 @@ class NuxeoFetcher(Fetcher):
         else:
             lambda_client = boto3.client('lambda', region_name="us-west-2",)
             lambda_client.invoke(
-                FunctionName="fetch-metadata",
+                FunctionName="fetch_metadata",
                 InvocationType="Event",  # invoke asynchronously
                 Payload=json.dumps(lambda_query).encode('utf-8')
             )

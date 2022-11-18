@@ -37,7 +37,7 @@ def fetch_collection(payload, context):
         else:
             lambda_client = boto3.client('lambda', region_name="us-west-2",)
             lambda_client.invoke(
-                FunctionName="fetch-metadata",
+                FunctionName="fetch_metadata",
                 InvocationType="Event",  # invoke asynchronously
                 Payload=next_page.encode('utf-8')
             )

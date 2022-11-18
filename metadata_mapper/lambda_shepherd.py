@@ -70,6 +70,15 @@ def map_collection(payload, context):
         page_list = rikolti_bucket.objects.filter(
             Prefix=f'vernacular_metadata/{collection_id}')
 
+        lambda_client = boto3.client('lambda', region_name="us-west-2",)
+        for page in page_list:
+            payload.update({'page_filename': page.key})
+            lambda_client.invoke(
+                FunctionName="map_metadata",
+                InvocationType="Event",  # invoke asynchronously
+                Payload=json.dumps(payload).encode('utf-8')
+            )
+
 
 if __name__ == "__main__":
     import argparse
