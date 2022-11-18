@@ -1,48 +1,34 @@
 import json
-import os
 import boto3
 import sys
 import subprocess
-
-from Fetcher import Fetcher, FetchError
-from NuxeoFetcher import NuxeoFetcher
-from OACFetcher import OACFetcher
-from OAIFetcher import OAIFetcher
-
-DEBUG = os.environ.get('DEBUG', False)
+import settings
+import importlib
+from fetchers.Fetcher import Fetcher
 
 
-def get_fetcher(payload):
-    harvest_type = payload.get('harvest_type')
-    try:
-        globals()[harvest_type]
-    except KeyError:
-        print(f"{ harvest_type } not imported")
-        exit()
-
-    if globals()[harvest_type] not in Fetcher.__subclasses__():
+def import_fetcher(harvest_type):
+    fetcher_module = importlib.import_module(
+        f"fetchers.{harvest_type}", package="metadata_fetcher")
+    fetcher_class = getattr(fetcher_module, harvest_type)
+    if fetcher_class not in Fetcher.__subclasses__():
         print(f"{ harvest_type } not a subclass of Fetcher")
         exit()
-
-    try:
-        fetcher = globals()[harvest_type](payload)
-    except NameError:
-        print(f"bad harvest type: { harvest_type }")
-        exit()
-
-    return fetcher
+    return fetcher_class
 
 
-def lambda_handler(payload, context):
-    if DEBUG:
+# AWS Lambda entry point
+def fetch_collection(payload, context):
+    if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
-    fetcher = get_fetcher(payload)
+    fetcher_class = import_fetcher(payload.get('harvest_type'))
+    fetcher = fetcher_class(payload)
 
     fetcher.fetch_page()
     next_page = fetcher.json()
     if next_page:
-        if DEBUG:
+        if settings.LOCAL_RUN:
             subprocess.run([
                 'python',
                 'lambda_function.py',
@@ -51,7 +37,7 @@ def lambda_handler(payload, context):
         else:
             lambda_client = boto3.client('lambda', region_name="us-west-2",)
             lambda_client.invoke(
-                FunctionName="fetch-metadata",
+                FunctionName="fetch_metadata",
                 InvocationType="Event",  # invoke asynchronously
                 Payload=next_page.encode('utf-8')
             )
@@ -61,10 +47,11 @@ def lambda_handler(payload, context):
         'body': json.dumps(payload)
     }
 
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Fetch metadata in the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    lambda_handler(args.payload, {})
+    fetch_collection(args.payload, {})

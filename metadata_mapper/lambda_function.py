@@ -1,24 +1,33 @@
 import json
-import os
 import sys
 from urllib.parse import urlparse, parse_qs
-
-from nuxeo_mapper import NuxeoVernacular
-from mapper import UCLDCWriter, Record
-from oac_mapper import OAC_Vernacular
-from islandora_oai_dc_mapper import IslandoraVernacular
-
-DEBUG = os.environ.get('DEBUG', False)
+import settings
+import importlib
+from mappers.mapper import UCLDCWriter, Record, VernacularReader
 
 
-def get_source_vernacular(payload):
-    source_type = payload.get('mapper_type')
-    if source_type == 'NuxeoMapper':
-        return NuxeoVernacular(payload)
-    if source_type == 'oac_dc':
-        return OAC_Vernacular(payload)
-    if source_type == 'islandora_oai_dc_mapper':
-        return IslandoraVernacular(payload)
+def import_vernacular_reader(mapper_type):
+    """
+    accept underscored_module_name_prefixes
+    accept CamelCase class name prefixes split on underscores
+    for example:
+    mapper_type | mapper module       | class name
+    ------------|---------------------|------------------
+    nuxeo       | nuxeo_mapper        | NuxeoVernacular
+    content_dm  | content_dm_mapper   | ContentDmVernacular
+    """
+    mapper_module = importlib.import_module(
+        f"mappers.{mapper_type}_mapper", package="metadata_mapper")
+
+    mapper_type_words = mapper_type.split('_')
+    class_type = ''.join([word.capitalize() for word in mapper_type_words])
+    vernacular_class = getattr(
+        mapper_module, f"{class_type}Vernacular")
+
+    if vernacular_class not in VernacularReader.__subclasses__():
+        print(f"{ mapper_type } not a subclass of VernacularReader")
+        exit()
+    return vernacular_class
 
 
 def parse_enrichment_url(enrichment_url):
@@ -28,23 +37,30 @@ def parse_enrichment_url(enrichment_url):
                        .replace('-', '_'))
     kwargs = parse_qs(urlparse(enrichment_url).query)
     if enrichment_func not in dir(Record):
-        raise Exception(f"ERROR: {enrichment_func} not found in {Record}")
+        if settings.SKIP_UNDEFINED_ENRICHMENTS:
+            return None, None
+        else:
+            raise Exception(f"ERROR: {enrichment_func} not found in {Record}")
     return enrichment_func, kwargs
 
 
-# {"collection_id": 26098, "source_type": "nuxeo", "page_filename": "r-0"}
-# {"collection_id": 26098, "source_type": "nuxeo", "page_filename": 2}
-def lambda_handler(payload, context):
-    if DEBUG:
+# {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": "r-0"}
+# {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
+# AWS Lambda entry point
+def map_page(payload, context):
+    if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
-    vernacular = get_source_vernacular(payload)
-    api_resp = vernacular.get_api_response()
-    source_metadata_records = vernacular.parse(api_resp)
+    vernacular_reader = import_vernacular_reader(payload.get('mapper_type'))
+    source_vernacular = vernacular_reader(payload)
+    api_resp = source_vernacular.get_api_response()
+    source_metadata_records = source_vernacular.parse(api_resp)
     collection = payload.get('collection', {})
 
     for enrichment_url in collection.get('rikolti__pre_mapping'):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
+        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
+            continue
         print(f"running enrichment: {enrichment_func} with {kwargs}")
         source_metadata_records = [
             record.enrich(enrichment_func, **kwargs)
@@ -53,12 +69,14 @@ def lambda_handler(payload, context):
 
     mapped_records = [record.to_UCLDC() for record in source_metadata_records]
     writer = UCLDCWriter(payload)
-    if DEBUG:
+    if settings.DATA_DEST == 'local':
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
     for enrichment_url in collection.get('rikolti__enrichments'):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
+        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
+            continue
         if enrichment_func in ['required_values_from_collection_registry',
                                'set_ucldc_dataprovider']:
             kwargs.update({'collection': collection})
@@ -75,7 +93,7 @@ def lambda_handler(payload, context):
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    if DEBUG:
+    if settings.DATA_DEST == 'local':
         writer.write_local_mapped_metadata(mapped_metadata)
     else:
         writer.write_s3_mapped_metadata([
@@ -93,4 +111,4 @@ if __name__ == "__main__":
         description="Map metadata from the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    lambda_handler(args.payload, {})
+    map_page(args.payload, {})

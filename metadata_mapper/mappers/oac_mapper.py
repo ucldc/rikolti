@@ -1,119 +1,12 @@
-import os
 import re
 # import lxml
 from xml.etree import ElementTree as ET
 from collections import defaultdict
-from mapper import VernacularReader, Record
-from utils import exists, getprop, iterify
-
-URL_OAC_CONTENT_BASE = os.environ.get(
-    'URL_OAC_CONTENT_BASE', 'http://content.cdlib.org')
-
-# collection 25496 has coverage values like A0800 & A1000
-# drop these
-Anum_re = re.compile('A\d\d\d\d')
-CONTENT_SERVER = 'http://content.cdlib.org/'
+from .mapper import VernacularReader, Record
+from .utils import exists, getprop, iterify
 
 
-class OAC_Vernacular(VernacularReader):
-    def __init__(self, payload):
-        super(OAC_Vernacular, self).__init__(payload)
-        self.record_cls = OAC_DCRecord
-
-    # Directly copied from harvester codebase; not sure if this belongs here
-    def _get_doc_ark(self, docHit):
-        '''Return the object's ark from the xml etree docHit'''
-        ids = docHit.find('meta').findall('identifier')
-        ark = None
-        for i in ids:
-            if i.attrib.get('q', None) != 'local':
-                try:
-                    split = i.text.split('ark:')
-                except AttributeError:
-                    continue
-                if len(split) > 1:
-                    ark = ''.join(('ark:', split[1]))
-        return ark
-
-    # Directly copied from harvester codebase; not sure if this belongs here
-    def parse_reference_image(self, tag):
-        try:
-            x = int(tag.attrib['X'])
-        except ValueError:
-            x = 0
-        try:
-            y = int(tag.attrib['Y'])
-        except ValueError:
-            y = 0
-        src = ''.join((CONTENT_SERVER, tag.attrib['src']))
-        src = src.replace('//', '/').replace('/', '//', 1)
-        data = {
-            'X': x,
-            'Y': y,
-            'src': src,
-        }
-        return data
-
-    # Directly copied from harvester codebase; not sure if this belongs here
-    def parse_thumbnail(self, tag, document):
-        ark = self._get_doc_ark(document)
-        try:
-            x = int(tag.attrib['X'])
-        except ValueError:
-            x = 0
-        try:
-            y = int(tag.attrib['Y'])
-        except ValueError:
-            y = 0
-        src = ''.join((CONTENT_SERVER, '/', ark, '/thumbnail'))
-        src = src.replace('//', '/').replace('/', '//', 1)
-        data = {
-            'X': x,
-            'Y': y,
-            'src': src,
-        }
-        return data     # was not copied from harvester codebase - not sure?
-
-    # Directly copied from harvester codebase
-    def parse(self, api_response):
-        crossQueryResult = ET.fromstring(api_response)
-        facet_type_tab = crossQueryResult.find('facet')
-        docHits = facet_type_tab.findall('./group/docHit')
-
-        objset = []
-        for document in docHits:
-            obj = defaultdict(list)
-            meta = document.find('meta')
-            for tag in meta:
-                if tag.tag == 'google_analytics_tracking_code':
-                    continue
-                data = ''
-                if tag.tag == 'reference-image':
-                    obj[tag.tag].append(self.parse_reference_image(tag))
-                elif tag.tag == 'thumbnail':
-                    obj[tag.tag] = self.parse_thumbnail(tag, document)
-                elif len(list(tag)) > 0:
-                    # <snippet> tag breaks up text for findaid <relation>
-                    for innertext in tag.itertext():
-                        data = ''.join((data, innertext.strip()))
-                    if data:
-                        obj[tag.tag].append({
-                            'attrib': tag.attrib, 
-                            'text': data
-                        })
-                else:
-                    if tag.text:  # don't add blank ones
-                        obj[tag.tag].append({
-                            'attrib': tag.attrib, 
-                            'text': tag.text
-                        })
-            objset.append(obj)
-
-        objset = [self.record_cls(self.collection_id, obj) for obj in objset]
-        return objset
-
-
-class OAC_DCRecord(Record):
+class OacRecord(Record):
 
     def to_UCLDC(self):
         mapped_data = {"sourceResource": {}}
@@ -274,7 +167,7 @@ class OAC_DCRecord(Record):
                     dim = max(int(obj.get('X')), int(obj.get('Y')))
                     best_image = obj.get('src')
             if best_image and not best_image.startswith('http'):
-                best_image = '/'.join((URL_OAC_CONTENT_BASE, best_image))
+                best_image = f"http://content.cdlib.org/{best_image}"
         return best_image
 
     def map_item_count(self):
@@ -311,9 +204,12 @@ class OAC_DCRecord(Record):
                                 'temporal' not in c.get(
                                     'attrib', {}).get('q')):
                             coverage.append(c.get('text'))
+                        # collection 25496 has coverage values like 
+                        # A0800 & A1000 - drop these
+                        anum_re = re.compile('A\d\d\d\d')
                         if ('q' not in c.get('attrib', {}) and
                                 c.get('attrib', {}) is not None and
-                                not Anum_re.match(c.get('text'))):
+                                not anum_re.match(c.get('text'))):
                             coverage.append(c.get('text'))
         return coverage
 
@@ -334,3 +230,100 @@ class OAC_DCRecord(Record):
             "subject", suppress_attribs={'q': 'series'})
         subject_objs = [{'name': s} for s in subject_values]
         return subject_objs
+
+
+class OacVernacular(VernacularReader):
+    record_cls = OacRecord
+
+    # Directly copied from harvester codebase; not sure if this belongs here
+    def _get_doc_ark(self, docHit):
+        '''Return the object's ark from the xml etree docHit'''
+        ids = docHit.find('meta').findall('identifier')
+        ark = None
+        for i in ids:
+            if i.attrib.get('q', None) != 'local':
+                try:
+                    split = i.text.split('ark:')
+                except AttributeError:
+                    continue
+                if len(split) > 1:
+                    ark = ''.join(('ark:', split[1]))
+        return ark
+
+    # Directly copied from harvester codebase; not sure if this belongs here
+    def parse_reference_image(self, tag):
+        try:
+            x = int(tag.attrib['X'])
+        except ValueError:
+            x = 0
+        try:
+            y = int(tag.attrib['Y'])
+        except ValueError:
+            y = 0
+        src = f"http://content.cdlib.org/{tag.attrib['src']}"
+        src = src.replace('//', '/').replace('/', '//', 1)
+        data = {
+            'X': x,
+            'Y': y,
+            'src': src,
+        }
+        return data
+
+    # Directly copied from harvester codebase; not sure if this belongs here
+    def parse_thumbnail(self, tag, document):
+        ark = self._get_doc_ark(document)
+        try:
+            x = int(tag.attrib['X'])
+        except ValueError:
+            x = 0
+        try:
+            y = int(tag.attrib['Y'])
+        except ValueError:
+            y = 0
+        src = f"http://content.cdlib.org/{ark}/thumbnail"
+        src = src.replace('//', '/').replace('/', '//', 1)
+        data = {
+            'X': x,
+            'Y': y,
+            'src': src,
+        }
+        return data     # was not copied from harvester codebase - not sure?
+
+    # Directly copied from harvester codebase
+    def parse(self, api_response):
+        crossQueryResult = ET.fromstring(api_response)
+        facet_type_tab = crossQueryResult.find('facet')
+        docHits = facet_type_tab.findall('./group/docHit')
+
+        objset = []
+        for document in docHits:
+            obj = defaultdict(list)
+            meta = document.find('meta')
+            for tag in meta:
+                if tag.tag == 'google_analytics_tracking_code':
+                    continue
+                data = ''
+                if tag.tag == 'reference-image':
+                    obj[tag.tag].append(self.parse_reference_image(tag))
+                elif tag.tag == 'thumbnail':
+                    obj[tag.tag] = self.parse_thumbnail(tag, document)
+                elif len(list(tag)) > 0:
+                    # <snippet> tag breaks up text for findaid <relation>
+                    for innertext in tag.itertext():
+                        data = ''.join((data, innertext.strip()))
+                    if data:
+                        obj[tag.tag].append({
+                            'attrib': tag.attrib,
+                            'text': data
+                        })
+                else:
+                    if tag.text:  # don't add blank ones
+                        obj[tag.tag].append({
+                            'attrib': tag.attrib,
+                            'text': tag.text
+                        })
+            objset.append(obj)
+
+        objset = [self.record_cls(self.collection_id, obj) for obj in objset]
+        return objset
+

@@ -1,11 +1,11 @@
 import json
-import requests
 from xml.etree import ElementTree
-from Fetcher import Fetcher, FetchError
+from .Fetcher import Fetcher
 from urllib.parse import parse_qs
 from sickle import Sickle
 
 NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
+
 
 # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
 class OAIFetcher(Fetcher):

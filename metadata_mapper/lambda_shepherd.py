@@ -3,20 +3,8 @@ import os
 import boto3
 import sys
 import requests
-from lambda_function import lambda_handler
-
-DEBUG = os.environ.get('DEBUG', False)
-
-
-def local_path(folder, collection_id):
-    parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
-    local_path = os.sep.join([
-        parent_dir,
-        'rikolti_bucket',
-        folder,
-        str(collection_id),
-    ])
-    return local_path
+from lambda_function import map_page
+import settings
 
 
 def get_collection(collection_id):
@@ -30,7 +18,7 @@ def get_collection(collection_id):
 def check_for_missing_enrichments(collection):
     """Check for missing enrichments - used for development but
     could likely be removed in production?"""
-    from mapper import Record
+    from mappers.mapper import Record
     from urllib.parse import urlparse
 
     not_yet_implemented = []
@@ -49,8 +37,9 @@ def check_for_missing_enrichments(collection):
 
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # {"collection_id": 26098, "source_type": "nuxeo"}
-def lambda_shepherd(payload, context):
-    if DEBUG:
+# AWS Lambda entry point
+def map_collection(payload, context):
+    if settings.LOCAL_RUN:
         payload = json.loads(payload)
 
     collection_id = payload.get('collection_id')
@@ -65,21 +54,30 @@ def lambda_shepherd(payload, context):
     missing_enrichments = check_for_missing_enrichments(collection)
     if len(missing_enrichments) > 0:
         print(f"Missing enrichments: {missing_enrichments}")
-        exit()
 
-    if DEBUG:
-        vernacular_path = local_path('vernacular_metadata', collection_id)
+    if settings.DATA_SRC == 'local':
+        vernacular_path = settings.local_path(
+            'vernacular_metadata', collection_id)
         page_list = [f for f in os.listdir(vernacular_path)
                      if os.path.isfile(os.path.join(vernacular_path, f))]
         for page in page_list:
             payload.update({'page_filename': page})
-            lambda_handler(json.dumps(payload), {})
+            map_page(json.dumps(payload), {})
     else:
         # SKETCHY
         s3 = boto3.resource('s3')
         rikolti_bucket = s3.Bucket('rikolti')
         page_list = rikolti_bucket.objects.filter(
             Prefix=f'vernacular_metadata/{collection_id}')
+
+        lambda_client = boto3.client('lambda', region_name="us-west-2",)
+        for page in page_list:
+            payload.update({'page_filename': page.key})
+            lambda_client.invoke(
+                FunctionName="map_metadata",
+                InvocationType="Event",  # invoke asynchronously
+                Payload=json.dumps(payload).encode('utf-8')
+            )
 
 
 if __name__ == "__main__":
@@ -88,4 +86,4 @@ if __name__ == "__main__":
         description="Map metadata from the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    lambda_shepherd(args.payload, {})
+    map_collection(args.payload, {})

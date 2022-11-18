@@ -1,9 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  metadata-mapper-test
-
-  SAM Template for Rikolti metadata-mapper
+  SAM Template for Rikolti metadata_fetcher and metadata_mapper
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -11,20 +9,33 @@ Globals:
     Timeout: 3
 
 Resources:
-  MetadataMapperFunction:
+  MetadataFetcherFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: metadata_mapper/
-      Handler: lambda_shepherd.lambda_shepherd
+      FunctionName: fetch_metadata
+      CodeUri: metadata_fetcher/
+      Handler: lambda_function.fetch_collection
       Runtime: python3.9
       Architectures:
         - x86_64
-      #Events:
-      #  MetadataMapper:
-      #    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-      #    Properties:
-      #      Path: /map
-      #      Method: get
+  MetadataMapperShepherdFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: shepherd_mappers
+      CodeUri: metadata_mapper/
+      Handler: lambda_shepherd.map_collection
+      Runtime: python3.9
+      Architectures:
+        - x86_64
+  MetadataMapperMapPageFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: map_metadata
+      CodeUri: metadata_mapper/
+      Handler: lambda_function.map_page
+      Runtime: python3.9
+      Architectures:
+        - x86_64
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

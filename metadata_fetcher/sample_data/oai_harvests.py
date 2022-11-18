@@ -120,7 +120,7 @@ oai_harvests = [
   { # 26693: Fritz-Metcalf
     # 8,729 items
     # extra_data: metadataPrefix=marcxml&set=fritz-metcalf
-    # curl 'https://digicoll.lib.berkeley.edu/oai2d?verb=ListRecords&metadataPrefix=marcxml' > test_data/fritz-metcalf.xm
+    # curl 'https://digicoll.lib.berkeley.edu/oai2d?verb=ListRecords&metadataPrefix=marcxml' > sample_data/fritz-metcalf.xm
     # <resumptionToken completeListSize="46849" cursor="0" expirationDate="2022-10-12T21:50:56Z">___AzfqSX</resumptionToken>
     "collection_id": 26693,
     "harvest_type": "OAIFetcher",

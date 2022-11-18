@@ -3,11 +3,10 @@ import json
 import re
 import boto3
 from markupsafe import Markup   # used in Record.strip_html()
-import constants
-from iso639_1 import iso_639_1
-from iso639_3 import iso_639_3, language_regexes, wb_language_regexes
-
-DEBUG = os.environ.get('DEBUG', False)
+from . import constants
+from .iso639_1 import iso_639_1
+from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
+import settings
 
 
 class VernacularReader(object):
@@ -15,24 +14,15 @@ class VernacularReader(object):
         self.collection_id = payload.get('collection_id')
         self.page_filename = payload.get('page_filename')
 
-    def local_path(self, folder):
-        parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
-        local_path = os.sep.join([
-            parent_dir,
-            'rikolti_bucket',
-            folder,
-            str(self.collection_id),
-        ])
-        return local_path
-
     def get_api_response(self):
-        if DEBUG:
+        if settings.DATA_SRC == 'local':
             return self.get_local_api_response()
         else:
             return self.get_s3_api_response()
 
     def get_local_api_response(self):
-        local_path = self.local_path('vernacular_metadata')
+        local_path = settings.local_path(
+            'vernacular_metadata', self.collection_id)
         page_path = os.sep.join([local_path, str(self.page_filename)])
         page = open(page_path, "r")
         api_response = page.read()
@@ -52,18 +42,9 @@ class UCLDCWriter(object):
         self.collection_id = payload.get('collection_id')
         self.page_filename = payload.get('page_filename')
 
-    def local_path(self, folder):
-        parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
-        local_path = os.sep.join([
-            parent_dir,
-            'rikolti_bucket',
-            folder,
-            str(self.collection_id),
-        ])
-        return local_path
-
     def write_local_mapped_metadata(self, mapped_metadata):
-        local_path = self.local_path('mapped_metadata')
+        local_path = settings.local_path(
+            'mapped_metadata', self.collection_id)
         if not os.path.exists(local_path):
             os.makedirs(local_path)
         page_path = os.sep.join([local_path, str(self.page_filename)])
@@ -79,7 +60,6 @@ class UCLDCWriter(object):
             Bucket=bucket,
             Key=key,
             Body=json.dumps(mapped_metadata))
-
 
 
 class Record(object):
@@ -853,9 +833,14 @@ class Record(object):
         afaik, we're not implementing a deeply nested data structure
         so I'm not implementing recursion here.
         """
+        del_keys = []
         for key, val in self.mapped_data.items():
             if not val:
-                del self.mapped_data[key]
+                del_keys.append(key)
+
+        for key in del_keys:
+            del self.mapped_data[key]
+
         return self
 
     def set_ucldc_dataprovider(self, collection):

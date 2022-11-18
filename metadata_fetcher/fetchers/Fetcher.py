@@ -1,11 +1,8 @@
-import json
 import requests
-import time
 import os
+import settings
+import boto3
 
-DEBUG = os.environ.get('DEBUG', False)
-if not DEBUG:
-    import boto3
 
 class FetchError(Exception):
     pass
@@ -16,7 +13,7 @@ class Fetcher(object):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        bucket = os.environ.get('S3_BUCKET', False)
+        bucket = settings.S3_BUCKET
         self.s3_data = {
             "ACL": 'bucket-owner-full-control',
             "Bucket": bucket,
@@ -69,7 +66,7 @@ class Fetcher(object):
         response.raise_for_status()
 
         if self.check_page(response):
-            if DEBUG:
+            if settings.DATA_DEST == 'local':
                 self.fetchtolocal(response.text)
             else:
                 self.fetchtos3(response.text)
