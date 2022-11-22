@@ -55,7 +55,7 @@ We use development branches with descriptive names when working on a particular 
 When starting work on a given issue, please indicate the date started. If more information is needed to start work on an issue, please @ CDL staff. 
 
 When finishing work on a given issue: 
-1. Create a pull request to the main branch for a code owner to review. Be sure to link the pull request to the issue or set of issues it addresses, and add any relevant Labels ("mapper/fetcher"), Projects ("Rikolti MVP"), Milestones, and Sprints. 
+1. Create a pull request to the main branch for a code owner to review. Be sure to link the pull request to the issue or set of issues it addresses, and add any relevant Labels, Projects ("Rikolti MVP"), Milestones, and Sprints. 
 2. Indicate on the issue the date delivered, and move the issue to the "Ready for Review" state. 
 
 We use PR reviews to approve or reject, comment on, and request further iteration. It's the contributor's responsibility to keep their development branches up-to-date with `main` (or any other designated upstream branches). 
