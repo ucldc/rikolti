@@ -6,6 +6,12 @@ import troposphere.awslambda as awslambda
 import troposphere.iam as iam
 from awacs.aws import Action, Allow, PolicyDocument, Principal, Statement
 
+'''
+    THIS SCRIPT IS A STUB! We are not currently using this troposphere script
+    as it currently provides no advantage over just writing the template.yaml
+    file by hand. Keeping it around in case it becomes useful in the future,
+    e.g. for generating templates for different environment.
+'''
 def main():
 
     template = Template()
