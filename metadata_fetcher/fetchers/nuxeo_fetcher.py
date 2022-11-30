@@ -12,15 +12,16 @@ class NuxeoFetcher(Fetcher):
     def __init__(self, params):
         super(NuxeoFetcher, self).__init__(params)
 
+        path = params.get('harvest_data', {}).get('harvest_extra_data')
         nuxeo_defaults = {
-            'path': None,
+            'path': path,
             'fetch_children': True,
             'current_path': None,
             'query_type': 'documents',
             'api_page': 0,
             'prefix': ['r'],
         }
-        nuxeo_defaults.update(params.get('nuxeo'))
+        nuxeo_defaults.update(params.get('harvest_data'))
         self.nuxeo = nuxeo_defaults
 
         self.nuxeo_request_headers = {
@@ -142,7 +143,7 @@ class NuxeoFetcher(Fetcher):
         if query_type in ['documents', 'children'] and response.get('entries'):
             print(
                 f"Fetched page {self.nuxeo.get('api_page')} of "
-                f"{query_type} at {self.nuxeo.get('current_path')['path']}"
+                f"{query_type} at {self.nuxeo.get('current_path')['path']} "
                 f"with {len(response.get('entries'))} records"
             )
             documents = True
@@ -198,7 +199,7 @@ class NuxeoFetcher(Fetcher):
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": self.write_page,
-            "nuxeo": self.nuxeo
+            "harvest_data": self.nuxeo
         })
 
     def recurse(self, path=None, query_type=None, prefix=None):
@@ -207,7 +208,7 @@ class NuxeoFetcher(Fetcher):
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": 0,
-            "nuxeo": {
+            "harvest_data": {
                 'path': self.nuxeo['path'],
                 'fetch_children': self.nuxeo['fetch_children'],
                 'current_path': path if path else self.nuxeo['current_path'],

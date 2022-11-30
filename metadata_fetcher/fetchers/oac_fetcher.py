@@ -20,7 +20,7 @@ class OacFetcher(Fetcher):
     # }
     def __init__(self, params):
         super(OacFetcher, self).__init__(params)
-        self.oac = params.get('oac')
+        self.oac = params.get('harvest_data')
 
         url = self.oac.get('url')
         counts = self.oac.get('counts')
@@ -119,5 +119,5 @@ class OacFetcher(Fetcher):
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": self.write_page,
-            "oac": self.oac
+            "harvest_data": self.oac
         })

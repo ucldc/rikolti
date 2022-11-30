@@ -13,7 +13,7 @@ class OaiFetcher(Fetcher):
     def __init__(self, params):
         super(OaiFetcher, self).__init__(params)
 
-        self.oai = params.get('oai')
+        self.oai = params.get('harvest_data')
 
         if self.oai.get('query_params'):
             # see if we have a query string, e.g. "metadataPrefix=marcxml&set=fritz-metcalf"
@@ -111,6 +111,6 @@ class OaiFetcher(Fetcher):
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": self.write_page,
-            "oai": self.oai
+            "harvest_data": self.oai
         })
 
