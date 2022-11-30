@@ -19,7 +19,7 @@ def main():
     template.set_description("SAM Template for Rikolti metadata_fetcher and metadata_mapper")
     template.set_transform("AWS::Serverless-2016-10-31")
     template.set_version("2010-09-09")
-    template.set_globals({"function": {"Timeout": 3}})
+    template.set_globals({"function": {"Timeout": 900}})
 
     ####################
     ## PARAMETERS
