@@ -23,8 +23,6 @@ class Fetcher(object):
         self.write_page = params.get('write_page', 0)
         bucket = settings.S3_BUCKET
 
-        self.log_msg = f"[{self.collection_id}] " + "{msg}"
-
         self.s3_data = {
             "ACL": 'bucket-owner-full-control',
             "Bucket": bucket,
@@ -78,17 +76,17 @@ class Fetcher(object):
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             raise FetchError(
-                self.log_msg.format(msg=f"unable to fetch page {page}"))
+                f"[{self.collection_id}]: unable to fetch page {page}")
 
         if self.check_page(response):
             if settings.DATA_DEST == 'local':
                 self.fetchtolocal(response.text)
             else:
                 self.fetchtos3(response.text)
-        else:
-            print(self.log_msg.format(msg="fetched page is empty"))
 
         self.increment(response)
+
+        return self.json()
 
     def build_fetch_request(self):
         """build parameters for the institution's requests.get()

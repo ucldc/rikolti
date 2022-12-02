@@ -6,6 +6,7 @@ from urllib.parse import quote as urllib_quote
 import boto3
 import settings
 import subprocess
+import logging
 
 
 # {'harvest_data': {'harvest_extra_data'}}
@@ -29,8 +30,10 @@ class NuxeoFetcher(Fetcher):
             if not root_path.startswith('/'):
                 root_path = '/' + root_path
         except Exception as e:
-            msg = f"A path is required for fetching: {e}, {params}"
-            raise InvalidHarvestEndpoint(self.log_msg.format(msg=msg))
+            raise InvalidHarvestEndpoint(
+                f"[{self.collection_id}]: A path is required for fetching: "
+                f"{e}, {params}"
+            )
 
         # initialize default values for the fetcher
         nuxeo_defaults = {
@@ -59,10 +62,11 @@ class NuxeoFetcher(Fetcher):
                 response.raise_for_status()
             except Exception:
                 msg = (
-                    f"A path UID is required for fetching - error retrieving "
-                    f"uid for: {request['url']}"
+                    f"[{self.collection_id}]: "
+                    f"A path UID is required for fetching - could not find "
+                    f"root path uid: {request['url']}"
                 )
-                raise InvalidHarvestEndpoint(self.log_msg.format(msg=msg))
+                raise InvalidHarvestEndpoint(msg)
             self.nuxeo['current_path'] = {
                 'path': self.nuxeo['root_path'],
                 'uid': response.json().get('uid')
@@ -131,8 +135,10 @@ class NuxeoFetcher(Fetcher):
                 'query': query
             }
         }
-        print(
-            f"Fetching page {page} of {query_type} at {current_path['path']}")
+        logging.debug(
+            f"[{self.collection_id}]: Fetching page {page} of {query_type} at "
+            f"{self.nuxeo['prefix']} - {current_path['path']}"
+        )
 
         return request
 
@@ -154,11 +160,17 @@ class NuxeoFetcher(Fetcher):
 
         documents = False
         if query_type in ['documents', 'children'] and response.get('entries'):
-            print(
+            logging.debug(
+                f"[{self.collection_id}]: "
                 f"Fetched page {self.nuxeo.get('api_page')} of "
-                f"{query_type} at {self.nuxeo.get('current_path')['path']} "
+                f"{query_type} at {self.nuxeo['prefix']} - "
+                f"{self.nuxeo.get('current_path')['path']} "
                 f"with {len(response.get('entries'))} records"
             )
+            if query_type == 'documents':
+                num_docs = self.nuxeo.get('doc_count', [])
+                self.nuxeo['doc_count'] = (
+                    num_docs + [len(response.get('entries'))])
             documents = True
 
         if ((query_type == 'documents' and self.nuxeo['fetch_children'])
@@ -176,6 +188,10 @@ class NuxeoFetcher(Fetcher):
                        [f"fp-{self.nuxeo['api_page']}", f'f-{i}']
                     )
                 )
+
+        if not documents:
+            logging.debug(
+                f"[{self.collection_id}]: Fetched page is empty")
 
         return documents
 
@@ -202,18 +218,21 @@ class NuxeoFetcher(Fetcher):
             self.nuxeo['api_page'] += 1
             self.write_page = 0
         else:
-            self.nuxeo = None
+            self.nuxeo['finished'] = True
 
     def json(self):
-        if not self.nuxeo:
-            return None
-
-        return json.dumps({
+        current_state = {
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": self.write_page,
             "harvest_data": self.nuxeo
-        })
+        }
+        if self.nuxeo.get('finished'):
+            finished = {"finished": True}
+            finished.update(current_state)
+            return json.dumps(finished)
+
+        return json.dumps(current_state)
 
     def recurse(self, path=None, query_type=None, prefix=None):
         """Starts a new lambda function"""
