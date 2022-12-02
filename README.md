@@ -78,17 +78,25 @@ Make sure you [have SAM CLI installed](https://docs.aws.amazon.com/serverless-ap
 From the rikolti directory, which contains `template.yaml`, build the serverless applications:
 
 ```
-sam build
+sam build --use-container
 ```
 
-> **NOTES:**
->
+Using the `--user-container` option has SAM compile dependencies for each lambda function in a lambda-like docker container. This is necessary for compiling libraries such as lxml, which need to be natively compiled. The runtime and system architecture are defined for each lambda in the `template.yaml` file.
+
+> **NOTE**
 > There is a [troposphere](https://troposphere.readthedocs.io/en/latest/quick_start.html) script stub named `create_sam_template.py` checked into the repo. This script generates `template.yaml`, but we decided not to use it for now since the template is simple and we don't need to introduce another layer of tooling at this point. We might use it in the future to generate templates for different environments and such.
 
-> We will eventually want to use `sam build` with the `--use-container` option for compiling the `lxml` dependency for the `metadata_mapper`, as lxml needs to be natively compiled, i.e. has C bindings and is not pure python.
-
 Once built, deploy to AWS:
+
+Make sure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` env vars are set. Then, the first time you deploy:
+
+```
+sam deploy --guided
+```
+
+Follow the prompts. Say yes to save arguments to a `samconfig.toml` configuration file. Then on subsequent deploys you can just type:
 
 ```
 sam deploy
 ```
+
