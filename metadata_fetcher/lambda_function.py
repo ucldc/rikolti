@@ -14,8 +14,8 @@ def import_fetcher(harvest_type):
     class_type = ''.join([word.capitalize() for word in fetcher_module_words])
     fetcher_class = getattr(fetcher_module, f"{class_type}Fetcher")
     if fetcher_class not in Fetcher.__subclasses__():
-        print(f"{ harvest_type } not a subclass of Fetcher")
-        exit()
+        raise Exception(
+            f"Fetcher class {fetcher_class} not a subclass of Fetcher")
     return fetcher_class
 
 
@@ -57,3 +57,4 @@ if __name__ == "__main__":
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
     fetch_collection(args.payload, {})
+    sys.exit(0)

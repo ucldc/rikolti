@@ -8,7 +8,6 @@ import settings
 import subprocess
 
 
-
 # {'harvest_data': {'harvest_extra_data'}}
 # {'harvest_data': {'root_path', 'fetch_children', 'current_path', 'query_type', 'api_page', 'prefix'}}
 class NuxeoFetcher(Fetcher):
