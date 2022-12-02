@@ -4,6 +4,14 @@ import settings
 import boto3
 
 
+class InvalidHarvestEndpoint(Exception):
+    '''Raised when the harvest endpoint is invalid'''
+
+
+class CollectionIdRequired(Exception):
+    '''Raised when the collection id is invalid'''
+
+
 class FetchError(Exception):
     pass
 
@@ -14,13 +22,16 @@ class Fetcher(object):
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
         bucket = settings.S3_BUCKET
+
+        self.log_msg = f"[{self.collection_id}] " + "{msg}"
+
         self.s3_data = {
             "ACL": 'bucket-owner-full-control',
             "Bucket": bucket,
             "Key": f"vernacular_metadata/{self.collection_id}/"
         }
         if not self.collection_id:
-            print('no collection id!')
+            raise CollectionIdRequired("collection_id is required")
 
     def fetchtolocal(self, page):
         path = self.get_local_path()
@@ -62,14 +73,20 @@ class Fetcher(object):
 
     def fetch_page(self):
         page = self.build_fetch_request()
-        response = requests.get(**page)
-        response.raise_for_status()
+        try:
+            response = requests.get(**page)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            raise FetchError(
+                self.log_msg.format(msg=f"unable to fetch page {page}"))
 
         if self.check_page(response):
             if settings.DATA_DEST == 'local':
                 self.fetchtolocal(response.text)
             else:
                 self.fetchtos3(response.text)
+        else:
+            print(self.log_msg.format(msg="fetched page is empty"))
 
         self.increment(response)
 
