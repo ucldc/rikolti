@@ -64,7 +64,7 @@ def map_collection(payload, context):
             payload.update({'page_filename': page})
             map_page(json.dumps(payload), {})
     else:
-        # SKETCHY
+        # JUST A SKETCH
         s3 = boto3.resource('s3')
         rikolti_bucket = s3.Bucket('rikolti')
         page_list = rikolti_bucket.objects.filter(

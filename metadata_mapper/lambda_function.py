@@ -4,6 +4,7 @@ from urllib.parse import urlparse, parse_qs
 import settings
 import importlib
 from mappers.mapper import UCLDCWriter, Record, VernacularReader
+import logging
 
 
 def import_vernacular_reader(mapper_type):
@@ -61,7 +62,8 @@ def map_page(payload, context):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
             continue
-        print(f"running enrichment: {enrichment_func} with {kwargs}")
+        print(f"[{collection['id']}]: running enrichment: {enrichment_func}")
+        logging.debug(f"with kwargs: {kwargs}")
         source_metadata_records = [
             record.enrich(enrichment_func, **kwargs)
             for record in source_metadata_records
@@ -80,7 +82,8 @@ def map_page(payload, context):
         if enrichment_func in ['required_values_from_collection_registry',
                                'set_ucldc_dataprovider']:
             kwargs.update({'collection': collection})
-        print(f"running enrichment: {enrichment_func} with {kwargs}")
+        print(f"[{collection['id']}]: running enrichment: {enrichment_func}")
+        logging.debug(f"with kwargs: {kwargs}")
         mapped_records = [
             record.enrich(enrichment_func, **kwargs)
             for record in mapped_records
