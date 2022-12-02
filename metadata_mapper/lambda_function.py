@@ -62,8 +62,9 @@ def map_page(payload, context):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
             continue
-        print(f"[{collection['id']}]: running enrichment: {enrichment_func}")
-        logging.debug(f"with kwargs: {kwargs}")
+        logging.debug(
+            f"[{collection['id']}]: running enrichment: {enrichment_func} "
+            f"for page {payload['page_filename']} with kwargs: {kwargs}")
         source_metadata_records = [
             record.enrich(enrichment_func, **kwargs)
             for record in source_metadata_records
@@ -82,8 +83,9 @@ def map_page(payload, context):
         if enrichment_func in ['required_values_from_collection_registry',
                                'set_ucldc_dataprovider']:
             kwargs.update({'collection': collection})
-        print(f"[{collection['id']}]: running enrichment: {enrichment_func}")
-        logging.debug(f"with kwargs: {kwargs}")
+        logging.debug(
+            f"[{collection['id']}]: running enrichment: {enrichment_func} "
+            f"for page {payload['page_filename']} with kwargs: {kwargs}")
         mapped_records = [
             record.enrich(enrichment_func, **kwargs)
             for record in mapped_records
@@ -104,7 +106,7 @@ def map_page(payload, context):
 
     return {
         'statusCode': 200,
-        'body': json.dumps(payload)
+        'body': len(mapped_records)
     }
 
 

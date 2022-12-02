@@ -45,10 +45,9 @@ def map_endpoint(url):
                 continue
             results.append(return_val)
 
-            print(log_msg.format(f"{return_val}"))
-        collection_page = False
+            print(log_msg.format(f"{json.dumps(return_val)}"))
 
-    print(results)
+    print(json.dumps(results))
 
 
 if __name__ == "__main__":
