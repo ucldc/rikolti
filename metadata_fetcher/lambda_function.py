@@ -4,7 +4,7 @@ import sys
 import subprocess
 import settings
 import importlib
-from fetchers.Fetcher import Fetcher
+from fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
 
 
 def import_fetcher(harvest_type):
@@ -14,8 +14,8 @@ def import_fetcher(harvest_type):
     class_type = ''.join([word.capitalize() for word in fetcher_module_words])
     fetcher_class = getattr(fetcher_module, f"{class_type}Fetcher")
     if fetcher_class not in Fetcher.__subclasses__():
-        print(f"{ harvest_type } not a subclass of Fetcher")
-        exit()
+        raise Exception(
+            f"Fetcher class {fetcher_class} not a subclass of Fetcher")
     return fetcher_class
 
 
@@ -25,11 +25,22 @@ def fetch_collection(payload, context):
         payload = json.loads(payload)
 
     fetcher_class = import_fetcher(payload.get('harvest_type'))
-    fetcher = fetcher_class(payload)
 
-    fetcher.fetch_page()
+    try:
+        fetcher = fetcher_class(payload)
+        fetcher.fetch_page()
+    except InvalidHarvestEndpoint as e:
+        print(e)
+        return {
+            'statusCode': 400,
+            'body': json.dumps({
+                'error': repr(e),
+                'payload': payload
+            })
+        }
+
     next_page = fetcher.json()
-    if next_page:
+    if not json.loads(next_page).get('finished'):
         if settings.LOCAL_RUN:
             subprocess.run([
                 'python',
@@ -46,7 +57,7 @@ def fetch_collection(payload, context):
 
     return {
         'statusCode': 200,
-        'body': json.dumps(payload)
+        'body': next_page
     }
 
 
@@ -57,3 +68,4 @@ if __name__ == "__main__":
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
     fetch_collection(args.payload, {})
+    sys.exit(0)
