@@ -144,7 +144,7 @@ def validate_mapped_page(rikolti_records, solr_records, query):
     collections_search = solr(**query)
     num_solr_records = collections_search['response']['numFound']
     query['rows'] = 100
-    report = []
+    page_report = []
 
     while len(rikolti_records) and query['start'] < num_solr_records:
         print(
@@ -175,40 +175,38 @@ def validate_mapped_page(rikolti_records, solr_records, query):
                 solr_field = solr_record.get(field_name, None)
 
                 if rikolti_field != solr_field:
-                    report.append(f"ERROR: {harvest_id} {field_name} mismatch")
-                    report.append(
-                        f"{harvest_id}, {field_name}, "
-                        f"{rikolti_field}, {solr_field}"
+                    page_report.append(
+                        f"ERROR, field mismatch, {harvest_id}, "
+                        f"{field_name}, {rikolti_field}, {solr_field}"
                     )
 
                 field_type_check = True
                 if field_type:
                     if not field_type(rikolti_field):
                         field_type_check = False
-                        report.append(
-                            f"[ERROR: Invalid Type]: {harvest_id} has invalid "
-                            f"{field_name} in rikolti record: {rikolti_field}"
+                        page_report.append(
+                            f"ERROR, invalid type, {harvest_id}, "
+                            f"{field_name}, {rikolti_field}"
                         )
 
                 if field_validation and field_type_check:
                     if not field_validation(rikolti_field):
-                        report.append(
-                            f"[ERROR: Invalid]: {harvest_id} has invalid "
-                            f"{field_name} in rikolti record: {rikolti_field}"
+                        page_report.append(
+                            f"ERROR, invalid field, {harvest_id}, "
+                            f"{field_name}, {rikolti_field}"
                         )
             for field in partial_fidelity_fields:
                 rikolti_field = rikolti_record.get(field, None)
                 solr_field = solr_record.get(field, None)
                 if rikolti_field != solr_field:
-                    report.append(f"ERROR: {harvest_id} {field_name} mismatch")
-                    report.append(
-                        f"{harvest_id}, {field_name}, "
-                        f"{rikolti_field}, {solr_field}"
+                    page_report.append(
+                        f"WARN, field mismatch, {harvest_id}, "
+                        f"{field_name}, {rikolti_field}, {solr_field}"
                     )
 
         query['start'] = query['start'] + 100
-
-    return query, solr_records, report
+        print(f"page_report has {len(page_report)} errors")
+    return query, solr_records, page_report
 
 
     # print(
@@ -289,7 +287,7 @@ def validate_mapped_collection(payload):
         'rows': 0,
         'start': 0
     }
-    reports = []
+    collection_report = []
 
     for page in page_list:
         if settings.DATA_SRC == 'local':
@@ -311,11 +309,15 @@ def validate_mapped_collection(payload):
             f"{collection_id}--{r['calisphere-id']}": r for r in rikolti_records
         }
 
-        query, solr_records, report = validate_mapped_page(
+        query, solr_records, page_report = validate_mapped_page(
             rikolti_records, solr_records, query)
-        reports = reports + report
+        collection_report = collection_report + page_report
+        print(
+            f"[{collection_id}]: collection_report has "
+            f"{len(collection_report)} errors"
+        )
 
-    print(reports)
+    return collection_report
 
 
 if __name__ == "__main__":
@@ -324,4 +326,5 @@ if __name__ == "__main__":
         description="Validate mapped metadata against SOLR")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    validate_mapped_collection(args.payload)
+    collection_report = validate_mapped_collection(args.payload)
+    print(collection_report)
