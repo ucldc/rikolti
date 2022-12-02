@@ -8,15 +8,35 @@ import settings
 import subprocess
 
 
+
+# {'harvest_data': {'harvest_extra_data'}}
+# {'harvest_data': {'root_path', 'fetch_children', 'current_path', 'query_type', 'api_page', 'prefix'}}
 class NuxeoFetcher(Fetcher):
+    nuxeo_request_headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-NXDocumentProperties": "*",
+        "X-NXRepository": "default",
+        "X-Authentication-Token": settings.TOKEN
+    }
+
     def __init__(self, params):
         super(NuxeoFetcher, self).__init__(params)
+        # a root path is required for fetching from Nuxeo
+        try:
+            root_path = params['harvest_data']['root_path']
+        except KeyError:
+            root_path = params['harvest_data']['harvest_extra_data']
+            if not root_path.startswith('/'):
+                root_path = '/' + root_path
+        except Exception as e:
+            msg = f"A path is required for fetching: {e}, {params}"
+            raise InvalidHarvestEndpoint(self.log_msg.format(msg=msg))
 
-        path = params.get('harvest_data', {}).get('harvest_extra_data')
+        # initialize default values for the fetcher
         nuxeo_defaults = {
-            'path': path,
+            'root_path': root_path,
             'fetch_children': True,
-            'current_path': None,
             'query_type': 'documents',
             'api_page': 0,
             'prefix': ['r'],
@@ -24,16 +44,30 @@ class NuxeoFetcher(Fetcher):
         nuxeo_defaults.update(params.get('harvest_data'))
         self.nuxeo = nuxeo_defaults
 
-        self.nuxeo_request_headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "X-NXDocumentProperties": "*",
-            "X-NXRepository": "default",
-            "X-Authentication-Token": settings.TOKEN
-        }
-
+        # initialize current path with {path, uid} of root path
         if not self.nuxeo.get('current_path'):
-            self.nuxeo['current_path'] = self.get_path_uid()
+            root_path = self.nuxeo['root_path']
+            escaped_path = urllib_quote(root_path, safe=' /').strip('/')
+            request = {
+                'url': (
+                    "https://nuxeo.cdlib.org/Nuxeo/site/api/"
+                    f"v1/path/{escaped_path}"
+                ),
+                'headers': self.nuxeo_request_headers
+            }
+            try:
+                response = requests.get(**request)
+                response.raise_for_status()
+            except Exception:
+                msg = (
+                    f"A path UID is required for fetching - error retrieving "
+                    f"uid for: {request['url']}"
+                )
+                raise InvalidHarvestEndpoint(self.log_msg.format(msg=msg))
+            self.nuxeo['current_path'] = {
+                'path': self.nuxeo['root_path'],
+                'uid': response.json().get('uid')
+            }
 
         if self.nuxeo['query_type'] == 'children':
             if settings.DATA_DEST == 'local':
@@ -57,26 +91,6 @@ class NuxeoFetcher(Fetcher):
             # in which case, api_page corresponds to document page
             write_page = self.nuxeo['prefix'] + [f"{self.nuxeo['api_page']}"]
             self.write_page = '-'.join(write_page)
-
-    def get_path_uid(self):
-        ''' get nuxeo {path, uid} for doc at given path '''
-        path = self.nuxeo.get('path')
-        escaped_path = urllib_quote(path, safe=' /').strip('/')
-        request = {
-            'url': (
-                "https://nuxeo.cdlib.org/Nuxeo/site/api/"
-                f"v1/path/{escaped_path}"
-            ),
-            'headers': self.nuxeo_request_headers
-        }
-        response = requests.get(**request)
-        response.raise_for_status()
-        uid = response.json().get('uid')
-        current_path = {
-            'path': path,
-            'uid': uid
-        }
-        return current_path
 
     def build_fetch_request(self):
         query_type = self.nuxeo.get('query_type')
@@ -209,7 +223,7 @@ class NuxeoFetcher(Fetcher):
             "collection_id": self.collection_id,
             "write_page": 0,
             "harvest_data": {
-                'path': self.nuxeo['path'],
+                'root_path': self.nuxeo['root_path'],
                 'fetch_children': self.nuxeo['fetch_children'],
                 'current_path': path if path else self.nuxeo['current_path'],
                 'query_type': (query_type if query_type else
