@@ -43,9 +43,9 @@ cd ../metadata-mapper/
 pip install -r requirements.txt
 ```
 
-Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments. 
+Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments.
 
-> TODO: Currently working to integrate SAM across this repository, which may forgo any need to manage a virtual environment at all. (SAM local runs in Docker).
+Note: We tried using `sam local` to develop the app locally and found that the overhead makes for a clunky and slow process that doesn't offer advantages over the local virtualenv development setup described above. We are using AWS SAM to build and deploy the lambda applications, however ([see below](#deploying-using-aws-sam)).
 
 ## Development Contribution Process
 The [Rikolti Wiki](https://github.com/ucldc/rikolti/wiki/) contains lots of helpful technical information. The [GitHub Issues](https://github.com/ucldc/rikolti/issues) tool tracks Rikolti development tasks. We organize issues using the GitHub project board [Rikolti MVP](https://github.com/orgs/ucldc/projects/1/views/1) to separate work out into [Milestones](https://github.com/ucldc/rikolti/milestones) and [Sprints](https://github.com/orgs/ucldc/projects/1/views/5). 
@@ -68,3 +68,35 @@ We use PR reviews to approve or reject, comment on, and request further iteratio
 - DRY
 - Readability & Transparency: Code as language
 - Favor explicitness over defensiveness
+
+## Deploying Using AWS SAM
+
+We are using AWS SAM to build the rikolti lambda applications and deploy to AWS. Following are proposed steps for building and deploying using SAM:
+
+Make sure you [have SAM CLI installed](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
+
+From the rikolti directory, which contains `template.yaml`, build the serverless applications:
+
+```
+sam build --use-container
+```
+
+Using the `--user-container` option has SAM compile dependencies for each lambda function in a lambda-like docker container. This is necessary for compiling libraries such as lxml, which need to be natively compiled. The runtime and system architecture are defined for each lambda in the `template.yaml` file.
+
+> **NOTE**
+> There is a [troposphere](https://troposphere.readthedocs.io/en/latest/quick_start.html) script stub named `create_sam_template.py` checked into the repo. This script generates `template.yaml`, but we decided not to use it for now since the template is simple and we don't need to introduce another layer of tooling at this point. We might use it in the future to generate templates for different environments and such.
+
+Once built, deploy to AWS:
+
+Make sure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` env vars are set. Then, the first time you deploy:
+
+```
+sam deploy --guided
+```
+
+Follow the prompts. Say yes to save arguments to a `samconfig.toml` configuration file. Then on subsequent deploys you can just type:
+
+```
+sam deploy
+```
+

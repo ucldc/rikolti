@@ -9,3 +9,5 @@ env.local
 .vscode/
 local_settings.py
 rikolti_bucket/
+.aws-sam/
+samconfig.toml
