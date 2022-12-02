@@ -4,7 +4,7 @@ import boto3
 import requests
 import json
 import settings
-
+import logging
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -146,17 +146,19 @@ def validate_mapped_page(rikolti_records, solr_records, query):
     query['rows'] = 100
     page_report = []
 
-    while len(rikolti_records) and query['start'] < num_solr_records:
-        print(
+    while len(rikolti_records):
+        logging.debug(
             f"records remaining on this page: {len(rikolti_records)} "
             f"vs. records fetched from solr: {len(solr_records)}"
         )
-        print(query)
-        collections_search = solr(**query)
-        collections_search = collections_search.get(
-            'response', {'docs': None}).get('docs', [])
-        solr_records.update(
-            {r['harvest_id_s']: r for r in collections_search})
+        logging.debug(query)
+
+        if query['start'] < num_solr_records:
+            collections_search = solr(**query)
+            collections_search = collections_search.get(
+                'response', {'docs': None}).get('docs', [])
+            solr_records.update(
+                {r['harvest_id_s']: r for r in collections_search})
 
         page_intersection = list(
             set(rikolti_records.keys()).intersection(solr_records.keys())
@@ -205,7 +207,7 @@ def validate_mapped_page(rikolti_records, solr_records, query):
                     )
 
         query['start'] = query['start'] + 100
-        print(f"page_report has {len(page_report)} errors")
+        logging.debug(f"this page intersection had {len(page_report)} errors")
     return query, solr_records, page_report
 
 
@@ -306,15 +308,17 @@ def validate_mapped_collection(payload):
 
         rikolti_records = json.loads(mapped_metadata)
         rikolti_records = {
-            f"{collection_id}--{r['calisphere-id']}": r for r in rikolti_records
+            f"{collection_id}--{r['calisphere-id']}": r
+            for r in rikolti_records
         }
 
+        print(f"[{collection_id}]: Validating page {page_path.split('/')[-1]}")
         query, solr_records, page_report = validate_mapped_page(
             rikolti_records, solr_records, query)
         collection_report = collection_report + page_report
         print(
-            f"[{collection_id}]: collection_report has "
-            f"{len(collection_report)} errors"
+            f"[{collection_id}]: Validated page {page_path.split('/')[-1]} "
+            f"- {len(collection_report)} errors"
         )
 
     return collection_report

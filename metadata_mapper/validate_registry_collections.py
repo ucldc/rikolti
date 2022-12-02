@@ -69,5 +69,5 @@ if __name__ == "__main__":
     parser.add_argument('endpoint', help='registry api endpoint')
     args = parser.parse_args(sys.argv[1:])
     validation_errors = validate_collections(args.endpoint)
-    print(validation_errors)
+    # print(validation_errors)
     sys.exit(0)
