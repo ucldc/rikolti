@@ -112,12 +112,15 @@ class OacFetcher(Fetcher):
         return
 
     def json(self):
-        if not self.oac.get('current_group'):
-            return None
-
-        return json.dumps({
+        current_state = {
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": self.write_page,
             "harvest_data": self.oac
-        })
+        }
+        if not self.oac.get('current_group'):
+            finished = {"finished": True}
+            finished.update(current_state)
+            return json.dumps(finished)
+
+        return json.dumps(current_state)
