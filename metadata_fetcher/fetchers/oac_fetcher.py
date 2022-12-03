@@ -119,8 +119,6 @@ class OacFetcher(Fetcher):
             "harvest_data": self.oac
         }
         if not self.oac.get('current_group'):
-            finished = {"finished": True}
-            finished.update(current_state)
-            return json.dumps(finished)
+            current_state.update({"finished": True})
 
         return json.dumps(current_state)
