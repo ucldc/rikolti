@@ -228,9 +228,7 @@ class NuxeoFetcher(Fetcher):
             "harvest_data": self.nuxeo
         }
         if self.nuxeo.get('finished'):
-            finished = {"finished": True}
-            finished.update(current_state)
-            return json.dumps(finished)
+            current_state.update({"finished": True})
 
         return json.dumps(current_state)
 
