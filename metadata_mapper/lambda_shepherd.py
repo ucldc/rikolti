@@ -53,18 +53,28 @@ def map_collection(payload, context):
 
     missing_enrichments = check_for_missing_enrichments(collection)
     if len(missing_enrichments) > 0:
-        print(f"Missing enrichments: {missing_enrichments}")
+        print(f"[{collection_id}]: Missing enrichments: {missing_enrichments}")
 
     if settings.DATA_SRC == 'local':
         vernacular_path = settings.local_path(
             'vernacular_metadata', collection_id)
         page_list = [f for f in os.listdir(vernacular_path)
                      if os.path.isfile(os.path.join(vernacular_path, f))]
+        count = 0
         for page in page_list:
             payload.update({'page_filename': page})
-            map_page(json.dumps(payload), {})
+            return_val = map_page(json.dumps(payload), {})
+            count += return_val['body']
+        return {
+            'statusCode': 200, 
+            'body': {
+                'collection_id': collection_id,
+                'missing_enrichments': missing_enrichments,
+                'count': count,
+            }
+        }
     else:
-        # SKETCHY
+        # JUST A SKETCH
         s3 = boto3.resource('s3')
         rikolti_bucket = s3.Bucket('rikolti')
         page_list = rikolti_bucket.objects.filter(

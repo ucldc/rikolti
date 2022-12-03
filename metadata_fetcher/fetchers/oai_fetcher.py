@@ -102,15 +102,14 @@ class OaiFetcher(Fetcher):
 
         return
 
-
     def json(self):
-        if not self.oai.get('resumption_token'):
-            return None
-
-        return json.dumps({
+        current_state = {
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": self.write_page,
             "harvest_data": self.oai
-        })
+        }
+        if not self.oai.get('resumption_token'):
+            current_state.update({"finished": True})
 
+        return json.dumps(current_state)
