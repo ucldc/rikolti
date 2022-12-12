@@ -15,18 +15,18 @@ class OaiFetcher(Fetcher):
 
         self.oai = params.get('harvest_data')
 
-        if self.oai.get('query_params'):
+        if self.oai.get('harvest_extra_data'):
             # see if we have a query string, e.g. "metadataPrefix=marcxml&set=fritz-metcalf"
             parsed_params = {
                 k: v[0] 
-                for k, v in parse_qs(self.oai.get('query_params')).items()
+                for k, v in parse_qs(self.oai.get('harvest_extra_data')).items()
             }
             self.metadata_prefix = parsed_params.get('metadataPrefix')
             self.metadata_set = parsed_params.get('set')
 
             # if not, then assume we just have a string value for set, e.g. "big-pine-citizen-newspaper"
             if not parsed_params:
-                self.metadata_set = self.oai.get('query_params')
+                self.metadata_set = self.oai.get('harvest_extra_data')
         else:
             self.metadata_prefix = self.oai.get('metadata_prefix')
             self.metadata_set = self.oai.get('metadata_set')
@@ -66,7 +66,7 @@ class OaiFetcher(Fetcher):
         request = {"url": url}
 
         print(
-            f"{self.collection_id}: Fetching page {self.write_page} "
+            f"[{self.collection_id}]: Fetching page {self.write_page} "
             f"at {request.get('url')}")
 
         return request
@@ -82,7 +82,7 @@ class OaiFetcher(Fetcher):
                 f"&set={self.metadata_set}"
             )
             print(
-                f"{self.collection_id}: Fetched page {self.write_page} "
+                f"[{self.collection_id}]: Fetched page {self.write_page} "
                 f"at {requested_url} "
                 f"with {len(xml_hits)} hits"
             )

@@ -5,7 +5,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "query_params": "pvld_4833"
+      "harvest_extra_data": "pvld_4833"
     }
   },
   {
@@ -14,7 +14,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "query_params": "pvld_4048"
+      "harvest_extra_data": "pvld_4048"
     }
   },
   {
@@ -23,7 +23,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "query_params": "pvld_4020"
+      "harvest_extra_data": "pvld_4020"
     }
   },
   {
@@ -32,7 +32,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "query_params": "pvld_4017"
+      "harvest_extra_data": "pvld_4017"
     }
   },
   {
@@ -41,7 +41,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "query_params": "pvld_2"
+      "harvest_extra_data": "pvld_2"
     }
   },
   {
@@ -50,7 +50,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "query_params": "pvld_4256"
+      "harvest_extra_data": "pvld_4256"
     }
   },
   {
@@ -59,7 +59,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "query_params": "pvld_4406"
+      "harvest_extra_data": "pvld_4406"
     }
   },
   {
@@ -68,7 +68,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://www.palosverdeshistory.org/oai2",
-      "query_params": "pvld_homes"
+      "harvest_extra_data": "pvld_homes"
     }
   },
   {
@@ -79,7 +79,7 @@ oai_harvests = [
     'harvest_type': "oai",
     "harvest_data": {
         'url': "https://digicoll.lib.berkeley.edu/oai2d",
-        'query_params': "metadataPrefix=marcxml&set=sugoroku"
+        'harvest_extra_data': "metadataPrefix=marcxml&set=sugoroku"
     }
   },
   {
@@ -91,7 +91,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "http://oai.quartexcollections.com/lmudigitalcollections/oai2",
-      "query_params": "big-pine-citizen-newspaper"
+      "harvest_extra_data": "big-pine-citizen-newspaper"
     }
   },
   {
@@ -104,7 +104,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "https://digicoll.lib.berkeley.edu/oai2d",
-      "query_params": "metadataPrefix=marcxml&set=fritz-metcalf"
+      "harvest_extra_data": "metadataPrefix=marcxml&set=fritz-metcalf"
     }
   },
   {
@@ -115,7 +115,7 @@ oai_harvests = [
     "harvest_type": "oai",
     "harvest_data": {
       "url": "https://glbt.i8.dgicloud.com/oai/request",
-      "query_params": "node:23758"
+      "harvest_extra_data": "node:23758"
     }
   }
 ]
