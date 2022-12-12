@@ -7,6 +7,11 @@ from mappers.mapper import UCLDCWriter, Record, VernacularReader
 import logging
 
 
+def all_subclasses(cls):
+    return set(cls.__subclasses__()).union(
+        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+
+
 def import_vernacular_reader(mapper_type):
     """
     accept underscored_module_name_prefixes
@@ -25,7 +30,7 @@ def import_vernacular_reader(mapper_type):
     vernacular_class = getattr(
         mapper_module, f"{class_type}Vernacular")
 
-    if vernacular_class not in VernacularReader.__subclasses__():
+    if vernacular_class not in all_subclasses(VernacularReader):
         print(f"{ mapper_type } not a subclass of VernacularReader")
         exit()
     return vernacular_class
