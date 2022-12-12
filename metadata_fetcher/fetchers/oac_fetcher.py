@@ -94,7 +94,7 @@ class OacFetcher(Fetcher):
         return bool(len(xml_hits))
 
     def increment(self, http_resp):
-        super(OACFetcher, self).increment(http_resp)
+        super(OacFetcher, self).increment(http_resp)
 
         response = ElementTree.fromstring(http_resp.content)
         current_group = self.oac.get('current_group')
