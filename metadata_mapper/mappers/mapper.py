@@ -66,6 +66,7 @@ class Record(object):
     def __init__(self, col_id, record):
         self.collection_id = col_id
         self.source_metadata = record
+        self.pre_mapped_data = {}
 
     # Mapper Helpers
     def collate_subfield(self, field, subfield):
@@ -123,8 +124,9 @@ class Record(object):
     def select_oac_id(self):
         """
         called 574 times with no parameters
+        only ever called prior to mapping, so update self.pre_mapped_data
         """
-        id_values = self.mapped_data.get("identifier")
+        id_values = self.source_metadata.get("identifier")
         if not isinstance(id_values, list):
             id_values = [id_values]
 
@@ -137,9 +139,10 @@ class Record(object):
         else:
             calisphere_id = id_values[0]
 
-        self.mapped_data["id"] = f"{self.collection_id}--{calisphere_id}"
-        self.mapped_data["isShownAt"] = calisphere_id
-        self.mapped_data["isShownBy"] = f"{calisphere_id}/thumbnail"
+        self.pre_mapped_data["id"] = f"{self.collection_id}--{calisphere_id}"
+        self.pre_mapped_data["isShownAt"] = calisphere_id
+        self.pre_mapped_data["isShownBy"] = f"{calisphere_id}/thumbnail"
+
         return self
 
     def select_cmis_atom_id(self):
@@ -219,7 +222,7 @@ class Record(object):
             # self.mapped_data["@context"] = "http://dp.la/api/items/context"
         return self
 
-    def shred(self, field, delim=";"):
+    def shred(self, prop, delim=";"):
         """
         Based on DPLA-Ingestion service that accepts a JSON document and
         "shreds" the value of the field named by the "prop" parameter
@@ -231,13 +234,13 @@ class Record(object):
         Duplicate values are removed.
 
         called with the following parameters:
-        2,078 times:    field=["sourceResource/spatial"],       delim = ["--"]
-        1,021 times:    field=["sourceResource/subject/name"]
-        1,021 times:    field=["sourceResource/creator"]
-        1,021 times:    field=["sourceResource/type"]
-        5 times:        field=["sourceResource/description"],   delim=["<br>"]
+        2,078 times:    prop=["sourceResource/spatial"],       delim = ["--"]
+        1,021 times:    prop=["sourceResource/subject/name"]
+        1,021 times:    prop=["sourceResource/creator"]
+        1,021 times:    prop=["sourceResource/type"]
+        5 times:        prop=["sourceResource/description"],   delim=["<br>"]
         """
-        field = field[0].split('/')[1:]     # remove sourceResource
+        field = prop[0].split('/')[1:][0]     # remove sourceResource
         delim = delim[0]
 
         if field not in self.mapped_data:
@@ -308,8 +311,8 @@ class Record(object):
                     to_prop=["sourceResource/title"]
         """
 
-        src = prop[0].split('/')[1:]
-        dest = to_prop[0].split('/')[1:]
+        src = prop[0].split('/')[-1]
+        dest = to_prop[0].split('/')[-1]
         skip_if_exists = bool(skip_if_exists[0] in ['True', 'true'])
 
         if ((dest in self.mapped_data and skip_if_exists) or
@@ -384,7 +387,7 @@ class Record(object):
 
         return self
 
-    def lookup(self, prop, target, substitution, inverse=False):
+    def lookup(self, prop, target, substitution, inverse=[False]):
         """
         dpla-ingestion code has a delnonexisting parameter that is not used by
         our enrichment chain, so I've not implemented it here.
@@ -417,21 +420,23 @@ class Record(object):
                     target=["sourceResource/format"],
                     substitution=["scdl_fix_format"]
         """
-        src = prop[0].split('/')[-1]  # remove sourceResource
-        dest = target[0].split('/')[-1]  # remove sourceResource
+        src = prop[0].split('/')[1:]  # remove sourceResource
+        dest = target[0].split('/')[1:]  # remove sourceResource
         substitution = substitution[0]
         inverse = bool(inverse[0] in ['True', 'true'])
 
         # TODO: this won't actually work for deeply nested fields
 
-        if src not in self.mapped_data:
-            print(
-                f"Source field {src} not in "
-                "record {self.mapped_data.get('id')}"
-            )
-            return self
+        src_values = self.mapped_data
+        for src_field in src:
+            if src_field not in src_values:
+                print(
+                    f"Source field {src} not in "
+                    f"record {self.mapped_data.get('id')}"
+                )
+                return self
+            src_values = src_values.get(src_field)
 
-        src_values = self.mapped_data[src]
         if isinstance(src_values, str):
             src_values = [src_values]
 
@@ -462,7 +467,7 @@ class Record(object):
         2080 times: prop=["sourceResource/stateLocatedIn"]
         """
         src = prop[0].split('/')[-1]  # remove sourceResource
-        if src not in self.mapped_data():
+        if src not in self.mapped_data:
             return self
 
         print('enrich_location not implemented')
@@ -484,7 +489,7 @@ class Record(object):
         record_types = [t.lower().rstrip('s') for t in record_types]
         mapped_type = None
         for record_type in record_types:
-            if constants.type_mape[record_type]:
+            if record_type in constants.type_map:
                 mapped_type = constants.type_map[record_type]
                 break
 
@@ -662,7 +667,7 @@ class Record(object):
         2080 times: prop=sourceResource/stateLocatedIn
                     value=California
         """
-        prop = prop.split('/')[-1]  # remove sourceResource
+        prop = prop[0].split('/')[-1]  # remove sourceResource
         self.mapped_data[prop] = value
         return self
 
@@ -932,6 +937,8 @@ class Record(object):
             self.mapped_data.update(item_context)
         elif self.mapped_data.get("ingestType"):
             self.mapped_data.update(collection_context)
+
+        return self
 
     def capitalize_value(self, exclude):
         """
