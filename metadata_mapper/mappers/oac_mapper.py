@@ -9,35 +9,22 @@ from .utils import exists, getprop, iterify
 class OacRecord(Record):
 
     def to_UCLDC(self):
-        mapped_data = {"sourceResource": {}}
+        mapped_data = {}
 
-        id = self.source_metadata.get("id", "")
+        id = self.pre_mapped_data.get("id", "")
         mapped_data.update({
             "id": id,
-            "_id": self.source_metadata.get("_id"),
-            "@id": f"http://ucldc.cdlib.org/api/items/{id}",
-            "originalRecord": self.source_metadata.get("originalRecord"),
-            "ingestDate": self.source_metadata.get("ingestDate"), 
-            "ingestType": self.source_metadata.get("ingestType"), 
-            "ingestionSequence": self.source_metadata.get("ingestionSequence"),
+            "originalRecord": self.source_metadata,
             # This is set in select-oac-id but must be added to mapped data
-            'isShownAt': self.source_metadata.get('isShownAt', None),
-            'provider': self.source_metadata.get('provider'),
-            'dataProvider': self.source_metadata.get(
-                'originalRecord', {}).get('collection'),
+            'isShownAt': self.pre_mapped_data.get('isShownAt', None),
             'isShownBy': self.get_best_oac_image(),
-            'item_count': self.map_item_count(),
         })
 
-        mapped_data = self.remove_if_none([
-            "provider",
-            "dataProvider",
-            "isShownBy",
-            "item_count",
-        ], mapped_data)
+        if mapped_data["isShownBy"] is None:
+            mapped_data.pop("isShownBy")
 
         """Maps the mapped_data sourceResource fields."""
-        mapped_data["sourceResource"].update({
+        mapped_data.update({
             "contributor": self.get_vals("contributor"),
             "creator": self.get_vals("creator"),
             "extent": self.get_vals("extent"),
@@ -69,7 +56,7 @@ class OacRecord(Record):
             'spatial': self.map_spatial(),
             'temporal': self.map_temporal(),
         })
-            
+
         mapped_data = self.remove_if_empty_list([
             "copyrightDate", 
             "alternativeTitle", 
@@ -80,18 +67,14 @@ class OacRecord(Record):
             "spatial",
             "temporal"
         ], mapped_data)
-        return mapped_data
 
-    def remove_if_none(self, fields, mapped_data):
-        for field in fields:
-            if mapped_data[field] is None:
-                mapped_data.pop(field)
-        return mapped_data
+        self.mapped_data = mapped_data
+        return self
 
     def remove_if_empty_list(self, fields, mapped_data):
         for field in fields:
-            if mapped_data["sourceResource"][field] == []:
-                mapped_data["sourceResource"].pop(field)
+            if mapped_data[field] == []:
+                mapped_data.pop(field)
         return mapped_data
 
     def get_vals(self, provider_prop, suppress_attribs={}):
@@ -230,6 +213,9 @@ class OacRecord(Record):
             "subject", suppress_attribs={'q': 'series'})
         subject_objs = [{'name': s} for s in subject_values]
         return subject_objs
+
+    def to_dict(self):
+        return self.pre_mapped_data.update(self.mapped_data)
 
 
 class OacVernacular(VernacularReader):
