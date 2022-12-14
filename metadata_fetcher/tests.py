@@ -10,7 +10,7 @@ import settings
 harvests = [
     oac_harvests[0], oai_harvests[0]
 ]
-if settings.TOKEN:
+if settings.NUXEO_TOKEN:
     harvests = harvests + [
         nuxeo_harvests[0], nuxeo_complex_object_harvests[0],
         nuxeo_nested_complex_object_harvests[0]
@@ -33,7 +33,7 @@ urls = [
     "https://registry.cdlib.org/api/v1/rikoltifetcher/26773/?format=json"
 ]
 
-if settings.TOKEN:
+if settings.NUXEO_TOKEN:
     urls = urls + [
         # harvest type = NUX
         "https://registry.cdlib.org/api/v1/rikoltifetcher/?format=json&harvest_type=NUX",

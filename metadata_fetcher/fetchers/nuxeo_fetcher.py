@@ -16,7 +16,7 @@ class NuxeoFetcher(Fetcher):
         "Content-Type": "application/json",
         "X-NXDocumentProperties": "*",
         "X-NXRepository": "default",
-        "X-Authentication-Token": settings.TOKEN
+        "X-Authentication-Token": settings.NUXEO_TOKEN
     }
 
     def __init__(self, params):
