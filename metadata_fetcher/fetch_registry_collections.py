@@ -6,12 +6,12 @@ import lambda_function
 import logging
 
 
-def fetch_endpoint(url):
+def fetch_endpoint(url, limit=None):
 
     collection_page = url
     results = []
 
-    while collection_page:
+    while collection_page and (not limit or len(results) < limit):
         response = requests.get(url=collection_page)
         response.raise_for_status()
         total_collections = response.json().get('meta', {}).get('total_count')
@@ -24,8 +24,10 @@ def fetch_endpoint(url):
         if collection_page:
             collection_page = f"https://registry.cdlib.org{collection_page}"
         logging.debug(f"Next page: {collection_page}")
-        collections = response.json().get('objects')
+        collections = response.json().get('objects', [response.json()])
         for collection in collections:
+            if limit and len(results) >= limit:
+                break
             log_msg = f"[{collection['collection_id']}]: " + "{}"
             print(log_msg.format(
                 f"Fetching collection {collection['collection_id']} - "

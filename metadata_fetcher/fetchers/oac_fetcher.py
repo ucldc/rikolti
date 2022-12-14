@@ -71,7 +71,7 @@ class OacFetcher(Fetcher):
             f"&group={current_group}"
         )}
         print(
-            f"{self.collection_id}: Fetching page "
+            f"[{self.collection_id}]: Fetching page "
             f"at {request.get('url')}")
 
         return request
@@ -87,14 +87,14 @@ class OacFetcher(Fetcher):
                 f"startDoc={harvested+1}&group={current_group}"
             )
             print(
-                f"{self.collection_id}: Fetched page "
+                f"[{self.collection_id}]: Fetched page "
                 f"at {requested_url} "
                 f"with {len(xml_hits)} hits"
             )
         return bool(len(xml_hits))
 
     def increment(self, http_resp):
-        super(OACFetcher, self).increment(http_resp)
+        super(OacFetcher, self).increment(http_resp)
 
         response = ElementTree.fromstring(http_resp.content)
         current_group = self.oac.get('current_group')
