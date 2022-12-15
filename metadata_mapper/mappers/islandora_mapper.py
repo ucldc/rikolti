@@ -157,6 +157,8 @@ class IslandoraRecord(Record):
             # objects & test to make sure the link resolves
             if 'image' or 'StillImage' in self.source_metadata.get('type', ''):
                 jpg_url = thumb_url.replace("/TN/", "/JPG/")
+                # TODO: should figure out a way to punt a request
+                # to minimize the mapper's reliance on external systems
                 request = requests.get(jpg_url)
                 if request.status_code == 200:
                     thumb_url = jpg_url
