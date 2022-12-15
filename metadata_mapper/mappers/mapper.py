@@ -354,18 +354,22 @@ class Record(object):
         # 2079 times: prop=["sourceResource/spatial"]
         """
         src = prop[0].split('/')[-1]   # remove sourceResource
-        if src not in self.mapped_data:
+        src_values = self.mapped_data.get(src)
+        if not src_values:
             return self
-
-        src_values = self.mapped_data[src]
         if isinstance(src_values, str):
             src_values = [src_values]
-        remove = []
+
         dest_values = self.mapped_data.get(dest, [])
+        if not dest_values:
+            dest_values = []
         if isinstance(dest_values, str):
             dest_values = [dest_values]
 
+        remove = []
         for value in src_values:
+            if not isinstance(value, str):
+                continue
             cleaned_value = re.sub(r"[\(\)\.\?]", "", value)
             cleaned_value = cleaned_value.strip()
             for pattern in constants.move_date_value_reg_search:
@@ -479,10 +483,13 @@ class Record(object):
         2081 times: no parameters
         """
         record_types = self.mapped_data.get('type', [])
+        if not record_types:
+            return self
+
         if not isinstance(record_types, list):
             record_types = [record_types]
         record_types = [
-            t.get('#text', t.get('text'))
+            t.get('#text')
             if isinstance(t, dict) else t
             for t in record_types
         ]
@@ -500,7 +507,7 @@ class Record(object):
                 record_formats = [record_formats]
             record_formats = [f.lower().rstrip('s') for f in record_formats]
             for record_format in record_formats:
-                if constants.format_map[record_format]:
+                if constants.format_map.get(record_format):
                     mapped_type = constants.format_map[record_format]
                     break
 
@@ -516,6 +523,8 @@ class Record(object):
         subjects = self.mapped_data.get('subject', [])
         if isinstance(subjects, str):
             subjects = [subjects]
+        if not subjects:
+            subjects = []
         subjects = [
             subject.get('name') for subject in subjects
             if isinstance(subject, dict)
