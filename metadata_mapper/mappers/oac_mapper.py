@@ -2,11 +2,11 @@ import re
 # import lxml
 from xml.etree import ElementTree as ET
 from collections import defaultdict
-from .mapper import VernacularReader, Record
+from .abstract_mapper import AbstractVernacular, AbstractRecord
 from .utils import exists, getprop, iterify
 
 
-class OacRecord(Record):
+class OacRecord(AbstractRecord):
 
     def to_UCLDC(self):
         mapped_data = {"sourceResource": {}}
@@ -17,8 +17,8 @@ class OacRecord(Record):
             "_id": self.source_metadata.get("_id"),
             "@id": f"http://ucldc.cdlib.org/api/items/{id}",
             "originalRecord": self.source_metadata.get("originalRecord"),
-            "ingestDate": self.source_metadata.get("ingestDate"), 
-            "ingestType": self.source_metadata.get("ingestType"), 
+            "ingestDate": self.source_metadata.get("ingestDate"),
+            "ingestType": self.source_metadata.get("ingestType"),
             "ingestionSequence": self.source_metadata.get("ingestionSequence"),
             # This is set in select-oac-id but must be added to mapped data
             'isShownAt': self.source_metadata.get('isShownAt', None),
@@ -69,13 +69,13 @@ class OacRecord(Record):
             'spatial': self.map_spatial(),
             'temporal': self.map_temporal(),
         })
-            
+
         mapped_data = self.remove_if_empty_list([
-            "copyrightDate", 
-            "alternativeTitle", 
-            "genre", 
-            "description", 
-            "identifier", 
+            "copyrightDate",
+            "alternativeTitle",
+            "genre",
+            "description",
+            "identifier",
             "rights",
             "spatial",
             "temporal"
@@ -148,7 +148,7 @@ class OacRecord(Record):
         best_image = None
         if 'originalRecord' in self.source_metadata:  # guard weird input
             dim = 0
-            # 'thumbnail' might be represented different in xmltodict 
+            # 'thumbnail' might be represented different in xmltodict
             # vs. the custom fetching mark was doing
             thumb = self.source_metadata.get(
                 'originalRecord', {}).get('thumbnail', None)
@@ -192,7 +192,7 @@ class OacRecord(Record):
             if 'coverage' in self.source_metadata.get('originalRecord'):
                 coverage_data = iterify(
                     getprop(
-                        self.source_metadata.get('originalRecord'), 
+                        self.source_metadata.get('originalRecord'),
                         "coverage"
                     ))
                 # remove arks from data
@@ -204,7 +204,7 @@ class OacRecord(Record):
                                 'temporal' not in c.get(
                                     'attrib', {}).get('q')):
                             coverage.append(c.get('text'))
-                        # collection 25496 has coverage values like 
+                        # collection 25496 has coverage values like
                         # A0800 & A1000 - drop these
                         anum_re = re.compile('A\d\d\d\d')
                         if ('q' not in c.get('attrib', {}) and
@@ -232,7 +232,7 @@ class OacRecord(Record):
         return subject_objs
 
 
-class OacVernacular(VernacularReader):
+class OacVernacular(AbstractVernacular):
     record_cls = OacRecord
 
     # Directly copied from harvester codebase; not sure if this belongs here
@@ -326,4 +326,3 @@ class OacVernacular(VernacularReader):
 
         objset = [self.record_cls(self.collection_id, obj) for obj in objset]
         return objset
-
