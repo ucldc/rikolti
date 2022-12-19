@@ -2,39 +2,15 @@ import os
 import json
 import re
 import boto3
-from markupsafe import Markup   # used in Record.strip_html()
+
+from abc import ABC, abstractmethod
+from markupsafe import Markup
+
+import settings
+
 from . import constants
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
-import settings
-
-
-class VernacularReader(object):
-    def __init__(self, payload):
-        self.collection_id = payload.get('collection_id')
-        self.page_filename = payload.get('page_filename')
-
-    def get_api_response(self):
-        if settings.DATA_SRC == 'local':
-            return self.get_local_api_response()
-        else:
-            return self.get_s3_api_response()
-
-    def get_local_api_response(self):
-        local_path = settings.local_path(
-            'vernacular_metadata', self.collection_id)
-        page_path = os.sep.join([local_path, str(self.page_filename)])
-        page = open(page_path, "r")
-        api_response = page.read()
-        return api_response
-
-    def get_s3_api_response(self):
-        s3 = boto3.resource('s3')
-        bucket = 'rikolti'
-        key = f"vernacular_metadata/{self.collection_id}/{self.page_filename}"
-        s3_obj_summary = s3.Object(bucket, key).get()
-        api_response = s3_obj_summary['Body'].read()
-        return api_response
 
 
 class UCLDCWriter(object):
@@ -62,10 +38,42 @@ class UCLDCWriter(object):
             Body=json.dumps(mapped_metadata))
 
 
-class Record(object):
+class AbstractVernacular(ABC, object):
+    def __init__(self, payload: dict) -> None:
+        self.collection_id = payload.get('collection_id')
+        self.page_filename = payload.get('page_filename')
+
+    def get_api_response(self) -> dict:
+        if settings.DATA_SRC == 'local':
+            return self.get_local_api_response()
+        else:
+            return self.get_s3_api_response()
+
+    def get_local_api_response(self) -> str:
+        local_path = settings.local_path(
+            'vernacular_metadata', self.collection_id)
+        page_path = os.sep.join([local_path, str(self.page_filename)])
+        page = open(page_path, "r")
+        api_response = page.read()
+        return api_response
+
+    def get_s3_api_response(self) -> str:
+        s3 = boto3.resource('s3')
+        bucket = 'rikolti'
+        key = f"vernacular_metadata/{self.collection_id}/{self.page_filename}"
+        s3_obj_summary = s3.Object(bucket, key).get()
+        api_response = s3_obj_summary['Body'].read()
+        return api_response
+
+
+class AbstractRecord(ABC, object):
     def __init__(self, col_id, record):
         self.collection_id = col_id
         self.source_metadata = record
+
+    @abstractmethod
+    def to_UCLDC(self) -> 'AbstractRecord':
+        pass
 
     # Mapper Helpers
     def collate_subfield(self, field, subfield):
