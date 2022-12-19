@@ -52,7 +52,7 @@ def parse_enrichment_url(enrichment_url):
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
 # AWS Lambda entry point
 def map_page(payload, context):
-    if settings.LOCAL_RUN:
+    if settings.LOCAL_RUN and not isinstance(payload, dict):
         payload = json.loads(payload)
 
     vernacular_reader = import_vernacular_reader(payload.get('mapper_type'))
@@ -61,17 +61,18 @@ def map_page(payload, context):
     source_metadata_records = source_vernacular.parse(api_resp)
     collection = payload.get('collection', {})
 
-    for enrichment_url in collection.get('rikolti__pre_mapping'):
-        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
-        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
-            continue
-        logging.debug(
-            f"[{collection['id']}]: running enrichment: {enrichment_func} "
-            f"for page {payload['page_filename']} with kwargs: {kwargs}")
-        source_metadata_records = [
-            record.enrich(enrichment_func, **kwargs)
-            for record in source_metadata_records
-        ]
+    if collection.get('rikolti__pre_mapping'):
+        for enrichment_url in collection.get('rikolti__pre_mapping'):
+            enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
+            if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
+                continue
+            logging.debug(
+                f"[{collection['id']}]: running enrichment: {enrichment_func} "
+                f"for page {payload['page_filename']} with kwargs: {kwargs}")
+            source_metadata_records = [
+                record.enrich(enrichment_func, **kwargs)
+                for record in source_metadata_records
+            ]
 
     mapped_records = [record.to_UCLDC() for record in source_metadata_records]
     writer = UCLDCWriter(payload)
@@ -79,20 +80,21 @@ def map_page(payload, context):
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
-    for enrichment_url in collection.get('rikolti__enrichments'):
-        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
-        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
-            continue
-        if enrichment_func in ['required_values_from_collection_registry',
-                               'set_ucldc_dataprovider']:
-            kwargs.update({'collection': collection})
-        logging.debug(
-            f"[{collection['id']}]: running enrichment: {enrichment_func} "
-            f"for page {payload['page_filename']} with kwargs: {kwargs}")
-        mapped_records = [
-            record.enrich(enrichment_func, **kwargs)
-            for record in mapped_records
-        ]
+    if collection.get('rikolti__enrichments'):
+        for enrichment_url in collection.get('rikolti__enrichments'):
+            enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
+            if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
+                continue
+            if enrichment_func in ['required_values_from_collection_registry',
+                                   'set_ucldc_dataprovider']:
+                kwargs.update({'collection': collection})
+            logging.debug(
+                f"[{collection['id']}]: running enrichment: {enrichment_func} "
+                f"for page {payload['page_filename']} with kwargs: {kwargs}")
+            mapped_records = [
+                record.enrich(enrichment_func, **kwargs)
+                for record in mapped_records
+            ]
 
     # some enrichments had previously happened at ingest into Solr
     # TODO: these are just two, investigate further
