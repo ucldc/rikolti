@@ -3,7 +3,7 @@ import sys
 from urllib.parse import urlparse, parse_qs
 import settings
 import importlib
-from mappers.mapper import UCLDCWriter, Record, VernacularReader
+from mappers.abstract_mapper import UCLDCWriter, AbstractRecord, AbstractVernacular
 import logging
 
 
@@ -17,16 +17,19 @@ def import_vernacular_reader(mapper_type):
     nuxeo       | nuxeo_mapper        | NuxeoVernacular
     content_dm  | content_dm_mapper   | ContentDmVernacular
     """
-    mapper_module = importlib.import_module(
-        f"mappers.{mapper_type}_mapper", package="metadata_mapper")
+    mapper_parent_modules, snake_mapper_name = mapper_type.split(".")
 
-    mapper_type_words = mapper_type.split('_')
+    mapper_module = importlib.import_module(
+        f"mappers.{mapper_parent_modules}.{snake_mapper_name}_mapper",
+        package="metadata_mapper")
+
+    mapper_type_words = snake_mapper_name.split('_')
     class_type = ''.join([word.capitalize() for word in mapper_type_words])
     vernacular_class = getattr(
         mapper_module, f"{class_type}Vernacular")
 
-    if vernacular_class not in VernacularReader.__subclasses__():
-        print(f"{ mapper_type } not a subclass of VernacularReader")
+    if not issubclass(vernacular_class, AbstractVernacular):
+        print(f"{ mapper_type } not a subclass of AbstractVernacular")
         exit()
     return vernacular_class
 
@@ -37,11 +40,11 @@ def parse_enrichment_url(enrichment_url):
                        .strip('/')
                        .replace('-', '_'))
     kwargs = parse_qs(urlparse(enrichment_url).query)
-    if enrichment_func not in dir(Record):
+    if enrichment_func not in dir(AbstractRecord):
         if settings.SKIP_UNDEFINED_ENRICHMENTS:
             return None, None
         else:
-            raise Exception(f"ERROR: {enrichment_func} not found in {Record}")
+            raise Exception(f"ERROR: {enrichment_func} not found in {AbstractRecord}")
     return enrichment_func, kwargs
 
 
