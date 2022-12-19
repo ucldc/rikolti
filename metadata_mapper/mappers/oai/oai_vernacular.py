@@ -4,10 +4,10 @@ import settings
 from lxml import etree
 from sickle import models
 
-from ..abstract_mapper import AbstractVernacular
+from ..mapper import Vernacular
 
 
-class OaiVernacular(AbstractVernacular):
+class OaiVernacular(Vernacular):
 
     def parse(self, api_response):
         namespace = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}

@@ -1,10 +1,10 @@
 import requests
 
-from ..abstract_mapper import AbstractRecord
+from ..mapper import Record
 from .oai_vernacular import OaiVernacular
 
 
-class IslandoraRecord(AbstractRecord):
+class IslandoraRecord(Record):
 
     def to_UCLDC(self):
         self.mapped_data = {

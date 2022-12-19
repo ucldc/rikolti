@@ -38,7 +38,7 @@ class UCLDCWriter(object):
             Body=json.dumps(mapped_metadata))
 
 
-class AbstractVernacular(ABC, object):
+class Vernacular(ABC, object):
     def __init__(self, payload: dict) -> None:
         self.collection_id = payload.get('collection_id')
         self.page_filename = payload.get('page_filename')
@@ -66,13 +66,13 @@ class AbstractVernacular(ABC, object):
         return api_response
 
 
-class AbstractRecord(ABC, object):
+class Record(ABC, object):
     def __init__(self, col_id, record):
         self.collection_id = col_id
         self.source_metadata = record
 
     @abstractmethod
-    def to_UCLDC(self) -> 'AbstractRecord':
+    def to_UCLDC(self) -> 'Record':
         pass
 
     # Mapper Helpers
@@ -98,7 +98,11 @@ class AbstractRecord(ABC, object):
 
     def enrich(self, enrichment_function, **kwargs):
         func = getattr(self, enrichment_function)
-        return func(**kwargs)
+        try:
+            return func(**kwargs)
+        except Exception as e:
+            print(f"ENRICHMENT ERROR: {str(kwargs)}")
+            raise e
 
     def select_id(self, prop):
         """

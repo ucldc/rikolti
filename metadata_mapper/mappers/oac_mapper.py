@@ -2,11 +2,11 @@ import re
 # import lxml
 from xml.etree import ElementTree as ET
 from collections import defaultdict
-from .abstract_mapper import AbstractVernacular, AbstractRecord
+from .mapper import Vernacular, Record
 from .utils import exists, getprop, iterify
 
 
-class OacRecord(AbstractRecord):
+class OacRecord(Record):
 
     def to_UCLDC(self):
         mapped_data = {"sourceResource": {}}
@@ -232,7 +232,7 @@ class OacRecord(AbstractRecord):
         return subject_objs
 
 
-class OacVernacular(AbstractVernacular):
+class OacVernacular(Vernacular):
     record_cls = OacRecord
 
     # Directly copied from harvester codebase; not sure if this belongs here
