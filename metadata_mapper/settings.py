@@ -1,5 +1,9 @@
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 LOCAL_RUN = os.environ.get('MAPPER_LOCAL_RUN', False)
 DATA_SRC = os.environ.get('MAPPER_DATA_SRC', 's3')
 DATA_DEST = os.environ.get('MAPPER_DATA_DEST', 's3')
