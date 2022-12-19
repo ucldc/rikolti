@@ -39,7 +39,7 @@ def check_for_missing_enrichments(collection):
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # AWS Lambda entry point
 def map_collection(payload, context):
-    if settings.LOCAL_RUN:
+    if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
 
     collection_id = payload.get('collection_id')
