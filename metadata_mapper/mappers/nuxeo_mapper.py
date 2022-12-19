@@ -1,8 +1,8 @@
 import json
-from .abstract_mapper import AbstractVernacular, AbstractRecord
+from .mapper import Vernacular, Record
 
 
-class NuxeoRecord(AbstractRecord):
+class NuxeoRecord(Record):
     def to_UCLDC(self):
         source_metadata = self.source_metadata.get('properties')
 
@@ -162,7 +162,7 @@ class NuxeoRecord(AbstractRecord):
         return [{'text': s} for s in spatial]
 
 
-class NuxeoVernacular(AbstractVernacular):
+class NuxeoVernacular(Vernacular):
     record_cls = NuxeoRecord
 
     def parse(self, api_response):

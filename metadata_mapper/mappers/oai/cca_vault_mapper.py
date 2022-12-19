@@ -2,11 +2,11 @@ import requests
 
 from typing import Union
 
-from ..abstract_mapper import AbstractRecord
+from ..mapper import Record
 from .oai_vernacular import OaiVernacular
 
 
-class CcaVaultRecord(AbstractRecord):
+class CcaVaultRecord(Record):
 
     def to_UCLDC(self) -> 'CcaVaultRecord':
         self.mapped_data = {

@@ -18,7 +18,7 @@ def get_collection(collection_id):
 def check_for_missing_enrichments(collection):
     """Check for missing enrichments - used for development but
     could likely be removed in production?"""
-    from mappers.abstract_mapper import AbstractRecord
+    from mappers.mapper import Record
     from urllib.parse import urlparse
 
     not_yet_implemented = []
@@ -29,7 +29,7 @@ def check_for_missing_enrichments(collection):
     for e_url in collection_enrichments:
         e_path = urlparse(e_url).path
         e_func_name = e_path.strip('/').replace('-', '_')
-        if e_func_name not in dir(AbstractRecord):
+        if e_func_name not in dir(Record):
             not_yet_implemented.append(e_func_name)
 
     return not_yet_implemented
