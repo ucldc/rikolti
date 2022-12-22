@@ -169,12 +169,12 @@ class Record(object):
 
         calisphere_id = calisphere_id.split('|')[1]
 
-        self.mapped_data['id'] = f"{self.collection_id}--{calisphere_id}"
+        self.legacy_couch_db_id = f"{self.collection_id}--{calisphere_id}"
         return self
 
     def select_preservica_id(self):
         calisphere_id = self.mapped_data.get("preservica_id", {}).get('$')
-        self.mapped_data['id'] = f"{self.collection_id}--{calisphere_id}"
+        self.legacy_couch_db_id = f"{self.collection_id}--{calisphere_id}"
         return self
 
     def required_values_from_collection_registry(
@@ -253,8 +253,8 @@ class Record(object):
                 value = value.replace(f"{delim}{delim}", delim)
             except Exception as e:
                 print(
-                    f"Can't join list {value} on delim for "
-                    f"{self.mapped_data['id']}, {e}"
+                    f"Can't join list {value} on {delim} for "
+                    f"{self.legacy_couch_db_id}, {e}"
                 )
         if delim not in value:
             return self
@@ -330,7 +330,7 @@ class Record(object):
             print(
                 f"Prop {src} is {type(src_val)} and prop {dest} is "
                 f"{type(dest_val)} - not a string/list for record "
-                f"{self.mapped_data.get('id')}"
+                f"{self.legacy_couch_db_id}"
             )
             return self
 
@@ -436,7 +436,7 @@ class Record(object):
             if src_field not in src_values:
                 print(
                     f"Source field {src} not in "
-                    f"record {self.mapped_data.get('id')}"
+                    f"record {self.legacy_couch_db_id}"
                 )
                 return self
             src_values = src_values.get(src_field)
