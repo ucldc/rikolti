@@ -243,7 +243,7 @@ class Record(object):
         field = prop[0].split('/')[1:][0]     # remove sourceResource
         delim = delim[0]
 
-        if field not in self.mapped_data:
+        if field not in self.mapped_data or not self.mapped_data[field]:
             return self
 
         value = self.mapped_data[field]
@@ -253,7 +253,7 @@ class Record(object):
                 value = value.replace(f"{delim}{delim}", delim)
             except Exception as e:
                 print(
-                    f"Can't join list {value} on {delim} for "
+                    f"Can't join {field} list {value} with {delim} for "
                     f"{self.legacy_couch_db_id}, {e}"
                 )
         if delim not in value:
