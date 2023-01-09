@@ -37,9 +37,9 @@ python -m venv ~/.venv/rikolti/
 source ~/.venv/rikolti/bin/activate
 
 # install dependencies
-cd metadata-fetcher/
+cd metadata_fetcher/
 pip install -r requirements.txt
-cd ../metadata-mapper/
+cd ../metadata_mapper/
 pip install -r requirements.txt
 ```
 
