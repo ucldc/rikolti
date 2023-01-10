@@ -5,12 +5,14 @@ import boto3
 
 from abc import ABC, abstractmethod
 from markupsafe import Markup
+from typing import Any
 
 import settings
 
 from . import constants
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
+from typing import Callable
 
 
 class UCLDCWriter(object):
@@ -67,16 +69,48 @@ class Vernacular(ABC, object):
 
 
 class Record(ABC, object):
-    def __init__(self, col_id, record):
-        self.collection_id = col_id
-        self.source_metadata = record
+
+    auto_map = True
+
+    def __init__(self, collection_id: int, record: dict[str, Any]):
+        self.collection_id: int = collection_id
+        self.source_metadata: dict = record
+        if self.auto_map:
+            self.to_UCLDC()  # By default, generate mapped metadata
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.mapped_metadata
+
+    def to_UCLDC(self) -> dict[str, Any]:
+        """
+        Maps source metadata to UCLDC format, saving result to
+        self.mapped_metadata.
+
+        Returns: dict
+        """
+        super_map = super().UCLDC_map() if hasattr(super(), "UCLDC_map") else {}
+        self.mapped_metadata = {**super_map, **self.UCLDC_map()}
+        return self.mapped_metadata
+
+    def UCLDC_map(self) -> dict:
+        """
+        Defines mappings from source metdata to UCDLC that are specific
+        to this implementation.
+
+        All dicts returned by this method up the ancestor chain
+        are merged together to produce a final result.
+        """
+        return {
+            "isShownAt": self.map_is_shown_at(),
+            "isShownBy": self.map_is_shown_by()
+        }
 
     @abstractmethod
-    def to_UCLDC(self) -> 'Record':
+    def map_subject(self):
         pass
 
     # Mapper Helpers
-    def collate_subfield(self, field, subfield):
+    def collate_subfield(self, field: str, subfield: str) -> list:
         return [f[subfield] for f in self.source_metadata.get(field, [])]
 
     def collate_fields(self, fieldlist):
@@ -96,15 +130,15 @@ class Record(ABC, object):
     # The enrichment chain is a dpla construction that we are porting to Rikolti
     # The enrichment chain is implemented as methods on Rikolti's Record() class
 
-    def enrich(self, enrichment_function, **kwargs):
-        func = getattr(self, enrichment_function)
+    def enrich(self, enrichment_function_name: str, **kwargs):
+        func: Callable = getattr(self, enrichment_function_name)
         try:
             return func(**kwargs)
         except Exception as e:
             print(f"ENRICHMENT ERROR: {str(kwargs)}")
             raise e
 
-    def select_id(self, prop):
+    def select_id(self, prop: list[str]):
         """
         called with the following parameters:
         278 times:  prop=["uid"]
