@@ -67,6 +67,7 @@ class Record(object):
         self.collection_id = col_id
         self.source_metadata = record
         self.pre_mapped_data = {}
+        self.enrichment_report = []
 
     # Mapper Helpers
     def collate_subfield(self, field, subfield):
@@ -253,9 +254,8 @@ class Record(object):
                 value = delim.join(value)
                 value = value.replace(f"{delim}{delim}", delim)
             except Exception as e:
-                print(
-                    f"Can't join {field} list {value} with {delim} for "
-                    f"{self.legacy_couch_db_id}, {e}"
+                self.enrichment_report.append(
+                    f"[shred]: Can't join {field} list {value} with {delim}, {e}"
                 )
         if delim not in value:
             return self
@@ -328,10 +328,9 @@ class Record(object):
               (not (isinstance(src_val, list) or isinstance(src_val, str))) or
               (not (isinstance(dest_val, list) or isinstance(dest_val, str)))
         ):
-            print(
-                f"Prop {src} is {type(src_val)} and prop {dest} is "
-                f"{type(dest_val)} - not a string/list for record "
-                f"{self.legacy_couch_db_id}"
+            self.enrichment_report.append(
+                f"[copy_prop]: Prop {src} is {type(src_val)} and prop {dest} "
+                f"is {type(dest_val)} - not a string/list"
             )
             return self
 
@@ -435,9 +434,8 @@ class Record(object):
         src_values = self.mapped_data
         for src_field in src:
             if src_field not in src_values:
-                print(
-                    f"Source field {src} not in "
-                    f"record {self.legacy_couch_db_id}"
+                self.enrichment_report.append(
+                    f"[lookup]: Source field {src} not in record"
                 )
                 return self
             src_values = src_values.get(src_field)
@@ -475,7 +473,9 @@ class Record(object):
         if src not in self.mapped_data:
             return self
 
-        print('enrich_location not implemented')
+        self.enrichment_report.append(
+            f"[enrich_location]: not implemented, "
+            f"self.mapped_data[{src}] = {self.mapped_data.get(src)}")
         return self
 
     def enrich_type(self):

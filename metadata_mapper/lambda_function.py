@@ -87,6 +87,25 @@ def map_page(payload, context):
 
     mapped_records = run_enrichments(
         mapped_records, payload, 'rikolti__enrichments')
+    exceptions = {
+        rec.legacy_couch_db_id: rec.enrichment_report
+        for rec in mapped_records if rec.enrichment_report
+    }
+    if exceptions:
+        group_by_report = {}
+        for couch_id, reports in exceptions.items():
+            report = " | ".join(reports)
+            if report in group_by_report:
+                group_by_report[report].append(couch_id)
+            else:
+                group_by_report[report] = [couch_id]
+        count_by_report = {
+            report: f"{len(couch_ids)} of {len(mapped_records)}"
+            for report, couch_ids in group_by_report.items()
+        }
+        for report, count in count_by_report.items():
+            print(f"{count} records report enrichments errors: {report}")
+
 
     # some enrichments had previously happened at ingest into Solr
     # TODO: these are just two, investigate further

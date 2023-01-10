@@ -61,7 +61,7 @@ def map_endpoint(url):
 
             print(log_msg.format(f"{json.dumps(return_val)}"))
 
-    print(json.dumps(results))
+    # print(json.dumps(results))
 
 
 if __name__ == "__main__":
