@@ -142,6 +142,7 @@ class Record(object):
         self.pre_mapped_data["id"] = f"{self.collection_id}--{calisphere_id}"
         self.pre_mapped_data["isShownAt"] = calisphere_id
         self.pre_mapped_data["isShownBy"] = f"{calisphere_id}/thumbnail"
+        self.legacy_couch_db_id = (f"{self.collection_id}--{calisphere_id}")
 
         return self
 
@@ -795,8 +796,10 @@ class Record(object):
                 return value
             return None
 
-        prop = prop.split('/')[-1]  # remove sourceResource
+        prop = prop[0].split('/')[-1]  # remove sourceResource
         value = self.mapped_data[prop]
+        regex = regex[0]
+        new = new[0]
         new_value = recursive_regex_replace(value, regex, new)
         self.mapped_data[prop] = new_value
         return self
