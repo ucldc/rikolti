@@ -5,3 +5,4 @@ jwt
 nuxeo
 xmltodict
 sickle
+flake8

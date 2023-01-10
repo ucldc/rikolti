@@ -52,7 +52,12 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument( '-log', '--loglevel', default='warning', help='log level (default: warning)')
+    parser.add_argument(
+        '-log',
+        '--loglevel',
+        default='warning',
+        help='log level (default: warning)'
+    )
     args = parser.parse_args()
     logging.basicConfig(level=args.loglevel.upper())
     logging.info('logging now set up')

@@ -3,3 +3,4 @@ requests
 lxml
 sickle
 MarkupSafe
+flake8
