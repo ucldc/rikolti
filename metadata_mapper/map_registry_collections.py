@@ -8,15 +8,26 @@ import logging
 
 def map_endpoint(url):
     lookup = {
-        'ucldc_nuxeo': 'nuxeo'
+        'ucldc_nuxeo': 'nuxeo',
+        'oac_dc': 'oac',
+        'islandora_oai_dc': 'islandora'
     }
 
     collection_page = url
     results = []
 
     while collection_page:
-        response = requests.get(url=collection_page)
-        response.raise_for_status()
+        try:
+            response = requests.get(url=collection_page)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            msg = (
+                f"[{collection_page}]: "
+                f"{err}; A valid collection id is required for mapping"
+            )
+            print(msg)
+            collection_page = None
+            break
         total_collections = response.json().get('meta', {}).get('total_count')
         print(
             f">>> Mapping {total_collections} collections "
@@ -27,7 +38,7 @@ def map_endpoint(url):
         if collection_page:
             collection_page = f"https://registry.cdlib.org{collection_page}"
         logging.debug(f"Next page: {collection_page}")
-        collections = response.json().get('objects')
+        collections = response.json().get('objects', [response.json()])
         for collection in collections:
             log_msg = f"[{collection['collection_id']}]: " + "{}"
             print(log_msg.format(
@@ -40,6 +51,9 @@ def map_endpoint(url):
                 collection['mapper_type'] = lookup[collection['mapper_type']]
                 return_val = lambda_shepherd.map_collection(
                     json.dumps(collection), None)
+            except KeyError:
+                print(f"[{collection['collection_id']}]: {collection['mapper_type']} not yet implemented")
+                continue
             except FileNotFoundError:
                 print(f"[{collection['collection_id']}]: not fetched yet")
                 continue

@@ -7,11 +7,6 @@ from mappers.mapper import UCLDCWriter, Record, VernacularReader
 import logging
 
 
-def all_subclasses(cls):
-    return set(cls.__subclasses__()).union(
-        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
-
-
 def import_vernacular_reader(mapper_type):
     """
     accept underscored_module_name_prefixes
@@ -30,7 +25,7 @@ def import_vernacular_reader(mapper_type):
     vernacular_class = getattr(
         mapper_module, f"{class_type}Vernacular")
 
-    if vernacular_class not in all_subclasses(VernacularReader):
+    if not issubclass(vernacular_class, VernacularReader):
         print(f"{ mapper_type } not a subclass of VernacularReader")
         exit()
     return vernacular_class
@@ -50,6 +45,25 @@ def parse_enrichment_url(enrichment_url):
     return enrichment_func, kwargs
 
 
+def run_enrichments(records, payload, enrichment_set):
+    collection = payload.get('collection', {})
+    for enrichment_url in collection.get(enrichment_set, []):
+        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
+        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
+            continue
+        if enrichment_func in ['required_values_from_collection_registry',
+                               'set_ucldc_dataprovider']:
+            kwargs.update({'collection': collection})
+        logging.debug(
+            f"[{collection['id']}]: running enrichment: {enrichment_func} "
+            f"for page {payload['page_filename']} with kwargs: {kwargs}")
+        records = [
+            record.enrich(enrichment_func, **kwargs)
+            for record in records
+        ]
+    return records
+
+
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": "r-0"}
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
 # AWS Lambda entry point
@@ -61,19 +75,9 @@ def map_page(payload, context):
     source_vernacular = vernacular_reader(payload)
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
-    collection = payload.get('collection', {})
 
-    for enrichment_url in collection.get('rikolti__pre_mapping', []):
-        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
-        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
-            continue
-        logging.debug(
-            f"[{collection['id']}]: running enrichment: {enrichment_func} "
-            f"for page {payload['page_filename']} with kwargs: {kwargs}")
-        source_metadata_records = [
-            record.enrich(enrichment_func, **kwargs)
-            for record in source_metadata_records
-        ]
+    source_metadata_records = run_enrichments(
+        source_metadata_records, payload, 'rikolti__pre_mapping')
 
     mapped_records = [record.to_UCLDC() for record in source_metadata_records]
     writer = UCLDCWriter(payload)
@@ -81,20 +85,8 @@ def map_page(payload, context):
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
-    for enrichment_url in collection.get('rikolti__enrichments'):
-        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
-        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
-            continue
-        if enrichment_func in ['required_values_from_collection_registry',
-                               'set_ucldc_dataprovider']:
-            kwargs.update({'collection': collection})
-        logging.debug(
-            f"[{collection['id']}]: running enrichment: {enrichment_func} "
-            f"for page {payload['page_filename']} with kwargs: {kwargs}")
-        mapped_records = [
-            record.enrich(enrichment_func, **kwargs)
-            for record in mapped_records
-        ]
+    mapped_records = run_enrichments(
+        mapped_records, payload, 'rikolti__enrichments')
 
     # some enrichments had previously happened at ingest into Solr
     # TODO: these are just two, investigate further
@@ -111,7 +103,7 @@ def map_page(payload, context):
 
     return {
         'statusCode': 200,
-        'body': len(mapped_records)
+        'num_records_mapped': len(mapped_records)
     }
 
 
