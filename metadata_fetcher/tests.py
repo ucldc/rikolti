@@ -12,10 +12,14 @@ from fetch_registry_collections import fetch_endpoint
 
 def main():
     harvests = [
-        oac_harvests[0], oai_harvests[0],
-        nuxeo_harvests[0], nuxeo_complex_object_harvests[0],
-        nuxeo_nested_complex_object_harvests[0]
+        oac_harvests[0], oai_harvests[0]
     ]
+
+    if settings.TOKEN:
+        harvests = harvests + [
+            nuxeo_harvests[0], nuxeo_complex_object_harvests[0],
+            nuxeo_nested_complex_object_harvests[0]
+        ]
 
     for harvest in harvests:
         print(f"tests.py: {json.dumps(harvest)}")
