@@ -212,11 +212,13 @@ def validate_mapped_page(rikolti_records, solr_records, query):
             solr_records.update(
                 {r['harvest_id_s']: r for r in collections_search})
         else:
-            page_report.append(
-                f"WARN, new rikolti record, {harvest_id}"
-            )
             logging.debug(
-                f"this page intersection had {len(page_report)} errors")
+                f"this page intersection had {len(page_report)} errors and "
+                f"{len(rikolti_records)} new rikolti records")
+            for record in rikolti_records:
+                page_report.append(
+                    f"WARN, new rikolti record, {record}"
+                )
             break
 
         logging.debug(f"this page intersection had {len(page_report)} errors")
