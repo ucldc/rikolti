@@ -74,7 +74,10 @@ def map_page(payload, context):
             for record in source_metadata_records
         ]
 
-    mapped_records = [record.to_UCLDC() for record in source_metadata_records]
+    for record in source_metadata_records:
+        record.to_UCLDC()
+    mapped_records = source_metadata_records
+    
     writer = UCLDCWriter(payload)
     if settings.DATA_DEST == 'local':
         writer.write_local_mapped_metadata(
