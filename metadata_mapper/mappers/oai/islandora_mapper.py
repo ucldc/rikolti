@@ -5,6 +5,8 @@ from .oai_vernacular import OaiVernacular
 
 
 class IslandoraRecord(Record):
+    # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
+    # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
 
     def to_UCLDC(self):
         self.mapped_data = {

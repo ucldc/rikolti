@@ -5,7 +5,7 @@ import boto3
 
 from abc import ABC, abstractmethod
 from markupsafe import Markup
-from typing import Any
+from typing import Any, Union
 
 import settings
 
@@ -109,6 +109,14 @@ class Record(ABC, object):
             "isShownAt": self.map_is_shown_at(),
             "isShownBy": self.map_is_shown_by()
         }
+
+    @abstractmethod
+    def map_is_shown_at(self) -> Union[str, None]:
+        pass
+
+    @abstractmethod
+    def map_is_shown_by(self) -> Union[str, None]:
+        pass
 
     # Mapper Helpers
     def collate_subfield(self, field: str, subfield: str) -> list:
