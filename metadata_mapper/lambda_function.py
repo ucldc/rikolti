@@ -62,7 +62,7 @@ def map_page(payload, context):
     source_metadata_records = source_vernacular.parse(api_resp)
     collection = payload.get('collection', {})
 
-    for enrichment_url in collection.get('rikolti__pre_mapping'):
+    for enrichment_url in collection.get('rikolti__pre_mapping', []):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
             continue
@@ -80,7 +80,7 @@ def map_page(payload, context):
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
-    for enrichment_url in collection.get('rikolti__enrichments'):
+    for enrichment_url in collection.get('rikolti__enrichments', []):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
             continue
