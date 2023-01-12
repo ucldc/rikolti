@@ -17,8 +17,18 @@ def validate_endpoint(url):
     results = []
 
     while collection_page:
-        response = requests.get(url=collection_page)
-        response.raise_for_status()
+        try:
+            response = requests.get(url=collection_page)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            msg = (
+                f"[{collection_page}]: "
+                f"{err}; A valid collection id is required for validation"
+            )
+            print(msg)
+            collection_page = None
+            break
+
         total_collections = response.json().get('meta', {}).get('total_count')
         print(
             f">>> Validating {total_collections} collections "
