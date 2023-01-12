@@ -21,7 +21,7 @@ def import_fetcher(harvest_type):
 
 # AWS Lambda entry point
 def fetch_collection(payload, context):
-    if settings.LOCAL_RUN:
+    if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
 
     fetcher_class = import_fetcher(payload.get('harvest_type'))
