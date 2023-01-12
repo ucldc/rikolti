@@ -72,9 +72,31 @@ class Record(ABC, object):
 
     auto_map = True
 
+    # Mapping Cache
+    class WorkingMetadata():
+        def __init__(self, parent_record):
+            self.parent = parent_record
+            self.cache = {}
+
+        def get(self, key, default=None) -> Any:
+            if key in self.cache:
+                return self.cache[key]
+            elif hasattr(self, f"transform_{key}"):
+                method = getattr(self, f"transform_{key}")
+                self.cache[key] = method()
+                return self.cache[key]
+            elif self.parent.source_metadata.get(key):
+                return self.parent.source_metadata.get(key)
+            else:
+                return default
+
+        def __contains__(self, key: str) -> bool:
+            return (key in self.cache) or (key in self.parent.source_metadata)
+
     def __init__(self, collection_id: int, record: dict[str, Any]):
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
+        self.working_metadata = self.WorkingMetadata(self)
         if self.auto_map:
             self.to_UCLDC()  # By default, generate mapped metadata
 
@@ -88,8 +110,17 @@ class Record(ABC, object):
 
         Returns: dict
         """
-        super_map = super().UCLDC_map() if hasattr(super(), "UCLDC_map") else {}
-        self.mapped_metadata = {**super_map, **self.UCLDC_map()}
+        self.mapped_metadata = {}
+        
+        supermaps = [
+            super(c, self).UCLDC_map()
+            for c in list(reversed(type(self).__mro__))
+            if hasattr(super(c, self), "UCLDC_map")
+        ]
+        for map in supermaps:
+            self.mapped_metadata = {**self.mapped_metadata, **map}
+        self.mapped_metadata = {**self.mapped_metadata, **self.UCLDC_map()}
+
         return self.mapped_metadata
 
     def UCLDC_map(self) -> dict:

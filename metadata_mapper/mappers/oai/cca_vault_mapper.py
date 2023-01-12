@@ -5,6 +5,9 @@ from .oai_mapper import OaiRecord, OaiVernacular
 
 class CcaVaultRecord(OaiRecord):
 
+    class WorkingMetadata(OaiRecord.WorkingMetadata):
+        def transform_identifier(self):
+            return self.parent.source_metadata.get("identifier", [])[0]
     def map_subject(self) -> Union[list[dict[str, str]], None]:
         # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127
         value = self.source_metadata.get('subject')
