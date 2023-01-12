@@ -70,13 +70,9 @@ class Vernacular(ABC, object):
 
 class Record(ABC, object):
 
-    auto_map = True
-
     def __init__(self, collection_id: int, record: dict[str, Any]):
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
-        if self.auto_map:
-            self.to_UCLDC()  # By default, generate mapped metadata
 
     def to_dict(self) -> dict[str, Any]:
         return self.mapped_metadata
@@ -104,10 +100,6 @@ class Record(ABC, object):
             "isShownAt": self.map_is_shown_at(),
             "isShownBy": self.map_is_shown_by()
         }
-
-    @abstractmethod
-    def map_subject(self):
-        pass
 
     # Mapper Helpers
     def collate_subfield(self, field: str, subfield: str) -> list:
