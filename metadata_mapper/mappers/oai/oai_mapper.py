@@ -1,7 +1,6 @@
 import os
 import settings
 
-from abc import abstractmethod
 from lxml import etree
 from sickle import models
 
