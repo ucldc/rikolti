@@ -10,6 +10,7 @@ from sample_data.nuxeo_harvests import nuxeo_harvests, \
 from sample_data.oac_harvests import oac_harvests
 from sample_data.islandora_harvests import islandora_harvests
 from map_registry_collections import map_endpoint
+from validate_registry_collections import validate_endpoint
 
 
 def main():
@@ -21,6 +22,9 @@ def main():
     ]
     for url in urls:
         map_endpoint(url)
+
+    for url in urls:
+        validate_endpoint(url)
 
 
 def test_static_samples():

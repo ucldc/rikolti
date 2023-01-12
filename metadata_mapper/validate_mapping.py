@@ -143,8 +143,13 @@ enrichment_fields = (
 def validate_mapped_page(rikolti_records, solr_records, query):
     collections_search = solr(**query)
     num_solr_records = collections_search['response']['numFound']
-    query['rows'] = 100
-    page_report = []
+    collections_search_records = collections_search.get(
+        'response', {'docs': None}).get('docs', [])
+    solr_records.update(
+        {r['harvest_id_s']: r for r in collections_search_records})
+
+    page_report = [
+        "severity, type, couch id, field_name, rikolti value, solr value"]
 
     while len(rikolti_records):
         logging.debug(
@@ -152,13 +157,6 @@ def validate_mapped_page(rikolti_records, solr_records, query):
             f"vs. records fetched from solr: {len(solr_records)}"
         )
         logging.debug(query)
-
-        if query['start'] < num_solr_records:
-            collections_search = solr(**query)
-            collections_search = collections_search.get(
-                'response', {'docs': None}).get('docs', [])
-            solr_records.update(
-                {r['harvest_id_s']: r for r in collections_search})
 
         page_intersection = list(
             set(rikolti_records.keys()).intersection(solr_records.keys())
@@ -207,6 +205,20 @@ def validate_mapped_page(rikolti_records, solr_records, query):
                     )
 
         query['start'] = query['start'] + 100
+        if query['start'] < num_solr_records:
+            collections_search = solr(**query)
+            collections_search = collections_search.get(
+                'response', {'docs': None}).get('docs', [])
+            solr_records.update(
+                {r['harvest_id_s']: r for r in collections_search})
+        else:
+            page_report.append(
+                f"WARN, new rikolti record, {harvest_id}"
+            )
+            logging.debug(
+                f"this page intersection had {len(page_report)} errors")
+            break
+
         logging.debug(f"this page intersection had {len(page_report)} errors")
     return query, solr_records, page_report
 
@@ -286,7 +298,7 @@ def validate_mapped_collection(payload):
             "collection_url: \"https://registry.cdlib.org/api/v1"
             f"/collection/{collection_id}/\""
         ),
-        'rows': 0,
+        'rows': 100,
         'start': 0
     }
     collection_report = []
