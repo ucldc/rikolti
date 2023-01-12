@@ -9,13 +9,12 @@ from sample_data.oac_harvests import oac_harvests
 from sample_data.oai_harvests import oai_harvests
 from fetch_registry_collections import fetch_endpoint
 
-
 def main():
     harvests = [
         oac_harvests[0], oai_harvests[0]
     ]
 
-    if settings.TOKEN:
+    if settings.NUXEO_TOKEN:
         harvests = harvests + [
             nuxeo_harvests[0], nuxeo_complex_object_harvests[0],
             nuxeo_nested_complex_object_harvests[0]
@@ -38,7 +37,7 @@ def main():
         "https://registry.cdlib.org/api/v1/rikoltifetcher/26773/?format=json"
     ]
 
-    if settings.TOKEN:
+    if settings.NUXEO_TOKEN:
         urls = urls + [
             # harvest type = NUX
             "https://registry.cdlib.org/api/v1/rikoltifetcher/?format=json&harvest_type=NUX",
