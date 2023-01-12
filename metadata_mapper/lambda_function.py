@@ -53,7 +53,7 @@ def parse_enrichment_url(enrichment_url):
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
 # AWS Lambda entry point
 def map_page(payload, context):
-    if settings.LOCAL_RUN:
+    if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
 
     vernacular_reader = import_vernacular_reader(payload.get('mapper_type'))
