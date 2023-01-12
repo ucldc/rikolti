@@ -84,8 +84,17 @@ class Record(ABC, object):
 
         Returns: dict
         """
-        super_map = super().UCLDC_map() if hasattr(super(), "UCLDC_map") else {}
-        self.mapped_metadata = {**super_map, **self.UCLDC_map()}
+        self.mapped_metadata = {}
+
+        supermaps = [
+            super(c, self).UCLDC_map()
+            for c in list(reversed(type(self).__mro__))
+            if hasattr(super(c, self), "UCLDC_map")
+        ]
+        for map in supermaps:
+            self.mapped_metadata = {**self.mapped_metadata, **map}
+        self.mapped_metadata = {**self.mapped_metadata, **self.UCLDC_map()}
+
         return self.mapped_metadata
 
     def UCLDC_map(self) -> dict:
