@@ -215,7 +215,8 @@ class OacRecord(Record):
         return subject_objs
 
     def to_dict(self):
-        return self.pre_mapped_data.update(self.mapped_data)
+        self.pre_mapped_data.update(self.mapped_data)
+        return self.pre_mapped_data
 
 
 class OacVernacular(VernacularReader):

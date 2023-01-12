@@ -58,6 +58,7 @@ class IslandoraRecord(Record):
         # print(f"{self.source_metadata=}")
 
         self.mapped_data = {
+            'calisphere-id': self.legacy_couch_db_id.split('--')[1],
             'contributor': self.source_metadata.get('contributor'),
             'creator': self.source_metadata.get('creator'),
             'date': self.collate_fields([
