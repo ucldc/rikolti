@@ -1,10 +1,9 @@
 import requests
 
-from ..mapper import Record
-from .oai_vernacular import OaiVernacular
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
-class IslandoraRecord(Record):
+class IslandoraRecord(OaiRecord):
     # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
     # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
 
