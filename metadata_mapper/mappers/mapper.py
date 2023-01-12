@@ -142,13 +142,13 @@ class Record(ABC, object):
 
     # Mapper Helpers
     def collate_subfield(self, field: str, subfield: str) -> list:
-        return [f[subfield] for f in self.source_metadata.get(field, [])]
+        return [f[subfield] for f in self.working_metadata.get(field, [])]
 
     def collate_fields(self, fieldlist):
         ''' collate multiple field values into a single list '''
         collated = []
         for field in fieldlist:
-            value = self.source_metadata.get(field)
+            value = self.working_metadata.get(field)
             if value:
                 if isinstance(value, str):
                     collated.append(value)
@@ -191,7 +191,7 @@ class Record(ABC, object):
         # not sure if we need to do either of these things, so
         # making a simple implementation for now
 
-        id_handle = self.source_metadata.get(prop)
+        id_handle = self.working_metadata.get(prop)
         lname = id_handle.strip().replace(" ", "__")
 
         self.legacy_couch_db_id = (f"{self.collection_id}--{lname}")

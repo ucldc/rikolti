@@ -1,7 +1,6 @@
 import os
 import settings
 
-from abc import abstractmethod
 from lxml import etree
 from sickle import models
 
@@ -13,8 +12,8 @@ class OaiRecord(Record):
 
     def UCLDC_map(self):
         return {
-            'contributor': self.source_metadata.get('contributor'),
-            'creator': self.source_metadata.get('creator'),
+            'contributor': self.working_metadata.get('contributor'),
+            'creator': self.working_metadata.get('creator'),
             'date': self.collate_fields([
                 "available",
                 "created",
@@ -31,14 +30,14 @@ class OaiRecord(Record):
                 "description",
                 "tableOfContents"
             ]),
-            'extent': self.source_metadata.get('extent'),
+            'extent': self.working_metadata.get('extent'),
             'format': self.collate_fields(["format", "medium"]),
             'identifier': self.collate_fields(
                 ["bibliographicCitation", "identifier"]),
             'is_shown_by': self.map_is_shown_by(),
             'is_shown_at': self.map_is_shown_at(),
-            'provenance': self.source_metadata.get('provenance'),
-            'publisher': self.source_metadata.get('publisher'),
+            'provenance': self.working_metadata.get('provenance'),
+            'publisher': self.working_metadata.get('publisher'),
             'relation': self.collate_fields([
                 "conformsTo",
                 "hasFormat",
@@ -57,10 +56,10 @@ class OaiRecord(Record):
             ]),
             'rights': self.collate_fields(["accessRights", "rights"]),
             'spatial': self.collate_fields(["coverage", "spatial"]),
-            'subject': self.map_subject(),
-            'temporal': self.source_metadata.get('temporal'),
-            'title': self.source_metadata.get('title'),
-            'type': self.source_metadata.get('type')
+            'subject': self.working_metadata.get("subject"),
+            'temporal': self.working_metadata.get('temporal'),
+            'title': self.working_metadata.get('title'),
+            'type': self.working_metadata.get('type')
         }
 
 
