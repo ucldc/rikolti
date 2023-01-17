@@ -71,7 +71,7 @@ def map_collection(payload, context):
                 'body': json.dumps({
                     'error': (
                         f"{repr(e)} - have you fetched {collection_id}? ",
-                        f"looked in {e.filename}"
+                        f"looked in dir {e.filename}"
                     ),
                     'payload': payload
                 })
