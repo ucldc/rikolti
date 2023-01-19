@@ -1,5 +1,6 @@
 import os
 import settings
+from typing import Union
 
 from lxml import etree
 from sickle import models
@@ -14,54 +15,64 @@ class OaiRecord(Record):
         return {
             'contributor': self.source_metadata.get('contributor'),
             'creator': self.source_metadata.get('creator'),
-            'date': self.collate_fields([
-                "available",
-                "created",
-                "date",
-                "dateAccepted",
-                "dateCopyrighted",
-                "dateSubmitted",
-                "issued",
-                "modified",
-                "valid"
-            ]),
-            'description': self.collate_fields([
-                "abstract",
-                "description",
-                "tableOfContents"
-            ]),
+            'date': self.collate_values(
+                self.source_metadata_values(
+                    'available',
+                    'created',
+                    'date',
+                    'dateAccepted',
+                    'dateCopyrighted',
+                    'dateSubmitted',
+                    'issued',
+                    'modified',
+                    'valid'
+                )
+            ),
+            'description': self.collate_values(
+                self.source_metadata_values('abstract', 'description', 'tableOfContents')
+            ),
             'extent': self.source_metadata.get('extent'),
-            'format': self.collate_fields(["format", "medium"]),
-            'identifier': self.collate_fields(
-                ["bibliographicCitation", "identifier"]),
-            'is_shown_by': self.map_is_shown_by(),
-            'is_shown_at': self.map_is_shown_at(),
+            'format': self.collate_values(self.source_metadata_values('format', 'medium')),
+            'identifier': self.collate_values(self.source_metadata_values('bibliographicCitation', 'identifier')),
+            'is_shown_by': self.source_metadata.get('is_shown_by'),
+            'is_shown_at': self.source_metadata.get('is_shown_at'),
             'provenance': self.source_metadata.get('provenance'),
             'publisher': self.source_metadata.get('publisher'),
-            'relation': self.collate_fields([
-                "conformsTo",
-                "hasFormat",
-                "hasPart",
-                "hasVersion",
-                "isFormatOf",
-                "isPartOf",
-                "isReferencedBy",
-                "isReplacedBy",
-                "isRequiredBy",
-                "isVersionOf",
-                "references",
-                "relation",
-                "replaces",
-                "requires"
-            ]),
-            'rights': self.collate_fields(["accessRights", "rights"]),
-            'spatial': self.collate_fields(["coverage", "spatial"]),
+            'relation': self.collate_values(
+                self.source_metadata_values(
+                    'conformsTo',
+                    'hasFormat',
+                    'hasPart',
+                    'hasVersion',
+                    'isFormatOf',
+                    'isPartOf',
+                    'isReferencedBy',
+                    'isReplacedBy',
+                    'isRequiredBy',
+                    'isVersionOf',
+                    'references',
+                    'relation',
+                    'replaces',
+                    'require'
+                )
+            ),
+            'rights': self.collate_values(self.source_metadata_values('accessRights', 'rights')),
+            'spatial': self.collate_values(self.source_metadata_values('coverage', 'spatial')),
             'subject': self.map_subject(),
             'temporal': self.source_metadata.get('temporal'),
             'title': self.source_metadata.get('title'),
             'type': self.source_metadata.get('type')
         }
 
+    def map_subject(self) -> Union[list[dict[str, str]], None]:
+        # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127
+        value = self.source_metadata.get('subject')
+        if not value:
+            return None
+
+        if isinstance(value, str):
+            value = [value]
+        return [{'name': v} for v in value if v]
 
 class OaiVernacular(Vernacular):
 
