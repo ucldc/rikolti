@@ -99,11 +99,14 @@ class Record(ABC, object):
 
     def UCLDC_map(self) -> dict:
         """
-        Defines mappings from source metdata to UCDLC that are specific
+        Defines mappings from source metadata to UCDLC that are specific
         to this implementation.
 
         All dicts returned by this method up the ancestor chain
-        are merged together to produce a final result.
+        are merged together to produce a final result. `is_show_at` and
+        `is_shown_by` are not fields from source metadata and are
+        always assumed to be computed, therefore they are included here
+        as maps to abstracted methods.
         """
         return {
             "isShownAt": self.map_is_shown_at(),
@@ -119,11 +122,21 @@ class Record(ABC, object):
         pass
 
     # Mapper Helpers
-    def collate_subfield(self, field: str, subfield: str) -> list:
+    def collate_plucked_values(self, values: list, pluck: str) -> list:
+        return [f[pluck] for f in values]
+
+    def collate_values(self, values):
+        return [v for v in values if v and isinstance(v, str)]
+
+    def collate_subfield(self, field, subfield):
+        """DEPRECATED: replace with `collate_plucked_values()` in mappers that use it"""
         return [f[subfield] for f in self.source_metadata.get(field, [])]
 
     def collate_fields(self, fieldlist):
-        ''' collate multiple field values into a single list '''
+        """multiple field values into a single list
+
+        DEPRECATED: replace with `collate_values()` in mappers that use it
+        """
         collated = []
         for field in fieldlist:
             value = self.source_metadata.get(field)
@@ -134,6 +147,9 @@ class Record(ABC, object):
                     collated.extend(value)
 
         return collated
+
+    def source_metadata_values(self, *args):
+        return [self.source_metadata.get(field) for field in args]
 
     # Enrichments
     # The enrichment chain is a dpla construction that we are porting to Rikolti
