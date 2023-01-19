@@ -34,8 +34,8 @@ class OaiRecord(Record):
             'extent': self.source_metadata.get('extent'),
             'format': self.collate_values(self.source_metadata_values('format', 'medium')),
             'identifier': self.collate_values(self.source_metadata_values('bibliographicCitation', 'identifier')),
-            'is_shown_by': self.source_metadata.get('is_shown_by'),
-            'is_shown_at': self.source_metadata.get('is_shown_at'),
+            'is_shown_by': self.map_is_shown_by(),
+            'is_shown_at': self.map_is_shown_at(),
             'provenance': self.source_metadata.get('provenance'),
             'publisher': self.source_metadata.get('publisher'),
             'relation': self.collate_values(
