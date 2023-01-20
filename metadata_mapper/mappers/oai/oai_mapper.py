@@ -5,7 +5,7 @@ from typing import Union
 from lxml import etree
 from sickle import models
 
-from ..mapper import Record, Vernacular
+from ..mapper import Record, Vernacular, collate_values
 
 
 class OaiRecord(Record):
@@ -15,7 +15,7 @@ class OaiRecord(Record):
         return {
             'contributor': self.source_metadata.get('contributor'),
             'creator': self.source_metadata.get('creator'),
-            'date': self.collate_values(
+            'date': collate_values(
                 self.source_metadata_values(
                     'available',
                     'created',
@@ -28,15 +28,15 @@ class OaiRecord(Record):
                     'valid'
                 )
             ),
-            'description': self.collate_values(
+            'description': collate_values(
                 self.source_metadata_values('abstract', 'description', 'tableOfContents')
             ),
             'extent': self.source_metadata.get('extent'),
-            'format': self.collate_values(self.source_metadata_values('format', 'medium')),
-            'identifier': self.collate_values(self.source_metadata_values('bibliographicCitation', 'identifier')),
+            'format': collate_values(self.source_metadata_values('format', 'medium')),
+            'identifier': collate_values(self.source_metadata_values('bibliographicCitation', 'identifier')),
             'provenance': self.source_metadata.get('provenance'),
             'publisher': self.source_metadata.get('publisher'),
-            'relation': self.collate_values(
+            'relation': collate_values(
                 self.source_metadata_values(
                     'conformsTo',
                     'hasFormat',
@@ -54,8 +54,8 @@ class OaiRecord(Record):
                     'require'
                 )
             ),
-            'rights': self.collate_values(self.source_metadata_values('accessRights', 'rights')),
-            'spatial': self.collate_values(self.source_metadata_values('coverage', 'spatial')),
+            'rights': collate_values(self.source_metadata_values('accessRights', 'rights')),
+            'spatial': collate_values(self.source_metadata_values('coverage', 'spatial')),
             'subject': self.map_subject(),
             'temporal': self.source_metadata.get('temporal'),
             'title': self.source_metadata.get('title'),

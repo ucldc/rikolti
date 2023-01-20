@@ -11,7 +11,7 @@ class ChapmanOaiDcRecord(OaiRecord):
 
     def UCLDC_map(self):
         return {
-            'description': self.collate_values([
+            'description': collate_values([
                 self.source_metadata.get('abstract'),
                 self.map_description(),
                 self.source_metadata.get('tableOfContents')
