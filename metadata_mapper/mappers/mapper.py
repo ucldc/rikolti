@@ -126,7 +126,16 @@ class Record(ABC, object):
         return [f[pluck] for f in values]
 
     def collate_values(self, values):
-        return [v for v in values if v and isinstance(v, str)]
+        collated = []
+        for value in values:
+            if not value:
+                continue
+
+            if isinstance(value, str):
+                collated.append(value)
+            else:
+                collated.extend(value)
+        return collated
 
     def collate_subfield(self, field, subfield):
         """DEPRECATED: replace with `collate_plucked_values()` in mappers that use it"""
@@ -137,16 +146,7 @@ class Record(ABC, object):
 
         DEPRECATED: replace with `collate_values()` in mappers that use it
         """
-        collated = []
-        for field in fieldlist:
-            value = self.source_metadata.get(field)
-            if value:
-                if isinstance(value, str):
-                    collated.append(value)
-                else:
-                    collated.extend(value)
-
-        return collated
+        return self.collate_values([self.source_metadata.get(field) for field in fieldlist])
 
     def source_metadata_values(self, *args):
         return [self.source_metadata.get(field) for field in args]
