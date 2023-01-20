@@ -18,7 +18,7 @@ class OaiFetcher(Fetcher):
         if self.oai.get('harvest_extra_data'):
             # see if we have a query string, e.g. "metadataPrefix=marcxml&set=fritz-metcalf"
             parsed_params = {
-                k: v[0] 
+                k: v[0]
                 for k, v in parse_qs(self.oai.get('harvest_extra_data')).items()
             }
             self.metadata_prefix = parsed_params.get('metadataPrefix')
@@ -56,12 +56,7 @@ class OaiFetcher(Fetcher):
                 f"&resumptionToken={self.oai.get('resumption_token')}"
             )
         else:
-            url = (
-                f"{self.oai.get('url')}"
-                f"?verb=ListRecords"
-                f"&metadataPrefix={self.metadata_prefix}"
-                f"&set={self.metadata_set}"
-            )
+            url = self.get_original_url()
 
         request = {"url": url}
 
@@ -76,17 +71,24 @@ class OaiFetcher(Fetcher):
         xml_hits = xml_resp.find('oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
 
         if len(xml_hits) > 0:
-            requested_url = (
-                f"{self.oai.get('url')}"
-                f"?verb=ListRecords&metadataPrefix={self.metadata_prefix}"
-                f"&set={self.metadata_set}"
-            )
             print(
                 f"[{self.collection_id}]: Fetched page {self.write_page} "
-                f"at {requested_url} "
+                f"at {self.get_original_url()} "
                 f"with {len(xml_hits)} hits"
             )
         return bool(len(xml_hits))
+
+    def get_original_url(self):
+        url = (
+            f"{self.oai.get('url')}"
+            f"?verb=ListRecords"
+            f"&metadataPrefix={self.metadata_prefix}"
+        )
+
+        if self.metadata_set:
+            url += f"&set={self.metadata_set}"
+
+        return url
 
     def increment(self, http_resp):
         super(OaiFetcher, self).increment(http_resp)
