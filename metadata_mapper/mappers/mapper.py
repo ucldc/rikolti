@@ -69,6 +69,28 @@ class Vernacular(ABC, object):
         return api_response
 
 
+# Static mapping helpers
+def collate_plucked_values(values: list, pluck: str) -> list:
+    return [f[pluck] for f in values]
+
+
+def collate_values(values):
+    collated = []
+    for value in values:
+        if not value:
+            continue
+
+        if isinstance(value, str):
+            collated.append(value)
+        else:
+            collated.extend(value)
+    return collated
+
+
+def first(item):
+    return item[0] if item else None
+
+
 class Record(ABC, object):
 
     def __init__(self, collection_id: int, record: dict[str, Any]):
@@ -123,20 +145,6 @@ class Record(ABC, object):
         pass
 
     # Mapper Helpers
-    def collate_plucked_values(self, values: list, pluck: str) -> list:
-        return [f[pluck] for f in values]
-
-    def collate_values(self, values):
-        collated = []
-        for value in values:
-            if not value:
-                continue
-
-            if isinstance(value, str):
-                collated.append(value)
-            else:
-                collated.extend(value)
-        return collated
 
     @deprecated(reason="replace with `collate_plucked_values()` in mappers that use it")
     def collate_subfield(self, field, subfield):
@@ -145,7 +153,7 @@ class Record(ABC, object):
     @deprecated(reason="replace with `collate_values()` in mappers that use it")
     def collate_fields(self, fieldlist):
         """multiple field values into a single list"""
-        return self.collate_values([self.source_metadata.get(field) for field in fieldlist])
+        return collate_values([self.source_metadata.get(field) for field in fieldlist])
 
     def source_metadata_values(self, *args):
         return [self.source_metadata.get(field) for field in args]
@@ -280,13 +288,13 @@ class Record(ABC, object):
                 self.mapped_data[field] += (field_value)
             else:
                 self.mapped_data[field] = field_value
-        else:   # default is fill if empty
+        else:  # default is fill if empty
             if field not in self.mapped_data:
                 self.mapped_data[field] = field_value
 
         # not sure what this is about
         # if not exists(data, "@context"):
-            # self.mapped_data["@context"] = "http://dp.la/api/items/context"
+        # self.mapped_data["@context"] = "http://dp.la/api/items/context"
         return self
 
     def shred(self, field, delim=";"):
@@ -307,7 +315,7 @@ class Record(ABC, object):
         1,021 times:    field=["sourceResource/type"]
         5 times:        field=["sourceResource/description"],   delim=["<br>"]
         """
-        field = field[0].split('/')[1:]     # remove sourceResource
+        field = field[0].split('/')[1:]  # remove sourceResource
         delim = delim[0]
 
         if field not in self.mapped_data:
@@ -391,8 +399,8 @@ class Record(ABC, object):
         src_val = self.mapped_data.get(src)
         dest_val = self.mapped_data.get(dest, [])
         if (
-              (not (isinstance(src_val, list) or isinstance(src_val, str))) or
-              (not (isinstance(dest_val, list) or isinstance(dest_val, str)))
+                (not (isinstance(src_val, list) or isinstance(src_val, str))) or
+                (not (isinstance(dest_val, list) or isinstance(dest_val, str)))
         ):
             print(
                 f"Prop {src} is {type(src_val)} and prop {dest} is "
@@ -420,7 +428,7 @@ class Record(ABC, object):
         # 2079 times: prop=["sourceResource/subject"]
         # 2079 times: prop=["sourceResource/spatial"]
         """
-        src = prop[0].split('/')[-1]   # remove sourceResource
+        src = prop[0].split('/')[-1]  # remove sourceResource
         if src not in self.mapped_data:
             return self
 
@@ -1090,7 +1098,7 @@ class Record(ABC, object):
 
         for field in default_fields + dont_strip_trailing_dot:
             # TODO: this won't work for deeply nested fields
-            field.split('/')[1]     # remove sourceResource
+            field.split('/')[1]  # remove sourceResource
 
             if field not in self.mapped_data:
                 continue
