@@ -7,6 +7,10 @@ import logging
 
 
 def map_endpoint(url):
+    # TODO: this sort of translation from registry's mapper_type to
+    # rikolti's mapper_type should really be done in the registry.
+    # once we have a firmer rikolti vocabulary of mappers, we should
+    # migrate the registry's data.
     lookup = {
         'ucldc_nuxeo': 'nuxeo',
         'oac_dc': 'oac',

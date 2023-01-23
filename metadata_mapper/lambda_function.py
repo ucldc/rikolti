@@ -128,10 +128,15 @@ def map_page(payload, context):
                 group_by_report[report].append(couch_id)
             else:
                 group_by_report[report] = [couch_id]
+        # Group like lists of enrichment chain errors
         count_by_report = {
             report: f"{len(couch_ids)} of {len(mapped_records)}"
             for report, couch_ids in group_by_report.items()
         }
+        # Rather than printing, this could get sent to the return value of
+        # map_page. We should maybe try to rationalize where to use
+        # printing vs. log messages vs. return values. TODO when we have a
+        # clearer sense of our workflow management tooling.
         for report, count in count_by_report.items():
             print(f"{count} records report enrichments errors: {report}")
 

@@ -73,6 +73,8 @@ class Record(ABC, object):
     def __init__(self, collection_id: int, record: dict[str, Any]):
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
+        # TODO: pre_mapped_data is a stop gap to accomodate
+        # pre-mapper enrichments, should probably squash this. 
         self.pre_mapped_data = {}
         self.enrichment_report = []
 
@@ -318,6 +320,9 @@ class Record(ABC, object):
         field = prop[0].split('/')[1:][0]     # remove sourceResource
         delim = delim[0]
 
+        # TODO: this is a way to get around cases where a key with name <field>
+        # it present in self.mapped_data, but the value is None. Should get rid
+        # of these keys in the first place. 
         if field not in self.mapped_data or not self.mapped_data[field]:
             return self
 
@@ -427,12 +432,18 @@ class Record(ABC, object):
         # 2079 times: prop=["sourceResource/spatial"]
         """
         src = prop[0].split('/')[-1]   # remove sourceResource
+        # TODO: this is a way to get around cases where a key with name <src>
+        # is present in self.mapped_data, but the value is None. Should get rid
+        # of None value keys in self.mapped_data
         src_values = self.mapped_data.get(src)
         if not src_values:
             return self
         if isinstance(src_values, str):
             src_values = [src_values]
 
+        # TODO: this is the same issue as above, where a key with name <dest>
+        # is present in self.mapped_data, but the value is None. Should get rid
+        # of None value keys in self.mapped_data
         dest_values = self.mapped_data.get(dest, [])
         if not dest_values:
             dest_values = []
