@@ -2,39 +2,17 @@ import os
 import json
 import re
 import boto3
-from markupsafe import Markup   # used in Record.strip_html()
+
+from abc import ABC, abstractmethod
+from markupsafe import Markup
+from typing import Any, Union
+
+import settings
+
 from . import constants
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
-import settings
-
-
-class VernacularReader(object):
-    def __init__(self, payload):
-        self.collection_id = payload.get('collection_id')
-        self.page_filename = payload.get('page_filename')
-
-    def get_api_response(self):
-        if settings.DATA_SRC == 'local':
-            return self.get_local_api_response()
-        else:
-            return self.get_s3_api_response()
-
-    def get_local_api_response(self):
-        local_path = settings.local_path(
-            'vernacular_metadata', self.collection_id)
-        page_path = os.sep.join([local_path, str(self.page_filename)])
-        page = open(page_path, "r")
-        api_response = page.read()
-        return api_response
-
-    def get_s3_api_response(self):
-        s3 = boto3.resource('s3')
-        bucket = 'rikolti'
-        key = f"vernacular_metadata/{self.collection_id}/{self.page_filename}"
-        s3_obj_summary = s3.Object(bucket, key).get()
-        api_response = s3_obj_summary['Body'].read()
-        return api_response
+from typing import Callable
 
 
 class UCLDCWriter(object):
@@ -62,39 +40,133 @@ class UCLDCWriter(object):
             Body=json.dumps(mapped_metadata))
 
 
-class Record(object):
-    def __init__(self, col_id, record):
-        self.collection_id = col_id
-        self.source_metadata = record
+class Vernacular(ABC, object):
+    def __init__(self, payload: dict) -> None:
+        self.collection_id = payload.get('collection_id')
+        self.page_filename = payload.get('page_filename')
+
+    def get_api_response(self) -> dict:
+        if settings.DATA_SRC == 'local':
+            return self.get_local_api_response()
+        else:
+            return self.get_s3_api_response()
+
+    def get_local_api_response(self) -> str:
+        local_path = settings.local_path(
+            'vernacular_metadata', self.collection_id)
+        page_path = os.sep.join([local_path, str(self.page_filename)])
+        page = open(page_path, "r")
+        api_response = page.read()
+        return api_response
+
+    def get_s3_api_response(self) -> str:
+        s3 = boto3.resource('s3')
+        bucket = 'rikolti'
+        key = f"vernacular_metadata/{self.collection_id}/{self.page_filename}"
+        s3_obj_summary = s3.Object(bucket, key).get()
+        api_response = s3_obj_summary['Body'].read()
+        return api_response
+
+
+class Record(ABC, object):
+
+    def __init__(self, collection_id: int, record: dict[str, Any]):
+        self.collection_id: int = collection_id
+        self.source_metadata: dict = record
         self.pre_mapped_data = {}
         self.enrichment_report = []
 
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.mapped_metadata
+
+    def to_UCLDC(self) -> dict[str, Any]:
+        """
+        Maps source metadata to UCLDC format, saving result to
+        self.mapped_metadata.
+
+        Returns: dict
+        """
+        self.mapped_metadata = {}
+
+        supermaps = [
+            super(c, self).UCLDC_map()
+            for c in list(reversed(type(self).__mro__))
+            if hasattr(super(c, self), "UCLDC_map")
+        ]
+        for map in supermaps:
+            self.mapped_metadata = {**self.mapped_metadata, **map}
+        self.mapped_metadata = {**self.mapped_metadata, **self.UCLDC_map()}
+
+        return self.mapped_metadata
+
+    def UCLDC_map(self) -> dict:
+        """
+        Defines mappings from source metadata to UCDLC that are specific
+        to this implementation.
+
+        All dicts returned by this method up the ancestor chain
+        are merged together to produce a final result. `is_show_at` and
+        `is_shown_by` are not fields from source metadata and are
+        always assumed to be computed, therefore they are included here
+        as maps to abstracted methods.
+        """
+        return {
+            "isShownAt": self.map_is_shown_at(),
+            "isShownBy": self.map_is_shown_by()
+        }
+
+    @abstractmethod
+    def map_is_shown_at(self) -> Union[str, None]:
+        pass
+
+    @abstractmethod
+    def map_is_shown_by(self) -> Union[str, None]:
+        pass
+
     # Mapper Helpers
+    def collate_plucked_values(self, values: list, pluck: str) -> list:
+        return [f[pluck] for f in values]
+
+    def collate_values(self, values):
+        collated = []
+        for value in values:
+            if not value:
+                continue
+
+            if isinstance(value, str):
+                collated.append(value)
+            else:
+                collated.extend(value)
+        return collated
+
     def collate_subfield(self, field, subfield):
+        """DEPRECATED: replace with `collate_plucked_values()` in mappers that use it"""
         return [f[subfield] for f in self.source_metadata.get(field, [])]
 
     def collate_fields(self, fieldlist):
-        ''' collate multiple field values into a single list '''
-        collated = []
-        for field in fieldlist:
-            value = self.source_metadata.get(field)
-            if value:
-                if isinstance(value, str):
-                    collated.append(value)
-                else:
-                    collated.extend(value)
+        """multiple field values into a single list
 
-        return collated
+        DEPRECATED: replace with `collate_values()` in mappers that use it
+        """
+        return self.collate_values([self.source_metadata.get(field) for field in fieldlist])
+
+    def source_metadata_values(self, *args):
+        return [self.source_metadata.get(field) for field in args]
 
     # Enrichments
     # The enrichment chain is a dpla construction that we are porting to Rikolti
     # The enrichment chain is implemented as methods on Rikolti's Record() class
 
-    def enrich(self, enrichment_function, **kwargs):
-        func = getattr(self, enrichment_function)
-        return func(**kwargs)
+    def enrich(self, enrichment_function_name: str, **kwargs):
+        func: Callable = getattr(self, enrichment_function_name)
+        try:
+            return func(**kwargs)
+        except Exception as e:
+            print(f"ENRICHMENT ERROR: {str(kwargs)}")
+            raise e
 
-    def select_id(self, prop):
+    def select_id(self, prop: list[str]):
         """
         called with the following parameters:
         278 times:  prop=["uid"]

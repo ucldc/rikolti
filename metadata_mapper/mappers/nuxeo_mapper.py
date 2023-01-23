@@ -1,5 +1,5 @@
 import json
-from .mapper import VernacularReader, Record
+from .mapper import Vernacular, Record
 
 
 class NuxeoRecord(Record):
@@ -162,7 +162,7 @@ class NuxeoRecord(Record):
         return [{'text': s} for s in spatial]
 
 
-class NuxeoVernacular(VernacularReader):
+class NuxeoVernacular(Vernacular):
     record_cls = NuxeoRecord
 
     def parse(self, api_response):

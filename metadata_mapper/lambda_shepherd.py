@@ -40,7 +40,7 @@ def check_for_missing_enrichments(collection):
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # AWS Lambda entry point
 def map_collection(payload, context):
-    if settings.LOCAL_RUN:
+    if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
 
     collection_id = payload.get('collection_id')
@@ -81,6 +81,14 @@ def map_collection(payload, context):
             return_val = map_page(json.dumps(payload), {})
             count += return_val['num_records_mapped']
             page_count += 1
+        return {
+            'statusCode': 200,
+            'body': {
+                'collection_id': collection_id,
+                'missing_enrichments': missing_enrichments,
+                'count': count,
+            }
+        }
     else:
         # JUST A SKETCH
         s3 = boto3.resource('s3')
