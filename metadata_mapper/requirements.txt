@@ -3,4 +3,5 @@ requests
 lxml
 sickle
 MarkupSafe
+flake8
 python-dotenv

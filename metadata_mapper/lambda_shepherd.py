@@ -5,6 +5,7 @@ import sys
 import requests
 from lambda_function import map_page
 import settings
+import logging
 
 
 def get_collection(collection_id):
@@ -55,16 +56,31 @@ def map_collection(payload, context):
     if len(missing_enrichments) > 0:
         print(f"[{collection_id}]: Missing enrichments: {missing_enrichments}")
 
+    count = 0
+    page_count = 0
     if settings.DATA_SRC == 'local':
         vernacular_path = settings.local_path(
             'vernacular_metadata', collection_id)
-        page_list = [f for f in os.listdir(vernacular_path)
-                     if os.path.isfile(os.path.join(vernacular_path, f))]
-        count = 0
+        try:
+            page_list = [f for f in os.listdir(vernacular_path)
+                         if os.path.isfile(os.path.join(vernacular_path, f))]
+        except FileNotFoundError as e:
+            logging.debug(f"{e} - have you fetched {collection_id}?")
+            return {
+                'statusCode': 400,
+                'body': json.dumps({
+                    'error': (
+                        f"{repr(e)} - have you fetched {collection_id}? ",
+                        f"looked in dir {e.filename}"
+                    ),
+                    'payload': payload
+                })
+            }
         for page in page_list:
             payload.update({'page_filename': page})
             return_val = map_page(json.dumps(payload), {})
-            count += return_val['body']
+            count += return_val['num_records_mapped']
+            page_count += 1
         return {
             'statusCode': 200,
             'body': {
@@ -88,6 +104,16 @@ def map_collection(payload, context):
                 InvocationType="Event",  # invoke asynchronously
                 Payload=json.dumps(payload).encode('utf-8')
             )
+    return {
+        'statusCode': 200,
+        'body': {
+            'collection_id': collection_id,
+            'missing_enrichments': missing_enrichments,
+            'num_records_mapped': count,
+            'pages_mapped': page_count,
+            # 'payload': payload
+        }
+    }
 
 
 if __name__ == "__main__":

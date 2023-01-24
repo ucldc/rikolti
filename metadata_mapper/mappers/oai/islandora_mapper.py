@@ -9,6 +9,7 @@ class IslandoraRecord(OaiRecord):
 
     def to_UCLDC(self):
         self.mapped_data = {
+            'calisphere-id': self.legacy_couch_db_id.split('--')[1],
             'contributor': self.source_metadata.get('contributor'),
             'creator': self.source_metadata.get('creator'),
             'date': self.collate_fields([
@@ -108,6 +109,8 @@ class IslandoraRecord(OaiRecord):
             # objects & test to make sure the link resolves
             if 'image' or 'StillImage' in self.source_metadata.get('type', ''):
                 jpg_url = thumb_url.replace("/TN/", "/JPG/")
+                # TODO: should figure out a way to punt a request
+                # to minimize the mapper's reliance on external systems
                 request = requests.get(jpg_url)
                 if request.status_code == 200:
                     thumb_url = jpg_url

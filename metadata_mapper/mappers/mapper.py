@@ -73,6 +73,11 @@ class Record(ABC, object):
     def __init__(self, collection_id: int, record: dict[str, Any]):
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
+        # TODO: pre_mapped_data is a stop gap to accomodate
+        # pre-mapper enrichments, should probably squash this. 
+        self.pre_mapped_data = {}
+        self.enrichment_report = []
+
 
     def to_dict(self) -> dict[str, Any]:
         return self.mapped_metadata
@@ -194,8 +199,9 @@ class Record(ABC, object):
     def select_oac_id(self):
         """
         called 574 times with no parameters
+        only ever called prior to mapping, so update self.pre_mapped_data
         """
-        id_values = self.mapped_data.get("identifier")
+        id_values = self.source_metadata.get("identifier")
         if not isinstance(id_values, list):
             id_values = [id_values]
 
@@ -208,9 +214,12 @@ class Record(ABC, object):
         else:
             calisphere_id = id_values[0]
 
-        self.mapped_data["id"] = f"{self.collection_id}--{calisphere_id}"
-        self.mapped_data["isShownAt"] = calisphere_id
-        self.mapped_data["isShownBy"] = f"{calisphere_id}/thumbnail"
+        self.pre_mapped_data["id"] = f"{self.collection_id}--{calisphere_id}"
+        self.pre_mapped_data["calisphere-id"] = f"{calisphere_id}"
+        self.pre_mapped_data["isShownAt"] = calisphere_id
+        self.pre_mapped_data["isShownBy"] = f"{calisphere_id}/thumbnail"
+        self.legacy_couch_db_id = (f"{self.collection_id}--{calisphere_id}")
+
         return self
 
     def select_cmis_atom_id(self):
@@ -237,12 +246,12 @@ class Record(ABC, object):
 
         calisphere_id = calisphere_id.split('|')[1]
 
-        self.mapped_data['id'] = f"{self.collection_id}--{calisphere_id}"
+        self.legacy_couch_db_id = f"{self.collection_id}--{calisphere_id}"
         return self
 
     def select_preservica_id(self):
         calisphere_id = self.mapped_data.get("preservica_id", {}).get('$')
-        self.mapped_data['id'] = f"{self.collection_id}--{calisphere_id}"
+        self.legacy_couch_db_id = f"{self.collection_id}--{calisphere_id}"
         return self
 
     def required_values_from_collection_registry(
@@ -290,7 +299,7 @@ class Record(ABC, object):
             # self.mapped_data["@context"] = "http://dp.la/api/items/context"
         return self
 
-    def shred(self, field, delim=";"):
+    def shred(self, prop, delim=";"):
         """
         Based on DPLA-Ingestion service that accepts a JSON document and
         "shreds" the value of the field named by the "prop" parameter
@@ -302,16 +311,19 @@ class Record(ABC, object):
         Duplicate values are removed.
 
         called with the following parameters:
-        2,078 times:    field=["sourceResource/spatial"],       delim = ["--"]
-        1,021 times:    field=["sourceResource/subject/name"]
-        1,021 times:    field=["sourceResource/creator"]
-        1,021 times:    field=["sourceResource/type"]
-        5 times:        field=["sourceResource/description"],   delim=["<br>"]
+        2,078 times:    prop=["sourceResource/spatial"],       delim = ["--"]
+        1,021 times:    prop=["sourceResource/subject/name"]
+        1,021 times:    prop=["sourceResource/creator"]
+        1,021 times:    prop=["sourceResource/type"]
+        5 times:        prop=["sourceResource/description"],   delim=["<br>"]
         """
-        field = field[0].split('/')[1:]     # remove sourceResource
+        field = prop[0].split('/')[1:][0]     # remove sourceResource
         delim = delim[0]
 
-        if field not in self.mapped_data:
+        # TODO: this is a way to get around cases where a key with name <field>
+        # it present in self.mapped_data, but the value is None. Should get rid
+        # of these keys in the first place. 
+        if field not in self.mapped_data or not self.mapped_data[field]:
             return self
 
         value = self.mapped_data[field]
@@ -320,9 +332,8 @@ class Record(ABC, object):
                 value = delim.join(value)
                 value = value.replace(f"{delim}{delim}", delim)
             except Exception as e:
-                print(
-                    f"Can't join list {value} on delim for "
-                    f"{self.mapped_data['id']}, {e}"
+                self.enrichment_report.append(
+                    f"[shred]: Can't join {field} list {value} with {delim}, {e}"
                 )
         if delim not in value:
             return self
@@ -379,8 +390,8 @@ class Record(ABC, object):
                     to_prop=["sourceResource/title"]
         """
 
-        src = prop[0].split('/')[1:]
-        dest = to_prop[0].split('/')[1:]
+        src = prop[0].split('/')[-1]
+        dest = to_prop[0].split('/')[-1]
         skip_if_exists = bool(skip_if_exists[0] in ['True', 'true'])
 
         if ((dest in self.mapped_data and skip_if_exists) or
@@ -395,10 +406,9 @@ class Record(ABC, object):
               (not (isinstance(src_val, list) or isinstance(src_val, str))) or
               (not (isinstance(dest_val, list) or isinstance(dest_val, str)))
         ):
-            print(
-                f"Prop {src} is {type(src_val)} and prop {dest} is "
-                f"{type(dest_val)} - not a string/list for record "
-                f"{self.mapped_data.get('id')}"
+            self.enrichment_report.append(
+                f"[copy_prop]: Prop {src} is {type(src_val)} and prop {dest} "
+                f"is {type(dest_val)} - not a string/list"
             )
             return self
 
@@ -422,18 +432,28 @@ class Record(ABC, object):
         # 2079 times: prop=["sourceResource/spatial"]
         """
         src = prop[0].split('/')[-1]   # remove sourceResource
-        if src not in self.mapped_data:
+        # TODO: this is a way to get around cases where a key with name <src>
+        # is present in self.mapped_data, but the value is None. Should get rid
+        # of None value keys in self.mapped_data
+        src_values = self.mapped_data.get(src)
+        if not src_values:
             return self
-
-        src_values = self.mapped_data[src]
         if isinstance(src_values, str):
             src_values = [src_values]
-        remove = []
+
+        # TODO: this is the same issue as above, where a key with name <dest>
+        # is present in self.mapped_data, but the value is None. Should get rid
+        # of None value keys in self.mapped_data
         dest_values = self.mapped_data.get(dest, [])
+        if not dest_values:
+            dest_values = []
         if isinstance(dest_values, str):
             dest_values = [dest_values]
 
+        remove = []
         for value in src_values:
+            if not isinstance(value, str):
+                continue
             cleaned_value = re.sub(r"[\(\)\.\?]", "", value)
             cleaned_value = cleaned_value.strip()
             for pattern in constants.move_date_value_reg_search:
@@ -455,7 +475,7 @@ class Record(ABC, object):
 
         return self
 
-    def lookup(self, prop, target, substitution, inverse=False):
+    def lookup(self, prop, target, substitution, inverse=[False]):
         """
         dpla-ingestion code has a delnonexisting parameter that is not used by
         our enrichment chain, so I've not implemented it here.
@@ -488,21 +508,22 @@ class Record(ABC, object):
                     target=["sourceResource/format"],
                     substitution=["scdl_fix_format"]
         """
-        src = prop[0].split('/')[-1]  # remove sourceResource
-        dest = target[0].split('/')[-1]  # remove sourceResource
+        src = prop[0].split('/')[1:]  # remove sourceResource
+        dest = target[0].split('/')[1:]  # remove sourceResource
         substitution = substitution[0]
         inverse = bool(inverse[0] in ['True', 'true'])
 
         # TODO: this won't actually work for deeply nested fields
 
-        if src not in self.mapped_data:
-            print(
-                f"Source field {src} not in "
-                "record {self.mapped_data.get('id')}"
-            )
-            return self
+        src_values = self.mapped_data
+        for src_field in src:
+            if src_field not in src_values:
+                self.enrichment_report.append(
+                    f"[lookup]: Source field {src} not in record"
+                )
+                return self
+            src_values = src_values.get(src_field)
 
-        src_values = self.mapped_data[src]
         if isinstance(src_values, str):
             src_values = [src_values]
 
@@ -533,10 +554,12 @@ class Record(ABC, object):
         2080 times: prop=["sourceResource/stateLocatedIn"]
         """
         src = prop[0].split('/')[-1]  # remove sourceResource
-        if src not in self.mapped_data():
+        if src not in self.mapped_data:
             return self
 
-        print('enrich_location not implemented')
+        self.enrichment_report.append(
+            f"[enrich_location]: not implemented, "
+            f"self.mapped_data[{src}] = {self.mapped_data.get(src)}")
         return self
 
     def enrich_type(self):
@@ -545,17 +568,20 @@ class Record(ABC, object):
         2081 times: no parameters
         """
         record_types = self.mapped_data.get('type', [])
+        if not record_types:
+            return self
+
         if not isinstance(record_types, list):
             record_types = [record_types]
         record_types = [
-            t.get('#text', t.get('text'))
+            t.get('#text')
             if isinstance(t, dict) else t
             for t in record_types
         ]
         record_types = [t.lower().rstrip('s') for t in record_types]
         mapped_type = None
         for record_type in record_types:
-            if constants.type_mape[record_type]:
+            if record_type in constants.type_map:
                 mapped_type = constants.type_map[record_type]
                 break
 
@@ -566,7 +592,7 @@ class Record(ABC, object):
                 record_formats = [record_formats]
             record_formats = [f.lower().rstrip('s') for f in record_formats]
             for record_format in record_formats:
-                if constants.format_map[record_format]:
+                if constants.format_map.get(record_format):
                     mapped_type = constants.format_map[record_format]
                     break
 
@@ -582,6 +608,8 @@ class Record(ABC, object):
         subjects = self.mapped_data.get('subject', [])
         if isinstance(subjects, str):
             subjects = [subjects]
+        if not subjects:
+            subjects = []
         subjects = [
             subject.get('name') for subject in subjects
             if isinstance(subject, dict)
@@ -733,7 +761,7 @@ class Record(ABC, object):
         2080 times: prop=sourceResource/stateLocatedIn
                     value=California
         """
-        prop = prop.split('/')[-1]  # remove sourceResource
+        prop = prop[0].split('/')[-1]  # remove sourceResource
         self.mapped_data[prop] = value
         return self
 
@@ -852,8 +880,10 @@ class Record(ABC, object):
                 return value
             return None
 
-        prop = prop.split('/')[-1]  # remove sourceResource
+        prop = prop[0].split('/')[-1]  # remove sourceResource
         value = self.mapped_data[prop]
+        regex = regex[0]
+        new = new[0]
         new_value = recursive_regex_replace(value, regex, new)
         self.mapped_data[prop] = new_value
         return self
@@ -1003,6 +1033,8 @@ class Record(ABC, object):
             self.mapped_data.update(item_context)
         elif self.mapped_data.get("ingestType"):
             self.mapped_data.update(collection_context)
+
+        return self
 
     def capitalize_value(self, exclude):
         """

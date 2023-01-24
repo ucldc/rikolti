@@ -9,17 +9,6 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-def local_path(folder, collection_id):
-    parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
-    local_path = os.sep.join([
-        parent_dir,
-        'rikolti_bucket',
-        folder,
-        str(collection_id),
-    ])
-    return local_path
-
-
 def solr(**params):
     solr_url = f'{settings.SOLR_URL}/query/'
     solr_auth = {'X-Authentication-Token': settings.SOLR_API_KEY}
@@ -98,53 +87,17 @@ partial_fidelity_fields = [
     "transcription",
 ]
 
-repository_fields = [
-    'campus_data',
-    'campus_name',
-    'campus_url',
-    'collection_data',
-    'collection_name',
-    'collection_url',
-    'repository_data',
-    'repository_name',
-    'repository_url',
-    'sort_collection_data',
-]
-
-excluded_fields = [
-    'reference_image_md5',
-    'reference_image_dimensions',
-    'structmap_url',
-    'url_item',
-    'harvest_id_s'
-]
-
-search_fields = [
-    'facet_decade',
-    'sort_date_end',
-    'sort_date_start',
-    'sort_title',
-]
-
-harvest_fields = [
-    '_version_',
-    'harvest_id_s',
-    'timestamp',
-]
-
-enrichment_fields = (
-    repository_fields +
-    excluded_fields +
-    search_fields +
-    harvest_fields
-)
-
 
 def validate_mapped_page(rikolti_records, solr_records, query):
     collections_search = solr(**query)
     num_solr_records = collections_search['response']['numFound']
-    query['rows'] = 100
-    page_report = []
+    collections_search_records = collections_search.get(
+        'response', {'docs': None}).get('docs', [])
+    solr_records.update(
+        {r['harvest_id_s']: r for r in collections_search_records})
+
+    page_report = [
+        "severity, type, couch id, field_name, rikolti value, solr value"]
 
     while len(rikolti_records):
         logging.debug(
@@ -152,13 +105,6 @@ def validate_mapped_page(rikolti_records, solr_records, query):
             f"vs. records fetched from solr: {len(solr_records)}"
         )
         logging.debug(query)
-
-        if query['start'] < num_solr_records:
-            collections_search = solr(**query)
-            collections_search = collections_search.get(
-                'response', {'docs': None}).get('docs', [])
-            solr_records.update(
-                {r['harvest_id_s']: r for r in collections_search})
 
         page_intersection = list(
             set(rikolti_records.keys()).intersection(solr_records.keys())
@@ -207,10 +153,131 @@ def validate_mapped_page(rikolti_records, solr_records, query):
                     )
 
         query['start'] = query['start'] + 100
+        if query['start'] < num_solr_records:
+            collections_search = solr(**query)
+            collections_search = collections_search.get(
+                'response', {'docs': None}).get('docs', [])
+            solr_records.update(
+                {r['harvest_id_s']: r for r in collections_search})
+        else:
+            logging.debug(
+                f"this page intersection had {len(page_report)} errors and "
+                f"{len(rikolti_records)} new rikolti records")
+            for record in rikolti_records:
+                page_report.append(
+                    f"WARN, new rikolti record, {record}"
+                )
+            break
+
         logging.debug(f"this page intersection had {len(page_report)} errors")
     return query, solr_records, page_report
 
 
+def validate_mapped_collection(payload):
+    payload = json.loads(payload)
+    collection_id = payload.get('collection_id')
+
+    if settings.DATA_SRC == 'local':
+        mapped_path = settings.local_path('mapped_metadata', collection_id)
+        page_list = [f for f in os.listdir(mapped_path)
+                     if os.path.isfile(os.path.join(mapped_path, f))]
+
+    solr_records = {}
+    query = {
+        'fq': (
+            "collection_url: \"https://registry.cdlib.org/api/v1"
+            f"/collection/{collection_id}/\""
+        ),
+        'rows': 100,
+        'start': 0
+    }
+    collection_report = []
+
+    for page in page_list:
+        if settings.DATA_SRC == 'local':
+            page_path = os.sep.join([
+                settings.local_path('mapped_metadata', collection_id),
+                str(page)
+            ])
+            page = open(page_path, "r")
+            mapped_metadata = page.read()
+        elif settings.DATA_SRC == 's3':
+            s3 = boto3.resource('s3')
+            bucket = 'rikolti'
+            key = f"mapped_metadata/{collection_id}/{page}"
+            s3_obj_summary = s3.Object(bucket, key).get()
+            mapped_metadata = s3_obj_summary['Body'].read()
+
+        rikolti_records = json.loads(mapped_metadata)
+        rikolti_records = {
+            f"{collection_id}--{r['calisphere-id']}": r
+            for r in rikolti_records
+        }
+
+        print(f"[{collection_id}]: Validating page {page_path.split('/')[-1]}")
+        query, solr_records, page_report = validate_mapped_page(
+            rikolti_records, solr_records, query)
+        collection_report = collection_report + page_report
+        print(
+            f"[{collection_id}]: Validated page {page_path.split('/')[-1]} "
+            f"- {len(collection_report)} errors"
+        )
+
+    return collection_report
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Validate mapped metadata against SOLR")
+    parser.add_argument('payload', help='json payload')
+    args = parser.parse_args(sys.argv[1:])
+    collection_report = validate_mapped_collection(args.payload)
+    print(collection_report)
+
+
+# repository_fields = [
+#     'campus_data',
+#     'campus_name',
+#     'campus_url',
+#     'collection_data',
+#     'collection_name',
+#     'collection_url',
+#     'repository_data',
+#     'repository_name',
+#     'repository_url',
+#     'sort_collection_data',
+# ]
+
+# excluded_fields = [
+#     'reference_image_md5',
+#     'reference_image_dimensions',
+#     'structmap_url',
+#     'url_item',
+#     'harvest_id_s'
+# ]
+
+# search_fields = [
+#     'facet_decade',
+#     'sort_date_end',
+#     'sort_date_start',
+#     'sort_title',
+# ]
+
+# harvest_fields = [
+#     '_version_',
+#     'harvest_id_s',
+#     'timestamp',
+# ]
+
+# enrichment_fields = (
+#     repository_fields +
+#     excluded_fields +
+#     search_fields +
+#     harvest_fields
+# )
+
+# def validate_mapped_page(rikolti_records, solr_records, query):
     # print(
     #     "Rikolti Record Id | CouchDB Id | Field Name | Solr Value | "
     #     "Rikolti Value"
@@ -269,66 +336,3 @@ def validate_mapped_page(rikolti_records, solr_records, query):
     #     if (rikolti_record['calisphere-id'] ==
     #             'ccf27d23-738b-4b88-a1de-afeef5e9bda7'):
     #         break
-
-
-def validate_mapped_collection(payload):
-    payload = json.loads(payload)
-    collection_id = payload.get('collection_id')
-
-    if settings.DATA_SRC == 'local':
-        mapped_path = local_path('mapped_metadata', collection_id)
-        page_list = [f for f in os.listdir(mapped_path)
-                     if os.path.isfile(os.path.join(mapped_path, f))]
-
-    solr_records = {}
-    query = {
-        'fq': (
-            "collection_url: \"https://registry.cdlib.org/api/v1"
-            f"/collection/{collection_id}/\""
-        ),
-        'rows': 0,
-        'start': 0
-    }
-    collection_report = []
-
-    for page in page_list:
-        if settings.DATA_SRC == 'local':
-            page_path = os.sep.join([
-                local_path('mapped_metadata', collection_id),
-                str(page)
-            ])
-            page = open(page_path, "r")
-            mapped_metadata = page.read()
-        elif settings.DATA_SRC == 's3':
-            s3 = boto3.resource('s3')
-            bucket = 'rikolti'
-            key = f"mapped_metadata/{collection_id}/{page}"
-            s3_obj_summary = s3.Object(bucket, key).get()
-            mapped_metadata = s3_obj_summary['Body'].read()
-
-        rikolti_records = json.loads(mapped_metadata)
-        rikolti_records = {
-            f"{collection_id}--{r['calisphere-id']}": r
-            for r in rikolti_records
-        }
-
-        print(f"[{collection_id}]: Validating page {page_path.split('/')[-1]}")
-        query, solr_records, page_report = validate_mapped_page(
-            rikolti_records, solr_records, query)
-        collection_report = collection_report + page_report
-        print(
-            f"[{collection_id}]: Validated page {page_path.split('/')[-1]} "
-            f"- {len(collection_report)} errors"
-        )
-
-    return collection_report
-
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(
-        description="Validate mapped metadata against SOLR")
-    parser.add_argument('payload', help='json payload')
-    args = parser.parse_args(sys.argv[1:])
-    collection_report = validate_mapped_collection(args.payload)
-    print(collection_report)

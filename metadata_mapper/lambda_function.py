@@ -49,6 +49,25 @@ def parse_enrichment_url(enrichment_url):
     return enrichment_func, kwargs
 
 
+def run_enrichments(records, payload, enrichment_set):
+    collection = payload.get('collection', {})
+    for enrichment_url in collection.get(enrichment_set, []):
+        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
+        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
+            continue
+        if enrichment_func in ['required_values_from_collection_registry',
+                               'set_ucldc_dataprovider']:
+            kwargs.update({'collection': collection})
+        logging.debug(
+            f"[{collection['id']}]: running enrichment: {enrichment_func} "
+            f"for page {payload['page_filename']} with kwargs: {kwargs}")
+        records = [
+            record.enrich(enrichment_func, **kwargs)
+            for record in records
+        ]
+    return records
+
+
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": "r-0"}
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
 # AWS Lambda entry point
@@ -60,7 +79,6 @@ def map_page(payload, context):
     source_vernacular = vernacular_reader(payload)
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
-    collection = payload.get('collection', {})
 
     for enrichment_url in collection.get('rikolti__pre_mapping', []):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
@@ -98,6 +116,30 @@ def map_page(payload, context):
             for record in mapped_records
         ]
 
+    exceptions = {
+        rec.legacy_couch_db_id: rec.enrichment_report
+        for rec in mapped_records if rec.enrichment_report
+    }
+    if exceptions:
+        group_by_report = {}
+        for couch_id, reports in exceptions.items():
+            report = " | ".join(reports)
+            if report in group_by_report:
+                group_by_report[report].append(couch_id)
+            else:
+                group_by_report[report] = [couch_id]
+        # Group like lists of enrichment chain errors
+        count_by_report = {
+            report: f"{len(couch_ids)} of {len(mapped_records)}"
+            for report, couch_ids in group_by_report.items()
+        }
+        # Rather than printing, this could get sent to the return value of
+        # map_page. We should maybe try to rationalize where to use
+        # printing vs. log messages vs. return values. TODO when we have a
+        # clearer sense of our workflow management tooling.
+        for report, count in count_by_report.items():
+            print(f"{count} records report enrichments errors: {report}")
+
     # some enrichments had previously happened at ingest into Solr
     # TODO: these are just two, investigate further
     # mapped_records = [record.add_sort_title() for record in mapped_records]
@@ -113,7 +155,7 @@ def map_page(payload, context):
 
     return {
         'statusCode': 200,
-        'body': len(mapped_records)
+        'num_records_mapped': len(mapped_records)
     }
 
 

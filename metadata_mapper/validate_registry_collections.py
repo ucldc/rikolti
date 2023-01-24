@@ -12,13 +12,23 @@ from validate_mapping import validate_mapped_collection
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-def validate_collections(url):
+def validate_endpoint(url):
     collection_page = url
     results = []
 
     while collection_page:
-        response = requests.get(url=collection_page)
-        response.raise_for_status()
+        try:
+            response = requests.get(url=collection_page)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            msg = (
+                f"[{collection_page}]: "
+                f"{err}; A valid collection id is required for validation"
+            )
+            print(msg)
+            collection_page = None
+            break
+
         total_collections = response.json().get('meta', {}).get('total_count')
         print(
             f">>> Validating {total_collections} collections "
@@ -29,7 +39,7 @@ def validate_collections(url):
         if collection_page:
             collection_page = f"https://registry.cdlib.org{collection_page}"
         logging.debug(f"Next page: {collection_page}")
-        collections = response.json().get('objects')
+        collections = response.json().get('objects', [response.json()])
         for collection in collections:
             collection_id = collection['collection_id']
             log_msg = f"[{collection_id}]: " + "{}"
@@ -68,6 +78,6 @@ if __name__ == "__main__":
         description="Run mapper for registry endpoint")
     parser.add_argument('endpoint', help='registry api endpoint')
     args = parser.parse_args(sys.argv[1:])
-    validation_errors = validate_collections(args.endpoint)
+    validation_errors = validate_endpoint(args.endpoint)
     # print(validation_errors)
     sys.exit(0)
