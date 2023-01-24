@@ -90,6 +90,8 @@ def collate_values(values):
 def first(item):
     return item[0] if item else None
 
+def last(item):
+    return item[-1] if item else None
 
 class Record(ABC, object):
 
