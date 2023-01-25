@@ -11,6 +11,7 @@ from typing import Any, Callable
 from datetime import date
 
 import settings
+from .validator import Validator
 
 from . import constants
 from .iso639_1 import iso_639_1
@@ -133,6 +134,10 @@ class Record(ABC, object):
         are merged together to produce a final result.
         """
         return {}
+
+    # Validation
+    def validate(self, comparison_data: dict) -> Validator.ValidationErrors:
+        return self.validator.validate(self.mapped_metadata, comparison_data)
 
     # Mapper Helpers
     @returns_callable
