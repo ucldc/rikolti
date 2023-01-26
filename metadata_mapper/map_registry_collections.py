@@ -12,9 +12,9 @@ def map_endpoint(url):
     # once we have a firmer rikolti vocabulary of mappers, we should
     # migrate the registry's data.
     lookup = {
-        'ucldc_nuxeo': 'nuxeo',
-        'oac_dc': 'oac',
-        'islandora_oai_dc': 'islandora'
+        'ucldc_nuxeo': 'nuxeo.nuxeo',
+        'oac_dc': 'oac.oac',
+        'islandora_oai_dc': 'oai.islandora'
     }
 
     collection_page = url

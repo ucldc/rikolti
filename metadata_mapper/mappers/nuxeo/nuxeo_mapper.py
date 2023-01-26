@@ -1,5 +1,5 @@
 import json
-from .mapper import Vernacular, Record
+from ..mapper import Vernacular, Record
 
 
 class NuxeoRecord(Record):
@@ -161,6 +161,11 @@ class NuxeoRecord(Record):
                 spatial.append(place['coordinates'])
         return [{'text': s} for s in spatial]
 
+    def map_is_shown_at(self):
+        return super().map_is_shown_at()
+    
+    def map_is_shown_by(self):
+        return super().map_is_shown_by()
 
 class NuxeoVernacular(Vernacular):
     record_cls = NuxeoRecord

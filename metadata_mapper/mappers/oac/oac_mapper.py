@@ -2,8 +2,8 @@ import re
 # import lxml
 from xml.etree import ElementTree as ET
 from collections import defaultdict
-from .mapper import Vernacular, Record
-from .utils import exists, getprop, iterify
+from ..mapper import Vernacular, Record
+from ..utils import exists, getprop, iterify
 
 
 class OacRecord(Record):
@@ -70,6 +70,12 @@ class OacRecord(Record):
 
         self.mapped_data = mapped_data
         return self
+
+    def map_is_shown_at(self):
+        return super().map_is_shown_at()
+    
+    def map_is_shown_by(self):
+        return super().map_is_shown_by()
 
     def remove_if_empty_list(self, fields, mapped_data):
         for field in fields:
