@@ -950,17 +950,23 @@ class Record(ABC, object):
         2333 times: no parameters
         """
         repo = collection['repository'][0]
-        campus = None
-        if len(repo['campus']):
-            campus = repo['campus'][0]
+        campus = repo.get('campus', [None])[0]
         data_provider = repo['name']
         if campus:
             data_provider = f"{campus['name']}, {repo['name']}"
+        # TODO: deprecate dataProvider, use 'repository' instead
         self.mapped_data['dataProvider'] = data_provider
+        self.mapped_data['repository'] = data_provider
+        # TODO: deprecate provider, use 'collection' instead
         self.mapped_data['provider'] = {
             'name': data_provider,
             '@id': collection['id']
         }
+        self.mapped_data['collection'] = [{
+            'id': collection['id'],
+            'name': collection['name'],
+            'repository': collection['repository']
+        }]
         self.mapped_data['stateLocatedIn'] = [{'name': 'California'}]
         return self
 
@@ -1323,9 +1329,6 @@ class Record(ABC, object):
 
         def map_couch_to_solr_doc(record):
             collections = record['collection']
-            for c in collections:
-                if not c['@id'].endswith('/'):
-                    c['@id'] = c['@id'] + '/'
 
             def sort_col_data(collection):
                 '''Return the string form of the collection data.
@@ -1337,7 +1340,7 @@ class Record(ABC, object):
                     default_missing='~collection unknown',
                     missing_equivalents=[])
                 sort_string = ':'.join((sort_name, collection['name'],
-                                        collection['@id']))
+                                        str(collection['id'])))
                 return sort_string
 
             if not all([c.get('repository') for c in collections]):
@@ -1345,27 +1348,12 @@ class Record(ABC, object):
             repos = [
                 repo for c in collections for repo in c.get('repository', [])
             ]
-            for r in repos:
-                if not r['@id'].endswith('/'):
-                    r['@id'] = r['@id'] + '/'
 
             def compose_repo_data(repo):
-                repo_data = f"{repo['@id']}::{repo['name']}"
+                repo_data = f"{repo['id']}::{repo['name']}"
                 if 'campus' in repo and len(repo['campus']):
                     repo_data = f"{repo_data}::{repo['campus'][0]['name']}"
                 return repo_data
-
-            campuses = [
-                campus for c in collections for campus in c.get('campus', [])
-            ]
-            for c in campuses:
-                if not c['@id'].endswith('/'):
-                    c['@id'] = c['@id'] + '/'
-            if campuses:
-                solr_doc['campus_url'] = [c['@id'] for c in campuses]
-                solr_doc['campus_name'] = [c['name'] for c in campuses]
-                solr_doc['campus_data'] = [f"{c['@id']}::{c['name']}"
-                                            for c in campuses]
 
             solr_doc = {
                 'harvest_id_s': record.get('_id'),
@@ -1374,13 +1362,13 @@ class Record(ABC, object):
                 'item_count': record.get('item_count', 0),
 
                 # registry fields
-                'collection_url': [c['@id'] for c in collections],
+                'collection_url': [c['id'] for c in collections],
                 'collection_name': [c['name'] for c in collections],
-                'collection_data': [f"{c['@id']}::{c['name']}" 
+                'collection_data': [f"{c['id']}::{c['name']}"
                                     for c in collections],
                 'sort_collection_data': [sort_col_data(c) for c in collections],
 
-                'repository_url': [repo['@id'] for repo in repos],
+                'repository_url': [repo['id'] for repo in repos],
                 'repository_name': [repo['name'] for repo in repos],
                 'repository_data': [compose_repo_data(repo) for repo in repos],
 
@@ -1420,11 +1408,25 @@ class Record(ABC, object):
                 'rights_holder': filter_blank_values(record.get('rightsHolder')),
                 'rights_note': filter_blank_values(record.get('rightsNote')),
                 'source': filter_blank_values(record.get('source')),
-                'structmap_text': filter_blank_values(record.get('structmap_text')),
-                'structmap_url': filter_blank_values(record.get('structmap_url')),
-                'transcription': filter_blank_values(record.get('transcription')),
-                'location': filter_blank_values(record['properties'].get('ucldc_schema:physlocation'))
+                'structmap_text': filter_blank_values(
+                    record.get('structmap_text')),
+                'structmap_url': filter_blank_values(
+                    record.get('structmap_url')),
+                'transcription': filter_blank_values(
+                    record.get('transcription')),
+                'location': filter_blank_values(
+                    record.get('properties', {}).get(
+                        'ucldc_schema:physlocation'))
             }
+
+            campuses = [
+                campus for c in collections for campus in c.get('campus', [])
+            ]
+            if campuses:
+                solr_doc['campus_url'] = [c['id'] for c in campuses]
+                solr_doc['campus_name'] = [c['name'] for c in campuses]
+                solr_doc['campus_data'] = [f"{c['id']}::{c['name']}"
+                                            for c in campuses]
 
             if record.get('object_dimensions'):
                 solr_doc['reference_image_dimensions'] = (
@@ -1489,7 +1491,6 @@ class Record(ABC, object):
                 else:  # assume flat string
                     sort_title = sort_obj
             solr_doc['sort_title'] = normalize_sort_field(sort_title)
-
 
             solr_doc['facet_decade'] = add_facet_decade(record)
             solr_doc['id'] = get_solr_id(record)
