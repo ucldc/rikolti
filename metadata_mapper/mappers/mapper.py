@@ -1524,3 +1524,4 @@ class Record(ABC, object):
         self.has_required_fields()
         self.mapped_data = map_couch_to_solr_doc(self.mapped_data)
         check_nuxeo_media(self.mapped_data)
+        return self
