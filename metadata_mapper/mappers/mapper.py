@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from markupsafe import Markup
 from typing import Any, Union
 from urllib.parse import urlparse
+from datetime import date
 
 import settings
 
@@ -1272,32 +1273,52 @@ class Record(ABC, object):
                 dates.append(displayDate)
             return dates
 
-        def add_facet_decade(couch_doc):
+        def get_facet_decades(date_value):
+            '''Return set of decade string for given date structure.
+            date is a dict with a "displayDate" key.
+            '''
+            if isinstance(date_value, dict):
+                facet_decades = facet_decade(
+                    date_value.get('displayDate', ''))
+            else:
+                facet_decades = facet_decade(str(date_value))
+            facet_decade_set = set()  # don't repeat values
+            for decade in facet_decades:
+                facet_decade_set.add(decade)
+            return
+
+        def facet_decade(date_string):
+            """ process string and return array of decades """
+            year = date.today().year
+            pattern = re.compile(r'(?<!\d)(\d{4})(?!\d)')
+            matches = [int(match) for match in re.findall(pattern, date_string)]
+            matches = list(filter(lambda a: a >= 1000, matches))
+            matches = list(filter(lambda a: a <= year, matches))
+            if not matches:
+                return ['unknown']
+            start = (min(matches) / 10) * 10
+            end = max(matches) + 1
+            return map('{0}s'.format, range(start, end, 10))
+
+        def add_facet_decade(record):
             '''Add the facet_decade field to the solr_doc dictionary
             If no date field in sourceResource, pass fake value to set
             as 'unknown' in solr_doc
             '''
-            if 'date' in couch_doc['sourceResource']:
-                date_field = couch_doc['sourceResource']['date']
-                if isinstance(date_field, list):
-                    for date in date_field:
-                        try:
-                            facet_decades = get_facet_decades(date)
-                            return facet_decades
-                        except AttributeError as e:
-                            print(
-                                'Attr Error for facet_decades in doc:{} ERROR:{}'.
-                                format(couch_doc['_id'], e),
-                                file=sys.stderr)
-                else:
+            if 'date' in record:
+                dates = record['date']
+                if not isinstance(dates, list):
+                    dates = [dates]
+                for date_value in dates:
                     try:
-                        facet_decades = get_facet_decades(date_field)
+                        facet_decades = get_facet_decades(date_value)
+                        if len(facet_decades) == 1:
+                            facet_decades = facet_decades[0]
                         return facet_decades
                     except AttributeError as e:
                         print(
-                            'Attr Error for doc:{} ERROR:{}'.format(couch_doc['_id'],
-                                                                    e),
-                            file=sys.stderr)
+                            'Attr Error for facet_decades in doc:{} ERROR:{}'.
+                            format(record['_id'], e))
             else:
                 facet_decades = get_facet_decades('none')
                 return facet_decades
