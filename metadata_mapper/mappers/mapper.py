@@ -1169,37 +1169,38 @@ class Record(ABC, object):
 
         return self
 
-    def has_required_fields(self):
-        record_id = f"---- OMITTED: Doc:{self.legacy_couch_db_id}"
-        error = False
+    # TODO: this should get moved into validation
+    # def has_required_fields(self):
+    #     record_id = f"---- OMITTED: Doc:{self.legacy_couch_db_id}"
+    #     error = False
 
-        for field in ['title', 'rights', 'rightsURI', 'isShownAt', 'type']:
-            if field not in self.mapped_data:
-                print(f"{record_id} has no {field}.")
-                error = True
+    #     for field in ['title', 'rights', 'rightsURI', 'isShownAt', 'type']:
+    #         if field not in self.mapped_data:
+    #             print(f"{record_id} has no {field}.")
+    #             error = True
 
-        # check that value in isShownAt is at least a valid URL format
-        is_shown_at = self.mapped_data['isShownAt']
-        parsed = urlparse(is_shown_at)
-        if not any([
-            parsed.scheme, parsed.netloc, parsed.path, 
-            parsed.params, parsed.query
-        ]):
-            print(
-                f"{record_id} isShownAt is not a URL: {is_shown_at}"
-            )
-            error = True
+    #     # check that value in isShownAt is at least a valid URL format
+    #     is_shown_at = self.mapped_data['isShownAt']
+    #     parsed = urlparse(is_shown_at)
+    #     if not any([
+    #         parsed.scheme, parsed.netloc, parsed.path, 
+    #         parsed.params, parsed.query
+    #     ]):
+    #         print(
+    #             f"{record_id} isShownAt is not a URL: {is_shown_at}"
+    #         )
+    #         error = True
         
-        # if record is image but doesnt have a reference_image_md5, reject
-        if (not isinstance(self.mapped_data['type'], list) and
-            self.mapped_data['type'].lower() == 'image'):
-            if 'object' not in self.mapped_data:
-                print(f"{record_id} has no harvested image.")
-                error = True
+    #     # if record is image but doesnt have a reference_image_md5, reject
+    #     if (not isinstance(self.mapped_data['type'], list) and
+    #         self.mapped_data['type'].lower() == 'image'):
+    #         if 'object' not in self.mapped_data:
+    #             print(f"{record_id} has no harvested image.")
+    #             error = True
         
-        if error:
-            return False
-        return True
+    #     if error:
+    #         return False
+    #     return True
 
     def remove_none_values(self):
         keys_to_remove = []
@@ -1612,7 +1613,7 @@ class Record(ABC, object):
         if not self.mapped_data.get('title'):
             self.mapped_data['title'] = ['Title unknown']
         
-        self.has_required_fields()
+        # self.has_required_fields()
         self.mapped_data = map_couch_to_solr_doc(self.mapped_data)
         check_nuxeo_media(self.mapped_data)
         return self
