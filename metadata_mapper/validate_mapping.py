@@ -61,7 +61,7 @@ full_fidelity_fields = [
     {
         'field': 'type',
         'type': list_of_strings,
-        'validation': lambda t: t[0] in valid_types and len(t) == 1
+        'validation': lambda t: t and len(t) == 1 and t[0] in valid_types
     },
     {'field': 'rights', 'type': list_of_strings},
     {
