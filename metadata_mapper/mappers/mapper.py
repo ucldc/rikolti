@@ -1201,6 +1201,19 @@ class Record(ABC, object):
             return False
         return True
 
+    def remove_none_values(self):
+        keys_to_remove = []
+        for field in self.mapped_data.keys():
+            if self.mapped_data[field] is None:
+                keys_to_remove.append(field)
+            elif isinstance(self.mapped_data[field], list):
+                if None in self.mapped_data[field]:
+                    self.mapped_data[field].remove(None)
+                if len(self.mapped_data[field]) == 0:
+                    keys_to_remove.append(field)
+        for key in keys_to_remove:
+            del self.mapped_data[key]
+        return self
 
     def solr_updater(self):
         
@@ -1298,7 +1311,7 @@ class Record(ABC, object):
             matches = list(filter(lambda a: a <= year, matches))
             if not matches:
                 return ['unknown']
-            start = (min(matches) / 10) * 10
+            start = (min(matches) // 10) * 10
             end = max(matches) + 1
             return map('{0}s'.format, range(start, end, 10))
 
@@ -1314,7 +1327,7 @@ class Record(ABC, object):
                 for date_value in dates:
                     try:
                         facet_decades = get_facet_decades(date_value)
-                        if len(facet_decades) == 1:
+                        if facet_decades and len(facet_decades) == 1:
                             facet_decades = facet_decades[0]
                         return facet_decades
                     except AttributeError as e:
@@ -1338,7 +1351,7 @@ class Record(ABC, object):
             # is this UCSD?
             campus = None
             ark = None
-            collection = doc['originalRecord']['collection'][0]
+            collection = doc['collection'][0]
             campus_list = collection.get('campus', None)
             if campus_list:
                 campus = campus_list[0]['@id']
@@ -1401,7 +1414,7 @@ class Record(ABC, object):
                 hash_id = hashlib.md5()
                 hash_id.update(couch_doc['_id'])
                 solr_id = hash_id.hexdigest()
-            return 
+            return solr_id
 
         def map_couch_to_solr_doc(record):
             collections = record['collection']
@@ -1524,7 +1537,7 @@ class Record(ABC, object):
 
                 dates_end = [
                     make_datetime(dt.get('end', None))
-                    for dt in date_obj if isinstance(dt, dict)]
+                    for dt in date_source if isinstance(dt, dict)]
                 dates_end = sorted(dates_end)
                 # TODO: should this actually be the last date?
                 end_date = dates_end[0] if dates_end else None
