@@ -105,8 +105,7 @@ def validate_mapped_page(rikolti_records, solr_records, query):
     solr_records.update(
         {r['harvest_id_s']: r for r in collections_search_records})
 
-    page_report = [
-        "severity, type, couch id, field_name, rikolti value, solr value"]
+    page_report = []
 
     while len(rikolti_records):
         logging.debug(
@@ -201,7 +200,7 @@ def validate_mapped_collection(payload):
         'rows': 100,
         'start': 0
     }
-    collection_report = []
+    collection_report = ["severity, type, couch id, field_name, rikolti value, solr value"]
 
     for page in page_list:
         if settings.DATA_SRC == 'local':
