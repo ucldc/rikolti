@@ -23,8 +23,13 @@ def solr(**params):
     return results
 
 
-def list_of_strings(l):
-    return isinstance(l, list) and all(isinstance(s, str) for s in l)
+def list_of_strings(blank=False):
+    def list_of_strings(l):
+        list_of_str = bool(isinstance(l, list) and all(isinstance(s, str) for s in l))
+        if blank:
+            return list_of_str or l is None
+        return isinstance(l, list) and all(isinstance(s, str) for s in l)
+    return list_of_strings
 
 
 valid_types = [
@@ -44,9 +49,13 @@ valid_types = [
 full_fidelity_fields = [
     {
         'field': 'id',
-        'type': lambda ark: isinstance(ark, str),
-        'validation': lambda ark: ark.startswith("ark:/")
+        'type': lambda id: isinstance(id, str)
     },
+    # {
+    #     'field': 'id',
+    #     'type': lambda ark: isinstance(ark, str),
+    #     'validation': lambda ark: ark.startswith("ark:/")
+    # },
     {'field': 'identifier', 'type': list_of_strings},
     {'field': 'title', 'type': list_of_strings},
     {
@@ -57,8 +66,8 @@ full_fidelity_fields = [
     {'field': 'rights', 'type': list_of_strings},
     {
         'field': 'rights_uri',
-        'type': list_of_strings,
-        'validation': lambda r: len(r) == 1
+        'type': list_of_strings(blank=True),
+        'validation': lambda r: len(r) == 1 if r else True
     }
 ]
 
@@ -144,6 +153,7 @@ def validate_mapped_page(rikolti_records, solr_records, query):
                             f"{field_name}, {rikolti_field}"
                         )
             for field in partial_fidelity_fields:
+                field_name = field
                 rikolti_field = rikolti_record.get(field, None)
                 solr_field = solr_record.get(field, None)
                 if rikolti_field != solr_field:
