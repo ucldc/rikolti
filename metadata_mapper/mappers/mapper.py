@@ -2,6 +2,7 @@ import os
 import json
 import re
 import boto3
+import hashlib
 
 from abc import ABC, abstractmethod
 from markupsafe import Markup
@@ -966,7 +967,8 @@ class Record(ABC, object):
         self.mapped_data['collection'] = [{
             'id': collection['id'],
             'name': collection['name'],
-            'repository': collection['repository']
+            'repository': collection['repository'],
+            'harvest_type': collection['harvest_type']
         }]
         self.mapped_data['stateLocatedIn'] = [{'name': 'California'}]
         return self
@@ -1323,6 +1325,53 @@ class Record(ABC, object):
                 facet_decades = get_facet_decades('none')
                 return facet_decades
 
+        def find_ark_in_identifiers(identifiers):
+            re_ark_finder = re.compile(r'(ark:/\d\d\d\d\d/[^/|\s]*)')
+            for identifier in identifiers:
+                if identifier:
+                    match = re_ark_finder.search(identifier)
+                    if match:
+                        return match.group(0)
+            return None
+
+        def ucsd_ark(doc):
+            # is this UCSD?
+            campus = None
+            ark = None
+            collection = doc['originalRecord']['collection'][0]
+            campus_list = collection.get('campus', None)
+            if campus_list:
+                campus = campus_list[0]['@id']
+            if campus == "https://registry.cdlib.org/api/v1/campus/6/":
+                # UCSD get ark id
+                ark_frag = doc['originalRecord'].get('id', None)
+                if ark_frag:
+                    ark = 'ark:/20775/' + ark_frag
+            return ark
+
+        def ucla_ark(doc):
+            '''UCLA ARKs are buried in a mods field in originalRecord:
+            "mods_recordInfo_recordIdentifier_mlt": "21198-zz002b1833",
+            "mods_recordInfo_recordIdentifier_s": "21198-zz002b1833",
+            "mods_recordInfo_recordIdentifier_t": "21198-zz002b1833",
+            If one is found, safe to assume UCLA & make the ARK
+            NOTE: I cut & pasted this to the ucla_solr_dc_mapper to get it
+            into the "identifier" field
+            '''
+            ark = None
+            id_fields = ("mods_recordInfo_recordIdentifier_mlt",
+                        "mods_recordInfo_recordIdentifier_s",
+                        "mods_recordInfo_recordIdentifier_t")
+            for f in id_fields:
+                try:
+                    mangled_ark = doc['originalRecord'][f]
+                    naan, arkid = mangled_ark.split('-')  # could fail?
+                    ark = '/'.join(('ark:', naan, arkid))
+                    break
+                except KeyError:
+                    pass
+            return ark
+
         def get_solr_id(couch_doc):
             ''' Extract a good ID to use in the solr index.
             see : https://github.com/ucldc/ucldc-docs/wiki/pretty_id
@@ -1333,10 +1382,16 @@ class Record(ABC, object):
             All other objects the couchdb _id is md5 sum
             '''
             # look in sourceResoure.identifier for an ARK if found return it
-            solr_id = find_ark_in_identifiers(couch_doc)
-            # no ARK in identifiers. See if is a nuxeo object
+            solr_id = find_ark_in_identifiers(
+                couch_doc.get('identifier', []))
             if not solr_id:
-                solr_id = uuid_if_nuxeo(couch_doc)
+                # no ARK in identifiers. See if is a nuxeo object
+                collection = couch_doc['collection'][0]
+                harvest_type = collection['harvest_type']
+                if harvest_type == 'NUX':
+                    solr_id = couch_doc.get('calisphere-id', None)
+                else:
+                    solr_id = None
             if not solr_id:
                 solr_id = ucsd_ark(couch_doc)
             if not solr_id:
@@ -1377,6 +1432,7 @@ class Record(ABC, object):
                 return repo_data
 
             solr_doc = {
+                'calisphere-id': record.get('calisphere-id'),
                 'harvest_id_s': record.get('_id'),
                 'reference_image_md5': record.get('object'),
                 'url_item': record.get('isShownAt'),
