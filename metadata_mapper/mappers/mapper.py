@@ -952,7 +952,9 @@ class Record(ABC, object):
         2333 times: no parameters
         """
         repo = collection['repository'][0]
-        campus = repo.get('campus', [None])[0]
+        campus = None
+        if repo.get('campus'):
+            campus = repo['campus'][0]
         data_provider = repo['name']
         if campus:
             data_provider = f"{campus['name']}, {repo['name']}"
