@@ -9,6 +9,7 @@ from markupsafe import Markup
 from typing import Any, Union
 from urllib.parse import urlparse
 from datetime import date
+from deprecated import deprecated
 
 import settings
 
@@ -145,15 +146,13 @@ class Record(ABC, object):
                 collated.extend(value)
         return collated
 
+    @deprecated(reason="replace with `collate_plucked_values()` in mappers that use it")
     def collate_subfield(self, field, subfield):
-        """DEPRECATED: replace with `collate_plucked_values()` in mappers that use it"""
         return [f[subfield] for f in self.source_metadata.get(field, [])]
 
+    @deprecated(reason="replace with `collate_values()` in mappers that use it")
     def collate_fields(self, fieldlist):
-        """multiple field values into a single list
-
-        DEPRECATED: replace with `collate_values()` in mappers that use it
-        """
+        """multiple field values into a single list"""
         return self.collate_values([self.source_metadata.get(field) for field in fieldlist])
 
     def source_metadata_values(self, *args):
