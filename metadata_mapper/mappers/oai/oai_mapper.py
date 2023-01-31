@@ -5,7 +5,7 @@ from typing import Union
 from lxml import etree
 from sickle import models
 
-from ..mapper import Record, Vernacular, collate_values
+from ..mapper import Record, Vernacular, collate_values, first
 
 
 class OaiRecord(Record):
