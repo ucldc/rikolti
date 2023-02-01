@@ -95,6 +95,11 @@ def map_page(payload, context):
     mapped_records = run_enrichments(
         mapped_records, payload, 'rikolti__enrichments')
 
+    # TODO: analyze and simplify this straight port of the
+    # solr updater module into the Rikolti framework
+    mapped_records = [record.solr_updater() for record in mapped_records]
+    mapped_records = [record.remove_none_values() for record in mapped_records]
+
     exceptions = {
         rec.legacy_couch_db_id: rec.enrichment_report
         for rec in mapped_records if rec.enrichment_report

@@ -2,10 +2,13 @@ import os
 import json
 import re
 import boto3
+import hashlib
 
 from abc import ABC, abstractmethod
 from markupsafe import Markup
 from typing import Any, Union
+from urllib.parse import urlparse
+from datetime import date
 from deprecated import deprecated
 
 import settings
@@ -949,16 +952,25 @@ class Record(ABC, object):
         """
         repo = collection['repository'][0]
         campus = None
-        if len(repo['campus']):
+        if repo.get('campus'):
             campus = repo['campus'][0]
         data_provider = repo['name']
         if campus:
             data_provider = f"{campus['name']}, {repo['name']}"
+        # TODO: deprecate dataProvider, use 'repository' instead
         self.mapped_data['dataProvider'] = data_provider
+        self.mapped_data['repository'] = data_provider
+        # TODO: deprecate provider, use 'collection' instead
         self.mapped_data['provider'] = {
             'name': data_provider,
             '@id': collection['id']
         }
+        self.mapped_data['collection'] = [{
+            'id': collection['id'],
+            'name': collection['name'],
+            'repository': collection['repository'],
+            'harvest_type': collection['harvest_type']
+        }]
         self.mapped_data['stateLocatedIn'] = [{'name': 'California'}]
         return self
 
@@ -1156,4 +1168,453 @@ class Record(ABC, object):
         leaving implementation of this for later
         """
 
+        return self
+
+    # TODO: this should get moved into validation
+    # def has_required_fields(self):
+    #     record_id = f"---- OMITTED: Doc:{self.legacy_couch_db_id}"
+    #     error = False
+
+    #     for field in ['title', 'rights', 'rightsURI', 'isShownAt', 'type']:
+    #         if field not in self.mapped_data:
+    #             print(f"{record_id} has no {field}.")
+    #             error = True
+
+    #     # check that value in isShownAt is at least a valid URL format
+    #     is_shown_at = self.mapped_data['isShownAt']
+    #     parsed = urlparse(is_shown_at)
+    #     if not any([
+    #         parsed.scheme, parsed.netloc, parsed.path, 
+    #         parsed.params, parsed.query
+    #     ]):
+    #         print(
+    #             f"{record_id} isShownAt is not a URL: {is_shown_at}"
+    #         )
+    #         error = True
+        
+    #     # if record is image but doesnt have a reference_image_md5, reject
+    #     if (not isinstance(self.mapped_data['type'], list) and
+    #         self.mapped_data['type'].lower() == 'image'):
+    #         if 'object' not in self.mapped_data:
+    #             print(f"{record_id} has no harvested image.")
+    #             error = True
+        
+    #     if error:
+    #         return False
+    #     return True
+
+    def remove_none_values(self):
+        keys_to_remove = []
+        for field in self.mapped_data.keys():
+            if self.mapped_data[field] is None:
+                keys_to_remove.append(field)
+            elif isinstance(self.mapped_data[field], list):
+                if None in self.mapped_data[field]:
+                    self.mapped_data[field].remove(None)
+                if len(self.mapped_data[field]) == 0:
+                    keys_to_remove.append(field)
+        for key in keys_to_remove:
+            del self.mapped_data[key]
+        return self
+
+    def solr_updater(self):
+        
+        def normalize_sort_field(sort_field,
+                                default_missing='~title unknown',
+                                missing_equivalents=['title unknown']):
+            sort_field = sort_field.lower()
+            # remove punctuation
+            re_alphanumspace = re.compile(r'[^0-9A-Za-z\s]*')
+            sort_field = re_alphanumspace.sub('', sort_field)
+            words = sort_field.split()
+            if words:
+                if words[0] in ('the', 'a', 'an'):
+                    sort_field = ' '.join(words[1:])
+            if not sort_field or sort_field in missing_equivalents:
+                sort_field = default_missing
+            return sort_field
+
+        def dejson(data):
+            '''de-jsonfy the data.
+            For valid json strings, unpack in sensible way?
+            '''
+            if not data:
+                return data
+
+            if isinstance(data, list):
+                dejson_data = [dejson(d) for d in data]
+            elif isinstance(data, dict):
+                dejson_data = data.get(
+                    'item', data.get(
+                        'name', data.get(
+                            'text', None)))
+            else:
+                try:
+                    j = json.loads(data)
+                    flatdata = j.get('name', data)
+                except (ValueError, AttributeError):
+                    flatdata = data
+                    pass
+                dejson_data = flatdata
+            return dejson_data
+
+        def filter_blank_values(data):
+            '''For a given field_src  in the data, create a dictionary to
+            update the field_dest with.
+            If no values, make the dict {}, this will avoid empty data values
+            '''
+            if not data:
+                return []
+
+            items_not_blank = []
+            items = dejson(data)
+            if isinstance(items, str) and items:
+                items_not_blank = items
+            else:
+                items_not_blank = [i for i in items if i]
+            return items_not_blank
+
+        def unpack_display_date(date_obj):
+            '''Unpack a couchdb date object'''
+            if not isinstance(date_obj, list):
+                date_obj = [date_obj]
+
+            dates = []
+            for dt in date_obj:
+                if isinstance(dt, dict):
+                    displayDate = dt.get('displayDate', None)
+                elif isinstance(dt, str):
+                    displayDate = dt
+                else:
+                    displayDate = None
+                dates.append(displayDate)
+            return dates
+
+        def get_facet_decades(date_value):
+            '''Return set of decade string for given date structure.
+            date is a dict with a "displayDate" key.
+            '''
+            if isinstance(date_value, dict):
+                facet_decades = facet_decade(
+                    date_value.get('displayDate', ''))
+            else:
+                facet_decades = facet_decade(str(date_value))
+            facet_decade_set = set()  # don't repeat values
+            for decade in facet_decades:
+                facet_decade_set.add(decade)
+            return
+
+        def facet_decade(date_string):
+            """ process string and return array of decades """
+            year = date.today().year
+            pattern = re.compile(r'(?<!\d)(\d{4})(?!\d)')
+            matches = [int(match) for match in re.findall(pattern, date_string)]
+            matches = list(filter(lambda a: a >= 1000, matches))
+            matches = list(filter(lambda a: a <= year, matches))
+            if not matches:
+                return ['unknown']
+            start = (min(matches) // 10) * 10
+            end = max(matches) + 1
+            return map('{0}s'.format, range(start, end, 10))
+
+        def add_facet_decade(record):
+            '''Add the facet_decade field to the solr_doc dictionary
+            If no date field in sourceResource, pass fake value to set
+            as 'unknown' in solr_doc
+            '''
+            if 'date' in record:
+                dates = record['date']
+                if not isinstance(dates, list):
+                    dates = [dates]
+                for date_value in dates:
+                    try:
+                        facet_decades = get_facet_decades(date_value)
+                        if facet_decades and len(facet_decades) == 1:
+                            facet_decades = facet_decades[0]
+                        return facet_decades
+                    except AttributeError as e:
+                        print(
+                            'Attr Error for facet_decades in doc:{} ERROR:{}'.
+                            format(record['_id'], e))
+            else:
+                facet_decades = get_facet_decades('none')
+                return facet_decades
+
+        def find_ark_in_identifiers(identifiers):
+            re_ark_finder = re.compile(r'(ark:/\d\d\d\d\d/[^/|\s]*)')
+            for identifier in identifiers:
+                if identifier:
+                    match = re_ark_finder.search(identifier)
+                    if match:
+                        return match.group(0)
+            return None
+
+        def ucsd_ark(doc):
+            # is this UCSD?
+            campus = None
+            ark = None
+            collection = doc['collection'][0]
+            campus_list = collection.get('campus', None)
+            if campus_list:
+                campus = campus_list[0]['@id']
+            if campus == "https://registry.cdlib.org/api/v1/campus/6/":
+                # UCSD get ark id
+                ark_frag = doc['originalRecord'].get('id', None)
+                if ark_frag:
+                    ark = 'ark:/20775/' + ark_frag
+            return ark
+
+        def ucla_ark(doc):
+            '''UCLA ARKs are buried in a mods field in originalRecord:
+            "mods_recordInfo_recordIdentifier_mlt": "21198-zz002b1833",
+            "mods_recordInfo_recordIdentifier_s": "21198-zz002b1833",
+            "mods_recordInfo_recordIdentifier_t": "21198-zz002b1833",
+            If one is found, safe to assume UCLA & make the ARK
+            NOTE: I cut & pasted this to the ucla_solr_dc_mapper to get it
+            into the "identifier" field
+            '''
+            ark = None
+            id_fields = ("mods_recordInfo_recordIdentifier_mlt",
+                        "mods_recordInfo_recordIdentifier_s",
+                        "mods_recordInfo_recordIdentifier_t")
+            for f in id_fields:
+                try:
+                    mangled_ark = doc['originalRecord'][f]
+                    naan, arkid = mangled_ark.split('-')  # could fail?
+                    ark = '/'.join(('ark:', naan, arkid))
+                    break
+                except KeyError:
+                    pass
+            return ark
+
+        def get_solr_id(couch_doc):
+            ''' Extract a good ID to use in the solr index.
+            see : https://github.com/ucldc/ucldc-docs/wiki/pretty_id
+            arks are always pulled if found, gets first.
+            Some institutions have known ark framents, arks are constructed
+            for these.
+            Nuxeo objects retain their UUID
+            All other objects the couchdb _id is md5 sum
+            '''
+            # look in sourceResoure.identifier for an ARK if found return it
+            solr_id = find_ark_in_identifiers(
+                couch_doc.get('identifier', []))
+            if not solr_id:
+                # no ARK in identifiers. See if is a nuxeo object
+                collection = couch_doc['collection'][0]
+                harvest_type = collection['harvest_type']
+                if harvest_type == 'NUX':
+                    solr_id = couch_doc.get('calisphere-id', None)
+                else:
+                    solr_id = None
+            if not solr_id:
+                solr_id = ucsd_ark(couch_doc)
+            if not solr_id:
+                solr_id = ucla_ark(couch_doc)
+            if not solr_id:
+                # no recognized special id, just has couchdb id
+                hash_id = hashlib.md5()
+                hash_id.update(couch_doc['_id'])
+                solr_id = hash_id.hexdigest()
+            return solr_id
+
+        def map_couch_to_solr_doc(record):
+            collections = record['collection']
+
+            def sort_col_data(collection):
+                '''Return the string form of the collection data.
+                sort_collection_data ->
+                [sort_collection_name::collection_name::collection_url, <>,<>]
+                '''
+                sort_name = normalize_sort_field(
+                    collection['name'],
+                    default_missing='~collection unknown',
+                    missing_equivalents=[])
+                sort_string = ':'.join((sort_name, collection['name'],
+                                        str(collection['id'])))
+                return sort_string
+
+            if not all([c.get('repository') for c in collections]):
+                raise Exception
+            repos = [
+                repo for c in collections for repo in c.get('repository', [])
+            ]
+
+            def compose_repo_data(repo):
+                repo_data = f"{repo['id']}::{repo['name']}"
+                if 'campus' in repo and len(repo['campus']):
+                    repo_data = f"{repo_data}::{repo['campus'][0]['name']}"
+                return repo_data
+
+            solr_doc = {
+                'calisphere-id': record.get('calisphere-id'),
+                'harvest_id_s': record.get('_id'),
+                'reference_image_md5': record.get('object'),
+                'url_item': record.get('isShownAt'),
+                'item_count': record.get('item_count', 0),
+
+                # registry fields
+                'collection_url': [c['id'] for c in collections],
+                'collection_name': [c['name'] for c in collections],
+                'collection_data': [f"{c['id']}::{c['name']}"
+                                    for c in collections],
+                'sort_collection_data': [sort_col_data(c) for c in collections],
+
+                'repository_url': [repo['id'] for repo in repos],
+                'repository_name': [repo['name'] for repo in repos],
+                'repository_data': [compose_repo_data(repo) for repo in repos],
+
+                # source resource fields
+                'alternative_title': filter_blank_values(record.get('alternativeTitle')),
+                'contributor': filter_blank_values(record.get('contributor')),
+                'coverage': filter_blank_values(record.get('coverage')),
+                'creator': filter_blank_values(record.get('creator')),
+                'description': filter_blank_values(record.get('description')),
+                'extent': filter_blank_values(record.get('extent')),
+                'format': filter_blank_values(record.get('format')),
+                'genre': filter_blank_values(record.get('genre')),
+                'identifier': filter_blank_values(record.get('identifier')),
+                'publisher': filter_blank_values(record.get('publisher')),
+                'relation': filter_blank_values(record.get('relation')),
+                'rights': filter_blank_values(record.get('rights')),
+                'rights_uri': filter_blank_values(record.get('rightsURI')),
+                'title': filter_blank_values(record.get('title')),
+                'type': filter_blank_values(record.get('type')),
+                'provenance': filter_blank_values(record.get('provenance')),
+                'spatial': filter_blank_values(record.get('spatial')),
+                'coverage': filter_blank_values(record.get('spatial')),
+                'date': unpack_display_date(record.get('date')),
+                'language': [
+                    l.get('name', l.get('iso639_3')) 
+                    if isinstance(l, dict) else l 
+                    for l in record.get('language', [])
+                ],
+                'subject': [
+                    s['name'] if isinstance(s, dict) else dejson(s)
+                    for s in record.get('subject', [])
+                ],
+                'temporal': unpack_display_date(record.get('temporal')),
+
+                # original record fields
+                'rights_date': filter_blank_values(record.get('dateCopyrighted')),
+                'rights_holder': filter_blank_values(record.get('rightsHolder')),
+                'rights_note': filter_blank_values(record.get('rightsNote')),
+                'source': filter_blank_values(record.get('source')),
+                'structmap_text': filter_blank_values(
+                    record.get('structmap_text')),
+                'structmap_url': filter_blank_values(
+                    record.get('structmap_url')),
+                'transcription': filter_blank_values(
+                    record.get('transcription')),
+                'location': filter_blank_values(
+                    record.get('properties', {}).get(
+                        'ucldc_schema:physlocation'))
+            }
+
+            campuses = [
+                campus for c in collections for campus in c.get('campus', [])
+            ]
+            if campuses:
+                solr_doc['campus_url'] = [c['id'] for c in campuses]
+                solr_doc['campus_name'] = [c['name'] for c in campuses]
+                solr_doc['campus_data'] = [f"{c['id']}::{c['name']}"
+                                            for c in campuses]
+
+            if record.get('object_dimensions'):
+                solr_doc['reference_image_dimensions'] = (
+                    f"{record.get('object_dimensions', [])[0]}:"
+                    f"{record.get('object_dimensions', [])[1]}"
+                )
+
+            if record.get('date'):
+                date_source = record.get('date', None)
+                if isinstance(date_source, dict):
+                    date_source = [date_source]
+
+                dates_start = [
+                    make_datetime(dt.get('begin', None)) 
+                    for dt in date_source if isinstance(dt, dict)]
+                dates_start = sorted(dates_start)
+                start_date = dates_start[0] if dates_start else None
+
+                dates_end = [
+                    make_datetime(dt.get('end', None))
+                    for dt in date_source if isinstance(dt, dict)]
+                dates_end = sorted(dates_end)
+                # TODO: should this actually be the last date?
+                end_date = dates_end[0] if dates_end else None
+
+                # fill in start_date == end_date if only one exists
+                start_date = end_date if not start_date else start_date
+                end_date = start_date if not end_date else end_date
+
+                solr_doc['sort_date_start'] = start_date
+                solr_doc['sort_date_end'] = end_date
+
+            # normalize type
+            solr_types = solr_doc.get('type', [])
+            normalized_types = []
+            if not isinstance(solr_types, list):
+                solr_types = [solr_types]
+            for solr_type in solr_types:
+                lowercase_dcmi = [v.lower() for v in constants.dcmi_types.values()]
+                if solr_type not in lowercase_dcmi:
+                    if 'physical' in solr_type.lower():
+                        solr_type = 'physical object'
+                    elif 'moving' in solr_type.lower():
+                        solr_type = 'moving image'
+                normalized_types.append(solr_type)
+            solr_doc['type'] = normalized_types
+
+            # add sort title
+            if isinstance(record['title'], str):
+                sort_title = record['title']
+            else:
+                sort_title = record['title'][0]
+            if 'sort-title' in record:  # OAC mostly
+                sort_obj = record['sort-title']
+                if isinstance(sort_obj, list):
+                    sort_obj = sort_obj[0]
+                    if isinstance(sort_obj, dict):
+                        sort_title = sort_obj.get(
+                            'text', record['title'][0])
+                    else:
+                        sort_title = sort_obj
+                else:  # assume flat string
+                    sort_title = sort_obj
+            solr_doc['sort_title'] = normalize_sort_field(sort_title)
+
+            solr_doc['facet_decade'] = add_facet_decade(record)
+            solr_doc['id'] = get_solr_id(record)
+            return solr_doc
+    
+        def check_nuxeo_media(record):
+            '''Check that the media_json and jp2000 exist for a given solr doc.
+            Raise exception if not
+            '''
+            if 'structmap_url' not in record:
+                return
+            # check that there is an object at the structmap_url
+            # try:
+            #     MediaJson(doc['structmap_url']).check_media()
+            # except ClientError as e:
+            #     message = '---- OMITTED: Doc:{} missing media json {}'.format(
+            #         doc['harvest_id_s'],
+            #         e)
+            #     print(message, file=sys.stderr)
+            #     raise MissingMediaJSON(message)
+            # except ValueError as e:
+            #     message = '---- OMITTED: Doc:{} Missing reference media file: {}'.format(
+            #         doc['harvest_id_s'],
+            #         e)
+            #     print(message, file=sys.stderr)
+            #     raise MediaJSONError(message)
+                    
+        # set a default title if none exists
+        if not self.mapped_data.get('title'):
+            self.mapped_data['title'] = ['Title unknown']
+        
+        # self.has_required_fields()
+        self.mapped_data = map_couch_to_solr_doc(self.mapped_data)
+        check_nuxeo_media(self.mapped_data)
         return self

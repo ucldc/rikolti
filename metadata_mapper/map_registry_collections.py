@@ -32,7 +32,7 @@ def map_endpoint(url):
             print(msg)
             collection_page = None
             break
-        total_collections = response.json().get('meta', {}).get('total_count')
+        total_collections = response.json().get('meta', {}).get('total_count', 1)
         print(
             f">>> Mapping {total_collections} collections "
             f"described at {collection_page}"

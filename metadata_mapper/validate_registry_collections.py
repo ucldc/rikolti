@@ -29,7 +29,7 @@ def validate_endpoint(url):
             collection_page = None
             break
 
-        total_collections = response.json().get('meta', {}).get('total_count')
+        total_collections = response.json().get('meta', {}).get('total_count', 1)
         print(
             f">>> Validating {total_collections} collections "
             f"described at {collection_page}"
