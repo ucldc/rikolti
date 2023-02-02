@@ -90,6 +90,8 @@ def collate_values(values):
 def first(item):
     return item[0] if item else None
 
+def last(item):
+    return item[-1] if item else None
 
 class Record(ABC, object):
 
@@ -97,7 +99,7 @@ class Record(ABC, object):
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
         # TODO: pre_mapped_data is a stop gap to accomodate
-        # pre-mapper enrichments, should probably squash this. 
+        # pre-mapper enrichments, should probably squash this.
         self.pre_mapped_data = {}
         self.enrichment_report = []
 
@@ -329,7 +331,7 @@ class Record(ABC, object):
 
         # TODO: this is a way to get around cases where a key with name <field>
         # it present in self.mapped_data, but the value is None. Should get rid
-        # of these keys in the first place. 
+        # of these keys in the first place.
         if field not in self.mapped_data or not self.mapped_data[field]:
             return self
 

@@ -2,9 +2,18 @@ from typing import Union
 import itertools
 import requests
 
-from .oai_mapper import OaiRecord, OaiVernacular, first
+from .oai_mapper import OaiRecord, OaiVernacular, first, last
 
 class ContentdmOaiDcRecord(OaiRecord):
+    def UCLDC_map(self):
+        {
+            "contributor": self.map_contributor(),
+            "creator": self.map_creator(),
+            "spatial": self.map_spatial(),
+            "type": self.map_type(),
+            "language": self.map_language()
+        }
+
     @staticmethod
     def __identifier_match():
         return "cdm/ref"
@@ -19,6 +28,9 @@ class ContentdmOaiDcRecord(OaiRecord):
         Given a list and a match string, returns the first match
         """
         return first(self.get_matches(items, match))
+
+    def get_last_match(self, items: list, match: str):
+        return last(self.get_matches(items, match))
 
     def get_matches(self, items: list, match: str):
         """static
@@ -49,7 +61,7 @@ class ContentdmOaiDcRecord(OaiRecord):
         return [item] if isinstance(item, str) else item
 
     def map_is_shown_at(self):
-        return self.get_first_match(self.source_metadata.get("identifier", self.__identifier_match()))
+        return self.get_last_match(self.source_metadata.get("identifier", self.__identifier_match()))
 
     def map_contributor(self):
         if "contributor" not in self.source_metadata:
