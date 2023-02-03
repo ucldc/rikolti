@@ -11,11 +11,7 @@ class ChapmanOaiDcRecord(OaiRecord):
 
     def UCLDC_map(self):
         return {
-            'description': self.collate_values([
-                self.source_metadata.get('abstract'),
-                self.map_description(),
-                self.source_metadata.get('tableOfContents')
-            ]),
+            'description': self.map_description(),
             'identifier': self.map_identifier()
         }
 
@@ -31,10 +27,14 @@ class ChapmanOaiDcRecord(OaiRecord):
         return f"{url.replace('items', 'thumbs')}?gallery=preview" if url else None
 
     def map_description(self) -> Union[str, None]:
-        if 'description' not in self.source_metadata:
-            return
+        description = [d for d in self.source_metadata.get('description') if 'thumbnail' not in d]
+        aggregate = [
+            self.source_metadata.get('abstract'),
+            description[0] if description else None,
+            self.source_metadata.get('tableOfContents')
+        ]
 
-        return [d for d in self.source_metadata.get('description') if 'thumbnail' not in d]
+        return [v for v in filter(bool, aggregate)]
 
     def is_image_type(self) -> bool:
         if "type" not in self.source_metadata:
