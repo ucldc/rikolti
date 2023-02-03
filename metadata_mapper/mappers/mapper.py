@@ -76,7 +76,7 @@ class Record(ABC, object):
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
         # TODO: pre_mapped_data is a stop gap to accomodate
-        # pre-mapper enrichments, should probably squash this. 
+        # pre-mapper enrichments, should probably squash this.
         self.pre_mapped_data = {}
         self.enrichment_report = []
 
@@ -129,34 +129,21 @@ class Record(ABC, object):
         pass
 
     # Mapper Helpers
-    def collate_plucked_values(self, values: list, pluck: str) -> list:
-        return [f[pluck] for f in values]
-
-    def collate_values(self, values):
-        collated = []
-        for value in values:
-            if not value:
-                continue
-
-            if isinstance(value, str):
-                collated.append(value)
-            else:
-                collated.extend(value)
-        return collated
-
     def collate_subfield(self, field, subfield):
-        """DEPRECATED: replace with `collate_plucked_values()` in mappers that use it"""
         return [f[subfield] for f in self.source_metadata.get(field, [])]
 
     def collate_fields(self, fieldlist):
-        """multiple field values into a single list
+        ''' collate multiple field values into a single list '''
+        collated = []
+        for field in fieldlist:
+            value = self.source_metadata.get(field)
+            if value:
+                if isinstance(value, str):
+                    collated.append(value)
+                else:
+                    collated.extend(value)
 
-        DEPRECATED: replace with `collate_values()` in mappers that use it
-        """
-        return self.collate_values([self.source_metadata.get(field) for field in fieldlist])
-
-    def source_metadata_values(self, *args):
-        return [self.source_metadata.get(field) for field in args]
+        return collated
 
     # Enrichments
     # The enrichment chain is a dpla construction that we are porting to Rikolti
@@ -324,7 +311,7 @@ class Record(ABC, object):
 
         # TODO: this is a way to get around cases where a key with name <field>
         # it present in self.mapped_data, but the value is None. Should get rid
-        # of these keys in the first place. 
+        # of these keys in the first place.
         if field not in self.mapped_data or not self.mapped_data[field]:
             return self
 
@@ -1184,21 +1171,21 @@ class Record(ABC, object):
     #     is_shown_at = self.mapped_data['isShownAt']
     #     parsed = urlparse(is_shown_at)
     #     if not any([
-    #         parsed.scheme, parsed.netloc, parsed.path, 
+    #         parsed.scheme, parsed.netloc, parsed.path,
     #         parsed.params, parsed.query
     #     ]):
     #         print(
     #             f"{record_id} isShownAt is not a URL: {is_shown_at}"
     #         )
     #         error = True
-        
+
     #     # if record is image but doesnt have a reference_image_md5, reject
     #     if (not isinstance(self.mapped_data['type'], list) and
     #         self.mapped_data['type'].lower() == 'image'):
     #         if 'object' not in self.mapped_data:
     #             print(f"{record_id} has no harvested image.")
     #             error = True
-        
+
     #     if error:
     #         return False
     #     return True
@@ -1218,7 +1205,7 @@ class Record(ABC, object):
         return self
 
     def solr_updater(self):
-        
+
         def normalize_sort_field(sort_field,
                                 default_missing='~title unknown',
                                 missing_equivalents=['title unknown']):
@@ -1485,8 +1472,8 @@ class Record(ABC, object):
                 'coverage': filter_blank_values(record.get('spatial')),
                 'date': unpack_display_date(record.get('date')),
                 'language': [
-                    l.get('name', l.get('iso639_3')) 
-                    if isinstance(l, dict) else l 
+                    l.get('name', l.get('iso639_3'))
+                    if isinstance(l, dict) else l
                     for l in record.get('language', [])
                 ],
                 'subject': [
@@ -1532,7 +1519,7 @@ class Record(ABC, object):
                     date_source = [date_source]
 
                 dates_start = [
-                    make_datetime(dt.get('begin', None)) 
+                    make_datetime(dt.get('begin', None))
                     for dt in date_source if isinstance(dt, dict)]
                 dates_start = sorted(dates_start)
                 start_date = dates_start[0] if dates_start else None
@@ -1587,7 +1574,7 @@ class Record(ABC, object):
             solr_doc['facet_decade'] = add_facet_decade(record)
             solr_doc['id'] = get_solr_id(record)
             return solr_doc
-    
+
         def check_nuxeo_media(record):
             '''Check that the media_json and jp2000 exist for a given solr doc.
             Raise exception if not
@@ -1609,11 +1596,11 @@ class Record(ABC, object):
             #         e)
             #     print(message, file=sys.stderr)
             #     raise MediaJSONError(message)
-                    
+
         # set a default title if none exists
         if not self.mapped_data.get('title'):
             self.mapped_data['title'] = ['Title unknown']
-        
+
         # self.has_required_fields()
         self.mapped_data = map_couch_to_solr_doc(self.mapped_data)
         check_nuxeo_media(self.mapped_data)
