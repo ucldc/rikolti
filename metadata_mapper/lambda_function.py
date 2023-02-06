@@ -79,6 +79,7 @@ def map_page(payload, context):
     source_vernacular = vernacular_reader(payload)
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
+    collection = payload.get('collection', {})
 
     source_metadata_records = run_enrichments(
         source_metadata_records, payload, 'rikolti__pre_mapping')
