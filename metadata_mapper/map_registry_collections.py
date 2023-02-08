@@ -14,7 +14,9 @@ def map_endpoint(url):
     lookup = {
         'ucldc_nuxeo': 'nuxeo.nuxeo',
         'oac_dc': 'oac.oac',
-        'islandora_oai_dc': 'oai.islandora'
+        'islandora_oai_dc': 'oai.islandora',
+        'cca_vault_oai_dc': 'oai.cca_vault'
+        'chapman_oai_dc': 'oai.chapman'
     }
 
     collection_page = url

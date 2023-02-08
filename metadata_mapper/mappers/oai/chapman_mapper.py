@@ -2,7 +2,7 @@ from typing import Union
 
 from .oai_mapper import OaiRecord, OaiVernacular
 
-class ChapmanOaiDcRecord(OaiRecord):
+class ChapmanRecord(OaiRecord):
     """Mapping discrepancies:
 
         * `type` field for images contains "Image" in Solr, but "text" in mapped data
@@ -51,5 +51,5 @@ class ChapmanOaiDcRecord(OaiRecord):
         identifiers = [i for i in self.source_metadata.get('identifier') if "context" not in i]
         return identifiers[0] if identifiers else None
 
-class ChapmanOaiDcVernacular(OaiVernacular):
-    record_cls = ChapmanOaiDcRecord
+class ChapmanVernacular(OaiVernacular):
+    record_cls = ChapmanRecord
