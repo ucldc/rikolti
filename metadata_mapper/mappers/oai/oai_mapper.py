@@ -13,9 +13,11 @@ class OaiRecord(Record):
 
     def UCLDC_map(self):
         return {
+            # `legacy_couch_db_id` is set by a premapping function
+            'calisphere-id': self.legacy_couch_db_id.split('--')[1],
             'contributor': self.source_metadata.get('contributor'),
             'creator': self.source_metadata.get('creator'),
-            'date': self.collate_fields(
+            'date': self.collate_fields([
                 'available',
                 'created',
                 'date',
@@ -25,14 +27,14 @@ class OaiRecord(Record):
                 'issued',
                 'modified',
                 'valid'
-            ),
-            'description': self.collate_fields('abstract', 'description', 'tableOfContents'),
+            ]),
+            'description': self.collate_fields(['abstract', 'description', 'tableOfContents']),
             'extent': self.source_metadata.get('extent'),
-            'format': self.collate_fields('format', 'medium'),
-            'identifier': self.collate_fields('bibliographicCitation', 'identifier'),
+            'format': self.collate_fields(['format', 'medium']),
+            'identifier': self.collate_fields(['bibliographicCitation', 'identifier']),
             'provenance': self.source_metadata.get('provenance'),
             'publisher': self.source_metadata.get('publisher'),
-            'relation': self.collate_fields(
+            'relation': self.collate_fields([
                 'conformsTo',
                 'hasFormat',
                 'hasPart',
@@ -47,9 +49,9 @@ class OaiRecord(Record):
                 'relation',
                 'replaces',
                 'require'
-            ),
-            'rights': self.collate_fields('accessRights', 'rights'),
-            'spatial': self.collate_fields('coverage', 'spatial'),
+            ]),
+            'rights': self.collate_fields(['accessRights', 'rights']),
+            'spatial': self.collate_fields(['coverage', 'spatial']),
             'subject': self.map_subject(),
             'temporal': self.source_metadata.get('temporal'),
             'title': self.source_metadata.get('title'),
