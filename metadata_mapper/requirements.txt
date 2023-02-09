@@ -5,3 +5,4 @@ sickle
 MarkupSafe
 flake8
 python-dotenv
+python-deprecated
