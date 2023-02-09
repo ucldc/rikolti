@@ -30,6 +30,10 @@ class UCLDCWriter(object):
         if not os.path.exists(local_path):
             os.makedirs(local_path)
         page_path = os.sep.join([local_path, str(self.page_filename)])
+        if 'children' in page_path:
+            local_children_path = os.path.join(local_path, 'children')
+            if not os.path.exists(local_children_path):
+                os.makedirs(local_children_path)
         page = open(page_path, "w+")
         page.write(json.dumps(mapped_metadata))
 

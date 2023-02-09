@@ -64,6 +64,10 @@ def map_collection(payload, context):
         try:
             page_list = [f for f in os.listdir(vernacular_path)
                          if os.path.isfile(os.path.join(vernacular_path, f))]
+            children_path = os.path.join(vernacular_path, 'children')
+            if os.path.exists(children_path):
+                page_list += [os.path.join('children', f) for f in os.listdir(children_path)
+                              if os.path.isfile(os.path.join(children_path, f))]
         except FileNotFoundError as e:
             logging.debug(f"{e} - have you fetched {collection_id}?")
             return {

@@ -242,6 +242,8 @@ class NuxeoRecord(Record):
                 f"{uid}/Medium:content/"
             )
             thumbnail_source['mimetype'] = 'image/jpeg'
+            thumbnail_source['filename'] = (
+                thumbnail_source['filename'].split('.')[0] + '.jpg')
 
         return thumbnail_source
 
