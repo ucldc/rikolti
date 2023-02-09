@@ -7,60 +7,6 @@ class IslandoraRecord(OaiRecord):
     # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
     # https://github.com/ucldc/harvester/blob/master/harvester/fetcher/oai_fetcher.py
 
-    def to_UCLDC(self):
-        self.mapped_data = {
-            'calisphere-id': self.legacy_couch_db_id.split('--')[1],
-            'contributor': self.source_metadata.get('contributor'),
-            'creator': self.source_metadata.get('creator'),
-            'date': self.collate_fields([
-                "available",
-                "created",
-                "date",
-                "dateAccepted",
-                "dateCopyrighted",
-                "dateSubmitted",
-                "issued",
-                "modified",
-                "valid"
-            ]),
-            'description': self.collate_fields([
-                "abstract",
-                "description",
-                "tableOfContents"
-            ]),
-            'extent': self.source_metadata.get('extent'),
-            'format': self.collate_fields(["format", "medium"]),
-            'identifier': self.collate_fields(
-                ["bibliographicCitation", "identifier"]),
-            'is_shown_by': self.map_is_shown_by(),
-            'is_shown_at': self.map_is_shown_at(),
-            'provenance': self.source_metadata.get('provenance'),
-            'publisher': self.source_metadata.get('publisher'),
-            'relation': self.collate_fields([
-                "conformsTo",
-                "hasFormat",
-                "hasPart",
-                "hasVersion",
-                "isFormatOf",
-                "isPartOf",
-                "isReferencedBy",
-                "isReplacedBy",
-                "isRequiredBy",
-                "isVersionOf",
-                "references",
-                "relation",
-                "replaces",
-                "requires"
-            ]),
-            'rights': self.collate_fields(["accessRights", "rights"]),
-            'spatial': self.collate_fields(["coverage", "spatial"]),
-            'subject': self.map_subject(),
-            'temporal': self.source_metadata.get('temporal'),
-            'title': self.source_metadata.get('title'),
-            'type': self.source_metadata.get('type'),
-        }
-        return self
-
     def map_subject(self):
         # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127
         value = self.source_metadata.get('subject')
@@ -118,9 +64,6 @@ class IslandoraRecord(OaiRecord):
             return thumb_url
         else:
             return None
-
-    def to_dict(self):
-        return self.mapped_data
 
 
 class IslandoraVernacular(OaiVernacular):
