@@ -13,6 +13,8 @@ class NuxeoRecord(Record):
                 f"https://calisphere.org/item/"
                 f"{self.original_metadata.get('uid', '')}"
             ),
+            "isShownBy": self.map_thumbnail_source(),
+            "media_source": self.map_media_source(),
             "source": [self.source_metadata.get("ucldc_schema:source")],
             'location': [self.source_metadata.get(
                 'ucldc_schema:physlocation', None)],
@@ -165,9 +167,85 @@ class NuxeoRecord(Record):
 
     def map_is_shown_at(self):
         return super().map_is_shown_at()
-    
-    def map_is_shown_by(self):
-        return super().map_is_shown_by()
+
+    def map_media_source(self):
+        source_type = self.source_metadata.get('type')
+        valid_types = [
+            'CustomFile',
+            'Organization',  # (this is actually a file)
+            'CustomAudio',
+            'CustomVideo',
+            'SampleCustomPicture'
+        ]
+        # we don't yet know how to handle other types
+        if source_type not in valid_types:
+            return None
+
+        # get the file content
+        source_type = self.source_metadata.get('type')
+        md_properties = self.source_metadata.get('properties', {})
+
+        file_content = md_properties.get('file:content')
+        if file_content and file_content.get('name') == 'empty_picture.png':
+            file_content = None
+        elif file_content and not file_content.get('name'):
+            file_content['name'] = md_properties.get('file:filename')
+
+        # for Video, overwrite file_content with nuxeo transcoded video file
+        # mp4 url in properties.vid:transcodedVideos, if it exists
+        if source_type == 'CustomVideo':
+            transcoded_videos = md_properties.get('vid:transcodedVideos', [])
+            for tv in transcoded_videos:
+                if tv['content']['mime-type'] == 'video/mp4':
+                    file_content = tv['content']
+                    break
+
+        # this is the mapping part where we map to our data model
+        media_source = None
+        if file_content:
+            url = file_content.get('data', '').strip()
+            media_source = {
+                'url': url.replace('/nuxeo/', '/Nuxeo/'),
+                'mimetype': file_content.get('mime-type', '').strip(),
+                'filename': file_content.get('name', '').strip(),
+                'nuxeo_type': source_type
+            }
+
+        return media_source
+
+    def map_thumbnail_source(self):
+        source_type = self.source_metadata.get('type')
+        valid_types = [
+            'CustomVideo',
+            'CustomFile',
+            'Organization',  # (this is actually a file)
+            'SampleCustomPicture'
+        ]
+        # we don't know how to make thumbnails for other types
+        if source_type not in valid_types:
+            return None
+
+        # thumbnail source is the same as media source, except
+        # in the case of images!
+        thumbnail_source = self.map_media_source()
+
+        # if it's a SampleCustomPicture, overwrite thumbnail location
+        # URL with Nuxeo thumbnail url
+        # TODO: I think we could also get this by splitting map_media_source
+        # into get_file_content and the mapping part, and then here, setting
+        # file_content=properties.picture:views filter for tag=medium?
+        # it's cleaner because then we'd get the full data for the thumbnail,
+        # rather than cobbling together thumbnail source by key
+        if (source_type == 'SampleCustomPicture'):
+            uid = self.source_metadata.get('uid', '')
+            thumbnail_source['url'] = (
+                f"https://nuxeo.cdlib.org/Nuxeo/nxpicsfile/default/"
+                f"{uid}/Medium:content/"
+            )
+            thumbnail_source['mimetype'] = 'image/jpeg'
+
+        return thumbnail_source
+
 
 class NuxeoVernacular(Vernacular):
     record_cls = NuxeoRecord
