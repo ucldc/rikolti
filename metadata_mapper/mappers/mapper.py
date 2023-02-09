@@ -113,18 +113,7 @@ class Record(ABC, object):
         always assumed to be computed, therefore they are included here
         as maps to abstracted methods.
         """
-        return {
-            "isShownAt": self.map_is_shown_at(),
-            "isShownBy": self.map_is_shown_by()
-        }
-
-    @abstractmethod
-    def map_is_shown_at(self) -> Union[str, None]:
-        pass
-
-    @abstractmethod
-    def map_is_shown_by(self) -> Union[str, None]:
-        pass
+        return {}
 
     # Mapper Helpers
     def collate_plucked_values(self, values: list, pluck: str) -> list:
