@@ -16,7 +16,11 @@ def map_endpoint(url):
         'oac_dc': 'oac.oac',
         'islandora_oai_dc': 'oai.islandora',
         'cca_vault_oai_dc': 'oai.cca_vault',
-        'chapman_oai_dc': 'oai.chapman'
+        'chapman_oai_dc': 'oai.chapman',
+        'tv_academy_oai_dc': 'oai.tv_academy',
+        'yosemite_oai_dc': 'oai.yosemite',
+        'up_oai_dc': 'oai.up',
+        'ucsc_oai_dpla': 'oai.samvera',
     }
 
     collection_page = url
