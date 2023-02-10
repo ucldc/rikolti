@@ -1508,6 +1508,9 @@ class Record(ABC, object):
                         'ucldc_schema:physlocation'))
             }
 
+            solr_doc['media_source'] = record.get('media_source', {})
+            solr_doc['thumbnail_source'] = record.get('isShownBy', {})
+
             campuses = [
                 campus for c in collections for campus in c.get('campus', [])
             ]
