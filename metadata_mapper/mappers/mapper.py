@@ -4,7 +4,7 @@ import re
 import boto3
 import hashlib
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from markupsafe import Markup
 from typing import Any, Union
 from datetime import date
@@ -110,23 +110,9 @@ class Record(ABC, object):
         to this implementation.
 
         All dicts returned by this method up the ancestor chain
-        are merged together to produce a final result. `is_show_at` and
-        `is_shown_by` are not fields from source metadata and are
-        always assumed to be computed, therefore they are included here
-        as maps to abstracted methods.
+        are merged together to produce a final result.
         """
-        return {
-            "isShownAt": self.map_is_shown_at(),
-            "isShownBy": self.map_is_shown_by()
-        }
-
-    @abstractmethod
-    def map_is_shown_at(self) -> Union[str, None]:
-        pass
-
-    @abstractmethod
-    def map_is_shown_by(self) -> Union[str, None]:
-        pass
+        return {}
 
     # Mapper Helpers
     def collate_subfield(self, field, subfield):

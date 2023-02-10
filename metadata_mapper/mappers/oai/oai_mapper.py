@@ -15,6 +15,8 @@ class OaiRecord(Record):
         return {
             # `legacy_couch_db_id` is set by a premapping function
             'calisphere-id': self.legacy_couch_db_id.split('--')[1],
+            'isShownAt': self.map_is_shown_at(),
+            'isShownBy': self.map_is_shown_by(),
             'contributor': self.source_metadata.get('contributor'),
             'creator': self.source_metadata.get('creator'),
             'date': self.collate_fields([
@@ -67,6 +69,15 @@ class OaiRecord(Record):
         if isinstance(value, str):
             value = [value]
         return [{'name': v} for v in value if v]
+
+    def map_is_shown_at(self):
+        """Will be implemented by child mapper classes"""
+        return
+
+    def map_is_shown_by(self):
+        """Will be implemented by child mapper classes"""
+        return
+
 
 class OaiVernacular(Vernacular):
 
