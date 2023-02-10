@@ -80,7 +80,6 @@ class Record(ABC, object):
         self.pre_mapped_data = {}
         self.enrichment_report = []
 
-
     def to_dict(self) -> dict[str, Any]:
         return self.mapped_data
 
@@ -130,6 +129,17 @@ class Record(ABC, object):
                     collated.extend(value)
 
         return collated
+
+    def first_string_in_field(self, field):
+        """
+        Fetches a field value from source_metadata, and returns it if it's a string, or the first
+        item if it's a list
+        """
+        value = self.source_metadata.get(field)
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            return value[0]
 
     # Enrichments
     # The enrichment chain is a dpla construction that we are porting to Rikolti
