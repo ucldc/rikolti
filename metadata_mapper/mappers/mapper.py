@@ -830,15 +830,18 @@ class Record(ABC, object):
         obj_jsonfied = jsonfy_obj(self.mapped_data)
         return json.dumps(obj_jsonfied)
 
-    def drop_long_values(self, field=None, max_length=150):
+    def drop_long_values(self, field=None, max_length=[150]):
         """ Look for long values in the sourceResource field specified.
         If value is longer than max_length, delete
 
         called with the following parameters:
-        42 times: field=description, max_length=150
-        8 times: field=description, max_length=250
-        1 time: field=description, max_length=1000
+        42 times: field=["description"], max_length=[150]
+        8 times: field=["description"], max_length=[250]
+        1 time: field=["description"], max_length=[1000]
         """
+        field = field[0]
+        max_length = max_length[0]
+
         fieldvalues = self.mapped_data.get(field)
         if isinstance(fieldvalues, list):
             new_list = []
