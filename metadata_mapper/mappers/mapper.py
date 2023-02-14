@@ -707,6 +707,10 @@ class Record(ABC, object):
         2079 times: no parameters
         """
         languages = self.mapped_data.get('language', [])
+
+        if not languages:
+            return self
+
         if isinstance(languages, str):
             languages = [languages]
 
@@ -728,7 +732,7 @@ class Record(ABC, object):
 
             # try to match a language regex
             match = None
-            for regex, iso3 in language_regexes.items():
+            for iso3, regex in language_regexes.items():
                 match = regex.match(language.strip())
                 if match:
                     iso_codes.append(iso3)
@@ -736,7 +740,7 @@ class Record(ABC, object):
 
             # try to match wb_language_regexes
             if not match:
-                for regex, iso3 in wb_language_regexes.items():
+                for iso3, regex in wb_language_regexes.items():
                     if regex.search(language):
                         iso_codes.append(iso3)
 
