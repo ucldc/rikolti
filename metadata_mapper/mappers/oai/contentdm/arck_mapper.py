@@ -1,4 +1,4 @@
-from .contentdm_mapper import ContentdmRecord, ContentdmVernacular
+from ..contentdm_mapper import ContentdmRecord, ContentdmVernacular
 
 class ArckRecord(ContentdmRecord):
     @staticmethod
@@ -6,7 +6,7 @@ class ArckRecord(ContentdmRecord):
         return ["view/ARCK3D"]
 
     def UCLDC_map(self):
-        {
+        return {
             "source": self.source_metadata.get("source")
         }
 
