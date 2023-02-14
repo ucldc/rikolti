@@ -518,8 +518,14 @@ class Record(ABC, object):
         # TODO: this won't actually work for deeply nested fields
 
         src_values = self.mapped_data
+        if not src_values:
+            return self
+
         for src_field in src:
-            if src_field not in src_values:
+            if not src_field:
+                continue
+
+            if not isinstance(src_values, dict) or src_field not in src_values:
                 self.enrichment_report.append(
                     f"[lookup]: Source field {src} not in record"
                 )
