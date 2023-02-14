@@ -12,7 +12,7 @@ class ContentdmRecord(OaiRecord):
             "spatial": self.map_spatial(),
             "type": self.map_type(),
             "language": self.split_and_flatten('language'),
-            "subject": [{'name': v} for v in self.split_and_flatten('subject')]
+            "subject": self.map_subject()
         }
 
     @staticmethod
@@ -52,6 +52,13 @@ class ContentdmRecord(OaiRecord):
         split_values = [c.split(';') for c in filter(None, values)]
 
         return list([s.strip() for s in itertools.chain.from_iterable(split_values)])
+
+    def map_subject(self):
+        subject = self.source_metadata.get('subject')
+        if not subject:
+            return
+
+        return [{'name': v} for v in self.split_and_flatten('subject')]
 
     def get_preview_image_url(self):
         """
@@ -112,7 +119,7 @@ class ContentdmRecord(OaiRecord):
 
     def get_matching_identifier(self, last=False):
         """Gets a matching identifier, defaults to the first one, pass last=True to get the last one"""
-        identifiers = [i for i in self.source_metadata.get("identifier")
+        identifiers = [i for i in self.source_metadata.get("identifier", [])
                        if all([m in i for m in self.identifier_match()])]
         if not identifiers:
             return
