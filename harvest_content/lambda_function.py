@@ -232,20 +232,3 @@ def harvest_page_content(payload, context):
 
     return records
 
-
-
-    # def get_media(http, record):
-    #     media_source = record.get('media_source', {})
-    #     record_type = record.get('type', [None])[0]
-    #     # if record_type == 'image':
-    #     #     print(f"{record.get('calisphere-id')}: WARNING - NO MEDIA FILE INFO (IMAGE)")
-    #     # elif record_type == 'sound':
-    #     #     print(f"{record.get('calisphere-id')}: WARNING - NO MEDIA FILE INFO (AUDIO)")
-    #     # elif record_type == 'video':
-    #     #     print(f"{record.get('calisphere-id')}: WARNING - NO MEDIA FILE INFO (VIDEO)")
-    #     # elif record_type == 'text':
-    #     #     print(f"{record.get('calisphere-id')}: WARNING - NO MEDIA FILE INFO (TEXT)")
-    #     # else:
-    #     #     print(f"{record.get('calisphere-id')}: ERROR - NO MEDIA FILE INFO (UNKNOWN "
-    #     #           f"TYPE: {record.get('type')})")
-    #     return media_source
