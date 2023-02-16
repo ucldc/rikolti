@@ -5,10 +5,10 @@ import itertools
 
 class ValidationErrors:
     CSV_FIELDS: dict[str, str] = {
-        "key": "Harvest ID",
+        "harvest_id": "Harvest ID",
         "type": "Type",
         "field": "Field",
-        "error": "Description",
+        "description": "Description",
         "expected": "Expected Value",
         "actual": "Actual Value"
     }
@@ -29,8 +29,8 @@ class ValidationErrors:
             "type": type,
             "description": description,
             "field": field,
-            "expected": expected,
-            "actual": actual,
+            "expected": str(expected),
+            "actual": str(actual),
             **context
         })
 
@@ -81,6 +81,7 @@ class ValidationErrors:
 
     def _write_csv_row(self, open_file: IO[str],
                        content: list[str]) -> None:
+        content = [f"\"{c}\"" for c in content]
         open_file.write(f"{','.join(content)}\n")
 
     @property
