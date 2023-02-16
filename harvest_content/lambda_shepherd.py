@@ -12,6 +12,13 @@ def harvest_collection_content(payload, context):
 
     collection_id = payload.get('collection_id')
 
+    if not collection_id:
+        print("ERROR ERROR ERROR")
+        print('collection_id required')
+        exit()
+
+    count = 0
+    page_count = 0
     if settings.DATA_SRC == 'local':
         mapped_path = settings.local_path(
             'mapped_metadata', collection_id)
