@@ -82,16 +82,16 @@ class Record(ABC, object):
 
 
     def to_dict(self) -> dict[str, Any]:
-        return self.mapped_metadata
+        return self.mapped_data
 
     def to_UCLDC(self) -> dict[str, Any]:
         """
         Maps source metadata to UCLDC format, saving result to
-        self.mapped_metadata.
+        self.mapped_data.
 
         Returns: dict
         """
-        self.mapped_metadata = {}
+        self.mapped_data = {}
 
         supermaps = [
             super(c, self).UCLDC_map()
@@ -99,10 +99,10 @@ class Record(ABC, object):
             if hasattr(super(c, self), "UCLDC_map")
         ]
         for map in supermaps:
-            self.mapped_metadata = {**self.mapped_metadata, **map}
-        self.mapped_metadata = {**self.mapped_metadata, **self.UCLDC_map()}
+            self.mapped_data = {**self.mapped_data, **map}
+        self.mapped_data = {**self.mapped_data, **self.UCLDC_map()}
 
-        return self.mapped_metadata
+        return self.mapped_data
 
     def UCLDC_map(self) -> dict:
         """
