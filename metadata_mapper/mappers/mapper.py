@@ -323,7 +323,7 @@ class Record(ABC, object):
 
         return self
 
-    def copy_prop(self, prop, to_prop, skip_if_exists=[False]):
+    def copy_prop(self, prop, to_prop, no_overwrite=None, skip_if_exists=[False]):
         """
         no_overwrite is specified in one of the enrichment chain items, but is
         not implemented in the dpla-ingestion code.
