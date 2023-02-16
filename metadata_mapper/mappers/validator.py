@@ -5,6 +5,7 @@ import itertools
 
 class ValidationErrors:
     CSV_FIELDS: dict[str, str] = {
+        "key": "Harvest ID",
         "type": "Type",
         "field": "Field",
         "error": "Description",
@@ -21,16 +22,23 @@ class ValidationErrors:
     def is_empty(self):
         return not self.has_errors()
 
-    def add(self, type: str, field: str, description: str,
-            expected_value: Any, actual_value: Any, **context) -> None:
+    def add(self, key: str, field: str, description: str, expected: Any,
+            actual: Any, type: str = "ERROR", **context) -> None:
         self.errors.append({
+            "harvest_id": key,
             "type": type,
             "description": description,
             "field": field,
-            "expected": expected_value,
-            "actual": actual_value,
+            "expected": expected,
+            "actual": actual,
             **context
         })
+
+    def merge(self, other_errors: "ValidationErrors") -> "ValidationErrors":
+        if not other_errors.errors:
+            return
+
+        self.errors = self.errors + other_errors.errors
 
     def output(self, format: str, file: IO[str] = None,
                **opts) -> list[Union[list, dict]]:
@@ -67,13 +75,13 @@ class ValidationErrors:
                 self._write_csv_row(f, list(headers))
             for row in self.errors:
                 self._write_csv_row(f,
-                                    [val for (key, val) in row
+                                    [val for key, val in row.items()
                                      if key in fields]
                                     )
 
-    def _write_csv_row(self, open_file: IO,
+    def _write_csv_row(self, open_file: IO[str],
                        content: list[str]) -> None:
-        open_file.write(f"{','.join(content)}\\n")
+        open_file.write(f"{','.join(content)}\n")
 
     @property
     def _default_fields(self) -> list[str]:
@@ -86,13 +94,12 @@ class ValidationErrors:
 
 class Validator:
 
-    def __init__(self, mapped_metadata, comparison_metadata):
-        self.mapped_metadata = mapped_metadata
-        self.comparison_metadata = comparison_metadata
+    def __init__(self, fields: dict = None):
         self.errors = ValidationErrors()
-        self.validatable_fields = default_validatable_fields
+        self.set_validatable_fields(fields or {})
 
-    def validate(self) -> ValidationErrors:
+    def validate(self, key: str, rikolti_data: dict,
+                 comparison_metadata: dict) -> ValidationErrors:
         """
         Performs validation of mapped_metadata against comparison_metadata.
 
@@ -101,14 +108,26 @@ class Validator:
         If validation fails, an error entry is added to self.errors,
         which is ultimately returned.
 
+        Parameters:
+            rikolti_data: dict[str, Any]
+                Rikolti record data
+            comparison_data: dict[str, Any]
+                Comparison (usually Solr) data
+
         Returns: ValidationErrors
         """
+        self.key = key
+        self.rikolti_data = rikolti_data
+        self.comparison_data = comparison_metadata
+
+        self.before_validation()
+
         for field in self.validatable_fields:
             self._perform_validations(field)
 
         return self.errors
 
-    def set_validatable_fields(self, fields: list[dict],
+    def set_validatable_fields(self, fields: list[dict] = [],
                                merge: bool = True) -> list[dict]:
         """
         Set and/or overrides fields to be validated.
@@ -119,19 +138,53 @@ class Validator:
         If merge is False, simply sets the fields to the provided list.
 
         Parameters:
-            fields: list[dict]
-                A list of dictionaries containing validation definitions.
+            fields: dict
+                A dict containing validation definitions.
             merge: bool (default: True)
                 Should `fields` be merged into `default_validatable_fields`?
 
         Returns list[dict]
         """
         if merge:
-            self.validatable_fields = {**default_validatable_fields, **fields}
+            self.validatable_fields = [*default_validatable_fields, *fields]
         else:
             self.validatable_fields = fields
 
         return self.validatable_fields
+
+    def generate_keys(self, collection: list[dict], type: str = None,
+                      context: dict = {}) -> dict[str, dict]:
+        """
+        Given a list of records, generates keys and returns a dict with the
+        original list contents as values.
+
+        This can be used to override the creation of keys for a given
+        mapper to ensure that key intersection works in the
+        validate_mapping module.
+
+        Parameters:
+            collection: list[dict]
+                Data to be added to resulting dict
+            type: str (default: None)
+                Optional context. Usually this will be used to tell
+                this method if it's dealing with Rikolti or Solr data.
+            context: dict (default: {})
+                Any information needed to perform these calculations.
+
+        Returns: dict[str, dict]
+            dict of dicts, keyed to ensure successful intersection.
+        """
+        if type == "Rikolti":
+            return {f"{context.get('collection_id')}--{r['calisphere-id']}": r
+                    for r in collection}
+        elif type == "Solr":
+            return {r['harvest_id_s']: r for r in collection}
+
+    def before_validation(self, **kwargs) -> None:
+        """
+        Optional pre-validation callback.
+        """
+        pass
 
     # Static validators
     #
@@ -145,20 +198,24 @@ class Validator:
     # separately.
 
     @staticmethod
-    def full_match(validation_def: dict, mapped_value: Any,
+    def full_match(validation_def: dict, rikolti_value: Any,
                    comparison_value: Any) -> Union[list, None]:
         """
         Validates that both type and content match
         """
         result = [
-            Validator.type_match(validation_def, mapped_value, mapped_value),
-            Validator.content_match(validation_def, mapped_value, mapped_value)
+            Validator.type_match(validation_def,
+                                 rikolti_value,
+                                 comparison_value),
+            Validator.content_match(validation_def,
+                                    rikolti_value,
+                                    comparison_value)
         ]
 
         return [r for r in result if r is not None]
 
     @staticmethod
-    def type_match(validation_def: dict, mapped_value: Any,
+    def type_match(validation_def: dict, rikolti_value: Any,
                    comparison_value: Any) -> Union[str, None]:
         """
         Validates that the value is of the expected type.
@@ -166,26 +223,30 @@ class Validator:
         type_ref = validation_def["type"]
 
         if isinstance(type_ref, Callable):
-            result = type_ref(mapped_value)
+            result = type_ref(rikolti_value)
         elif isinstance(type_ref, type):
-            result = isinstance(mapped_value, type_ref)
+            result = isinstance(rikolti_value, type_ref)
         elif isinstance(type_ref, list):
-            result = any(isinstance(mapped_value, type) for type in type_ref)
+            result = any(isinstance(rikolti_value, type) for type in type_ref)
 
         if not result:
-            return "Type mismatch"
+            return {
+                "description": "Type mismatch",
+                "actual": str(type(rikolti_value)),
+                "expected": type_ref.__name__ if isinstance(type_ref, Callable) else str(type_ref)
+            }
 
     @staticmethod
-    def content_match(validation_def: dict, mapped_value: Any,
+    def content_match(validation_def: dict, rikolti_value: Any,
                       comparison_value: Any) -> None:
         """
         Validates that the content of the provided values is the equal.
         """
-        if not mapped_value == comparison_value:
+        if not rikolti_value == comparison_value:
             return "Content mismatch"
 
     @staticmethod
-    def required_field(self, validation_def: dict, mapped_value: Any,
+    def required_field(validation_def: dict, rikolti_value: Any,
                        comparison_value: Any) -> Union[str, None]:
         """
         Validates that a mapped value exists for a given field.
@@ -193,11 +254,11 @@ class Validator:
         In this context, anything Falsey will fail, such as empty iterables.
         If an empty iterable is acceptable, use #not_null.
         """
-        if not mapped_value:
-            return "Required field is null or empty"
+        if not rikolti_value:
+            return "Required field is false, null, or empty"
 
     @staticmethod
-    def not_null(self, validation_def: dict, mapped_value: Any,
+    def not_null(validation_def: dict, rikolti_value: Any,
                  comparison_value: Any) -> Union[str, None]:
         """
         Validates that a mapped value is not None.
@@ -205,7 +266,7 @@ class Validator:
         In this context, empty iterables or any other Falsey value
         except None will pass.
         """
-        if mapped_value is None:
+        if rikolti_value is None:
             return "Required field is null"
 
     # Type helpers
@@ -252,7 +313,7 @@ class Validator:
 
         Returns: Callable
         """
-        return lambda value: Validator.nested_value(list, types, value)
+        return lambda value: Validator.nested_value(list, list(types), value)
 
     @staticmethod
     def dict_of(*types: list[type]) -> Callable:
@@ -266,7 +327,7 @@ class Validator:
 
         Returns: Callable
         """
-        return lambda value: Validator.nested_value(dict, types, value)
+        return lambda value: Validator.nested_value(dict, list(types), value)
 
     # Private
 
@@ -279,36 +340,51 @@ class Validator:
             return
 
         field = validation_def["field"]
-        mapped_value = self.mapped_metadata.get(field)
+        rikolti_value = self.rikolti_data.get(field)
         comp_value = self.comparison_data.get(field)
 
         for validator in validation_def["validations"]:
-            raw_results = validator(validation_def, mapped_value, comp_value)
+            raw_results = validator(validation_def, rikolti_value, comp_value)
             normalized_results = self._normalize_validator_results(raw_results)
 
             for result in normalized_results:
                 self._build_errors(validation_def, result,
-                                   mapped_value, comp_value)
+                                   rikolti_value, comp_value)
 
-    def _build_errors(self, validation_def: dict, validation_results: list,
-                      mapped_value: Any, comp_value: Any) -> None:
+    def _build_errors(self, validation_def: dict, validation_result: Any,
+                      rikolti_value: Any, comp_value: Any) -> None:
         """
         Given a validation failure result, adds to self.errors.
 
         Builds additional default keys/values as needed.
         """
-        for result in validation_results:
-            error = self._build_default_error(validation_def, result,
-                                              mapped_value, comp_value)
-            self.errors.add(**error)
+        if isinstance(validation_result, str):
+            error_dict = {
+                "description": validation_result
+            }
+        elif isinstance(validation_result, dict):
+            error_dict = validation_result
+        elif not validation_result:
+            error_dict = {
+                "description": "Validation failed"
+            }
+
+        error = {
+            **self._default_error(validation_def,
+                                  rikolti_value,
+                                  comp_value),
+            **error_dict
+        }
+
+        self.errors.add(**error)
 
     def _default_error(self, validation_def: dict[str, Any],
-                       error_dict: dict[str, Any], mapped_value: Any,
-                       comparison_value: Any) -> None:
+                       rikolti_value: Any, comparison_value: Any) -> None:
         return {
+            "key": self.key,
             "field": validation_def["field"],
             "description": "Validation failed",
-            "actual": mapped_value,
+            "actual": rikolti_value,
             "expected": comparison_value
         }
 
@@ -319,10 +395,12 @@ class Validator:
         turns it into a flat list.
         """
         if not isinstance(results, list):
-            return [results]
+            ret = [results]
         else:
             nested_result_lists = list(map(Validator._ensure_is_list, results))
-            return itertools.chain(*nested_result_lists)
+            ret = itertools.chain(*nested_result_lists)
+
+        return list(filter(None, ret))
 
     @staticmethod
     def _ensure_is_list(value: Any) -> list[Any]:
@@ -378,7 +456,7 @@ default_validatable_fields: list[dict] = [
         "validations": [
                         Validator.required_field,
                         Validator.full_match,
-                        lambda l: len(l) == 1
+                        lambda d, r, c: isinstance(r, list) and len(r) == 1
                         ]
     },
     # Partial fidelity fields
