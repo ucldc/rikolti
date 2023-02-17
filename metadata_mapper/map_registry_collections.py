@@ -28,7 +28,8 @@ def map_endpoint(url):
         'chula_vista_pl_contentdm_oai_dc': 'oai.contentdm.cvpl',
         'contentdm_oai_dc_get_sound_thumbs': 'oai.contentdm.pepperdine',
         'csudh_contentdm_oai_dc': 'oai.contentdm.csudh',
-        'lapl_oai': 'oai.contentdm.lapl'
+        'lapl_oai': 'oai.contentdm.lapl',
+        'csu_dspace_mets': 'oai.contentdm.csu_dspace'
     }
 
     collection_page = url
