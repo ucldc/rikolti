@@ -27,7 +27,8 @@ def map_endpoint(url):
         'chico_oai_dc': 'oai.contentdm.chico',
         'chula_vista_pl_contentdm_oai_dc': 'oai.contentdm.cvpl',
         'contentdm_oai_dc_get_sound_thumbs': 'oai.contentdm.pepperdine',
-        'csudh_contentdm_oai_dc': 'oai.contentdm.csudh'
+        'csudh_contentdm_oai_dc': 'oai.contentdm.csudh',
+        'lapl_oai': 'oai.contentdm.lapl'
     }
 
     collection_page = url
