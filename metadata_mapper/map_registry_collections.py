@@ -29,7 +29,9 @@ def map_endpoint(url):
         'contentdm_oai_dc_get_sound_thumbs': 'oai.contentdm.pepperdine',
         'csudh_contentdm_oai_dc': 'oai.contentdm.csudh',
         'lapl_oai': 'oai.contentdm.lapl',
-        'csu_dspace_mets': 'oai.contentdm.csu_dspace'
+        'csu_dspace_mets': 'oai.csu_dspace',
+        'csuci_mets': 'oai.csu_dspace.csuci',
+        'quartex_oai': 'oai.quartex'
     }
 
     collection_page = url
