@@ -1,9 +1,9 @@
-from ..contentdm_mapper import ContentdmRecord, ContentdmVernacular
+from ..oai import OaiRecord, OaiVernacular
 import re
 import urllib
 
 
-class CsuDspaceRecord(ContentdmRecord):
+class CsuDspaceRecord(OaiRecord):
     def UCLDC_map(self):
         return {
             'language': self.source_metadata.get('languageTerm'),
@@ -50,5 +50,5 @@ class CsuDspaceRecord(ContentdmRecord):
         return 'https://dspace.calstate.edu'
 
 
-class CsuDspaceVernacular(ContentdmVernacular):
+class CsuDspaceVernacular(OaiVernacular):
     record_cls = CsuDspaceRecord

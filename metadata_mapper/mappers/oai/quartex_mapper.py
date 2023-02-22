@@ -1,7 +1,7 @@
-from ..contentdm_mapper import ContentdmRecord, ContentdmVernacular
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
-class QuartexRecord(ContentdmRecord):
+class QuartexRecord(OaiRecord):
     def map_is_shown_at(self):
         if "identifier" not in self.source_metadata:
             return
@@ -32,5 +32,5 @@ class QuartexRecord(ContentdmRecord):
         # return candidates[-1].replace("Size2", "Size4")
 
 
-class QuartexVernacular(ContentdmVernacular):
+class QuartexVernacular(OaiVernacular):
     record_cls = QuartexRecord
