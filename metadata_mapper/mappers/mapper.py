@@ -1451,6 +1451,8 @@ class Record(ABC, object):
 
             solr_doc = {
                 'calisphere-id': record.get('calisphere-id'),
+                'is_shown_at': record.get('isShownAt'),
+                'is_shown_by': record.get('isShownBy'),
                 'harvest_id_s': record.get('_id'),
                 'reference_image_md5': record.get('object'),
                 'url_item': record.get('isShownAt'),
@@ -1589,7 +1591,11 @@ class Record(ABC, object):
 
             solr_doc['facet_decade'] = add_facet_decade(record)
             solr_doc['id'] = get_solr_id(record)
-            return solr_doc
+
+            keys = list(solr_doc.keys())
+            keys.sort()
+
+            return {i: solr_doc[i] for i in keys}
 
         def check_nuxeo_media(record):
             '''Check that the media_json and jp2000 exist for a given solr doc.
