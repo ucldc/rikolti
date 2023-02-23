@@ -1,0 +1,32 @@
+Parameters:
+  Env:
+    Description: Environment
+    Type: String
+Resources:
+  OpenSearchDomain:
+    Properties:
+      AdvancedOptions:
+        indices.fielddata.cache.size: 20
+        indices.query.bool.max_clause_count: '1024'
+        rest.action.multi.allow_explicit_index: 'true'
+      ClusterConfig:
+        InstanceCount: 3
+        InstanceType: t3.medium.search
+      DomainName: !Sub 'rikolti-${Env}-opensearch'
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp2
+      EngineVersion: OpenSearch_2.3
+    Type: AWS::OpenSearchService::Domain
+  SecurityGroup:
+    Properties:
+      GroupDescription: Security Group for Rikolti OpenSearch domains
+      GroupName: rikolti-opensearch
+      SecurityGroupIngress:
+        - CidrIp: 10.60.1.64/32
+          Description: Allow ssh access from blackstar
+          FromPort: '22'
+          IpProtocol: tcp
+          ToPort: '22'
+    Type: AWS::EC2::SecurityGroup
