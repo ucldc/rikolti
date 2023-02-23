@@ -2,9 +2,7 @@ from ..contentdm_mapper import ContentdmRecord, ContentdmVernacular
 
 
 class CvplRecord(ContentdmRecord):
-    @staticmethod
-    def identifier_match():
-        return ["//archives.chulavistalibrary.com"]
+    identifier_match = "//archives.chulavistalibrary.com"
 
     def get_larger_preview_image_url(self):
         identifier = self.get_matching_identifier(last=True)

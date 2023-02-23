@@ -1,9 +1,8 @@
 from ..contentdm_mapper import ContentdmRecord, ContentdmVernacular
 
+
 class ArckRecord(ContentdmRecord):
-    @staticmethod
-    def identifier_match():
-        return ["view/ARCK3D"]
+    identifier_match = "view/ARCK3D"
 
     def UCLDC_map(self):
         return {

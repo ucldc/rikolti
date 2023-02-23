@@ -5,6 +5,8 @@ from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class ContentdmRecord(OaiRecord):
+    identifier_match = "cdm/ref"
+
     def UCLDC_map(self):
         return {
             "contributor": self.split_and_flatten('contributor'),
@@ -14,10 +16,6 @@ class ContentdmRecord(OaiRecord):
             "language": self.split_and_flatten('language'),
             "subject": self.map_subject()
         }
-
-    @staticmethod
-    def identifier_match():
-        return ["cdm/ref"]
 
     def map_is_shown_at(self):
         return self.get_matching_identifier(last=True)
@@ -120,7 +118,7 @@ class ContentdmRecord(OaiRecord):
     def get_matching_identifier(self, last=False):
         """Gets a matching identifier, defaults to the first one, pass last=True to get the last one"""
         identifiers = [i for i in self.source_metadata.get("identifier", [])
-                       if all([m in i for m in self.identifier_match()])]
+                       if self.identifier_match in i]
         if not identifiers:
             return
 
