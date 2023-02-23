@@ -67,8 +67,7 @@ class ContentdmRecord(OaiRecord):
             return larger_preview_image
 
         parts = self.get_identifier_parts()
-        return '/'.join((parts["base_url"], 'utils', 'getthumbnail',
-                         'collection', parts["collection_id"], 'id', parts["object_id"]))
+        return f"{parts['base_url']}/utils/getthumbnail/collection/{parts['collection_id']}/id/{parts['object_id']}"
 
     def get_larger_preview_image_url(self):
         image_info = self.get_image_info()
@@ -81,7 +80,7 @@ class ContentdmRecord(OaiRecord):
         else:
             scale = int((max_dim / image_info['width']) * 100)
         scale = 100 if scale > 100 else scale
-        return '{}&action=2&DMHEIGHT=2000&DMWIDTH=2000&DMSCALE={}'.format(self.get_url_image_info(), scale)
+        return f"{self.get_url_image_info()}&action=2&DMHEIGHT=2000&DMWIDTH=2000&DMSCALE={scale}"
 
     def get_image_info(self):
         """
@@ -101,7 +100,7 @@ class ContentdmRecord(OaiRecord):
             return
 
         url_image_info = '/'.join((parts["base_url"], 'utils', 'ajaxhelper'))
-        return '{}?CISOROOT={}&CISOPTR={}'.format(url_image_info, parts["collection_id"], parts["object_id"])
+        return f"{url_image_info}?CISOROOT={parts['collection_id']}&CISOPTR={parts['object_id']}"
 
     def get_identifier_parts(self):
         identifier = self.get_matching_identifier()
