@@ -178,10 +178,14 @@ def harvest_thumbnail(http, calisphere_id, thumbnail_source):
 
 
 def harvest_record_content(mapper_type, http, record, collection_id):
+<<<<<<< HEAD
     print(
         f"[{collection_id}, {mapper_type}]: harvest record: "
         f"{record.get('calisphere-id')}"
     )
+=======
+    print(f"harvest record: {record.get('calisphere-id')}")
+>>>>>>> 4dfd2c1f530dd2d478e45bf3d9f470e6a33b3f65
     if mapper_type == 'nuxeo.nuxeo':
         media = harvest_media(
             http,
