@@ -13,49 +13,47 @@ class OaiRecord(Record):
 
     def UCLDC_map(self):
         return {
+            # `legacy_couch_db_id` is set by a premapping function
+            'calisphere-id': self.legacy_couch_db_id.split('--')[1],
+            'isShownAt': self.map_is_shown_at(),
+            'isShownBy': self.map_is_shown_by(),
             'contributor': self.source_metadata.get('contributor'),
             'creator': self.source_metadata.get('creator'),
-            'date': self.collate_values(
-                self.source_metadata_values(
-                    'available',
-                    'created',
-                    'date',
-                    'dateAccepted',
-                    'dateCopyrighted',
-                    'dateSubmitted',
-                    'issued',
-                    'modified',
-                    'valid'
-                )
-            ),
-            'description': self.collate_values(
-                self.source_metadata_values('abstract', 'description', 'tableOfContents')
-            ),
+            'date': self.collate_fields([
+                'available',
+                'created',
+                'date',
+                'dateAccepted',
+                'dateCopyrighted',
+                'dateSubmitted',
+                'issued',
+                'modified',
+                'valid'
+            ]),
+            'description': self.collate_fields(['abstract', 'description', 'tableOfContents']),
             'extent': self.source_metadata.get('extent'),
-            'format': self.collate_values(self.source_metadata_values('format', 'medium')),
-            'identifier': self.collate_values(self.source_metadata_values('bibliographicCitation', 'identifier')),
+            'format': self.collate_fields(['format', 'medium']),
+            'identifier': self.collate_fields(['bibliographicCitation', 'identifier']),
             'provenance': self.source_metadata.get('provenance'),
             'publisher': self.source_metadata.get('publisher'),
-            'relation': self.collate_values(
-                self.source_metadata_values(
-                    'conformsTo',
-                    'hasFormat',
-                    'hasPart',
-                    'hasVersion',
-                    'isFormatOf',
-                    'isPartOf',
-                    'isReferencedBy',
-                    'isReplacedBy',
-                    'isRequiredBy',
-                    'isVersionOf',
-                    'references',
-                    'relation',
-                    'replaces',
-                    'require'
-                )
-            ),
-            'rights': self.collate_values(self.source_metadata_values('accessRights', 'rights')),
-            'spatial': self.collate_values(self.source_metadata_values('coverage', 'spatial')),
+            'relation': self.collate_fields([
+                'conformsTo',
+                'hasFormat',
+                'hasPart',
+                'hasVersion',
+                'isFormatOf',
+                'isPartOf',
+                'isReferencedBy',
+                'isReplacedBy',
+                'isRequiredBy',
+                'isVersionOf',
+                'references',
+                'relation',
+                'replaces',
+                'require'
+            ]),
+            'rights': self.collate_fields(['accessRights', 'rights']),
+            'spatial': self.collate_fields(['coverage', 'spatial']),
             'subject': self.map_subject(),
             'temporal': self.source_metadata.get('temporal'),
             'title': self.source_metadata.get('title'),
@@ -71,6 +69,15 @@ class OaiRecord(Record):
         if isinstance(value, str):
             value = [value]
         return [{'name': v} for v in value if v]
+
+    def map_is_shown_at(self):
+        """Will be implemented by child mapper classes"""
+        return
+
+    def map_is_shown_by(self):
+        """Will be implemented by child mapper classes"""
+        return
+
 
 class OaiVernacular(Vernacular):
 

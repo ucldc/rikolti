@@ -1,52 +1,53 @@
 import json
-from .mapper import Vernacular, Record
+from ..mapper import Vernacular, Record
 
 
 class NuxeoRecord(Record):
     def to_UCLDC(self):
-        source_metadata = self.source_metadata.get('properties')
+        self.original_metadata = self.source_metadata
+        self.source_metadata = self.source_metadata.get('properties')
 
         mapped_data = {
-            "calisphere-id": self.source_metadata.get("uid"),
+            "calisphere-id": self.original_metadata.get("uid"),
             "isShownAt": (
                 f"https://calisphere.org/item/"
-                f"{self.source_metadata.get('uid', '')}"
+                f"{self.original_metadata.get('uid', '')}"
             ),
-            "source": source_metadata.get("ucldc_schema:source"),
-            'location': [source_metadata.get(
+            "source": [self.source_metadata.get("ucldc_schema:source")],
+            'location': [self.source_metadata.get(
                 'ucldc_schema:physlocation', None)],
             'rightsHolder': (
                 self.collate_subfield('ucldc_schema:rightsholder', 'name') +
-                [source_metadata.get('ucldc_schema:rightscontact')]
+                [self.source_metadata.get('ucldc_schema:rightscontact')]
             ),
             'rightsNote': (
-                (source_metadata.get('ucldc_schema:rightsnotice', []) or []) +
-                [source_metadata.get('ucldc_schema:rightsnote', '')]
+                (self.source_metadata.get('ucldc_schema:rightsnotice', []) or []) +
+                [self.source_metadata.get('ucldc_schema:rightsnote', '')]
             ),
-            'dateCopyrighted': source_metadata.get(
+            'dateCopyrighted': self.source_metadata.get(
                 'ucldc_schema:rightsstartdate', None),
-            'transcription': source_metadata.get(
+            'transcription': self.source_metadata.get(
                 'ucldc_schema:transcription', None),
             'contributor': self.collate_subfield(
                 'ucldc_schema:contributor', 'name'),
             'creator': self.collate_subfield('ucldc_schema:creator', 'name'),
             'date': self.collate_subfield('ucldc_schema:date', 'date'),
             'description': self.map_description(),
-            'extent': [source_metadata.get('ucldc_schema:extent', None)],
-            'format': [source_metadata.get('ucldc_schema:physdesc', None)],
+            'extent': [self.source_metadata.get('ucldc_schema:extent', None)],
+            'format': [self.source_metadata.get('ucldc_schema:physdesc', None)],
             'identifier': (
-                [source_metadata.get('ucldc_schema:identifier')] +
-                source_metadata.get('ucldc_schema:localidentifier', [])
+                [self.source_metadata.get('ucldc_schema:identifier')] +
+                self.source_metadata.get('ucldc_schema:localidentifier', [])
             ),
             'id': (
-                [source_metadata.get('ucldc_schema:identifier')] +
-                source_metadata.get('ucldc_schema:localidentifier', [])
+                [self.source_metadata.get('ucldc_schema:identifier')] +
+                self.source_metadata.get('ucldc_schema:localidentifier', [])
             ),
             'language': self.map_language(),
             'publisher': list(
-                source_metadata.get('ucldc_schema:publisher', [])),
+                self.source_metadata.get('ucldc_schema:publisher', [])),
             'relation': list(
-                source_metadata.get('ucldc_schema:relatedresource', [])),
+                self.source_metadata.get('ucldc_schema:relatedresource', [])),
             'rights': self.map_rights(),
             'spatial': self.map_spatial(),
             'subject': (
@@ -55,12 +56,12 @@ class NuxeoRecord(Record):
                     self.collate_subfield('ucldc_schema:subjectname', 'name')
             ),
             'temporalCoverage': list(
-                source_metadata.get('ucldc_schema:temporalcoverage', [])),
-            'title': [source_metadata.get('dc:title')],
-            'type': [source_metadata.get('ucldc_schema:type', None)],
-            'provenance': source_metadata.get('ucldc_schema:provenance', None),
+                self.source_metadata.get('ucldc_schema:temporalcoverage', [])),
+            'title': [self.source_metadata.get('dc:title')],
+            'type': [self.source_metadata.get('ucldc_schema:type', None)],
+            'provenance': self.source_metadata.get('ucldc_schema:provenance', None),
             'alternativeTitle': list(
-                source_metadata.get('ucldc_schema:alternativetitle', [])),
+                self.source_metadata.get('ucldc_schema:alternativetitle', [])),
             'genre': self.collate_subfield('ucldc_schema:formgenre', 'heading')
         }
 
@@ -146,7 +147,8 @@ class NuxeoRecord(Record):
         return decoded
 
     def map_rights(self):
-        rights_status = self.source_metadata.get('ucldc_schema:rightsstatus')
+        rights_status = self.source_metadata.get(
+            'ucldc_schema:rightsstatus')
         rights_status = [self.map_rights_codes(rights_status)]
         rights_statement = [self.source_metadata.get(
             'ucldc_schema:rightsstatement')]
@@ -161,6 +163,11 @@ class NuxeoRecord(Record):
                 spatial.append(place['coordinates'])
         return [{'text': s} for s in spatial]
 
+    def map_is_shown_at(self):
+        return super().map_is_shown_at()
+    
+    def map_is_shown_by(self):
+        return super().map_is_shown_by()
 
 class NuxeoVernacular(Vernacular):
     record_cls = NuxeoRecord

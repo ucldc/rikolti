@@ -62,8 +62,8 @@ class NuxeoFetcher(Fetcher):
             except Exception as e:
                 msg = (
                     f"[{self.collection_id}]: "
-                    f"{e}; A path UID is required for fetching - could not find "
-                    f"root path uid: {request['url']}"
+                    f"{e}; A path UID is required for fetching - could not "
+                    f"retrieve root path uid: {request['url']}"
                 )
                 raise InvalidHarvestEndpoint(msg)
             self.nuxeo['current_path'] = {

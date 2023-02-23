@@ -80,41 +80,25 @@ def map_page(payload, context):
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
 
-    for enrichment_url in collection.get('rikolti__pre_mapping', []):
-        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
-        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
-            continue
-        logging.debug(
-            f"[{collection['id']}]: running enrichment: {enrichment_func} "
-            f"for page {payload['page_filename']} with kwargs: {kwargs}")
-        source_metadata_records = [
-            record.enrich(enrichment_func, **kwargs)
-            for record in source_metadata_records
-        ]
+    source_metadata_records = run_enrichments(
+        source_metadata_records, payload, 'rikolti__pre_mapping')
 
     for record in source_metadata_records:
         record.to_UCLDC()
     mapped_records = source_metadata_records
-    
+
     writer = UCLDCWriter(payload)
     if settings.DATA_DEST == 'local':
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
-    for enrichment_url in collection.get('rikolti__enrichments', []):
-        enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
-        if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
-            continue
-        if enrichment_func in ['required_values_from_collection_registry',
-                               'set_ucldc_dataprovider']:
-            kwargs.update({'collection': collection})
-        logging.debug(
-            f"[{collection['id']}]: running enrichment: {enrichment_func} "
-            f"for page {payload['page_filename']} with kwargs: {kwargs}")
-        mapped_records = [
-            record.enrich(enrichment_func, **kwargs)
-            for record in mapped_records
-        ]
+    mapped_records = run_enrichments(
+        mapped_records, payload, 'rikolti__enrichments')
+
+    # TODO: analyze and simplify this straight port of the
+    # solr updater module into the Rikolti framework
+    mapped_records = [record.solr_updater() for record in mapped_records]
+    mapped_records = [record.remove_none_values() for record in mapped_records]
 
     exceptions = {
         rec.legacy_couch_db_id: rec.enrichment_report

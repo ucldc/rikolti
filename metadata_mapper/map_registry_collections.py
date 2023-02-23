@@ -12,9 +12,15 @@ def map_endpoint(url):
     # once we have a firmer rikolti vocabulary of mappers, we should
     # migrate the registry's data.
     lookup = {
-        'ucldc_nuxeo': 'nuxeo',
-        'oac_dc': 'oac',
-        'islandora_oai_dc': 'islandora'
+        'ucldc_nuxeo': 'nuxeo.nuxeo',
+        'oac_dc': 'oac.oac',
+        'islandora_oai_dc': 'oai.islandora',
+        'cca_vault_oai_dc': 'oai.cca_vault',
+        'chapman_oai_dc': 'oai.chapman',
+        'tv_academy_oai_dc': 'oai.tv_academy',
+        'yosemite_oai_dc': 'oai.yosemite',
+        'up_oai_dc': 'oai.up',
+        'ucsc_oai_dpla': 'oai.samvera',
     }
 
     collection_page = url
@@ -32,7 +38,7 @@ def map_endpoint(url):
             print(msg)
             collection_page = None
             break
-        total_collections = response.json().get('meta', {}).get('total_count')
+        total_collections = response.json().get('meta', {}).get('total_count', 1)
         print(
             f">>> Mapping {total_collections} collections "
             f"described at {collection_page}"
