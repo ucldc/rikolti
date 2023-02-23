@@ -84,7 +84,7 @@ class ContentdmRecord(OaiRecord):
 
     def get_image_info(self):
         """
-        TODO: address HTTP request taking place in here
+        TODO: for Amy or Barbara: alternative strategy for making another request
         """
         image_info = {'height': 0, 'width': 0}
         identifier = self.get_matching_identifier()
