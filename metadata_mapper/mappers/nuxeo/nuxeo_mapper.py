@@ -22,10 +22,10 @@ class NuxeoRecord(Record):
                 self.collate_subfield('ucldc_schema:rightsholder', 'name') +
                 [self.source_metadata.get('ucldc_schema:rightscontact')]
             ),
-            'rightsNote': (
-                (self.source_metadata.get('ucldc_schema:rightsnotice', []) or []) +
-                [self.source_metadata.get('ucldc_schema:rightsnote', '')]
-            ),
+            'rightsNote': [
+                self.source_metadata.get('ucldc_schema:rightsnotice'),
+                self.source_metadata.get('ucldc_schema:rightsnote')
+            ],
             'dateCopyrighted': self.source_metadata.get(
                 'ucldc_schema:rightsstartdate', None),
             'transcription': self.source_metadata.get(
