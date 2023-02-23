@@ -169,7 +169,7 @@ class NuxeoRecord(Record):
         return super().map_is_shown_at()
 
     def map_media_source(self):
-        source_type = self.source_metadata.get('type')
+        source_type = self.original_metadata.get('type')
         valid_types = [
             'CustomFile',
             'Organization',  # (this is actually a file)
@@ -182,19 +182,16 @@ class NuxeoRecord(Record):
             return None
 
         # get the file content
-        source_type = self.source_metadata.get('type')
-        md_properties = self.source_metadata.get('properties', {})
-
-        file_content = md_properties.get('file:content')
+        file_content = self.source_metadata.get('file:content')
         if file_content and file_content.get('name') == 'empty_picture.png':
             file_content = None
         elif file_content and not file_content.get('name'):
-            file_content['name'] = md_properties.get('file:filename')
+            file_content['name'] = self.source_metadata.get('file:filename')
 
         # for Video, overwrite file_content with nuxeo transcoded video file
         # mp4 url in properties.vid:transcodedVideos, if it exists
         if source_type == 'CustomVideo':
-            transcoded_videos = md_properties.get('vid:transcodedVideos', [])
+            transcoded_videos = self.source_metadata.get('vid:transcodedVideos', [])
             for tv in transcoded_videos:
                 if tv['content']['mime-type'] == 'video/mp4':
                     file_content = tv['content']
@@ -214,7 +211,7 @@ class NuxeoRecord(Record):
         return media_source
 
     def map_thumbnail_source(self):
-        source_type = self.source_metadata.get('type')
+        source_type = self.original_metadata.get('type')
         valid_types = [
             'CustomVideo',
             'CustomFile',
@@ -237,7 +234,7 @@ class NuxeoRecord(Record):
         # it's cleaner because then we'd get the full data for the thumbnail,
         # rather than cobbling together thumbnail source by key
         if (source_type == 'SampleCustomPicture'):
-            uid = self.source_metadata.get('uid', '')
+            uid = self.original_metadata.get('uid', '')
             thumbnail_source['url'] = (
                 f"https://nuxeo.cdlib.org/Nuxeo/nxpicsfile/default/"
                 f"{uid}/Medium:content/"

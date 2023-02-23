@@ -125,15 +125,14 @@ def harvest_media(http, calisphere_id, media_source):
     media_filepath = None
     # thumbnail_s3_path = None
 
-    if media_source:
-        try:
-            media_source_filepath = download_source(
-                http,
-                media_source,
-                auth=(settings.NUXEO_USER, settings.NUXEO_PASS)
-            )
-        except DownloadError as err:
-            raise DownloadError(f"[{calisphere_id}]: {err}")
+    try:
+        media_source_filepath = download_source(
+            http,
+            media_source,
+            auth=(settings.NUXEO_USER, settings.NUXEO_PASS)
+        )
+    except DownloadError as err:
+        raise DownloadError(f"[{calisphere_id}]: {err}")
 
     if media_source_filepath:
         if media_source.get('nuxeo_type') == 'SampleCustomPicture':
@@ -179,7 +178,10 @@ def harvest_thumbnail(http, calisphere_id, thumbnail_source):
 
 
 def harvest_record_content(mapper_type, http, record, collection_id):
-    print(f"harvest record: {record.get('calisphere-id')}")
+    print(
+        f"[{collection_id}, {mapper_type}]: harvest record: "
+        f"{record.get('calisphere-id')}"
+    )
     if mapper_type == 'nuxeo.nuxeo':
         media = harvest_media(
             http,
