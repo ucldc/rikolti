@@ -1156,7 +1156,8 @@ class Record(ABC, object):
 
         return self
 
-    # TODO: this should get moved into validation
+    # TODO: this should get moved into validation, if it continues to
+    # exist at all - ported here from existing codebase
     # def has_required_fields(self):
     #     record_id = f"---- OMITTED: Doc:{self.legacy_couch_db_id}"
     #     error = False
@@ -1203,6 +1204,8 @@ class Record(ABC, object):
             del self.mapped_data[key]
         return self
 
+    # TODO: analyze this against enrichment chain to determine
+    # how much is necessary/how much is redundant
     def solr_updater(self):
 
         def normalize_sort_field(sort_field,
@@ -1373,6 +1376,9 @@ class Record(ABC, object):
                     pass
             return ark
 
+        # TODO: I wonder if rather than taking a hash of the mapped _id value
+        # to use for the solr ID, we should actually take a hash of the
+        # original record (and maybe a hash of the mapped record?)
         def get_solr_id(couch_doc):
             ''' Extract a good ID to use in the solr index.
             see : https://github.com/ucldc/ucldc-docs/wiki/pretty_id
