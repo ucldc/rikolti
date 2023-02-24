@@ -125,18 +125,21 @@ def harvest_media(http, calisphere_id, media_source):
     media_filepath = None
     # thumbnail_s3_path = None
 
-    try:
-        media_source_filepath = download_source(
-            http,
-            media_source,
-            auth=(settings.NUXEO_USER, settings.NUXEO_PASS)
-        )
-    except DownloadError as err:
-        raise DownloadError(f"[{calisphere_id}]: {err}")
+    if media_source:
+        try:
+            media_source_filepath = download_source(
+                http,
+                media_source,
+                auth=(settings.NUXEO_USER, settings.NUXEO_PASS)
+            )
+        except DownloadError as err:
+            raise DownloadError(f"[{calisphere_id}]: {err}")
 
     if media_source_filepath:
         if media_source.get('nuxeo_type') == 'SampleCustomPicture':
-            media_filepath = derivatives.make_jp2(media_source_filepath)
+            media_filepath = derivatives.make_jp2(
+                media_source_filepath, media_source.get('mimetype'))
+            jp2_mimetype = 'image/jp2'
         else:
             print(f"not a jp2 sitch: {media_source_filepath}")
             media_filepath = media_source_filepath

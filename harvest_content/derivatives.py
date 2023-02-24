@@ -1,6 +1,6 @@
 import os
 import subprocess
-
+import shutil
 
 class UnsupportedMimetype(Exception):
     pass
@@ -151,79 +151,161 @@ def make_thumbnail(source_file_path, mimetype):
     return thumbnail_path
 
 
-def make_jp2(source_file_path):
+def check_mimetype(mimetype):
+    ''' do a basic pre-check on the object to see if we think it's
+    something know how to deal with '''
+    valid_types = ['image/jpeg', 'image/gif', 'image/tiff', 'image/png', 'image/jp2', 'image/jpx', 'image/jpm']
+
+    # see if we recognize this mime type
+    if mimetype in valid_types:
+        print(
+            f"Mime-type '{mimetype}' was pre-checked and recognized as "
+            "something we can try to convert."
+        )
+    elif mimetype in ['application/pdf']:
+        raise UnsupportedMimetype(
+            f"Mime-type '{mimetype}' was pre-checked and recognized as "
+            "something we don't want to convert."
+        )
+    else:
+        raise UnsupportedMimetype(
+            f"Mime-type '{mimetype}' was unrecognized. We don't know how to "
+            "deal with this"
+        )
+
+
+def tiff_conversion(input_path):
+    '''
+        convert file using ImageMagick `convert`:
+        http://www.imagemagick.org/script/convert.php
+    '''
+    magick_location = os.environ.get(
+        'PATH_MAGICK_CONVERT', '/usr/local/bin/convert')
+    output_path = f"{input_path.split('.')[0]}.tif"
+    proc = [
+        magick_location, "-compress", "None",
+        "-quality", "100", "-auto-orient", input_path, output_path
+    ]
+    msg = (
+        f"Used ImagMagick convert to convert {input_path} "
+        f"to {output_path}"
+    )
+    try:
+        subprocess.check_output(proc, stderr=subprocess.STDOUT)
+        print(msg)
+    except subprocess.CalledProcessError as e:
+        print(
+            f"ERROR: ImageMagick `convert` failed: {e.cmd}\n"
+            f"returncode was: {e.returncode}\n"
+            f"output was: {e.output}"
+        )
+        return False
+
+
+def tiff_to_srgb_libtiff(input_path):
+    '''
+    convert color profile to sRGB using libtiff's `tiff2rgba` tool
+    '''
+    tiff2rgba_location = os.environ.get(
+        'PATH_TIFF2RGBA', '/usr/local/bin/tiff2rgba')
+    output_path = f"{input_path.split('.')[0]}.tiff"
+    proc = [tiff2rgba_location, "-c", "none", input_path, output_path]
+    msg = (
+        f"Used tiff2rgba to convert {input_path} to {output_path}, "
+        "with color profile sRGB (if not already sRGB)"
+    )
+    try:
+        subprocess.check_output(proc, stderr=subprocess.STDOUT)
+        print(msg)
+    except subprocess.CalledProcessError as e:
+        print(
+            f"ERROR: `tiff2rgba` failed: {e.cmd}\n"
+            f"returncode was: {e.returncode}\n"
+            f"output was: {e.output}"
+        )
+        return False
+
+
+def uncompress_jp2000(compressed_path):
+    ''' uncompress a jp2000 file using kdu_expand '''
+    kdu_expand_location = os.environ.get(
+        'PATH_KDU_EXPAND', '/usr/local/bin/kdu_expand')
+    output_path = f"{compressed_path.split('.')[0]}.tiff"
+    proc = [
+        kdu_expand_location, "-i", compressed_path, "-o", output_path
+    ]
+    msg = (
+        f"File uncompressed using kdu_expand. Input: "
+        f"{compressed_path}, output: {output_path}"
+    )
+    try:
+        subprocess.check_output(proc, stderr=subprocess.STDOUT)
+        print(msg)
+    except subprocess.CalledProcessError as e:
+        print(
+            f"ERROR: `kdu_expand` failed: {e.cmd}\n"
+            f"returncode was: {e.returncode}\n"
+            f"output was: {e.output}"
+        )
+        return False
+
+
+def tiff_to_jp2(tiff_path):
+    ''' convert a tiff to jp2 using kdu_compress.
+    tiff must be uncompressed.'''
+    kdu_compress_location = os.environ.get(
+        'PATH_KDU_COMPRESS', '/usr/local/bin/kdu_compress')
+    jp2_path = f"{tiff_path.split('.')[0]}.jp2"
+    proc = [kdu_compress_location, "-i", tiff_path, "-o", jp2_path]
+    proc.extend(KDU_COMPRESS_DEFAULT_OPTS)
+    msg = "{tiff_path} converted to {jp2_path}"
+
+    try:
+        subprocess.check_output(proc, stderr=subprocess.STDOUT)
+        print(msg)
+    except subprocess.CalledProcessError as e:
+        print(f"A kdu_compress command failed. Trying alternate:\n{e}")
+        proc = [kdu_compress_location, "-i", tiff_path, "-o", jp2_path]
+        proc.extend(KDU_COMPRESS_BASE_OPTS)
+        try:
+            subprocess.check_output(proc, stderr=subprocess.STDOUT)
+            print(msg)
+        except subprocess.CalledProcessError as e:
+            print(
+                f"ERROR: `kdu_compress` failed: {e.cmd}\n"
+                f"returncode was: {e.returncode}\n"
+                f"output was: {e.output}"
+            )
+
+    return jp2_path
+
+
+def make_jp2(source_file_path, mimetype):
     print(f"make jp2: {source_file_path}")
-    return source_file_path
+    try:
+        check_mimetype(mimetype)
+    except UnsupportedMimetype as e:
+        print(e)
+        return source_file_path
 
+    prepped_file_path = None
+    if mimetype in ['image/jpeg', 'image/gif', 'image/png', 'image/tiff']:
+        converted_file_path = tiff_conversion(source_file_path)
+        if converted_file_path:
+            prepped_file_path = tiff_to_srgb_libtiff(converted_file_path)
+    elif mimetype in ['image/jp2', 'image/jpx', 'image/jpm']:
+        prepped_file_path = uncompress_jp2000(source_file_path)
 
-# def make_jp2():
-#     convert = Convert()
-#     passed = convert._pre_check(source['mimetype'])
-#     if not passed:
-#         return
-#     jp2_report = {}
+    if not prepped_file_path:
+        print(
+            "Didn't know how to prep file with mimetype {mimetype} for "
+            "jp2 conversion"
+        )
+        return
 
-#     magick_tiff_filepath = os.path.join(tmp_dir, 'magicked.tif')
-#     uncompressed_tiff_filepath = os.path.join(tmp_dir, 'uncompressed.tif')
-#     prepped_filepath = os.path.join(tmp_dir, 'prepped.tiff')
+    jp2_filepath = tiff_to_jp2(prepped_file_path)
+    if not jp2_filepath:
+        shutil.rmtree(tmp_dir)
+        return
 
-#     # prep file for conversion to jp2
-#     if source['mimetype'] in ['image/jpeg', 'image/gif', 'image/png']:
-#         preconverted, preconvert_msg = convert._pre_convert(
-#             tmp_filepath, magick_tiff_filepath)
-#         jp2_report['pre_convert'] = {
-#             'preconverted': preconverted,
-#             'msg': preconvert_msg
-#         }
-
-#         tiff_to_srgb, tiff_to_srgb_msg = convert._tiff_to_srgb_libtiff(
-#             magick_tiff_filepath, prepped_filepath)
-#         jp2_report['tiff_to_srgb'] = {
-#             'tiff_to_srgb': tiff_to_srgb,
-#             'msg': tiff_to_srgb_msg
-#         }
-
-#     elif source['mimetype'] == 'image/tiff':
-#         uncompressed, uncompress_msg = convert._pre_convert(
-#             tmp_filepath, uncompressed_tiff_filepath)
-#         jp2_report['uncompress_tiff'] = {
-#             'uncompressed': uncompressed,
-#             'msg': uncompress_msg
-#         }
-
-#         tiff_to_srgb, tiff_to_srgb_msg = convert._tiff_to_srgb_libtiff(
-#             uncompressed_tiff_filepath, prepped_filepath)
-#         jp2_report['tiff_to_srgb'] = {
-#             'tiff_to_srgb': tiff_to_srgb,
-#             'msg': tiff_to_srgb_msg
-#         }
-
-#     elif source['mimetype'] in ('image/jp2', 'image/jpx', 'image/jpm'):
-#         uncompressed, uncompress_msg = convert._uncompress_jp2000(
-#             tmp_filepath, prepped_filepath)
-#         jp2_report['uncompress_jp2000'] = {
-#             'uncompressed': uncompressed,
-#             'msg': uncompress_msg
-#         }
-
-#     else:
-#         msg = "Did not know how to prep file with mimetype {} for " \
-#                 "conversion to jp2.".format(source['mimetype'])
-#         jp2_report['status'] = 'unknown mimetype'
-#         jp2_report['msg'] = msg
-#         return jp2_report
-
-#     # create jp2
-#     jp2_filepath = os.path.join(tmp_dir, "sourcefile.jp2")
-#     converted, jp2_msg = convert._tiff_to_jp2(prepped_filepath, jp2_filepath)
-#     jp2_report['convert_tiff_to_jp2'] = {
-#         'converted': converted,
-#         'msg': jp2_msg
-#     }
-
-#     if not converted:
-#         shutil.rmtree(tmp_dir)
-#         return 
-    
-#     final_filepath = jp2_filepath
-#     final_mimetype = 'image/jp2'
+    return jp2_filepath
