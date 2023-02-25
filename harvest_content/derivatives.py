@@ -10,11 +10,27 @@ class ThumbnailError(Exception):
     pass
 
 
+# Settings recommended as a starting point by Jon Stroop.
+# See https://groups.google.com/forum/?hl=en#!searchin/iiif-discuss/kdu_compress/iiif-discuss/OFzWFLaWVsE/wF2HaykHcd0J
+KDU_COMPRESS_BASE_OPTS = [
+    "-quiet", "-rate",
+    "2.4,1.48331273,.91673033,.56657224,.35016049,.21641118,.13374944,"
+    ".08266171",
+    "Creversible=yes", "Clevels=7", "Cblk={64,64}", "Cuse_sop=yes",
+    "Cuse_eph=yes", "Corder=RLCP", "ORGgen_plt=yes", "ORGtparts=R",
+    "Stiles={1024,1024}", "-double_buffering", "10", "-num_threads", "4",
+    "-no_weights"
+]
+
+KDU_COMPRESS_DEFAULT_OPTS = KDU_COMPRESS_BASE_OPTS[:]
+KDU_COMPRESS_DEFAULT_OPTS.extend(["-jp2_space", "sRGB"])
+
+
 # decorator function
 def subprocess_exception_handler(func):
     def wrapper(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except subprocess.CalledProcessError as e:
             print(
                 f"{func.__name__} command failed: {e.cmd}\n"
@@ -245,7 +261,7 @@ def make_jp2(source_file_path, mimetype):
 
     if not prepped_file_path:
         print(
-            "Didn't know how to prep file with mimetype {mimetype} for "
+            f"Didn't know how to prep file with mimetype {mimetype} for "
             "jp2 conversion"
         )
         return
