@@ -30,6 +30,20 @@ def get_mapped_records(collection_id, page_filename) -> dict:
         return mapped_page
 
 
+def write_mapped_records(collection_id, page_filename, harvested_page):
+    if settings.DATA_SRC == 'local':
+        local_path = settings.local_path(
+            'mapped_with_content', collection_id)
+        page_path = os.sep.join([local_path, str(page_filename)])
+        page = open(page_path, "w")
+        page.write(json.dumps(harvested_page))
+    else:
+        s3 = boto3.resource('s3')
+        bucket = 'rikolti'
+        key = f"mapped_with_content/{collection_id}/{page_filename}"
+        s3.Object(bucket, key).put(json.dumps(harvested_page))
+
+
 def get_child_records(collection_id, parent_id):
     local_path = settings.local_path('mapped_metadata', collection_id)
     children_path = os.sep.join([local_path, 'children'])
@@ -176,13 +190,11 @@ def harvest_page_content(payload, context):
         payload = json.loads(payload)
     print(f"harvest_page_content: {json.dumps(payload)}")
 
-    records = get_mapped_records(
-        payload.get('collection_id'),
-        payload.get('page_filename')
-    )
-
     collection_id = payload.get('collection_id')
     mapper_type = payload.get('mapper_type')
+    page_filename = payload.get('page_filename')
+
+    records = get_mapped_records(collection_id, page_filename)
 
     auth = None
     if mapper_type == 'nuxeo.nuxeo':
@@ -206,5 +218,7 @@ def harvest_page_content(payload, context):
                 f"{record.get('type')}"
             )
 
-    return records
+        record['content'] = content
 
+    write_mapped_records(collection_id, page_filename, records)
+    return len(records)
