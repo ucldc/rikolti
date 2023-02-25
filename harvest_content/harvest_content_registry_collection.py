@@ -50,16 +50,16 @@ def harvest_content_by_endpoint(url):
                 f"{collection['solr_last_updated']}"
             ))
             logging.debug(log_msg.format(f"lambda payload: {collection}"))
-            try:
-                collection['mapper_type'] = lookup[collection['mapper_type']]
-                return_val = harvest_collection_content(
-                    json.dumps(collection), None)
-            except KeyError:
-                print(f"[{collection['collection_id']}]: {collection['mapper_type']} not yet implemented")
-                continue
-            except FileNotFoundError:
-                print(f"[{collection['collection_id']}]: not mapped yet")
-                continue
+            # try:
+            collection['mapper_type'] = lookup[collection['mapper_type']]
+            return_val = harvest_collection_content(
+                json.dumps(collection), None)
+            # except KeyError:
+            #     print(f"[{collection['collection_id']}]: {collection['mapper_type']} not yet implemented")
+            #     continue
+            # except FileNotFoundError:
+            #     print(f"[{collection['collection_id']}]: not mapped yet")
+            #     continue
             results.append(return_val)
 
             print(log_msg.format(f"{json.dumps(return_val)}"))
