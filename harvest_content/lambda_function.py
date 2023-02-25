@@ -80,12 +80,15 @@ class ContentHarvester(object):
         self.http.mount("https://", adapter)
         self.http.mount("http://", adapter)
 
-        self.s3 = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION
-        )
+        if not settings.LOCAL_RUN:
+            self.s3 = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_REGION
+            )
+        else:
+            self.s3 = None
         self.src_auth = src_auth
         self.harvest_context = context
 
@@ -199,7 +202,7 @@ def harvest_page_content(payload, context):
     auth = None
     if mapper_type == 'nuxeo.nuxeo':
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
-    harvester = ContentHarvester(payload, auth=auth)
+    harvester = ContentHarvester(payload, src_auth=auth)
 
     for record in records:
         print(
