@@ -720,7 +720,7 @@ class Record(ABC, object):
             languages = [languages]
 
         iso_codes = []
-        for language in languages:
+        for language in filter(None, languages):
             if language in iso_639_3:
                 iso_codes.append(language)
                 continue
