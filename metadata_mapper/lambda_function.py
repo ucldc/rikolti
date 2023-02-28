@@ -17,10 +17,10 @@ def import_vernacular_reader(mapper_type):
     nuxeo       | nuxeo_mapper        | NuxeoVernacular
     content_dm  | content_dm_mapper   | ContentDmVernacular
     """
-    mapper_parent_modules, snake_cased_mapper_name = mapper_type.split(".")
+    *mapper_parent_modules, snake_cased_mapper_name = mapper_type.split(".")
 
     mapper_module = importlib.import_module(
-        f"mappers.{mapper_parent_modules}.{snake_cased_mapper_name}_mapper",
+        f"mappers.{'.'.join(mapper_parent_modules)}.{snake_cased_mapper_name}_mapper",
         package="metadata_mapper"
     )
 

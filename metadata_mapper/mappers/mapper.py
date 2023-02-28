@@ -3,6 +3,7 @@ import json
 import re
 import boto3
 import hashlib
+import itertools
 
 from abc import ABC
 from markupsafe import Markup
@@ -73,6 +74,7 @@ class Vernacular(ABC, object):
 class Record(ABC, object):
 
     def __init__(self, collection_id: int, record: dict[str, Any]):
+        self.mapped_data = None
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
         # TODO: pre_mapped_data is a stop gap to accomodate
@@ -140,6 +142,20 @@ class Record(ABC, object):
             return value
         if isinstance(value, list):
             return value[0]
+
+    def split_and_flatten(self, field):
+        """
+        Given a list of strings or nested lists, splits the values on the split string then flattens
+        """
+        values = self.source_metadata.get(field)
+
+        if not values:
+            return
+
+        split_values = [c.split(';') for c in filter(None, values)]
+
+        return list([s.strip() for s in itertools.chain.from_iterable(split_values)])
+
 
     # Enrichments
     # The enrichment chain is a dpla construction that we are porting to Rikolti
