@@ -88,6 +88,8 @@ class Vernacular(ABC, object):
 
 class Record(ABC, object):
 
+    validator = Validator
+
     def __init__(self, collection_id: int, record: dict[str, Any]):
         self.mapped_data = None
         self.collection_id: int = collection_id

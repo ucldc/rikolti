@@ -1,12 +1,15 @@
+import itertools
+
+from datetime import datetime
 from typing import Any, Callable, IO, Union
 
-import itertools
+import utilities
 
 
 class ValidationErrors:
     CSV_FIELDS: dict[str, str] = {
         "harvest_id": "Harvest ID",
-        "type": "Type",
+        "level": "Level",
         "field": "Field",
         "description": "Description",
         "expected": "Expected Value",
@@ -23,10 +26,30 @@ class ValidationErrors:
         return not self.has_errors()
 
     def add(self, key: str, field: str, description: str, expected: Any,
-            actual: Any, type: str = "ERROR", **context) -> None:
+            actual: Any, level: str = "ERROR", **context) -> None:
+        """
+        Adds an error to the errors list.
+
+        Parameters:
+            key: str
+                The harvest ID (or other key) used to join the Rikolti
+                and comparison record.
+            field: str
+                The field on which the error occurred
+            description: str
+                Error description
+            expected: Any
+                Expected value (probably from Solr)
+            actual: Any
+                Actual value (from Rikolti mapper)
+            type: str
+                Error type (ERROR, WARN, etc)
+            context: dict
+                Additional values to be added (will not have headers)
+        """
         self.errors.append({
             "harvest_id": key,
-            "type": type,
+            "level": level,
             "description": description,
             "field": field,
             "expected": str(expected),
@@ -35,10 +58,20 @@ class ValidationErrors:
         })
 
     def merge(self, other_errors: "ValidationErrors") -> "ValidationErrors":
+        """
+        Merges errors list with another.
+
+        Parameters:
+            other_errors: ValidationErrors
+                Another ValidationErrors instance to merge in
+
+        Returns: ValidationErrors
+        """
         if not other_errors.errors:
             return
 
         self.errors = self.errors + other_errors.errors
+        return self.errors
 
     def output(self, format: str, file: IO[str] = None,
                **opts) -> list[Union[list, dict]]:
@@ -46,38 +79,73 @@ class ValidationErrors:
         Generic method to output data.
 
         TODO: Expand types of output (i.e. to console for testing)
+
+        Parameters:
+            format: str
+                "stdout" or "csv"
+            file: IO[str] (default: None)
+                A file name/path to write to (for CSV output)
         """
         if format == "stdout":
             return print(self.errors)
         elif format == "csv" and file:
             return self.output_csv(file)
 
-    def output_csv(self, file: IO[str], append: bool = False,
-                   include_fields: list[str] = None) -> None:
-        """
-        Given a file, generates a CSV with error output.
-        """
+    def csv_content(self, include_fields: list[str] = None,
+                    include_headers: bool = True) -> list[str]:
         if include_fields:
             headers = [
-                        h for (f, h) in self.CSV_FIELDS
-                        if f in include_fields
-                      ]
+                h for (f, h) in self.CSV_FIELDS
+                if f in include_fields
+            ]
             fields = [
-                        f for f in self._default_fields
-                        if f in include_fields
-                     ]
+                f for f in self._default_fields
+                if f in include_fields
+            ]
         else:
             headers = self._default_headers
             fields = self._default_fields
 
+        ret = [headers] if include_headers else []
+        for row in self.errors:
+            ret.append(
+                [
+                    f"\"{val}\"" for key, val in row.items()
+                    if key in fields
+                ]
+            )
+
+        return ret
+
+    def csv_content_string(self, include_fields: list[str] = None,
+                           include_headers: bool = True) -> str:
+        content = self.csv_content(include_fields, include_headers)
+        content_strings = [",".join(row) for row in content]
+        return "\n".join(content_strings)
+
+    def output_csv_to_file(self, file: IO[str], append: bool = False,
+                           include_fields: list[str] = None) -> None:
+        """
+        Given a file, generates a CSV with error output.
+
+        Parameters:
+            file: IO[str]
+                File path to write to
+            append: bool (default: False)
+                Should errors be appended to the file?
+            include_fields: list[str] (default: None)
+                List of fields to include in the output
+        """
         with open(file, "a" if append else "w") as f:
-            if not append:
-                self._write_csv_row(f, list(headers))
-            for row in self.errors:
-                self._write_csv_row(f,
-                                    [val for key, val in row.items()
-                                     if key in fields]
-                                    )
+            f.write(self.csv_content_string(include_fields, append))
+
+    def write_csv(self, collection_id: int, filename: str = None,
+                  include_fields: list[str] = None) -> None:
+        if not filename:
+            filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
+
+        utilities.write_to_bucket("validation", collection_id, filename,
+                                  self.csv_content_string(include_fields))
 
     def _write_csv_row(self, open_file: IO[str],
                        content: list[str]) -> None:
@@ -221,20 +289,22 @@ class Validator:
         """
         Validates that the value is of the expected type.
         """
-        type_ref = validation_def["type"]
+        expected_type = validation_def["type"]
 
-        if isinstance(type_ref, Callable):
-            result = type_ref(rikolti_value)
-        elif isinstance(type_ref, type):
-            result = isinstance(rikolti_value, type_ref)
-        elif isinstance(type_ref, list):
-            result = any(isinstance(rikolti_value, type) for type in type_ref)
+        if isinstance(expected_type, Callable):
+            result = expected_type(rikolti_value)
+        elif isinstance(expected_type, type):
+            result = isinstance(rikolti_value, expected_type)
+        elif isinstance(expected_type, list):
+            result = any(isinstance(rikolti_value, type) for type in expected_type)
 
         if not result:
+            actual_type = type(rikolti_value)
+
             return {
                 "description": "Type mismatch",
-                "actual": str(type(rikolti_value)),
-                "expected": type_ref.__name__ if isinstance(type_ref, Callable) else str(type_ref)
+                "actual": actual_type.__name__,
+                "expected": expected_type.__name__
             }
 
     @staticmethod
@@ -314,7 +384,11 @@ class Validator:
 
         Returns: Callable
         """
-        return lambda value: Validator.nested_value(list, list(types), value)
+        type_list = list(types)
+        lam = lambda value: Validator.nested_value(list, type_list, value)  # noqa: E731, E501
+        # Assign __name__ for readable expected value output
+        lam.__name__ = f"List of {', '.join([t.__name__ for t in type_list])}"
+        return lam
 
     @staticmethod
     def dict_of(*types: list[type]) -> Callable:
@@ -344,16 +418,27 @@ class Validator:
         rikolti_value = self.rikolti_data.get(field)
         comp_value = self.comparison_data.get(field)
 
-        for validator in validation_def["validations"]:
+        validations = self._normalize_validations(validation_def["validations"])
+
+        for validator, level in validations.items():
             raw_results = validator(validation_def, rikolti_value, comp_value)
             normalized_results = self._normalize_validator_results(raw_results)
 
             for result in normalized_results:
-                self._build_errors(validation_def, result,
+                self._build_errors(validation_def, result, level,
                                    rikolti_value, comp_value)
 
+    def _normalize_validations(self, validations: Union[Callable,
+                               list[Callable], dict[Callable, str]]) -> dict[Callable, str]:
+        if isinstance(validations, Callable):
+            return {validations: "ERROR"}
+        elif isinstance(validations, list):
+            return {callable: "ERROR" for callable in validations}
+        elif isinstance(validations, dict):
+            return validations
+
     def _build_errors(self, validation_def: dict, validation_result: Any,
-                      rikolti_value: Any, comp_value: Any) -> None:
+                      level: str, rikolti_value: Any, comp_value: Any) -> None:
         """
         Given a validation failure result, adds to self.errors.
 
@@ -361,13 +446,15 @@ class Validator:
         """
         if isinstance(validation_result, str):
             error_dict = {
-                "description": validation_result
+                "description": validation_result,
+                "level": level
             }
         elif isinstance(validation_result, dict):
-            error_dict = validation_result
+            error_dict = {**validation_result, "level": level}
         elif not validation_result:
             error_dict = {
-                "description": "Validation failed"
+                "description": "Validation failed",
+                "level": level
             }
 
         error = {
@@ -383,6 +470,7 @@ class Validator:
                        rikolti_value: Any, comparison_value: Any) -> None:
         return {
             "key": self.key,
+            "level": "ERROR",
             "field": validation_def["field"],
             "description": "Validation failed",
             "actual": rikolti_value,
@@ -465,112 +553,134 @@ default_validatable_fields: list[dict] = [
     {
         "field": "alternative_title",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "contributor",
         "type": Validator.list_of(str),
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "coverage",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "creator",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "date",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "description",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "extent",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "format",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "genre",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "language",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "location",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "provenance",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "publisher",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "relation",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "rights_holder",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "rights_note",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "rights_date",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "source",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "spatial",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "subject",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "temporal",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     },
     {
         "field": "transcription",
         "type": str,
-        "validations": [Validator.content_match]
+        "validations": [Validator.content_match],
+        "level": "WARN"
     }
 ]
 

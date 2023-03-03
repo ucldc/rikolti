@@ -6,10 +6,14 @@ import requests
 import sys
 import urllib3
 
-from typing import Union
+from datetime import datetime
+from pathlib import Path
+from typing import Type, Union
 
 import settings
 import utilities
+
+from map_registry_collections import MAPPER_MAP
 
 from mappers.validator import Validator, ValidationErrors
 
@@ -29,20 +33,7 @@ def solr(**params):
 
 
 def get_mapped_data(collection_id: int, page_id: int) -> dict:
-    if settings.DATA_SRC == 'local':
-        page_path = os.sep.join([
-            settings.local_path('mapped_metadata', collection_id),
-            str(page_id)
-        ])
-
-        with open(page_path, "r") as metadata_file:
-            return json.loads(metadata_file.read())
-    elif settings.DATA_SRC == 's3':
-        s3 = boto3.resource('s3')
-        bucket = 'rikolti'
-        key = f"mapped_metadata/{collection_id}/{page}"
-        s3_obj_summary = s3.Object(bucket, key).get()
-        return json.loads(s3_obj_summary['Body'].read())
+    return utilities.read_mapped_metadata(collection_id, page_id)
 
 
 def get_solr_data(collection_id: int, ids: list[str]) -> list[dict]:
@@ -50,11 +41,7 @@ def get_solr_data(collection_id: int, ids: list[str]) -> list[dict]:
                       f"collection/{collection_id}/\"")
     harvest_id_q = " OR ".join([f"harvest_id_s:\"{f}\"" for f in ids])
     query = {
-        'fq': (
-            "(collection_url:\"https://registry.cdlib.org/api/v1"
-            f"/collection/{collection_id}/\") AND "
-            f"({harvest_id_q})"
-        ),
+        'fq': f"{collection_url} AND ({harvest_id_q})",
         'rows': len(ids),
         'start': 0
     }
@@ -63,10 +50,75 @@ def get_solr_data(collection_id: int, ids: list[str]) -> list[dict]:
     return response.get("response", {"docs": None}).get("docs", [])
 
 
-def validate_page(collection_id: int, page_id: int,
-                  validator_class: Validator = Validator) -> ValidationErrors:
-    validator = validator_class()
+def get_validator_class(collection_id: int) -> Type[Validator]:
+    url = ("https://registry.cdlib.org/api/v1/rikoltimapper/"
+           f"{collection_id}/?format=json")
 
+    try:
+        response = requests.get(url=url)
+        response.raise_for_status()
+        collection_data = response.json()
+    except requests.exceptions.HTTPError as err:
+        print(
+            f"[Collection {collection_id}]: "
+            f"[{url}]"
+            f"{err}; A valid collection id is required for validation"
+        )
+        return
+
+    mapper = collection_data.get("rikolti_mapper_type")
+    mapped_mapper = MAPPER_MAP.get(mapper, mapper)
+    vernacular = utilities.import_vernacular_reader(mapped_mapper)
+
+    return vernacular.record_cls.validator
+
+
+def validate_collection(collection_id: int,
+                        validator_class: Type[Validator] = None,
+                        validator: Validator = None
+                        ) -> Validator:
+    """
+    Validates all pages of a collection of mapped data.
+
+    Parameters:
+        collection_id: int
+            The collection ID
+        validator_class: Type[Validator] (default: None)
+            The validator class to use. Can be derived if not provided.
+        validator: Validator (default: None)
+            A validator instance to use. Can be derived if not provided.
+
+    Returns: Validator
+        The validator containing errors
+    """
+    if not validator_class and not validator:
+        validator_class = get_validator_class(collection_id)
+
+    if not validator:
+        validator = validator_class()
+
+    for page_id in utilities.get_files("mapped_metadata", collection_id):
+        validate_page(collection_id, page_id, validator)
+
+    return validator
+
+
+def validate_page(collection_id: int, page_id: int,
+                  validator: Validator) -> Validator:
+    """
+    Validates a provided page of a provided collection of mapped data.
+
+    Parameters:
+        collection_id: int
+            The collection ID
+        page_id: int
+            The page number within the collection
+        validator: Validator
+            The validator instance to use
+
+    Returns Validator
+        The validator containing validation errors
+    """
     context = {
         "collection_id": collection_id,
         "page_id": page_id
@@ -104,142 +156,9 @@ def validate_page(collection_id: int, page_id: int,
     return validator
 
 
-def validate_mapped_page(rikolti_records, solr_records, query):
-    collections_search = solr(**query)
-    num_solr_records = collections_search['response']['numFound']
-    collections_search_records = collections_search.get(
-        'response', {'docs': None}).get('docs', [])
-    solr_records.update(
-        {r['harvest_id_s']: r for r in collections_search_records})
-
-    page_report = []
-
-    while len(rikolti_records):
-        logging.debug(
-            f"records remaining on this page: {len(rikolti_records)} "
-            f"vs. records fetched from solr: {len(solr_records)}"
-        )
-        logging.debug(query)
-
-        page_intersection = list(
-            set(rikolti_records.keys()).intersection(solr_records.keys())
-        )
-
-        while page_intersection:
-            harvest_id = page_intersection.pop(0)
-            rikolti_record = rikolti_records.pop(harvest_id)
-            solr_record = solr_records.pop(harvest_id)
-            for field in full_fidelity_fields:
-                field_name = field.get('field')
-                field_type = field.get('type')
-                field_validation = field.get('validation')
-
-                rikolti_field = rikolti_record.get(field_name, None)
-                solr_field = solr_record.get(field_name, None)
-
-                if rikolti_field != solr_field:
-                    page_report.append(
-                        f"ERROR, field mismatch, {harvest_id}, "
-                        f"{field_name}, {rikolti_field}, {solr_field}"
-                    )
-
-                field_type_check = True
-                if field_type:
-                    if not field_type(rikolti_field):
-                        field_type_check = False
-                        page_report.append(
-                            f"ERROR, invalid type, {harvest_id}, "
-                            f"{field_name}, {rikolti_field}"
-                        )
-
-                if field_validation and field_type_check:
-                    if not field_validation(rikolti_field):
-                        page_report.append(
-                            f"ERROR, invalid field, {harvest_id}, "
-                            f"{field_name}, {rikolti_field}"
-                        )
-            for field in partial_fidelity_fields:
-                field_name = field
-                rikolti_field = rikolti_record.get(field, None)
-                solr_field = solr_record.get(field, None)
-                if rikolti_field != solr_field:
-                    page_report.append(
-                        f"WARN, field mismatch, {harvest_id}, "
-                        f"{field_name}, {rikolti_field}, {solr_field}"
-                    )
-
-        query['start'] = query['start'] + 100
-        if query['start'] < num_solr_records:
-            collections_search = solr(**query)
-            collections_search = collections_search.get(
-                'response', {'docs': None}).get('docs', [])
-            solr_records.update(
-                {r['harvest_id_s']: r for r in collections_search})
-        else:
-            logging.debug(
-                f"this page intersection had {len(page_report)} errors and "
-                f"{len(rikolti_records)} new rikolti records")
-            for record in rikolti_records:
-                page_report.append(
-                    f"WARN, new rikolti record, {record}"
-                )
-            break
-
-        logging.debug(f"this page intersection had {len(page_report)} errors")
-    return query, solr_records, page_report
-
-
-def validate_mapped_collection(payload):
-    payload = json.loads(payload)
-    collection_id = payload.get('collection_id')
-
-    if settings.DATA_SRC == 'local':
-        mapped_path = settings.local_path('mapped_metadata', collection_id)
-        page_list = [f for f in os.listdir(mapped_path)
-                     if os.path.isfile(os.path.join(mapped_path, f))]
-
-    solr_records = {}
-    query = {
-        'fq': (
-            "collection_url: \"https://registry.cdlib.org/api/v1"
-            f"/collection/{collection_id}/\""
-        ),
-        'rows': 100,
-        'start': 0
-    }
-    collection_report = ["severity, type, couch id, field_name, rikolti value, solr value"]
-
-    for page in page_list:
-        if settings.DATA_SRC == 'local':
-            page_path = os.sep.join([
-                settings.local_path('mapped_metadata', collection_id),
-                str(page)
-            ])
-            page = open(page_path, "r")
-            mapped_metadata = page.read()
-        elif settings.DATA_SRC == 's3':
-            s3 = boto3.resource('s3')
-            bucket = 'rikolti'
-            key = f"mapped_metadata/{collection_id}/{page}"
-            s3_obj_summary = s3.Object(bucket, key).get()
-            mapped_metadata = s3_obj_summary['Body'].read()
-
-        rikolti_records = json.loads(mapped_metadata)
-        rikolti_records = {
-            f"{collection_id}--{r['calisphere-id']}": r
-            for r in rikolti_records
-        }
-
-        print(f"[{collection_id}]: Validating page {page_path.split('/')[-1]}")
-        query, solr_records, page_report = validate_mapped_page(
-            rikolti_records, solr_records, query)
-        collection_report = collection_report + page_report
-        print(
-            f"[{collection_id}]: Validated page {page_path.split('/')[-1]} "
-            f"- {len(collection_report)} errors"
-        )
-
-    return collection_report
+def create_collection_validation_csv(collection_id: int) -> None:
+    result = validate_collection(collection_id)
+    result.errors.write_csv(collection_id)
 
 
 if __name__ == "__main__":
@@ -248,5 +167,5 @@ if __name__ == "__main__":
         description="Validate mapped metadata against SOLR")
     parser.add_argument('collection_id', help='Collection ID')
     args = parser.parse_args(sys.argv[1:])
-    collection_report = validate_mapped_collection(args.collection_id)
+    collection_report = create_collection_validation_csv(args.collection_id)
     print(collection_report)
