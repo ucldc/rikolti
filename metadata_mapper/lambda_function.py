@@ -1,10 +1,14 @@
+import importlib
 import json
 import sys
+
+from typing import Union
 from urllib.parse import urlparse, parse_qs
+
 import settings
-import importlib
-from mappers.mapper import UCLDCWriter, Record, Vernacular
 import logging
+
+from mappers.mapper import UCLDCWriter, Record, Vernacular
 
 
 def import_vernacular_reader(mapper_type):
@@ -24,7 +28,7 @@ def import_vernacular_reader(mapper_type):
         package="metadata_mapper"
     )
 
-    mapper_type_words = snake_cased_mapper_name.split('_')
+    mapper_type_words = mapper_type.split(".")[-1].split('_')
     class_type = ''.join([word.capitalize() for word in mapper_type_words])
     vernacular_class = getattr(
         mapper_module, f"{class_type}Vernacular")
@@ -32,6 +36,7 @@ def import_vernacular_reader(mapper_type):
     if not issubclass(vernacular_class, Vernacular):
         print(f"{mapper_type} not a subclass of Vernacular")
         exit()
+
     return vernacular_class
 
 
@@ -71,7 +76,7 @@ def run_enrichments(records, payload, enrichment_set):
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": "r-0"}
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
 # AWS Lambda entry point
-def map_page(payload, context):
+def map_page(payload: Union[dict, str], context: dict = {}):
     if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
 

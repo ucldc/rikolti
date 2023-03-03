@@ -5,6 +5,14 @@ import sys
 import lambda_shepherd
 import logging
 
+MAPPER_MAP = {
+    'ucldc_nuxeo': 'nuxeo.nuxeo',
+    'oac_dc': 'oac.oac',
+    'islandora_oai_dc': 'oai.islandora',
+    'cca_vault_oai_dc': 'oai.cca_vault',
+    'chapman_oai_dc': 'oai.chapman'
+}
+
 
 def map_endpoint(url):
     # TODO: this sort of translation from registry's mapper_type to
@@ -76,7 +84,7 @@ def map_endpoint(url):
             ))
             logging.debug(log_msg.format(f"lambda payload: {collection}"))
             try:
-                collection['mapper_type'] = lookup[collection['mapper_type']]
+                collection['mapper_type'] = MAPPER_MAP[collection['mapper_type']]
                 return_val = lambda_shepherd.map_collection(
                     collection, None)
             except KeyError:
