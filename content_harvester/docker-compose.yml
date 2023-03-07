@@ -1,0 +1,16 @@
+services:
+  content_harvester:
+    build: 
+      context: ./
+      dockerfile: Dockerfile
+    command: tail -f /dev/null
+    working_dir: /content_harvester
+    volumes: 
+      - ../rikolti_bucket:/content_harvester/rikolti_bucket
+      - ./content_harvester:/content_harvester
+    environment:
+      CONTENT_FETCHER_LOCAL_RUN: "True"
+      CONTENT_FETCHER_DATA_SRC: local
+      CONTENT_FETCHER_DATA_DEST: local
+      NUXEO_BASIC_USER: readonly
+      NUXEO_BASIC_PASS: scat97@gunny

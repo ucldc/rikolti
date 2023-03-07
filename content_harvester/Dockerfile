@@ -1,23 +1,18 @@
 FROM python:3
 
-RUN grep '^deb ' /etc/apt/sources.list | perl -pe 's/deb /deb-src /' >> /etc/apt/sources.list
+# Install dependencies
+RUN apt-get update -qq && apt-get install -y libtiff-tools ffmpeg
 
-RUN apt-get update -qq && apt-get install -y python3-lxml pylint libxml2-dev libxslt1-dev python3-dev zlib1g-dev lib32z1-dev libffi-dev libssl-dev libjpeg-dev ghostscript imagemagick libopenjp2-7-dev libtiff-dev && apt-get build-dep -y lxml
-
+# By default don't have permissions to modify PDFs with ImageMagick,
+# so we need to comment out this line in the the policy
 RUN sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<!--<policy domain="coder" rights="none" pattern="PDF" \/>-->/' /etc/ImageMagick-6/policy.xml
 
-WORKDIR /app
+WORKDIR /content_harvester
 
-# Add file-fetcher
-COPY / /app
+COPY requirements.txt ./
 
-RUN cd /app && pip install --upgrade pip && pip install Cython && pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
+COPY /content_harvester/ /content_harvester
 
-ENTRYPOINT ["python", "fetch_collection_files.py"]
-
-
-
-
-
-
+CMD ["python", "tests.py"]
