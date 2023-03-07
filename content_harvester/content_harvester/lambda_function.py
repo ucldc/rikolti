@@ -14,7 +14,9 @@ class DownloadError(Exception):
 
 def get_mapped_records(collection_id, page_filename) -> dict:
     if settings.DATA_SRC == 'local':
-        print(f"Getting local mapped records for {collection_id}, {page_filename}")
+        print(
+            f"[{collection_id}, {page_filename}]: Getting local mapped records"
+        )
         local_path = settings.local_path(
             'mapped_metadata', collection_id)
         page_path = os.sep.join([local_path, str(page_filename)])
@@ -57,9 +59,9 @@ def get_child_records(collection_id, parent_id):
             page = open(child_page_path, "r")
             mapped_child_records.extend(json.loads(page.read()))
     if len(mapped_child_records) == 0:
-        print("NO CHILDREN")
+        print(f"[{collection_id}, {parent_id}] NO CHILDREN")
     else:
-        print("YO CHILDREN")
+        print(f"[{collection_id}, {parent_id}] YO CHILDREN")
     return mapped_child_records
 
 
@@ -95,6 +97,7 @@ class ContentHarvester(object):
     def harvest(self, record):
         calisphere_id = record.get('calisphere-id')
         collection_id = self.harvest_context.get('collection_id')
+        page_filename = self.harvest_context.get('page_filename')
 
         # Harvest Media File for Record
         media_src = record.get('media_source')
@@ -109,7 +112,7 @@ class ContentHarvester(object):
                     'media_filepath': media_src_file,
                     'mimetype': media_src.get('mimetype')
                 }
-        print(f"Media Path: {media_dest}")
+        print(f"[{collection_id}, {page_filename}] Media Path: {media_dest}")
 
         # Harvest Thumbnail File for Record
         thumbnail_src = record.get('thumbnail_source')
@@ -120,7 +123,7 @@ class ContentHarvester(object):
                 thumbnail_src_file,
                 thumbnail_src.get('mimetype')
             )
-        print(f"Thumbnail Path: {thumbnail_dest}")
+        print(f"[{collection_id}, {page_filename}] Thumbnail Path: {thumbnail_dest}")
 
         # Recurse through the record's children (if any)
         child_records = get_child_records(collection_id, calisphere_id)
@@ -147,11 +150,15 @@ class ContentHarvester(object):
         filename = content_src.get('filename')
         src_url = content_src.get('url')
         mimetype = content_src.get('mimetype')
+        collection_id = self.harvest_context.get('collection_id')
+        page_filename = self.harvest_context.get('page_filename')
 
         tmp_file_path = os.path.join('/tmp', filename)
-        print('downloading...')
         if os.path.exists(tmp_file_path):
-            print(f"File already exists, using: {tmp_file_path}")
+            print(
+                f"[{collection_id}, {page_filename}] File already exists at "
+                f"download destination, using: {tmp_file_path}"
+            )
             return tmp_file_path
 
         # Weird how we have to use username/pass to hit this endpoint
@@ -180,9 +187,9 @@ class ContentHarvester(object):
                 f.write(block)
 
         print(
-            f"Downloaded file from {src_url} to "
-            f"{tmp_file_path} - mimetype: {mimetype} "
-            f"- fsize: {os.path.getsize(tmp_file_path)}"
+            f"[{collection_id}, {page_filename}]: Downloaded file from "
+            f"{src_url} to {tmp_file_path} - mimetype: {mimetype} - fsize: "
+            f"{os.path.getsize(tmp_file_path)}"
         )
         return tmp_file_path
 
@@ -191,11 +198,11 @@ class ContentHarvester(object):
 def harvest_page_content(payload, context):
     if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
-    print(f"harvest_page_content: {json.dumps(payload)}")
 
     collection_id = payload.get('collection_id')
     mapper_type = payload.get('mapper_type')
     page_filename = payload.get('page_filename')
+    print(f"[{collection_id}, {page_filename}]: harvest_page_content: {json.dumps(payload)}")
 
     records = get_mapped_records(collection_id, page_filename)
 
@@ -206,7 +213,7 @@ def harvest_page_content(payload, context):
 
     for record in records:
         print(
-            f"[{collection_id}, {mapper_type}]: "
+            f"[{collection_id}, {page_filename}]: "
             f"harvest record: {record.get('calisphere-id')}"
         )
 
@@ -217,8 +224,9 @@ def harvest_page_content(payload, context):
             if 'sound' in record.get('type', []):
                 warn_level = "WARNING"
             print(
-                f"{record.get('calisphere-id')}: {warn_level} - NO THUMBNAIL: "
-                f"{record.get('type')}"
+                f"[{collection_id}, {page_filename}]: "
+                f"{record.get('calisphere-id')}: {warn_level} - "
+                f"NO THUMBNAIL: {record.get('type')}"
             )
 
         record['content'] = content

@@ -224,7 +224,7 @@ def tiff_to_jp2(tiff_path):
         magick_location, "-quiet", "-format", "-jp2", "-define", 
         f"jp2:rate=10", f"{tiff_path}[0]", jp2_path
     ]
-    msg = "{tiff_path} converted to {jp2_path}"
+    msg = f"{tiff_path} converted to {jp2_path}"
 
     # try:
     subprocess.check_output(process, stderr=subprocess.STDOUT)
@@ -270,8 +270,5 @@ def make_jp2(source_file_path, mimetype):
         return
 
     jp2_filepath = tiff_to_jp2(prepped_file_path)
-    # if not jp2_filepath:
-    #     shutil.rmtree(tmp_dir)
-    #     return
 
     return jp2_filepath
