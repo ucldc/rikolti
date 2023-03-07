@@ -6,7 +6,7 @@ services:
     command: tail -f /dev/null
     working_dir: /content_harvester
     volumes: 
-      - ../rikolti_bucket:/content_harvester/rikolti_bucket
+      - ../rikolti_bucket:/rikolti_bucket
       - ./content_harvester:/content_harvester
     environment:
       CONTENT_FETCHER_LOCAL_RUN: "True"
