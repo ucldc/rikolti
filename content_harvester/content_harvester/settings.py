@@ -15,6 +15,15 @@ NUXEO_TOKEN = os.environ.get('NUXEO', False)
 NUXEO_USER = os.environ.get('NUXEO_BASIC_USER', False)
 NUXEO_PASS = os.environ.get('NUXEO_BASIC_PASS', False)
 
+CONTENT_PROCESSES = {
+    'magick': '/usr/bin/convert',
+    'tiff2rgba': '/usr/bin/tiff2rgba',
+    'ffmpeg': '/usr/bin/ffmpeg',
+    'ffprobe': '/usr/bin/ffprobe',
+    # 'kdu_expand': '/usr/local/bin/kdu_expand',
+    # 'kdu_compress': '/usr/local/bin/kdu_compress',
+}
+
 if not LOCAL_RUN and (DATA_SRC == 'local' or DATA_DEST == 'local'):
     print(
         "A local data source or local data destination "

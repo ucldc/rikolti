@@ -1,6 +1,7 @@
 import os
 import subprocess
 import shutil
+from settings import CONTENT_PROCESSES
 
 class UnsupportedMimetype(Exception):
     pass
@@ -74,8 +75,7 @@ def pdf_to_thumb(pdf_file_path):
     if os.path.exists(thumb_file_path):
         return thumb_file_path
 
-    magick_location = os.environ.get(
-        'PATH_MAGICK_CONVERT', '/usr/local/bin/convert')
+    magick_location = CONTENT_PROCESSES['magick']
     process = [
         magick_location, "-quiet", "-strip", "-format", "png", "-quality",
         "75", f"{pdf_file_path}[0]", thumb_file_path
@@ -95,8 +95,7 @@ def video_to_thumb(video_path):
     if os.path.exists(thumb_path):
         return thumb_path
 
-    ffprobe_location = os.environ.get(
-        'PATH_FFPROBE', '/usr/local/bin/ffprobe')
+    ffprobe_location = CONTENT_PROCESSES['ffprobe']
     duration_proc = [
         ffprobe_location, '-v', 'fatal', '-show_entries', 'format=duration',
         '-of', 'default=nw=1:nk=1', video_path
@@ -107,8 +106,7 @@ def video_to_thumb(video_path):
 
     # calculate midpoint of video
     midpoint = float(duration.strip()) / 2
-    ffmpeg_location = os.environ.get(
-        'PATH_FFMPEG', '/usr/local/bin/ffmpeg')
+    ffmpeg_location = CONTENT_PROCESSES['ffmpeg']
 
     process = [
         ffmpeg_location, '-v', 'fatal', '-ss', str(midpoint), '-i', video_path,
@@ -153,8 +151,7 @@ def tiff_conversion(input_path):
     if os.path.exists(output_path):
         return output_path
 
-    magick_location = os.environ.get(
-        'PATH_MAGICK_CONVERT', '/usr/local/bin/convert')
+    magick_location = CONTENT_PROCESSES['magick']
     process = [
         magick_location, "-compress", "None",
         "-quality", "100", "-auto-orient", input_path, output_path
@@ -177,8 +174,7 @@ def tiff_to_srgb_libtiff(input_path):
     if os.path.exists(output_path):
         return output_path
 
-    tiff2rgba_location = os.environ.get(
-        'PATH_TIFF2RGBA', '/usr/local/bin/tiff2rgba')
+    tiff2rgba_location = CONTENT_PROCESSES['tiff2rgba']
     process = [tiff2rgba_location, "-c", "none", input_path, output_path]
     msg = (
         f"Used tiff2rgba to convert {input_path} to {output_path}, "
@@ -189,27 +185,29 @@ def tiff_to_srgb_libtiff(input_path):
     return output_path
 
 
+# only used internally to this module
+# @subprocess_exception_handler
+# def uncompress_jp2000(compressed_path):
+#     ''' uncompress a jp2000 file using kdu_expand '''
+#     output_path = f"{compressed_path.split('.')[0]}.tiff"
+#     if os.path.exists(output_path):
+#         return output_path
+
+#     kdu_expand_location = CONTENT_PROCESSES['kdu_expand']
+#     process = [
+#         kdu_expand_location, "-i", compressed_path, "-o", output_path
+#     ]
+#     msg = (
+#         f"File uncompressed using kdu_expand. Input: "
+#         f"{compressed_path}, output: {output_path}"
+#     )
+#     subprocess.check_output(process, stderr=subprocess.STDOUT)
+#     print(msg)
+#     return output_path
+
+
+# only used internally to this module
 @subprocess_exception_handler
-def uncompress_jp2000(compressed_path):
-    ''' uncompress a jp2000 file using kdu_expand '''
-    output_path = f"{compressed_path.split('.')[0]}.tiff"
-    if os.path.exists(output_path):
-        return output_path
-
-    kdu_expand_location = os.environ.get(
-        'PATH_KDU_EXPAND', '/usr/local/bin/kdu_expand')
-    process = [
-        kdu_expand_location, "-i", compressed_path, "-o", output_path
-    ]
-    msg = (
-        f"File uncompressed using kdu_expand. Input: "
-        f"{compressed_path}, output: {output_path}"
-    )
-    subprocess.check_output(process, stderr=subprocess.STDOUT)
-    print(msg)
-    return output_path
-
-
 def tiff_to_jp2(tiff_path):
     ''' convert a tiff to jp2 using kdu_compress.
     tiff must be uncompressed.'''
@@ -217,29 +215,34 @@ def tiff_to_jp2(tiff_path):
     if os.path.exists(jp2_path):
         return jp2_path
 
-    kdu_compress_location = os.environ.get(
-        'PATH_KDU_COMPRESS', '/usr/local/bin/kdu_compress')
-    process = [kdu_compress_location, "-i", tiff_path, "-o", jp2_path]
-    process.extend(KDU_COMPRESS_DEFAULT_OPTS)
+    # kdu_compress_location = CONTENT_PROCESSES['kdu_compress']
+    # process = [kdu_compress_location, "-i", tiff_path, "-o", jp2_path]
+    # process.extend(KDU_COMPRESS_DEFAULT_OPTS)
+
+    magick_location = CONTENT_PROCESSES['magick']
+    process = [
+        magick_location, "-quiet", "-format", "-jp2", "-define", 
+        f"jp2:rate=10", f"{tiff_path}[0]", jp2_path
+    ]
     msg = "{tiff_path} converted to {jp2_path}"
 
-    try:
-        subprocess.check_output(process, stderr=subprocess.STDOUT)
-        print(msg)
-    except subprocess.CalledProcessError as e:
-        print(f"A kdu_compress command failed. Trying alternate:\n{e}")
-        proc = [kdu_compress_location, "-i", tiff_path, "-o", jp2_path]
-        proc.extend(KDU_COMPRESS_BASE_OPTS)
-        try:
-            subprocess.check_output(process, stderr=subprocess.STDOUT)
-            print(msg)
-        except subprocess.CalledProcessError as e:
-            print(
-                f"ERROR: `kdu_compress` failed: {e.cmd}\n"
-                f"returncode was: {e.returncode}\n"
-                f"output was: {e.output}"
-            )
-            return None
+    # try:
+    subprocess.check_output(process, stderr=subprocess.STDOUT)
+    print(msg)
+    # except subprocess.CalledProcessError as e:
+        # print(f"A kdu_compress command failed. Trying alternate:\n{e}")
+        # proc = [kdu_compress_location, "-i", tiff_path, "-o", jp2_path]
+        # proc.extend(KDU_COMPRESS_BASE_OPTS)
+        # try:
+        #     subprocess.check_output(process, stderr=subprocess.STDOUT)
+        #     print(msg)
+        # except subprocess.CalledProcessError as e:
+        #     print(
+        #         f"ERROR: `kdu_compress` failed: {e.cmd}\n"
+        #         f"returncode was: {e.returncode}\n"
+        #         f"output was: {e.output}"
+        #     )
+        #     return None
     return jp2_path
 
 
@@ -256,8 +259,8 @@ def make_jp2(source_file_path, mimetype):
         converted_file_path = tiff_conversion(source_file_path)
         if converted_file_path:
             prepped_file_path = tiff_to_srgb_libtiff(converted_file_path)
-    elif mimetype in ['image/jp2', 'image/jpx', 'image/jpm']:
-        prepped_file_path = uncompress_jp2000(source_file_path)
+    # elif mimetype in ['image/jp2', 'image/jpx', 'image/jpm']:
+    #     prepped_file_path = uncompress_jp2000(source_file_path)
 
     if not prepped_file_path:
         print(
@@ -267,8 +270,8 @@ def make_jp2(source_file_path, mimetype):
         return
 
     jp2_filepath = tiff_to_jp2(prepped_file_path)
-    if not jp2_filepath:
-        shutil.rmtree(tmp_dir)
-        return
+    # if not jp2_filepath:
+    #     shutil.rmtree(tmp_dir)
+    #     return
 
     return jp2_filepath
