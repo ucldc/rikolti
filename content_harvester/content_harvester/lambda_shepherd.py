@@ -7,7 +7,7 @@ from lambda_function import harvest_page_content
 
 # {"collection_id": 26098, "mapper_type": "nuxeo"}
 def harvest_collection_content(payload, context):
-    if settings.LOCAL_RUN and isinstance(payload, str):
+    if settings.LOCAL_RUN or isinstance(payload, str):
         payload = json.loads(payload)
 
     collection_id = payload.get('collection_id')
@@ -19,6 +19,7 @@ def harvest_collection_content(payload, context):
 
     count = 0
     page_count = 0
+    print(settings.DATA_SRC)
     if settings.DATA_SRC == 'local':
         mapped_path = settings.local_path(
             'mapped_metadata', collection_id)

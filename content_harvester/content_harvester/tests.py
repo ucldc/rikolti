@@ -31,7 +31,7 @@ def test_static_samples():
 
     for harvest in harvests:
         print(f"tests.py: {json.dumps(harvest)}")
-        status = harvest_collection_content(json.dumps(harvest), {})
+        status = harvest_collection_content(harvest, {})
         print(f"Content status: {status}")
 
 
@@ -41,4 +41,4 @@ if __name__ == "__main__":
     #     description="Fetch content using our mapped metadata")
     # parser.add_argument('payload', help='json payload')
     # args = parser.parse_args(sys.argv[1:])
-    test_static_samples()
+    main()
