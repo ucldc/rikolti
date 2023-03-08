@@ -15,4 +15,4 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY ./ /content_harvester
 
-ENTRYPOINT [ "python", "harvest_content_registry_collection.py" ]
+ENTRYPOINT [ "python", "by_registry_endpoint.py" ]

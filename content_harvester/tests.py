@@ -5,8 +5,8 @@ from sample_data.nuxeo_harvests import nuxeo_harvests, \
     nuxeo_complex_object_harvests, nuxeo_nested_complex_object_harvests
 # from sample_data.oac_harvests import oac_harvests
 # from sample_data.islandora_harvests import islandora_harvests
-from harvest_content_registry_collection import harvest_content_by_endpoint
-from lambda_shepherd import harvest_collection_content
+from by_registry_endpoint import harvest_endpoint
+from by_collection import harvest_collection
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
         for f in os.listdir(mapped_path)
     ]
     for url in urls:
-        harvest_content_by_endpoint(url)
+        harvest_endpoint(url)
 
 
 def test_static_samples():
@@ -31,7 +31,7 @@ def test_static_samples():
 
     for harvest in harvests:
         print(f"tests.py: {json.dumps(harvest)}")
-        status = harvest_collection_content(harvest, {})
+        status = harvest_collection(harvest, {})
         print(f"Content status: {status}")
 
 
