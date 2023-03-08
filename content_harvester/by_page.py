@@ -15,7 +15,7 @@ class DownloadError(Exception):
 
 def get_mapped_records(collection_id, page_filename, s3_client) -> list:
     mapped_records = []
-    if settings.LOCAL_RUN:
+    if settings.METADATA_SRC == 'local':
         local_path = settings.local_path(
             'mapped_metadata', collection_id)
         page_path = os.sep.join([local_path, str(page_filename)])
@@ -31,7 +31,7 @@ def get_mapped_records(collection_id, page_filename, s3_client) -> list:
 
 
 def write_mapped_records(collection_id, page_filename, harvested_page, s3_client):
-    if settings.LOCAL_RUN:
+    if settings.METADATA_DEST == 'local':
         local_path = settings.local_path(
             'mapped_with_content', collection_id)
         page_path = os.sep.join([local_path, str(page_filename)])
@@ -48,7 +48,7 @@ def write_mapped_records(collection_id, page_filename, harvested_page, s3_client
 
 def get_child_records(collection_id, parent_id, s3_client) -> list:
     mapped_child_records = []
-    if settings.LOCAL_RUN:
+    if settings.METADATA_SRC == 'local':
         local_path = settings.local_path('mapped_metadata', collection_id)
         children_path = os.sep.join([local_path, 'children'])
 
@@ -91,12 +91,13 @@ class ContentHarvester(object):
         self.src_auth = src_auth
         self.harvest_context = context
 
-        if not settings.DEV:
+        if settings.CONTENT_DEST == 's3':
             self.s3 = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_REGION_NAME
+                aws_session_token=settings.AWS_SESSION_TOKEN,
+                region_name=settings.AWS_REGION
             )
         else:
             self.s3 = None
@@ -117,7 +118,7 @@ class ContentHarvester(object):
                 media_filepath = derivatives.make_jp2(
                     media_src_file, media_src.get('mimetype'))
                 media_dest = {'mimetype': 'image/jp2'}
-                if settings.DEV:
+                if settings.CONTENT_DEST == 'local':
                     media_dest['media_filepath'] = media_filepath
                 else:
                     media_dest['media_filepath'] = self.upload_to_s3(
@@ -125,7 +126,7 @@ class ContentHarvester(object):
             else:
                 media_filepath = media_src_file
                 media_dest = {'mimetype': media_src.get('mimetype')}
-                if settings.DEV:
+                if settings.CONTENT_DEST == 'local':
                     media_dest['media_filepath'] = media_filepath
                 else:
                     media_dest['media_filepath'] = self.upload_to_s3(
@@ -157,7 +158,7 @@ class ContentHarvester(object):
             )
             thumbnail_dest = {'mimetype': 'image/jpeg'}
 
-            if settings.DEV:
+            if settings.CONTENT_DEST == 'local':
                 thumbnail_dest['thumbnail_filepath'] = thumbnail_filepath
             else:
                 thumbnail_dest['thumbnail_filepath'] = self.upload_to_s3(

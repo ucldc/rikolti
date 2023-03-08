@@ -7,7 +7,7 @@ from by_page import harvest_page_content
 
 def get_mapped_pages(collection_id):
     page_list = []
-    if settings.LOCAL_RUN:
+    if settings.METADATA_SRC == 'local':
         mapped_path = settings.local_path('mapped_metadata', collection_id)
         try:
             page_list = [f for f in os.listdir(mapped_path)
@@ -19,7 +19,8 @@ def get_mapped_pages(collection_id):
             's3',
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION_NAME
+            aws_session_token=settings.AWS_SESSION_TOKEN,
+            region_name=settings.AWS_REGION
         )
         response = s3_client.list_objects_v2(
             Bucket=settings.S3_BUCKET,
