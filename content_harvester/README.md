@@ -13,4 +13,6 @@ TODO:
 - change folder name "mapped_with_content"
 - tune log output (this module is v. noisy currently)
 - add error handling
-- join child metadata records to parent records? 
+- join child metadata records to parent records?
+- modify mappers to use thumbnail source format that the content harvester expects
+- figure out AWS deployment (ECR, Fargate, ECS)
