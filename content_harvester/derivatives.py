@@ -45,10 +45,7 @@ def make_thumbnail(source_file_path, mimetype):
     if mimetype == 'video/mp4':
         thumbnail = video_to_thumb(source_file_path)
 
-    return {
-        'thumbnail_filepath': thumbnail,
-        'mimetype': 'image/jpeg'
-    }
+    return thumbnail
 
 
 @subprocess_exception_handler
@@ -230,7 +227,4 @@ def make_jp2(source_file_path, mimetype):
         jp2_filepath != prepped_file_path):
         os.remove(prepped_file_path)
 
-    return {
-        'media_filepath': jp2_filepath,
-        'mimetype': 'image/jp2'
-    }
+    return jp2_filepath

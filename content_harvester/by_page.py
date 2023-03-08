@@ -13,35 +13,64 @@ class DownloadError(Exception):
     pass
 
 
-def get_mapped_records(collection_id, page_filename) -> list:
-    local_path = settings.local_path(
-        'mapped_metadata', collection_id)
-    page_path = os.sep.join([local_path, str(page_filename)])
-    page = open(page_path, "r")
-    mapped_records = json.loads(page.read())
+def get_mapped_records(collection_id, page_filename, s3_client) -> list:
+    mapped_records = []
+    if settings.LOCAL_RUN:
+        local_path = settings.local_path(
+            'mapped_metadata', collection_id)
+        page_path = os.sep.join([local_path, str(page_filename)])
+        page = open(page_path, "r")
+        mapped_records = json.loads(page.read())
+    else:
+        page = s3_client.get_object(
+            Bucket=settings.S3_BUCKET,
+            Key=f"mapped_metadata/{collection_id}/{page_filename}"
+        )
+        mapped_records = json.loads(page['Body'].read())
     return mapped_records
 
 
-def write_mapped_records(collection_id, page_filename, harvested_page):
-    local_path = settings.local_path(
-        'mapped_with_content', collection_id)
-    page_path = os.sep.join([local_path, str(page_filename)])
-    page = open(page_path, "w")
-    page.write(json.dumps(harvested_page))
+def write_mapped_records(collection_id, page_filename, harvested_page, s3_client):
+    if settings.LOCAL_RUN:
+        local_path = settings.local_path(
+            'mapped_with_content', collection_id)
+        page_path = os.sep.join([local_path, str(page_filename)])
+        page = open(page_path, "w")
+        page.write(json.dumps(harvested_page))
+    else:
+        upload_status = s3_client.put_object(
+            Bucket=settings.S3_BUCKET,
+            Key=f"mapped_with_content/{collection_id}/{page_filename}",
+            Body=json.dumps(harvested_page)
+        )
+        print(f"Upload status: {upload_status}")
 
 
-def get_child_records(collection_id, parent_id) -> list:
-    local_path = settings.local_path('mapped_metadata', collection_id)
-    children_path = os.sep.join([local_path, 'children'])
-
+def get_child_records(collection_id, parent_id, s3_client) -> list:
     mapped_child_records = []
-    if os.path.exists(children_path):
-        child_pages = [file for file in os.listdir(children_path)
-                       if file.startswith(parent_id)]
-        for child_page in child_pages:
-            child_page_path = os.sep.join([children_path, child_page])
-            page = open(child_page_path, "r")
-            mapped_child_records.extend(json.loads(page.read()))
+    if settings.LOCAL_RUN:
+        local_path = settings.local_path('mapped_metadata', collection_id)
+        children_path = os.sep.join([local_path, 'children'])
+
+        if os.path.exists(children_path):
+            child_pages = [file for file in os.listdir(children_path)
+                        if file.startswith(parent_id)]
+            for child_page in child_pages:
+                child_page_path = os.sep.join([children_path, child_page])
+                page = open(child_page_path, "r")
+                mapped_child_records.extend(json.loads(page.read()))
+    else:
+        child_pages = s3_client.list_objects_v2(
+            Bucket=settings.S3_BUCKET,
+            Prefix=f"mapped_metadata/{collection_id}/children/{parent_id}"
+        )
+        for child_page in child_pages['Contents']:
+            page = s3_client.get_object(
+                Bucket=settings.S3_BUCKET,
+                Key=child_page['Key']
+            )
+            mapped_child_records.extend(json.loads(page['Body'].read()))
+
     return mapped_child_records
 
 
@@ -62,6 +91,16 @@ class ContentHarvester(object):
         self.src_auth = src_auth
         self.harvest_context = context
 
+        if not settings.DEV:
+            self.s3 = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_REGION_NAME
+            )
+        else:
+            self.s3 = None
+
     # returns media_dest = {media_filepath, mimetype}
     def harvest_media(self, calisphere_id, media_src, media_src_file) -> dict:
         collection_id = self.harvest_context.get('collection_id')
@@ -75,13 +114,23 @@ class ContentHarvester(object):
                 f"fsize: {os.path.getsize(media_src_file)}"
             )
             if media_src.get('nuxeo_type') == 'SampleCustomPicture':
-                media_dest = derivatives.make_jp2(
+                media_filepath = derivatives.make_jp2(
                     media_src_file, media_src.get('mimetype'))
+                media_dest = {'mimetype': 'image/jp2'}
+                if settings.DEV:
+                    media_dest['media_filepath'] = media_filepath
+                else:
+                    media_dest['media_filepath'] = self.upload_to_s3(
+                        'jp2', media_filepath)
             else:
-                media_dest = {
-                    'media_filepath': media_src_file,
-                    'mimetype': media_src.get('mimetype')
-                }
+                media_filepath = media_src_file
+                media_dest = {'mimetype': media_src.get('mimetype')}
+                if settings.DEV:
+                    media_dest['media_filepath'] = media_filepath
+                else:
+                    media_dest['media_filepath'] = self.upload_to_s3(
+                        'media', media_filepath)
+
             print(
                 f"[{collection_id}, {page_filename}, {calisphere_id}] "
                 f"Media Path: {media_dest}"
@@ -102,10 +151,17 @@ class ContentHarvester(object):
                 f"{thumbnail_src_file}, fsize: "
                 f"{os.path.getsize(thumbnail_src_file)}"
             )
-            thumbnail_dest = derivatives.make_thumbnail(
+            thumbnail_filepath = derivatives.make_thumbnail(
                 thumbnail_src_file,
                 thumbnail_src.get('mimetype')
             )
+            thumbnail_dest = {'mimetype': 'image/jpeg'}
+
+            if settings.DEV:
+                thumbnail_dest['thumbnail_filepath'] = thumbnail_filepath
+            else:
+                thumbnail_dest['thumbnail_filepath'] = self.upload_to_s3(
+                    'thumbnails', thumbnail_filepath)
         print(
             f"[{collection_id}, {page_filename}, {calisphere_id}] "
             f"Thumbnail Path: {thumbnail_dest}"
@@ -137,7 +193,7 @@ class ContentHarvester(object):
             os.remove(thumbnail_src_file)
 
         # Recurse through the record's children (if any)
-        child_records = get_child_records(collection_id, calisphere_id)
+        child_records = get_child_records(collection_id, calisphere_id, self.s3)
 
         print(
             f"[{collection_id}, {page_filename}, {calisphere_id}]: "
@@ -195,16 +251,18 @@ class ContentHarvester(object):
 
         return tmp_file_path
 
+    def upload_to_s3(self, s3_prefix, filepath) -> str:
+        '''
+            upload file to s3
+        '''
+        s3_key = f"{s3_prefix}/{os.path.basename(filepath)}"
+        s3_url = f"{settings.S3_BASE_URL}/{s3_key}"
+        self.s3.upload_file(filepath, settings.S3_CONTENT_BUCKET, s3_key)
+        return s3_url
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "r-0"}
 def harvest_page_content(collection_id, page_filename, **kwargs):
     rikolti_mapper_type = kwargs.get('rikolti_mapper_type')
-
-    records = get_mapped_records(collection_id, page_filename)
-    print(
-        f"[{collection_id}, {page_filename}]: "
-        f"Harvesting content for {len(records)}"
-    )
 
     auth = None
     if rikolti_mapper_type == 'nuxeo.nuxeo':
@@ -213,6 +271,12 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
         'collection_id': collection_id, 
         'page_filename': page_filename
     }, src_auth=auth)
+
+    records = get_mapped_records(collection_id, page_filename, harvester.s3)
+    print(
+        f"[{collection_id}, {page_filename}]: "
+        f"Harvesting content for {len(records)} records"
+    )
 
     for record in records:
         print(
@@ -234,7 +298,7 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
 
         record['content'] = content
 
-    write_mapped_records(collection_id, page_filename, records)
+    write_mapped_records(collection_id, page_filename, records, harvester.s3)
 
     # reporting aggregate stats
     media_mimetypes = [record.get('content', {}).get('media', {}).get('mimetype') for record in records]
@@ -267,4 +331,4 @@ if __name__ == "__main__":
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
-    harvest_page_content(arguments)
+    print(harvest_page_content(arguments))

@@ -31,7 +31,7 @@ def test_static_samples():
 
     for harvest in harvests:
         print(f"tests.py: {json.dumps(harvest)}")
-        status = harvest_collection(harvest, {})
+        status = harvest_collection(harvest)
         print(f"Content status: {status}")
 
 

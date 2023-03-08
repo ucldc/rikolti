@@ -10,4 +10,4 @@ services:
       - ../rikolti_bucket:/rikolti_bucket
       - ./:/content_harvester
     env_file:
-      - ../env.local
+      - ./env.local

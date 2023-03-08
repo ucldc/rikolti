@@ -35,7 +35,7 @@ def harvest_endpoint(url):
             )
 
             # TODO: what is return val? 
-            collection_stats = harvest_collection(collection, None)
+            collection_stats = harvest_collection(collection)
 
             collection_stats.update({'solr_count': collection['solr_count']})
 
@@ -60,4 +60,4 @@ if __name__ == "__main__":
 
     )
     args = parser.parse_args(sys.argv[1:])
-    harvest_endpoint(args.url)
+    print(harvest_endpoint(args.url))

@@ -1,7 +1,32 @@
 import json
 import os
 import settings
+import boto3
 from by_page import harvest_page_content
+
+
+def get_mapped_pages(collection_id):
+    page_list = []
+    if settings.LOCAL_RUN:
+        mapped_path = settings.local_path('mapped_metadata', collection_id)
+        try:
+            page_list = [f for f in os.listdir(mapped_path)
+                            if os.path.isfile(os.path.join(mapped_path, f))]
+        except FileNotFoundError as e:
+            print(f"{e} - have you mapped {collection_id}?")
+    else:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION_NAME
+        )
+        response = s3_client.list_objects_v2(
+            Bucket=settings.S3_BUCKET,
+            Prefix=f'mapped_metadata/{collection_id}/'
+        )
+        page_list = [obj['Key'].split('/')[-1] for obj in response['Contents']]
+    return page_list
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo"}
@@ -15,13 +40,7 @@ def harvest_collection(collection):
         print("ERROR ERROR ERROR\ncollection_id required")
         exit()
 
-    mapped_path = settings.local_path('mapped_metadata', collection_id)
-    try:
-        page_list = [f for f in os.listdir(mapped_path)
-                        if os.path.isfile(os.path.join(mapped_path, f))]
-    except FileNotFoundError as e:
-        print(f"{e} - have you mapped {collection_id}?")
-        return
+    page_list = get_mapped_pages(collection_id)
 
     print(f"[{collection_id}]: Harvesting content for {len(page_list)} pages")
     collection_stats = {}
@@ -56,4 +75,4 @@ if __name__ == "__main__":
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
-    harvest_collection(arguments)
+    print(harvest_collection(arguments))
