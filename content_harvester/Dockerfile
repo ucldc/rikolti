@@ -13,6 +13,6 @@ COPY requirements.txt ./
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-COPY /content_harvester/ /content_harvester
+COPY ./ /content_harvester
 
-CMD ["python", "tests.py"]
+ENTRYPOINT [ "python", "harvest_content_registry_collection.py" ]

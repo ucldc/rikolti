@@ -3,11 +3,12 @@ services:
     build: 
       context: ./
       dockerfile: Dockerfile
-    command: tail -f /dev/null
+    image: content_harvester
+    # command: tail -f /dev/null
     working_dir: /content_harvester
     volumes: 
       - ../rikolti_bucket:/rikolti_bucket
-      - ./content_harvester:/content_harvester
+      - ./:/content_harvester
     environment:
       CONTENT_FETCHER_LOCAL_RUN: "True"
       CONTENT_FETCHER_DATA_SRC: local

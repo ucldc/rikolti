@@ -2,19 +2,9 @@ import requests
 import logging
 import json
 from lambda_shepherd import harvest_collection_content
-
+import sys
 
 def harvest_content_by_endpoint(url):
-    # TODO: this sort of translation from registry's mapper_type to
-    # rikolti's mapper_type should really be done in the registry.
-    # once we have a firmer rikolti vocabulary of mappers, we should
-    # migrate the registry's data.
-    lookup = {
-        'ucldc_nuxeo': 'nuxeo.nuxeo',
-        'oac_dc': 'oac.oac',
-        'islandora_oai_dc': 'oai.islandora'
-    }
-
     collection_page = url
     results = []
 
@@ -51,7 +41,7 @@ def harvest_content_by_endpoint(url):
             ))
             print(log_msg.format(f"lambda payload: {collection}"))
             # try:
-            collection['mapper_type'] = lookup[collection['mapper_type']]
+            collection['mapper_type'] = collection['rikolti_mapper_type']
             return_val = harvest_collection_content(
                 json.dumps(collection), None)
             # except KeyError:
@@ -67,3 +57,14 @@ def harvest_content_by_endpoint(url):
     # print(json.dumps(results))
 
 
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Harvest content using mapped metadata")
+    parser.add_argument(
+        'url', 
+        help="https://registry.cdlib.org/api/v1/rikoltimapper/<COLLECTION_ID>/?format=json"
+
+    )
+    args = parser.parse_args(sys.argv[1:])
+    harvest_content_by_endpoint(args.url)
