@@ -197,7 +197,8 @@ class ContentHarvester(object):
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "r-0"}
-def harvest_page_content(collection_id, rikolti_mapper_type, page_filename, **kwargs):
+def harvest_page_content(collection_id, page_filename, **kwargs):
+    rikolti_mapper_type = kwargs.get('rikolti_mapper_type')
 
     records = get_mapped_records(collection_id, page_filename)
     print(
@@ -250,3 +251,20 @@ def harvest_page_content(collection_id, rikolti_mapper_type, page_filename, **kw
         'children': sum(child_contents),
         'records': len(records)
     }
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Harvest content using a page of mapped metadata")
+    parser.add_argument('collection_id', help="Collection ID")
+    parser.add_argument('page_filename', help="Page Filename")
+    parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
+    args = parser.parse_args()
+    arguments = {
+        'collection_id': args.collection_id,
+        'page_filename': args.page_filename,
+    }
+    if args.nuxeo:
+        arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
+    harvest_page_content(arguments)

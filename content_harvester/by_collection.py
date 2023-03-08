@@ -43,3 +43,17 @@ def harvest_collection(collection):
     })
     return collection_stats
 
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Harvest content by collection using mapped metadata")
+    parser.add_argument('collection_id', help="Collection ID")
+    parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
+    args = parser.parse_args()
+    arguments = {
+        'collection_id': args.collection_id,
+    }
+    if args.nuxeo:
+        arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
+    harvest_collection(arguments)
