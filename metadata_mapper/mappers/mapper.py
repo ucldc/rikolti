@@ -74,6 +74,12 @@ class Vernacular(ABC, object):
         api_response = s3_obj_summary['Body'].read()
         return api_response
 
+    def get_records(self, records):
+        return [self.record_cls(self.collection_id, record) for record in records if not self.skip(record)]
+
+    def skip(self, record):
+        return False
+
 
 class Record(ABC, object):
 
@@ -159,7 +165,6 @@ class Record(ABC, object):
         split_values = [c.split(';') for c in filter(None, values)]
 
         return list([s.strip() for s in itertools.chain.from_iterable(split_values)])
-
 
     # Enrichments
     # The enrichment chain is a dpla construction that we are porting to Rikolti
