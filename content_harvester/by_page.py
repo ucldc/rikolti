@@ -74,6 +74,38 @@ def get_child_records(collection_id, parent_id, s3_client) -> list:
     return mapped_child_records
 
 
+class UnsupportedMimetype(Exception):
+    pass
+
+
+def check_mimetype(mimetype):
+    ''' do a basic pre-check on the object to see if we think it's
+    something know how to deal with '''
+    valid_types = ['image/jpeg', 'image/gif', 'image/tiff', 'image/png', 'image/jp2', 'image/jpx', 'image/jpm']
+
+    # see if we recognize this mime type
+    if mimetype in valid_types:
+        print(
+            f"Mime-type '{mimetype}' was pre-checked and recognized as "
+            "something we can try to convert."
+        )
+    elif mimetype in ['application/pdf']:
+        raise UnsupportedMimetype(
+            f"Mime-type '{mimetype}' was pre-checked and recognized as "
+            "something we don't want to convert."
+        )
+    else:
+        raise UnsupportedMimetype(
+            f"Mime-type '{mimetype}' was unrecognized. We don't know how to "
+            "deal with this"
+        )
+
+
+def check_thumb_mimetype(mimetype):
+    if mimetype not in ['image/jpeg', 'application/pdf', 'video/mp4']:
+        raise UnsupportedMimetype(f"thumbnail: {mimetype}")
+
+
 class ContentHarvester(object):
 
     # context = {'collection_id': '12345', 'page_filename': '1.jsonl'}
@@ -103,70 +135,66 @@ class ContentHarvester(object):
             self.s3 = None
 
     # returns media_dest = {media_filepath, mimetype}
-    def harvest_media(self, calisphere_id, media_src, media_src_file) -> dict:
-        collection_id = self.harvest_context.get('collection_id')
-        page_filename = self.harvest_context.get('page_filename')
-        media_dest = None
+    def harvest_media(self, media_src, media_src_file) -> dict:
+        if not media_src_file:
+            return None
 
-        if media_src_file:
-            print(
-                f"[{collection_id}, {page_filename}, {calisphere_id}]: "
-                f"Media Source: {media_src}, Temp File: {media_src_file}, "
-                f"fsize: {os.path.getsize(media_src_file)}"
-            )
-            if media_src.get('nuxeo_type') == 'SampleCustomPicture':
-                media_filepath = derivatives.make_jp2(
-                    media_src_file, media_src.get('mimetype'))
-                media_dest = {'mimetype': 'image/jp2'}
-                if settings.CONTENT_DEST == 'local':
-                    media_dest['media_filepath'] = media_filepath
-                else:
-                    media_dest['media_filepath'] = self.upload_to_s3(
-                        'jp2', media_filepath)
-            else:
+        media_filepath = None
+        if media_src.get('nuxeo_type') == 'SampleCustomPicture':
+            try:
+                derivatives.check_mimetype(media_src.get('mimetype'))
+                media_filepath = derivatives.make_jp2(media_src_file)
+            except UnsupportedMimetype as e:
+                print(e)
                 media_filepath = media_src_file
-                media_dest = {'mimetype': media_src.get('mimetype')}
-                if settings.CONTENT_DEST == 'local':
-                    media_dest['media_filepath'] = media_filepath
-                else:
-                    media_dest['media_filepath'] = self.upload_to_s3(
-                        'media', media_filepath)
 
-            print(
-                f"[{collection_id}, {page_filename}, {calisphere_id}] "
-                f"Media Path: {media_dest}"
-            )
+            media_dest = {'mimetype': 'image/jp2'}
+            if settings.CONTENT_DEST == 'local':
+                media_dest['media_filepath'] = media_filepath
+            else:
+                media_dest['media_filepath'] = self.upload_to_s3(
+                    'jp2', media_filepath)
+        else:
+            media_filepath = media_src_file
+            media_dest = {'mimetype': media_src.get('mimetype')}
+            if settings.CONTENT_DEST == 'local':
+                media_dest['media_filepath'] = media_filepath
+            else:
+                media_dest['media_filepath'] = self.upload_to_s3(
+                    'media', media_filepath)
+
         return media_dest
 
     # returns thumbnail_dest = {thumbnail_filepath, mimetype}
-    def harvest_thumbnail(
-            self, calisphere_id, thumbnail_src, thumbnail_src_file) -> dict:
-        collection_id = self.harvest_context.get('collection_id')
-        page_filename = self.harvest_context.get('page_filename')
-        thumbnail_dest = None
+    def harvest_thumbnail(self, thumbnail_src, thumbnail_src_file) -> dict:
+        # set default mimetype to 'image/jpeg' in cases where no mimetype is 
+        # specified (aka, all non-nuxeo cases)
+        if not thumbnail_src_file:
+            return None
 
-        if thumbnail_src_file:
-            print(
-                f"[{collection_id}, {page_filename}, {calisphere_id}]: "
-                f"Thumb Source: {thumbnail_src}, Temp File: "
-                f"{thumbnail_src_file}, fsize: "
-                f"{os.path.getsize(thumbnail_src_file)}"
-            )
-            thumbnail_filepath = derivatives.make_thumbnail(
-                thumbnail_src_file,
-                thumbnail_src.get('mimetype')
-            )
-            thumbnail_dest = {'mimetype': 'image/jpeg'}
+        thumb_mimetype = thumbnail_src.get('mimetype', 'image/jpeg')
 
-            if settings.CONTENT_DEST == 'local':
-                thumbnail_dest['thumbnail_filepath'] = thumbnail_filepath
-            else:
-                thumbnail_dest['thumbnail_filepath'] = self.upload_to_s3(
-                    'thumbnails', thumbnail_filepath)
-        print(
-            f"[{collection_id}, {page_filename}, {calisphere_id}] "
-            f"Thumbnail Path: {thumbnail_dest}"
-        )
+        thumbnail_filepath = None
+        if thumb_mimetype == 'image/jpeg':
+            thumbnail_filepath = thumbnail_src_file
+        elif thumb_mimetype == 'application/pdf':
+            thumbnail_filepath = derivatives.pdf_to_thumb(
+                thumbnail_src_file)
+        elif thumb_mimetype == 'video/mp4':
+            thumbnail_filepath = derivatives.video_to_thumb(
+                thumbnail_src_file)
+        else:
+            raise UnsupportedMimetype(f"thumbnail: {thumb_mimetype}")
+
+        # TODO: the image harvest md5 thing + do we need thumbnail destination
+        # mimetype if it's always image/jpeg? (is it always image/jpeg?)
+        thumbnail_dest = {'mimetype': 'image/jpeg'}
+
+        if settings.CONTENT_DEST == 'local':
+            thumbnail_dest['thumbnail_filepath'] = thumbnail_filepath
+        else:
+            thumbnail_dest['thumbnail_filepath'] = self.upload_to_s3(
+                'thumbnails', thumbnail_filepath)
         return thumbnail_dest
 
     # returns content = {thumbnail, media, children} where children
@@ -179,15 +207,42 @@ class ContentHarvester(object):
         # Harvest Media File for Record
         media_src = record.get('media_source')
         media_src_file = self._download_src(media_src)
+        if media_src_file:
+            print(
+                f"[{collection_id}, {page_filename}, {calisphere_id}]: "
+                f"Media Source: {media_src}, Temp File: {media_src_file}, "
+                f"fsize: {os.path.getsize(media_src_file)}"
+            )
         media_dest = self.harvest_media(
             calisphere_id, media_src, media_src_file)
+        print(
+            f"[{collection_id}, {page_filename}, {calisphere_id}] "
+            f"Media Path: {media_dest}"
+        )
 
         # Harvest Thumbnail File for Record
         thumbnail_src = record.get('thumbnail_source')
+
+        # this makes it so we don't have to re-write isShownBy mappings for
+        # non-nuxeo sources
+        if isinstance(thumbnail_src) == str:
+            thumbnail_src = {'url': thumbnail_src}
+
         thumbnail_src_file = self._download_src(thumbnail_src)
+        if thumbnail_src_file:
+            print(
+                f"[{collection_id}, {page_filename}, {calisphere_id}]: "
+                f"Thumb Source: {thumbnail_src}, Temp File: "
+                f"{thumbnail_src_file}, fsize: "
+                f"{os.path.getsize(thumbnail_src_file)}"
+            )
         thumbnail_dest = self.harvest_thumbnail(
-            calisphere_id, thumbnail_src, thumbnail_src_file)
-        
+            thumbnail_src, thumbnail_src_file)
+        print(
+            f"[{collection_id}, {page_filename}, {calisphere_id}] "
+            f"Thumbnail Path: {thumbnail_dest}"
+        )
+
         if media_src_file:
             os.remove(media_src_file)
         if thumbnail_src_file:
@@ -221,8 +276,13 @@ class ContentHarvester(object):
         if not content_src:
             return None
 
-        filename = content_src.get('filename')
         src_url = content_src.get('url')
+        # filename defaults to last part of the url (filter clause handles urls
+        # with a trailing slash where the [-1] last item is an empty string)
+        filename = content_src.get(
+            'filename',
+            list(filter(lambda x: bool(x), src_url.split('/')))[-1]
+        )
 
         tmp_file_path = os.path.join('/tmp', filename)
         if os.path.exists(tmp_file_path):
@@ -233,7 +293,7 @@ class ContentHarvester(object):
         request = {
             "url": src_url,
             "stream": True,
-            "timeout": (12.05, (60 * 10) + 0.05) # connect, read
+            "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
         }
         if self.src_auth:
             request['auth'] = self.src_auth
