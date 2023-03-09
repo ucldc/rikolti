@@ -101,14 +101,16 @@ class OaiVernacular(Vernacular):
         for re in record_elements:
             sickle_rec = models.Record(re)
             sickle_header = sickle_rec.header
-            if not sickle_header.deleted:
-                record = sickle_rec.metadata
-                record['datestamp'] = sickle_header.datestamp
-                record['id'] = sickle_header.identifier
-                record['request_url'] = request_url
-                records.append(record)
+            if sickle_header.deleted:
+                continue
 
-        return [self.record_cls(self.collection_id, rec) for rec in records]
+            record = sickle_rec.metadata
+            record['datestamp'] = sickle_header.datestamp
+            record['id'] = sickle_header.identifier
+            record['request_url'] = request_url
+            records.append(record)
+
+        return self.get_records(records)
 
     # lxml parser requires bytes input or XML fragments without declaration,
     # so use 'rb' mode

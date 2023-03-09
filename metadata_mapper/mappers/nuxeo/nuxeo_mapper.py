@@ -168,6 +168,9 @@ class NuxeoRecord(Record):
     def map_is_shown_at(self):
         return super().map_is_shown_at()
 
+    def map_is_shown_by(self):
+        return super().map_is_shown_by()
+
     def map_media_source(self):
         source_type = self.original_metadata.get('type')
         valid_types = [
@@ -261,6 +264,4 @@ class NuxeoVernacular(Vernacular):
     record_cls = NuxeoRecord
 
     def parse(self, api_response):
-        records = json.loads(api_response)['entries']
-        return [self.record_cls(self.collection_id, record)
-                for record in records]
+        return self.get_records(json.loads(api_response)['entries'])

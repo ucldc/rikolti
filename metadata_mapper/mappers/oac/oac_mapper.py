@@ -73,7 +73,7 @@ class OacRecord(Record):
 
     def map_is_shown_at(self):
         return super().map_is_shown_at()
-    
+
     def map_is_shown_by(self):
         return super().map_is_shown_by()
 
@@ -288,7 +288,7 @@ class OacVernacular(Vernacular):
         facet_type_tab = crossQueryResult.find('facet')
         docHits = facet_type_tab.findall('./group/docHit')
 
-        objset = []
+        records = []
         for document in docHits:
             obj = defaultdict(list)
             meta = document.find('meta')
@@ -315,7 +315,6 @@ class OacVernacular(Vernacular):
                             'attrib': tag.attrib,
                             'text': tag.text
                         })
-            objset.append(obj)
+            records.append(obj)
 
-        objset = [self.record_cls(self.collection_id, obj) for obj in objset]
-        return objset
+        return self.get_records(records)
