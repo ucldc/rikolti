@@ -124,54 +124,9 @@ def check_mimetype(mimetype):
             "deal with this"
         )
 
-
-@subprocess_exception_handler
-def tiff_conversion(input_path):
-    '''
-        convert file using ImageMagick `convert`:
-        http://www.imagemagick.org/script/convert.php
-    '''
-    output_path = f"{input_path.split('.')[0]}.tif"
-    if os.path.exists(output_path):
-        return output_path
-
-    magick_location = CONTENT_PROCESSES['magick']
-    process = [
-        magick_location, "-compress", "None",
-        "-quality", "100", "-auto-orient", input_path, output_path
-    ]
-    msg = (
-        f"Used ImagMagick convert to convert {input_path} "
-        f"to {output_path}"
-    )
-    subprocess.check_output(process, stderr=subprocess.STDOUT)
-    print(msg)
-    return output_path
-
-
-@subprocess_exception_handler
-def tiff_to_srgb_libtiff(input_path):
-    '''
-    convert color profile to sRGB using libtiff's `tiff2rgba` tool
-    '''
-    output_path = f"{input_path.split('.')[0]}.tiff"
-    if os.path.exists(output_path):
-        return output_path
-
-    tiff2rgba_location = CONTENT_PROCESSES['tiff2rgba']
-    process = [tiff2rgba_location, "-c", "none", input_path, output_path]
-    msg = (
-        f"Used tiff2rgba to convert {input_path} to {output_path}, "
-        "with color profile sRGB (if not already sRGB)"
-    )
-    subprocess.check_output(process, stderr=subprocess.STDOUT)
-    print(msg)
-    return output_path
-
-
 # only used internally to this module
 @subprocess_exception_handler
-def tiff_to_jp2(tiff_path):
+def src_to_jp2(tiff_path):
     ''' convert a tiff to jp2 using image magick.'''
     jp2_path = f"{tiff_path.split('.')[0]}.jp2"
     if os.path.exists(jp2_path):
@@ -197,34 +152,10 @@ def make_jp2(source_file_path, mimetype):
         print(e)
         return source_file_path
 
-    # TODO @bhui: do we still need to prep this file since we are no longer
-    # using kdu_compress? I don't think we do...
-    prepped_file_path = None
-    if mimetype in ['image/jpeg', 'image/gif', 'image/png', 'image/tiff']:
-        converted_file_path = tiff_conversion(source_file_path)
-        prepped_file_path = tiff_to_srgb_libtiff(converted_file_path)
+    jp2_filepath = src_to_jp2(source_file_path)
 
-        # converted_file_path is an intermediary exclusively used for
-        # prepping the file for jp2 conversion. We can remove it now.
-        # If tiff conversion or tiff_to_srgb_libtiff were no-op, don't delete
-        if (converted_file_path != source_file_path and
-            converted_file_path != prepped_file_path):
-            os.remove(converted_file_path)
-
-    if not prepped_file_path:
-        print(
-            f"Didn't know how to prep file with mimetype {mimetype} for "
-            "jp2 conversion"
-        )
-        return
-
-    jp2_filepath = tiff_to_jp2(prepped_file_path)
-
-    # prepped_file_path is an intermediary exclusively used for
-    # jp2 conversion. We can remove it now. If tiff to jp2 was a no-op,
-    # don't delete.
-    if (prepped_file_path != source_file_path and
-        jp2_filepath != prepped_file_path):
-        os.remove(prepped_file_path)
+    # If tiff to jp2 was a no-op, don't delete.
+    if (jp2_filepath != source_file_path):
+        os.remove(source_file_path)
 
     return jp2_filepath
