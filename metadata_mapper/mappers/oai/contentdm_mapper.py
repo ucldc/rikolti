@@ -11,10 +11,10 @@ class ContentdmRecord(OaiRecord):
         return {
             "contributor": self.split_and_flatten('contributor'),
             "creator": self.split_and_flatten('creator'),
-            "spatial": self.map_spatial(),
-            "type": self.map_type(),
+            "spatial": self.map_spatial,
+            "type": self.map_type,
             "language": self.split_and_flatten('language'),
-            "subject": self.map_subject()
+            "subject": self.map_subject
         }
 
     def map_is_shown_at(self):

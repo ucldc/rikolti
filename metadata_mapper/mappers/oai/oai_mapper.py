@@ -15,8 +15,8 @@ class OaiRecord(Record):
         return {
             # `legacy_couch_db_id` is set by a premapping function
             'calisphere-id': self.legacy_couch_db_id.split('--')[1],
-            'isShownAt': self.map_is_shown_at(),
-            'isShownBy': self.map_is_shown_by(),
+            'isShownAt': self.map_is_shown_at,
+            'isShownBy': self.map_is_shown_by,
             'contributor': self.source_metadata.get('contributor'),
             'creator': self.source_metadata.get('creator'),
             'date': self.collate_fields([
@@ -54,7 +54,7 @@ class OaiRecord(Record):
             ]),
             'rights': self.collate_fields(['accessRights', 'rights']),
             'spatial': self.collate_fields(['coverage', 'spatial']),
-            'subject': self.map_subject(),
+            'subject': self.map_subject,
             'temporal': self.source_metadata.get('temporal'),
             'title': self.source_metadata.get('title'),
             'type': self.source_metadata.get('type')
