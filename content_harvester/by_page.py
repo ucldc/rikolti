@@ -337,13 +337,20 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
         f"Harvesting content for {len(records)} records"
     )
 
-    for record in records:
+    for i, record in enumerate(records):
         print(
             f"[{collection_id}, {page_filename}]: "
-            f"Harvesting record {record.get('calisphere-id')}"
+            f"Harvesting record {i}, {record.get('calisphere-id')}"
         )
-
-        record_with_content = harvester.harvest(record)
+        # spit out progress so far if an error has been encountered
+        try:
+            record_with_content = harvester.harvest(record)
+            write_mapped_record(collection_id, record_with_content, harvester.s3)
+        except Exception as e:
+            print(
+                f"ERROR: {e}\n{collection_id}, {page_filename}, {i}, {kwargs}"
+            )
+            raise e
 
         if not record_with_content.get('thumbnail'):
             warn_level = "ERROR"
@@ -355,12 +362,6 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
                 f"NO THUMBNAIL: {record.get('type')}"
             )
 
-        write_mapped_record(
-            collection_id, 
-            page_filename, 
-            record_with_content, 
-            harvester.s3
-        )
 
     # reporting aggregate stats
     media_mimetypes = [record.get('media', {}).get('mimetype') for record in records]
