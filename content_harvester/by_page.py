@@ -260,14 +260,12 @@ class ContentHarvester(object):
         for child in child_records:
             children_media.append(self.harvest(child))
 
-        content = {
-            'thumbnail': thumbnail_dest,
-        }
+        record['thumbnail'] = thumbnail_dest
         if media_dest:
-            content['media'] = media_dest
+            record['media'] = media_dest
         if children_media:
-            content['children'] = children_media
-        return content
+            record['children'] = children_media
+        return record
 
     def _download_src(self, content_src) -> str:
         '''
@@ -345,9 +343,9 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
             f"Harvesting record {record.get('calisphere-id')}"
         )
 
-        content = harvester.harvest(record)
+        record_with_content = harvester.harvest(record)
 
-        if not content.get('thumbnail'):
+        if not record_with_content.get('thumbnail'):
             warn_level = "ERROR"
             if 'sound' in record.get('type', []):
                 warn_level = "WARNING"
@@ -357,16 +355,14 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
                 f"NO THUMBNAIL: {record.get('type')}"
             )
 
-        record['content'] = content
-
     write_mapped_records(collection_id, page_filename, records, harvester.s3)
 
     # reporting aggregate stats
-    media_mimetypes = [record.get('content', {}).get('media', {}).get('mimetype') for record in records]
-    thumb_mimetypes = [record.get('content', {}).get('thumbnail', {}).get('mimetype') for record in records]
+    media_mimetypes = [record.get('media', {}).get('mimetype') for record in records]
+    thumb_mimetypes = [record.get('thumbnail', {}).get('mimetype') for record in records]
     media_source_mimetype = [record.get('media_source', {}).get('mimetype') for record in records]
     thumb_source_mimetype = [record.get('thumbnail_source', {}).get('mimetype') for record in records]
-    child_contents = [len(record.get('content', {}).get('children', [])) for record in records]
+    child_contents = [len(record.get('children', [])) for record in records]
     
     return {
         'thumb_source': Counter(thumb_source_mimetype),
