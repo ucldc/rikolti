@@ -30,18 +30,18 @@ def get_mapped_records(collection_id, page_filename, s3_client) -> list:
     return mapped_records
 
 
-def write_mapped_records(collection_id, page_filename, harvested_page, s3_client):
+def write_mapped_record(collection_id, record, s3_client):
     if settings.METADATA_DEST == 'local':
         local_path = settings.local_path(
             'mapped_with_content', collection_id)
-        page_path = os.sep.join([local_path, str(page_filename)])
+        page_path = os.sep.join([local_path, str(record.get('calisphere-id'))])
         page = open(page_path, "w")
-        page.write(json.dumps(harvested_page))
+        page.write(json.dumps(record))
     else:
         upload_status = s3_client.put_object(
             Bucket=settings.S3_BUCKET,
-            Key=f"mapped_with_content/{collection_id}/{page_filename}",
-            Body=json.dumps(harvested_page)
+            Key=f"mapped_with_content/{collection_id}/{record.get('calisphere-id')}",
+            Body=json.dumps(record)
         )
         print(f"Upload status: {upload_status}")
 
@@ -355,7 +355,12 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
                 f"NO THUMBNAIL: {record.get('type')}"
             )
 
-    write_mapped_records(collection_id, page_filename, records, harvester.s3)
+        write_mapped_record(
+            collection_id, 
+            page_filename, 
+            record_with_content, 
+            harvester.s3
+        )
 
     # reporting aggregate stats
     media_mimetypes = [record.get('media', {}).get('mimetype') for record in records]
