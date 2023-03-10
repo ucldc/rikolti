@@ -304,13 +304,13 @@ class Record(ABC, object):
                 self.mapped_data[field] += (field_value)
             else:
                 self.mapped_data[field] = field_value
-        else:   # default is fill if empty
+        else:  # default is fill if empty
             if field not in self.mapped_data:
                 self.mapped_data[field] = field_value
 
         # not sure what this is about
         # if not exists(data, "@context"):
-            # self.mapped_data["@context"] = "http://dp.la/api/items/context"
+        # self.mapped_data["@context"] = "http://dp.la/api/items/context"
         return self
 
     def shred(self, prop, delim=";"):
@@ -331,7 +331,7 @@ class Record(ABC, object):
         1,021 times:    prop=["sourceResource/type"]
         5 times:        prop=["sourceResource/description"],   delim=["<br>"]
         """
-        field = prop[0].split('/')[1:][0]     # remove sourceResource
+        field = prop[0].split('/')[1:][0]  # remove sourceResource
         delim = delim[0]
 
         # TODO: this is a way to get around cases where a key with name <field>
@@ -417,8 +417,8 @@ class Record(ABC, object):
         src_val = self.mapped_data.get(src)
         dest_val = self.mapped_data.get(dest, [])
         if (
-              (not (isinstance(src_val, list) or isinstance(src_val, str))) or
-              (not (isinstance(dest_val, list) or isinstance(dest_val, str)))
+                (not (isinstance(src_val, list) or isinstance(src_val, str))) or
+                (not (isinstance(dest_val, list) or isinstance(dest_val, str)))
         ):
             self.enrichment_report.append(
                 f"[copy_prop]: Prop {src} is {type(src_val)} and prop {dest} "
@@ -445,7 +445,7 @@ class Record(ABC, object):
         # 2079 times: prop=["sourceResource/subject"]
         # 2079 times: prop=["sourceResource/spatial"]
         """
-        src = prop[0].split('/')[-1]   # remove sourceResource
+        src = prop[0].split('/')[-1]  # remove sourceResource
         # TODO: this is a way to get around cases where a key with name <src>
         # is present in self.mapped_data, but the value is None. Should get rid
         # of None value keys in self.mapped_data
@@ -1159,7 +1159,7 @@ class Record(ABC, object):
 
         for field in default_fields + dont_strip_trailing_dot:
             # TODO: this won't work for deeply nested fields
-            field.split('/')[1]     # remove sourceResource
+            field.split('/')[1]  # remove sourceResource
 
             if field not in self.mapped_data:
                 continue
@@ -1248,8 +1248,8 @@ class Record(ABC, object):
     def solr_updater(self):
 
         def normalize_sort_field(sort_field,
-                                default_missing='~title unknown',
-                                missing_equivalents=['title unknown']):
+                                 default_missing='~title unknown',
+                                 missing_equivalents=['title unknown']):
             sort_field = sort_field.lower()
             # remove punctuation
             re_alphanumspace = re.compile(r'[^0-9A-Za-z\s]*')
@@ -1403,8 +1403,8 @@ class Record(ABC, object):
             '''
             ark = None
             id_fields = ("mods_recordInfo_recordIdentifier_mlt",
-                        "mods_recordInfo_recordIdentifier_s",
-                        "mods_recordInfo_recordIdentifier_t")
+                         "mods_recordInfo_recordIdentifier_s",
+                         "mods_recordInfo_recordIdentifier_t")
             for f in id_fields:
                 try:
                     mangled_ark = doc['originalRecord'][f]
@@ -1555,7 +1555,7 @@ class Record(ABC, object):
                 solr_doc['campus_url'] = [c['id'] for c in campuses]
                 solr_doc['campus_name'] = [c['name'] for c in campuses]
                 solr_doc['campus_data'] = [f"{c['id']}::{c['name']}"
-                                            for c in campuses]
+                                           for c in campuses]
 
             if record.get('object_dimensions'):
                 solr_doc['reference_image_dimensions'] = (
