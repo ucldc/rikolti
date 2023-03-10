@@ -7,7 +7,7 @@ import itertools
 
 from abc import ABC
 from markupsafe import Markup
-from typing import Any, Union
+from typing import Any, Callable
 from datetime import date
 
 import settings
@@ -102,16 +102,20 @@ class Record(ABC, object):
 
         Returns: dict
         """
-        self.mapped_data = {}
-
         supermaps = [
             super(c, self).UCLDC_map()
             for c in list(reversed(type(self).__mro__))
             if hasattr(super(c, self), "UCLDC_map")
         ]
-        for map in supermaps:
-            self.mapped_data = {**self.mapped_data, **map}
-        self.mapped_data = {**self.mapped_data, **self.UCLDC_map()}
+
+        mapped_data = {}
+        for supermap in supermaps:
+            mapped_data = {**mapped_data, **supermap}
+        mapped_data = {**mapped_data, **self.UCLDC_map()}
+
+        # Mapped value may be a function or lambda
+        self.mapped_data = {k: v() if isinstance(v, Callable) else v for (k, v)
+                            in mapped_data.items()}
 
         return self.mapped_data
 

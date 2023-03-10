@@ -8,7 +8,7 @@ class ArckRecord(ContentdmRecord):
         return {
             "source": self.source_metadata.get("source"),
             "isShownBy": self.source_metadata.get("relation"),
-            "relation": ""
+            "relation": None
         }
 
 
