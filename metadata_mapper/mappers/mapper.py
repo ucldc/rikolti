@@ -17,6 +17,8 @@ from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
 from typing import Callable
 
+from utilities import returns_callable
+
 
 class UCLDCWriter(object):
     def __init__(self, payload):
@@ -81,6 +83,7 @@ class Vernacular(ABC, object):
         return False
 
 
+
 class Record(ABC, object):
 
     def __init__(self, collection_id: int, record: dict[str, Any]):
@@ -113,6 +116,7 @@ class Record(ABC, object):
             mapped_data = {**mapped_data, **supermap}
         mapped_data = {**mapped_data, **self.UCLDC_map()}
 
+
         # Mapped value may be a function or lambda
         self.mapped_data = {k: v() if isinstance(v, Callable) else v for (k, v)
                             in mapped_data.items()}
@@ -130,9 +134,11 @@ class Record(ABC, object):
         return {}
 
     # Mapper Helpers
+    @returns_callable
     def collate_subfield(self, field, subfield):
         return [f[subfield] for f in self.source_metadata.get(field, [])]
 
+    @returns_callable
     def collate_fields(self, fieldlist):
         ''' collate multiple field values into a single list '''
         collated = []
@@ -146,6 +152,7 @@ class Record(ABC, object):
 
         return collated
 
+    @returns_callable
     def first_string_in_field(self, field):
         """
         Fetches a field value from source_metadata, and returns it if it's a string, or the first
@@ -157,6 +164,7 @@ class Record(ABC, object):
         if isinstance(value, list):
             return value[0]
 
+    @returns_callable
     def split_and_flatten(self, field):
         """
         Given a list of strings or nested lists, splits the values on the split string then flattens

@@ -4,7 +4,7 @@ from ..csu_dspace_mapper import CsuDspaceRecord, CsuDspaceVernacular
 class CsuciRecord(CsuDspaceRecord):
     def UCLDC_map(self):
         return {
-            "type": self.map_type()
+            "type": self.map_type
         }
 
     def map_type(self):

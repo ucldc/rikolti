@@ -4,7 +4,7 @@ from ..contentdm_mapper import ContentdmRecord, ContentdmVernacular
 class CsudhRecord(ContentdmRecord):
     def UCLDC_map(self):
         return {
-            "identifier": self.map_identifier()
+            "identifier": self.map_identifier
         }
 
     def map_identifier(self):

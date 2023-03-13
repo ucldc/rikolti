@@ -11,8 +11,8 @@ class ChapmanRecord(OaiRecord):
 
     def UCLDC_map(self):
         return {
-            'description': self.map_description(),
-            'identifier': self.map_identifier()
+            'description': self.map_description,
+            'identifier': self.map_identifier
         }
 
     def map_is_shown_at(self) -> Union[str, None]:
