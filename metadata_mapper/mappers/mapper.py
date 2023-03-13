@@ -84,6 +84,7 @@ class Vernacular(ABC, object):
 
 
 
+
 class Record(ABC, object):
 
     def __init__(self, collection_id: int, record: dict[str, Any]):
