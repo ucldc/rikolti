@@ -40,10 +40,10 @@ class ContentdmRecord(OaiRecord):
 
     def map_type(self):
         """Used by map_is_shown_by() in this class, so cannot be directly added to the mapping"""
-        return self.split_and_flatten('type')
+        return self.split_and_flatten('type')()
 
     def map_spatial(self):
-        values = [v for v in self.collate_fields(["coverage", "spatial"]) if v]
+        values = [v for v in self.collate_fields(["coverage", "spatial"])() if v]
         if not values:
             return
 
@@ -56,7 +56,7 @@ class ContentdmRecord(OaiRecord):
         if not subject:
             return
 
-        return [{'name': v} for v in self.split_and_flatten('subject')]
+        return [{'name': v} for v in self.split_and_flatten('subject')()]
 
     def get_preview_image_url(self):
         """
