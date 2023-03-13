@@ -33,7 +33,8 @@ def map_endpoint(url):
         'csuci_mets': 'oai.csu_dspace.csuci',
         'quartex_oai': 'oai.quartex',
         'burbank_islandora': 'oai.islandora.burbank',
-        'chs_islandora': 'oai.islandora.chs'
+        'chs_islandora': 'oai.islandora.chs',
+        'csu_sac_oai_dc': 'oai.content_dm.csu_sac'
     }
 
     collection_page = url
