@@ -3,41 +3,55 @@ import json
 import boto3
 import botocore
 import requests
-from requests_aws4auth import AWS4Auth
+import copy
 
 '''
-    Create an empty index with an explicit mapping (schema)
+    Create OpenSearch index template for rikolti
+    https://www.elastic.co/guide/en/elasticsearch/reference/7.9/index-templates.html
+    https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-component-template.html
 '''
+
+ENDPOINT = os.environ.get('RIKOLTI_ES_ENDPOINT')
+AUTH = ('rikolti', os.environ.get('RIKOLTI_ES_PASS'))
 
 def main():
+
     properties = get_properties()
 
-    # set calisphere_id as document _id - needs to be passed in explicitly
-    # use strict (vs false) setting to throw an exception if an unknown field is encountered?
-
-    # CREATE EMPTY INDEX
-    endpoint = os.environ.get('RIKOLTI_ES_ENDPOINT')
-    auth = ('rikolti', os.environ.get('RIKOLTI_ES_PASS'))
-
-    index_name = 'test'
-    url = os.path.join(endpoint, index_name)
+    # TODO add aliases, version, _meta, priority
     payload = {
-        "mappings": {
-            "properties": properties
+        "index_patterns": ["rikolti*"],
+        "template": {
+            "settings": {
+                "number_of_shards": 1,
+                "analysis": {
+                    "analyzer": {
+                        "keyword_lowercase_trim": {
+                            "tokenizer": "keyword",
+                            "filter": ["trim", "lowercase"]
+                        }
+                    }
+                }
+            },
+            "mappings": {
+                "dynamic": False,
+                "properties": properties
+            }
         }
     }
+
+    # create the API request
+    url = os.path.join(ENDPOINT, "_index_template/rikolti_template")
+
     headers = {
         "Content-Type": "application/json"
     }
 
-    # delete index if it exists - for testing!!
-    r = requests.delete(url, auth=auth)
-    r.raise_for_status()
-
-    # create new empty index
-    r = requests.put(url, headers=headers, data=json.dumps(payload), auth=auth)
+    # create index template
+    r = requests.put(url, headers=headers, data=json.dumps(payload), auth=AUTH)
     r.raise_for_status()
     print(r.text)
+
 
 def get_properties():
     
@@ -47,7 +61,7 @@ def get_properties():
 
     properties = {}
 
-    # fields to be mapped as `text` for full-text search
+    # `text` fields for full-text search
     text_fields = [
         'title',
         'alternative_title',
@@ -78,7 +92,7 @@ def get_properties():
         #'structmap_text'
     ]
 
-    # keyword fields for exact searching
+    # `keyword` fields for exact searching
     keyword_fields = [
         'calisphere_id',
         'harvest_id',
@@ -90,12 +104,13 @@ def get_properties():
         'repository_name',
         'repository_data',
         'rights_uri',
-        #'url_item',
-        #'reference_image_md5',
-        #'reference_image_dimensions',
+        'media',
+        'url_item',
+        'reference_image_md5',
+        'reference_image_dimensions',
+        'manifest',
+        'object_template',
         #'structmap_url',
-        #'manifest',
-        #'object_template'
     ]
 
     date_fields = [
@@ -110,10 +125,6 @@ def get_properties():
         'collection_id',
         'repository_id',
         'item_count'
-    ]
-
-    alpha_space_sort_fields = [
-        'sort_title'
     ]
 
     # fields to be additionally mapped as `keyword` fields (aka "multi-fields")
@@ -145,41 +156,46 @@ def get_properties():
         'type'
     ]
 
-    # store complex objects as nested?
-
-    for tf in text_fields:
-        properties[tf] = {
+    for f in text_fields:
+        properties[f] = {
             "type": "text"
         }
 
-    for kf in keyword_fields:
-        properties[kf] = {
+    for f in keyword_fields:
+        properties[f] = {
             "type": "keyword"
         }
 
-    for df in date_fields:
-        properties[df] = {
+    for f in date_fields:
+        properties[f] = {
             "type": "date"
         }
 
-    for intf in integer_fields:
-        properties[intf] = {
+    for f in integer_fields:
+        properties[f] = {
             "type": "integer"
         }
 
-    '''
-    for assf in alpha_space_sort_fields:
-        properties[assf] = {
-            "type": 
-        }
-    '''
-
-    for kcf in keyword_copy_fields:
-        properties[kcf]["fields"] = {
+    for f in keyword_multi_fields:
+        properties[f]["fields"] = {
             "raw": {
                 "type": "keyword"
             }
         }
+
+    # create multifield of type text for `title`
+    # using custom analyzer (defined in settings)
+    properties["title"]["fields"]["keyword_lc_trim"] = {
+        "type": "text",
+        "analyzer": "keyword_lowercase_trim"
+    }
+
+    # add children as nested field
+    # children have the same properties/schema as the parent object
+    properties["children"] = {
+        "type": "nested",
+        "properties": copy.deepcopy(properties)
+    }
 
     return properties
 
