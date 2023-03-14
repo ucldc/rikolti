@@ -200,9 +200,8 @@ class NuxeoRecord(Record):
         # this is the mapping part where we map to our data model
         media_source = None
         if file_content:
-            url = file_content.get('data', '').strip()
             media_source = {
-                'url': url.replace('/nuxeo/', '/Nuxeo/'),
+                'url': file_content.get('data', '').strip(),
                 'mimetype': file_content.get('mime-type', '').strip(),
                 'filename': file_content.get('name', '').strip(),
                 'nuxeo_type': source_type
@@ -227,21 +226,31 @@ class NuxeoRecord(Record):
         thumbnail_source = self.map_media_source()
 
         # if it's a SampleCustomPicture, overwrite thumbnail location
-        # URL with Nuxeo thumbnail url
-        # TODO: I think we could also get this by splitting map_media_source
-        # into get_file_content and the mapping part, and then here, setting
-        # file_content=properties.picture:views filter for tag=medium?
-        # it's cleaner because then we'd get the full data for the thumbnail,
-        # rather than cobbling together thumbnail source by key
+        # URL with Nuxeo thumbnail url (see legacy logic for why this
+        # comes after thumbnail_source = self.map_media_source())
         if (source_type == 'SampleCustomPicture'):
-            uid = self.original_metadata.get('uid', '')
-            thumbnail_source['url'] = (
-                f"https://nuxeo.cdlib.org/Nuxeo/nxpicsfile/default/"
-                f"{uid}/Medium:content/"
-            )
-            thumbnail_source['mimetype'] = 'image/jpeg'
-            thumbnail_source['filename'] = (
-                thumbnail_source['filename'].split('.')[0] + '.jpg')
+            # Rikolti Logic:
+            picture_views = self.source_metadata.get("picture:views")
+            medium_view = list(
+                filter(lambda x: x['tag'] == 'medium', picture_views)
+            )[0]
+            if medium_view and medium_view.get('content'):
+                medium_view = medium_view.get('content')
+                thumbnail_source = {
+                    'url': medium_view.get('data', '').strip(),
+                    'mimetype': medium_view.get('mime-type', '').strip(),
+                    'filename': medium_view.get('name', '').strip(),
+                    'nuxeo_type': source_type
+                }
+            # Legacy Logic:
+            # uid = self.original_metadata.get('uid', '')
+            # thumbnail_source['url'] = (
+            #     f"https://nuxeo.cdlib.org/nuxeo/nxpicsfile/default/"
+            #     f"{uid}/Medium:content/"
+            # )
+            # thumbnail_source['mimetype'] = 'image/jpeg'
+            # thumbnail_source['filename'] = (
+            #     thumbnail_source['filename'].split('.')[0] + '.jpg')
 
         return thumbnail_source
 
