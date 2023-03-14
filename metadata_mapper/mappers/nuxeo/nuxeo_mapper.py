@@ -232,16 +232,18 @@ class NuxeoRecord(Record):
             # Rikolti Logic:
             picture_views = self.source_metadata.get("picture:views")
             medium_view = list(
-                filter(lambda x: x['tag'] == 'medium', picture_views)
-            )[0]
-            if medium_view and medium_view.get('content'):
-                medium_view = medium_view.get('content')
+                filter(lambda x: x['title'] == 'Medium', picture_views)
+            )
+            if medium_view:
+                medium_view = medium_view[0].get('content')
                 thumbnail_source = {
                     'url': medium_view.get('data', '').strip(),
                     'mimetype': medium_view.get('mime-type', '').strip(),
                     'filename': medium_view.get('name', '').strip(),
                     'nuxeo_type': source_type
                 }
+            else:
+                print(json.dumps(picture_views))
             # Legacy Logic:
             # uid = self.original_metadata.get('uid', '')
             # thumbnail_source['url'] = (
