@@ -73,12 +73,6 @@ def index_collection(collection_id):
     
     bulk_add(records, index_name)
 
-    '''
-    for file in file_list:
-        document = get_metadata(collection_id, file)
-        print(metadata.get('calisphere-id'))
-        index_document(document)
-    '''
 
 
 
