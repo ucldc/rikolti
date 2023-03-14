@@ -362,14 +362,13 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
                 f"NO THUMBNAIL: {record.get('type')}"
             )
 
-
     # reporting aggregate stats
     media_mimetypes = [record.get('media', {}).get('mimetype') for record in records]
     thumb_mimetypes = [record.get('thumbnail', {}).get('mimetype') for record in records]
     media_source_mimetype = [record.get('media_source', {}).get('mimetype') for record in records]
     thumb_source_mimetype = [record.get('thumbnail_source', {}).get('mimetype') for record in records]
     child_contents = [len(record.get('children', [])) for record in records]
-    
+
     return {
         'thumb_source': Counter(thumb_source_mimetype),
         'thumb_mimetypes': Counter(thumb_mimetypes),
