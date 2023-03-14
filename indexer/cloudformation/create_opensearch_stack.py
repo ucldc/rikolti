@@ -2,7 +2,7 @@ import sys
 import argparse
 import boto3
 import botocore
-import create_template_opensearch
+import create_cf_template_opensearch
 from datetime import datetime
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -17,7 +17,7 @@ def main(params):
     datetime_string = datetime.today().strftime('%Y%m%d-%H%M')
     stack_name = f"rikolti-opensearch-{params.env}-{datetime_string}"
 
-    template_file = create_template_opensearch.main()
+    template_file = create_cf_template_opensearch.main()
 
     with open(template_file) as f:
         template_body = f.read()
@@ -62,6 +62,7 @@ def main(params):
         'EnableTerminationProtection': termination_protection
     }
 
+    '''
     try:
         print (f"Creating stack `{stack_name}`")
         response = cf_client.create_stack(**create_stack_params)
@@ -73,6 +74,7 @@ def main(params):
         raise(e)
     else:
         pp.pprint(cf_client.describe_stacks(StackName=response['StackId']))
+    '''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

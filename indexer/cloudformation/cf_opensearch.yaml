@@ -5,10 +5,24 @@ Parameters:
 Resources:
   OpenSearchDomain:
     Properties:
+      AccessPolicies:
+        Statement:
+          - Action: es:*
+            Effect: Allow
+            Principal:
+              AWS: '*'
+            Resource: !Sub '${OpenSearchDomain.Arn}/*'
+        Version: '2012-10-17'
       AdvancedOptions:
         indices.fielddata.cache.size: 20
         indices.query.bool.max_clause_count: '1024'
         rest.action.multi.allow_explicit_index: 'true'
+      AdvancedSecurityOptions:
+        Enabled: true
+        InternalUserDatabaseEnabled: true
+        MasterUserOptions:
+          MasterUserName: ''
+          MasterUserPassword: ''
       ClusterConfig:
         InstanceCount: 3
         InstanceType: t3.medium.search
@@ -16,17 +30,8 @@ Resources:
       EBSOptions:
         EBSEnabled: true
         VolumeSize: 10
-        VolumeType: gp2
+        VolumeType: gp3
+      EncryptionAtRestOptions:
+        Enabled: true
       EngineVersion: OpenSearch_2.3
     Type: AWS::OpenSearchService::Domain
-  SecurityGroup:
-    Properties:
-      GroupDescription: Security Group for Rikolti OpenSearch domains
-      GroupName: rikolti-opensearch
-      SecurityGroupIngress:
-        - CidrIp: 10.60.1.64/32
-          Description: Allow ssh access from blackstar
-          FromPort: '22'
-          IpProtocol: tcp
-          ToPort: '22'
-    Type: AWS::EC2::SecurityGroup
