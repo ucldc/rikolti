@@ -1,5 +1,6 @@
 # install troposphere with awacs (recommended soft dependency)
 troposphere[policy]
 boto3
+python-dotenv
 requests
 requests-aws4auth

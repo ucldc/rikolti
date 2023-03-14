@@ -34,7 +34,7 @@ def main():
                 }
             },
             "mappings": {
-                "dynamic": False,
+                "dynamic": "strict",
                 "properties": properties
             }
         }
@@ -88,29 +88,28 @@ def get_properties():
         'subject',
         'temporal',
         'transcription',
-        'type',
-        #'structmap_text'
+        'type'
     ]
 
     # `keyword` fields for exact searching
     keyword_fields = [
-        'calisphere_id',
-        'harvest_id',
+        'calisphere-id',
+        'id',
         'campus_name',
         'campus_data',
         'collection_name',
         'collection_data',
+        'collection_url',
         'sort_collection_data',
         'repository_name',
         'repository_data',
+        'repository_url',
         'rights_uri',
-        'media',
-        'url_item',
         'reference_image_md5',
         'reference_image_dimensions',
         'manifest',
         'object_template',
-        #'structmap_url',
+        'url_item'
     ]
 
     date_fields = [
@@ -156,6 +155,7 @@ def get_properties():
         'type'
     ]
 
+
     for f in text_fields:
         properties[f] = {
             "type": "text"
@@ -176,6 +176,39 @@ def get_properties():
             "type": "integer"
         }
 
+    properties["media"] = {
+        "properties": {
+            "media_filepath": {"type": "keyword"},
+            "mimetype": {"type": "keyword"}
+        }
+    }
+
+    properties["media_source"] = {
+        "properties": {
+            "filename": {"type": "keyword"},
+            "mimetype": {"type": "keyword"},
+            "nuxeo_type": {"type": "keyword"},
+            "url": {"type": "keyword"}
+        }
+    }
+
+    properties["thumbnail"] = {
+        "properties": {
+            "mimetype": {"type": "keyword"},
+            "thumbnail_filepath": {"type": "keyword"}
+        }
+    }
+
+    properties["thumbnail_source"] = {
+        "properties": {
+            "filename": {"type": "keyword"},
+            "mimetype": {"type": "keyword"},
+            "nuxeo_type": {"type": "keyword"},
+            "url": {"type": "keyword"}
+        }
+    }
+
+    # create multifield of type keyword
     for f in keyword_multi_fields:
         properties[f]["fields"] = {
             "raw": {
@@ -183,9 +216,8 @@ def get_properties():
             }
         }
 
-    # create multifield of type text for `title`
-    # using custom analyzer (defined in settings)
-    properties["title"]["fields"]["keyword_lc_trim"] = {
+    # TODO make this a multifield for `title` field?
+    properties["sort_title"] = {
         "type": "text",
         "analyzer": "keyword_lowercase_trim"
     }
