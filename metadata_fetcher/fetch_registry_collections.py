@@ -36,7 +36,7 @@ def fetch_endpoint(url, limit=None):
             ))
             logging.debug(log_msg.format(f"lambda payload: {collection}"))
             return_val = lambda_function.fetch_collection(
-                json.dumps(collection), None)
+                collection, None)
             results.append(return_val)
 
             if return_val['statusCode'] != 200:
