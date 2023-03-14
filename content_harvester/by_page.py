@@ -18,7 +18,7 @@ def get_mapped_records(collection_id, page_filename, s3_client) -> list:
     if settings.METADATA_SRC == 'local':
         local_path = settings.local_path(
             'mapped_metadata', collection_id)
-        page_path = os.sep.join([local_path, str(page_filename)])
+        page_path = os.path.join([local_path, str(page_filename)])
         page = open(page_path, "r")
         mapped_records = json.loads(page.read())
     else:
@@ -34,7 +34,7 @@ def write_mapped_record(collection_id, record, s3_client):
     if settings.METADATA_DEST == 'local':
         local_path = settings.local_path(
             'mapped_with_content', collection_id)
-        page_path = os.sep.join([local_path, str(record.get('calisphere-id'))])
+        page_path = os.path.join([local_path, str(record.get('calisphere-id'))])
         page = open(page_path, "w")
         page.write(json.dumps(record))
     else:
@@ -50,13 +50,13 @@ def get_child_records(collection_id, parent_id, s3_client) -> list:
     mapped_child_records = []
     if settings.METADATA_SRC == 'local':
         local_path = settings.local_path('mapped_metadata', collection_id)
-        children_path = os.sep.join([local_path, 'children'])
+        children_path = os.path.join([local_path, 'children'])
 
         if os.path.exists(children_path):
             child_pages = [file for file in os.listdir(children_path)
                         if file.startswith(parent_id)]
             for child_page in child_pages:
-                child_page_path = os.sep.join([children_path, child_page])
+                child_page_path = os.path.join([children_path, child_page])
                 page = open(child_page_path, "r")
                 mapped_child_records.extend(json.loads(page.read()))
     else:
@@ -225,7 +225,7 @@ class ContentHarvester(object):
 
         # this makes it so we don't have to re-write isShownBy mappings for
         # non-nuxeo sources
-        if isinstance(thumbnail_src) == str:
+        if isinstance(thumbnail_src, str):
             thumbnail_src = {'url': thumbnail_src}
 
         thumbnail_src_file = self._download_src(thumbnail_src)
