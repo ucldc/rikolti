@@ -142,7 +142,7 @@ class ContentHarvester(object):
         media_filepath = None
         if media_src.get('nuxeo_type') == 'SampleCustomPicture':
             try:
-                derivatives.check_mimetype(media_src.get('mimetype'))
+                check_mimetype(media_src.get('mimetype'))
                 media_filepath = derivatives.make_jp2(media_src_file)
             except UnsupportedMimetype as e:
                 print(e)
@@ -213,8 +213,7 @@ class ContentHarvester(object):
                 f"Media Source: {media_src}, Temp File: {media_src_file}, "
                 f"fsize: {os.path.getsize(media_src_file)}"
             )
-        media_dest = self.harvest_media(
-            calisphere_id, media_src, media_src_file)
+        media_dest = self.harvest_media(media_src, media_src_file)
         print(
             f"[{collection_id}, {page_filename}, {calisphere_id}] "
             f"Media Path: {media_dest}"
