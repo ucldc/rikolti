@@ -3,6 +3,7 @@ import json
 import re
 import boto3
 import hashlib
+import itertools
 
 from abc import ABC
 from markupsafe import Markup
@@ -73,6 +74,7 @@ class Vernacular(ABC, object):
 class Record(ABC, object):
 
     def __init__(self, collection_id: int, record: dict[str, Any]):
+        self.mapped_data = None
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
         # TODO: pre_mapped_data is a stop gap to accomodate
@@ -140,6 +142,20 @@ class Record(ABC, object):
             return value
         if isinstance(value, list):
             return value[0]
+
+    def split_and_flatten(self, field):
+        """
+        Given a list of strings or nested lists, splits the values on the split string then flattens
+        """
+        values = self.source_metadata.get(field)
+
+        if not values:
+            return
+
+        split_values = [c.split(';') for c in filter(None, values)]
+
+        return list([s.strip() for s in itertools.chain.from_iterable(split_values)])
+
 
     # Enrichments
     # The enrichment chain is a dpla construction that we are porting to Rikolti
@@ -704,7 +720,7 @@ class Record(ABC, object):
             languages = [languages]
 
         iso_codes = []
-        for language in languages:
+        for language in filter(None, languages):
             if language in iso_639_3:
                 iso_codes.append(language)
                 continue
@@ -1451,6 +1467,8 @@ class Record(ABC, object):
 
             solr_doc = {
                 'calisphere-id': record.get('calisphere-id'),
+                'is_shown_at': record.get('isShownAt'),
+                'is_shown_by': record.get('isShownBy'),
                 'harvest_id_s': record.get('_id'),
                 'reference_image_md5': record.get('object'),
                 'url_item': record.get('isShownAt'),
@@ -1589,7 +1607,11 @@ class Record(ABC, object):
 
             solr_doc['facet_decade'] = add_facet_decade(record)
             solr_doc['id'] = get_solr_id(record)
-            return solr_doc
+
+            keys = list(solr_doc.keys())
+            keys.sort()
+
+            return {i: solr_doc[i] for i in keys}
 
         def check_nuxeo_media(record):
             '''Check that the media_json and jp2000 exist for a given solr doc.
