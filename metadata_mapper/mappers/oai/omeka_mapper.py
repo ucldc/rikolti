@@ -15,6 +15,9 @@ class OmekaRecord(OaiRecord):
             return identifiers[-1]
 
     def map_is_shown_by(self):
+        """
+        If this logic changes, those changes may need to be reflected in NothumbVernacular.skip()
+        """
         identifiers = filter(None, self.source_metadata.get('identifier'))
         for i in identifiers:
             if 's3.amazonaws.com/omeka-net' in i:
@@ -52,7 +55,6 @@ class OmekaRecord(OaiRecord):
             filtered_identifiers.append(i)
         if filtered_identifiers:
             return filtered_identifiers
-
 
 class OmekaVernacular(OaiVernacular):
     record_cls = OmekaRecord
