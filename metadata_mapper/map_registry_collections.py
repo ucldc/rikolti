@@ -34,8 +34,9 @@ def map_endpoint(url):
         'quartex_oai': 'oai.quartex',
         'burbank_islandora': 'oai.islandora.burbank',
         'chs_islandora': 'oai.islandora.chs',
-        'csu_sac_oai_dc': 'oai.content_dm.csu_sac'
-        'pspl_oai_dc': 'oai.pspl'
+        'csu_sac_oai_dc': 'oai.content_dm.csu_sac',
+        'pspl_oai_dc': 'oai.pspl',
+        'omeka': 'oai.omeka'
     }
 
     collection_page = url
