@@ -955,10 +955,9 @@ class Record(ABC, object):
                 return value
             return None
 
-        prop = prop.split('/')[-1]  # remove sourceResource
+        prop = prop[0].split('/')[-1]  # remove sourceResource
         value = self.mapped_data[prop]
-        new_value = recursive_substring_replace(value, old, new)
-        self.mapped_data[prop] = new_value
+        self.mapped_data[prop] = recursive_substring_replace(value, old[0], new)
         return self
 
     def filter_fields(self, keys):
