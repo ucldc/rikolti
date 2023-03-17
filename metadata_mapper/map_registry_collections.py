@@ -37,7 +37,8 @@ def map_endpoint(url):
         'csu_sac_oai_dc': 'oai.content_dm.csu_sac',
         'pspl_oai_dc': 'oai.pspl',
         'omeka': 'oai.omeka',
-        'omeka_nothumb': 'oai.omeka.nothumb'
+        'omeka_nothumb': 'oai.omeka.nothumb',
+        'csa_omeka': 'oai.omeka.csa'
     }
 
     collection_page = url
