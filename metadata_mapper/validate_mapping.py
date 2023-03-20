@@ -158,7 +158,7 @@ def validate_page(collection_id: int, page_id: int,
 
 def create_collection_validation_csv(collection_id: int) -> None:
     result = validate_collection(collection_id)
-    result.errors.write_csv(collection_id)
+    result.errors.output_csv_to_bucket(collection_id)
 
 
 if __name__ == "__main__":

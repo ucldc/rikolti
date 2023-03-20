@@ -73,26 +73,55 @@ class ValidationErrors:
         self.errors = self.errors + other_errors.errors
         return self.errors
 
-    def output(self, format: str, file: IO[str] = None,
-               **opts) -> list[Union[list, dict]]:
+    def output_csv_to_file(self, file: IO[str], append: bool = False,
+                           include_fields: list[str] = None) -> None:
         """
-        Generic method to output data.
-
-        TODO: Expand types of output (i.e. to console for testing)
+        Given a file, generates a CSV with error output.
 
         Parameters:
-            format: str
-                "stdout" or "csv"
-            file: IO[str] (default: None)
-                A file name/path to write to (for CSV output)
+            file: IO[str]
+                File path to write to
+            append: bool (default: False)
+                Should errors be appended to the file?
+            include_fields: list[str] (default: None)
+                List of fields to include in the output
         """
-        if format == "stdout":
-            return print(self.errors)
-        elif format == "csv" and file:
-            return self.output_csv(file)
+        with open(file, "a" if append else "w") as f:
+            f.write(self._csv_content_string(include_fields, append))
 
-    def csv_content(self, include_fields: list[str] = None,
-                    include_headers: bool = True) -> list[str]:
+    def output_csv_to_bucket(self, collection_id: int, filename: str = None,
+                             include_fields: list[str] = None) -> None:
+        """
+        Writes a CSV to the env-appropriate bucket (local or S3).
+
+        Parameters:
+            collection_id: int
+                The collection ID (for finding appropriate folder)
+            filename: str (default: None)
+                The name of the created file. If not provided, defaults to
+                timestamp
+            include_fields: list[str] (default: None)
+                A list of fields to include in the CSV. Defaults to all.
+        """
+        if not filename:
+            filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
+
+        utilities.write_to_bucket("validation", collection_id, filename,
+                                  self._csv_content_string(include_fields))
+
+    def _csv_content(self, include_fields: list[str] = None,
+                     include_headers: bool = True) -> list[list[str]]:
+        """
+        Generates a list from errors suitable for generating a CSV.
+
+        Parameters:
+            include_fields: list[str] (default: None)
+                List of fields to include in the CSV. Defaults to all.
+            include_headers: bool (default: True)
+                Should a list of header values be added at the top?
+
+        Returns: list[list[str]]
+        """
         if include_fields:
             headers = [
                 h for (f, h) in self.CSV_FIELDS
@@ -117,40 +146,22 @@ class ValidationErrors:
 
         return ret
 
-    def csv_content_string(self, include_fields: list[str] = None,
-                           include_headers: bool = True) -> str:
-        content = self.csv_content(include_fields, include_headers)
-        content_strings = [",".join(row) for row in content]
-        return "\n".join(content_strings)
-
-    def output_csv_to_file(self, file: IO[str], append: bool = False,
-                           include_fields: list[str] = None) -> None:
+    def _csv_content_string(self, include_fields: list[str] = None,
+                            include_headers: bool = True) -> str:
         """
-        Given a file, generates a CSV with error output.
+        Generates a string of CSV content suitable for writing to a file.
 
         Parameters:
-            file: IO[str]
-                File path to write to
-            append: bool (default: False)
-                Should errors be appended to the file?
             include_fields: list[str] (default: None)
-                List of fields to include in the output
+                List of fields to include in the CSV. Defaults to all.
+            include_headers: bool (default: True)
+                Should a list of header values be added at the top?
+
+        Returns: str
         """
-        with open(file, "a" if append else "w") as f:
-            f.write(self.csv_content_string(include_fields, append))
-
-    def write_csv(self, collection_id: int, filename: str = None,
-                  include_fields: list[str] = None) -> None:
-        if not filename:
-            filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
-
-        utilities.write_to_bucket("validation", collection_id, filename,
-                                  self.csv_content_string(include_fields))
-
-    def _write_csv_row(self, open_file: IO[str],
-                       content: list[str]) -> None:
-        content = [f"\"{c}\"" for c in content]
-        open_file.write(f"{','.join(content)}\n")
+        content = self._csv_content(include_fields, include_headers)
+        content_strings = [",".join(row) for row in content]
+        return "\n".join(content_strings)
 
     @property
     def _default_fields(self) -> list[str]:
