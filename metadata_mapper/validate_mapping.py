@@ -13,7 +13,7 @@ from typing import Type, Union
 import settings
 import utilities
 
-from map_registry_collections import MAPPER_MAP
+from map_registry_collections import lookup
 
 from mappers.validator import Validator, ValidationErrors
 
@@ -67,7 +67,7 @@ def get_validator_class(collection_id: int) -> Type[Validator]:
         return
 
     mapper = collection_data.get("rikolti_mapper_type")
-    mapped_mapper = MAPPER_MAP.get(mapper, mapper)
+    mapped_mapper = lookup.get(mapper, mapper)
     vernacular = utilities.import_vernacular_reader(mapped_mapper)
 
     return vernacular.record_cls.validator
@@ -141,13 +141,13 @@ def validate_page(collection_id: int, page_id: int,
               )
         return
 
-    intersection = set(mapped_metadata.keys()) & set(solr_data.keys())
+    all_keys = set(mapped_metadata.keys()).union(set(solr_data.keys()))
 
-    if len(intersection) == 0:
-        print("No overlap found between Rikolti and Solr data. Aborting.")
+    if len(all_keys) == 0:
+        print("No data found. Aborting.")
         return
 
-    for harvest_id in intersection:
+    for harvest_id in all_keys:
         rikolti_record = mapped_metadata.get(harvest_id)
         solr_record = solr_data.get(harvest_id)
 

@@ -200,6 +200,15 @@ class Validator:
         self.rikolti_data = rikolti_data
         self.comparison_data = comparison_metadata
 
+        if not self.rikolti_data or not self.comparison_data:
+            missing_data_desc = "mapped Rikolti" if not self.rikolti_data else "Solr"
+            error = {
+                "key": self.key,
+                "level": "ERROR",
+                "description": f"No {missing_data_desc} data found for key"
+            }
+            self.errors.add(**error)
+
         self.before_validation()
 
         for field in self.validatable_fields:
