@@ -441,7 +441,7 @@ class Validator:
         rikolti_value = self.rikolti_data.get(field)
         comp_value = self.comparison_data.get(field)
 
-        validations = self._normalize_validations(validation_def["validations"])
+        validations = self._normalize_validations(validation_def["validations"], validation_def["level"])
 
         for validator, level in validations.items():
             raw_results = validator(validation_def, rikolti_value, comp_value)
@@ -451,12 +451,17 @@ class Validator:
                 self._build_errors(validation_def, result, level,
                                    rikolti_value, comp_value)
 
-    def _normalize_validations(self, validations: Union[Callable,
-                               list[Callable], dict[Callable, str]]) -> dict[Callable, str]:
+    def _normalize_validations(self, validations: Union[
+                                                        Callable,
+                                                        list[Callable],
+                                                        dict[Callable, str]
+                                                        ],
+                               default_level: str = "ERROR"
+                               ) -> dict[Callable, str]:
         if isinstance(validations, Callable):
-            return {validations: "ERROR"}
+            return {validations: default_level}
         elif isinstance(validations, list):
-            return {callable: "ERROR" for callable in validations}
+            return {callable: default_level for callable in validations}
         elif isinstance(validations, dict):
             return validations
 
