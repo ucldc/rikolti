@@ -174,7 +174,7 @@ class ValidationErrors:
 
 class Validator:
 
-    def __init__(self, fields: dict = None):
+    def __init__(self, fields: list[dict[str, Any]] = None):
         self.errors = ValidationErrors()
         self.set_validatable_fields(fields or {})
 
@@ -207,7 +207,7 @@ class Validator:
 
         return self.errors
 
-    def set_validatable_fields(self, fields: list[dict] = [],
+    def set_validatable_fields(self, fields: list[dict[str, Any]] = [],
                                merge: bool = True) -> list[dict]:
         """
         Set and/or overrides fields to be validated.
@@ -218,15 +218,27 @@ class Validator:
         If merge is False, simply sets the fields to the provided list.
 
         Parameters:
-            fields: dict
-                A dict containing validation definitions.
+            fields: list[dict[str, Any]] (default: [])
+                A list of dicts containing validation definitions.
+                See default_validatable_fields for examples.
             merge: bool (default: True)
                 Should `fields` be merged into `default_validatable_fields`?
 
         Returns list[dict]
         """
         if merge:
-            self.validatable_fields = [*default_validatable_fields, *fields]
+            self.validatable_fields = default_validatable_fields
+
+            for field in fields:
+                index = [
+                    (i, el) for i, el in enumerate(default_validatable_fields)
+                    if field["field"] == el["field"]
+                ]
+
+                if index:
+                    self.validatable_fields[index] = field
+                else:
+                    self.validatable_fields.append(field)
         else:
             self.validatable_fields = fields
 
@@ -507,7 +519,7 @@ class Validator:
         return value if isinstance(value, list) else [value]
 
 
-default_validatable_fields: list[dict] = [
+default_validatable_fields: list[dict[str, Any]] = [
     # Full fidelity fields
     # Full type and content matches required
     {
