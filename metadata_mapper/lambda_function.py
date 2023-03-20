@@ -28,7 +28,7 @@ def import_vernacular_reader(mapper_type):
         package="metadata_mapper"
     )
 
-    mapper_type_words = mapper_type.split(".")[-1].split('_')
+    mapper_type_words = snake_cased_mapper_name.split(".")[-1].split('_')
     class_type = ''.join([word.capitalize() for word in mapper_type_words])
     vernacular_class = getattr(
         mapper_module, f"{class_type}Vernacular")
@@ -84,7 +84,6 @@ def map_page(payload: Union[dict, str], context: dict = {}):
     source_vernacular = vernacular_reader(payload)
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
-    collection = payload.get('collection', {})
 
     source_metadata_records = run_enrichments(
         source_metadata_records, payload, 'rikolti__pre_mapping')
