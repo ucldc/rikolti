@@ -6,3 +6,4 @@ nuxeo
 xmltodict
 sickle
 flake8
+python-dotenv

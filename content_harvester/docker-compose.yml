@@ -1,0 +1,13 @@
+services:
+  content_harvester:
+    build: 
+      context: ./
+      dockerfile: Dockerfile
+    image: content_harvester
+    # command: tail -f /dev/null
+    working_dir: /content_harvester
+    volumes: 
+      - ../rikolti_bucket:/rikolti_bucket
+      - ./:/content_harvester
+    env_file:
+      - ./env.local

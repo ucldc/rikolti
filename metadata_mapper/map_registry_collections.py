@@ -71,7 +71,7 @@ def map_endpoint(url):
             try:
                 collection['mapper_type'] = lookup[collection['mapper_type']]
                 return_val = lambda_shepherd.map_collection(
-                    json.dumps(collection), None)
+                    collection, None)
             except KeyError:
                 print(f"[{collection['collection_id']}]: {collection['mapper_type']} not yet implemented")
                 continue
