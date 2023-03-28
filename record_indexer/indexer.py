@@ -9,14 +9,12 @@ def bulk_add(records, index):
 
     bulk_request_body = build_bulk_request_body(records, index)
 
-    # create the API request
     url = os.path.join(ENDPOINT, "_bulk")
 
     headers = {
         "Content-Type": "application/json"
     }
-
-    # create index template
+    
     r = requests.post(url, headers=headers, data=bulk_request_body, auth=AUTH)
     r.raise_for_status()
     print(r.text)
