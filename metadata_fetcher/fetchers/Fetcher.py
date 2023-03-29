@@ -80,19 +80,22 @@ class Fetcher(object):
 
         if self.check_page(response):
             if settings.DATA_DEST == 'local':
-                self.fetchtolocal(response.text)
+                self.fetchtolocal(self.get_text_from_response(response))
             else:
-                self.fetchtos3(response.text)
+                self.fetchtos3(self.get_text_from_response(response))
 
         self.increment(response)
 
         return self.json()
 
+    def get_text_from_response(self, response):
+        return response.text
+
     def build_fetch_request(self):
         """build parameters for the institution's requests.get()
 
-        this should minimally return {'url': str} but may also include 
-        {'headers': {}, 'params': {}} or any other options accepted by 
+        this should minimally return {'url': str} but may also include
+        {'headers': {}, 'params': {}} or any other options accepted by
         https://docs.python-requests.org/en/latest/api/#requests.get
         """
         pass
@@ -100,7 +103,7 @@ class Fetcher(object):
     def get_records(self, http_resp):
         """parses http_resp from institutional API into a list of records
 
-        should return a list of dictionaries which can easily be serialized 
+        should return a list of dictionaries which can easily be serialized
         by json.dumps into json line format; takes as an argument:
         https://docs.python-requests.org/en/latest/api/#requests.Response
         """
