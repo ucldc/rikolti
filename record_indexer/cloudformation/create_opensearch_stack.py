@@ -62,7 +62,7 @@ def main(params):
         'EnableTerminationProtection': termination_protection
     }
 
-    '''
+
     try:
         print (f"Creating stack `{stack_name}`")
         response = cf_client.create_stack(**create_stack_params)
@@ -74,7 +74,6 @@ def main(params):
         raise(e)
     else:
         pp.pprint(cf_client.describe_stacks(StackName=response['StackId']))
-    '''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
