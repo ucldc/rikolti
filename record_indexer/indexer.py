@@ -1,21 +1,20 @@
-import os
 import json
 import requests
+import settings
 
-ENDPOINT = os.environ.get('RIKOLTI_ES_ENDPOINT')
-AUTH = ('rikolti', os.environ.get('RIKOLTI_ES_PASS'))
 
 def bulk_add(records, index):
 
     bulk_request_body = build_bulk_request_body(records, index)
 
-    url = os.path.join(ENDPOINT, "_bulk")
+    url = f"{settings.ENDPOINT}/_bulk"
 
     headers = {
         "Content-Type": "application/json"
     }
-    
-    r = requests.post(url, headers=headers, data=bulk_request_body, auth=AUTH)
+
+    r = requests.post(
+        url, headers=headers, data=bulk_request_body, auth=settings.AUTH)
     r.raise_for_status()
     print(r.text)
 
@@ -33,8 +32,6 @@ def build_bulk_request_body(records, index):
                 "_id": doc_id
             }
         }
-
-        document = record
 
         body += f"{json.dumps(action)}\n{json.dumps(record)}\n"
 

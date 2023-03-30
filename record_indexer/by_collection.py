@@ -4,11 +4,12 @@ import settings
 import boto3
 import json
 
+
 # TODO: make use of utilities.py
 def get_file_list(collection_id):
-    
+
     file_list = []
-    
+
     if settings.DATA_SRC == 'local':
         path = settings.local_path('mapped_with_content', collection_id)
         try:
@@ -32,6 +33,7 @@ def get_file_list(collection_id):
         file_list = [obj['Key'].split('/')[-1] for obj in response['Contents']]
 
     return file_list
+
 
 def get_metadata(collection_id, filename):
     # TODO: instantiate one boto3 client and pass it around
@@ -58,22 +60,17 @@ def get_metadata(collection_id, filename):
     
     return record
 
+
 def index_collection(collection_id):
 
-    print(f"{settings.LOCAL_RUN=}")
     print(f"{settings.DATA_SRC=}")
 
     file_list = get_file_list(collection_id)
 
     print(f"Indexing records for collection {collection_id}")
-    
+
     records = [get_metadata(collection_id, file) for file in file_list]
 
     index_name = "rikolti-test"
-    
+
     bulk_add(records, index_name)
-
-
-
-
-

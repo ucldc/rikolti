@@ -1,9 +1,8 @@
-import sys, os
+import sys
 import json
-import boto3
-import botocore
 import requests
 import copy
+from record_indexer import settings
 
 '''
     Create OpenSearch index template for rikolti
@@ -11,8 +10,6 @@ import copy
     https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-component-template.html
 '''
 
-ENDPOINT = os.environ.get('RIKOLTI_ES_ENDPOINT')
-AUTH = ('rikolti', os.environ.get('RIKOLTI_ES_PASS'))
 
 def main():
 
@@ -41,20 +38,21 @@ def main():
     }
 
     # create the API request
-    url = os.path.join(ENDPOINT, "_index_template/rikolti_template")
+    url = f"{settings.ENDPOINT}/_index_template/rikolti_template"
 
     headers = {
         "Content-Type": "application/json"
     }
 
     # create index template
-    r = requests.put(url, headers=headers, data=json.dumps(payload), auth=AUTH)
+    r = requests.put(
+        url, headers=headers, data=json.dumps(payload), auth=settings.AUTH)
     r.raise_for_status()
     print(r.text)
 
 
 def get_properties():
-    
+
     # legacy solr index: https://harvest-stg.cdlib.org/solr/#/dc-collection/query
     # legacy solr schema: https://github.com/ucldc/solr_api/blob/master/dc-collection/conf/schema.xml
     # solr filter documentation: https://solr.apache.org/guide/8_6/filter-descriptions.html
@@ -155,7 +153,6 @@ def get_properties():
         'type'
     ]
 
-
     for f in text_fields:
         properties[f] = {
             "type": "text"
@@ -234,7 +231,3 @@ def get_properties():
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
-
-
