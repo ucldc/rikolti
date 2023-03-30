@@ -22,13 +22,15 @@ This creates a template that will be used whenever an index with name matching `
 
 ## Index Records
 
-Right now I'm assuming we want to bulk add records to the index rather than launching a separate Lambda for each record and adding one record to the index at a time. However, each record is currently stored as an individual json file on S3, which necessitates the extra step of assembling the metadata for multiple records into a list. Perhaps this assembly step negates the efficiency of bulk adding the records to the index. Also, if the collection is very large, then we may run into the 15 minute limit for Lambda.
+NOTE: What's in the repo right now was thrown together quickly and definitely needs more thought.
+
+Right now I'm assuming we want to bulk add records to the index rather than launching a separate Lambda for each record and adding one record to the index at a time. However, each record is currently stored as an individual json file on S3, which necessitates the extra step of assembling the metadata for multiple records into a list. Perhaps this assembly step negates the efficiency of bulk adding the records to the index. Also, if the collection is very large, then we may run into the 15 minute limit for Lambda. Lambda probably isn't the best solution for this.
 
 Options:
 
-1. launch one Lambda per record
-2. launch one Lambda per batch of records
-3. batch load records using something other than Lambda (Fargate?) 
+1. batch load records using something other than Lambda (AWS Batch with Fargate?) 
+2. launch one Lambda per record
+3. launch one Lambda per batch of records
 
 
 
