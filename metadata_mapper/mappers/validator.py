@@ -236,18 +236,12 @@ class Validator:
         Returns list[dict]
         """
         if merge:
-            self.validatable_fields = default_validatable_fields
+            field_dict = {
+                **{d["field"]: d for d in default_validatable_fields},
+                **{d["field"]: d for d in fields}
+            }
 
-            for field in fields:
-                index = [
-                    (i, el) for i, el in enumerate(default_validatable_fields)
-                    if field["field"] == el["field"]
-                ]
-
-                if index:
-                    self.validatable_fields[index] = field
-                else:
-                    self.validatable_fields.append(field)
+            self.validatable_fields = [v for k, v in field_dict.items()]
         else:
             self.validatable_fields = fields
 

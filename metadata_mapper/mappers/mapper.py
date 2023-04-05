@@ -16,7 +16,6 @@ from .validator import Validator, ValidationErrors
 from . import constants
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
-from typing import Callable
 
 from utilities import returns_callable
 
@@ -82,8 +81,6 @@ class Vernacular(ABC, object):
 
     def skip(self, record):
         return False
-
-
 
 
 class Record(ABC, object):
