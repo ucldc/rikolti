@@ -7,8 +7,6 @@ from typing import Callable, Union
 
 import settings
 
-from mappers.mapper import Vernacular
-
 
 def returns_callable(func: Callable) -> Callable:
     """
@@ -30,6 +28,7 @@ def import_vernacular_reader(mapper_type):
     nuxeo       | nuxeo_mapper        | NuxeoVernacular
     content_dm  | content_dm_mapper   | ContentDmVernacular
     """
+    from mappers.mapper import Vernacular
     *mapper_parent_modules, snake_cased_mapper_name = mapper_type.split(".")
 
     mapper_module = importlib.import_module(
