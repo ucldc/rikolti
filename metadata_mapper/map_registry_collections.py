@@ -5,42 +5,42 @@ import sys
 import lambda_shepherd
 import logging
 
+# TODO: this sort of translation from registry's mapper_type to
+# rikolti's mapper_type should really be done in the registry.
+# once we have a firmer rikolti vocabulary of mappers, we should
+# migrate the registry's data.
+lookup = {
+    'ucldc_nuxeo': 'nuxeo.nuxeo',
+    'oac_dc': 'oac.oac',
+    'islandora_oai_dc': 'oai.islandora',
+    'cca_vault_oai_dc': 'oai.cca_vault',
+    'chapman_oai_dc': 'oai.chapman',
+    'tv_academy_oai_dc': 'oai.tv_academy',
+    'yosemite_oai_dc': 'oai.yosemite',
+    'up_oai_dc': 'oai.up',
+    'ucsc_oai_dpla': 'oai.samvera',
+    'contentdm_oai_dc': 'oai.contentdm',
+    'arck_oai': 'oai.contentdm.arck',
+    'black_gold_oai': 'oai.contentdm.blackgold',
+    'chico_oai_dc': 'oai.contentdm.chico',
+    'chula_vista_pl_contentdm_oai_dc': 'oai.contentdm.cvpl',
+    'contentdm_oai_dc_get_sound_thumbs': 'oai.contentdm.pepperdine',
+    'csudh_contentdm_oai_dc': 'oai.contentdm.csudh',
+    'lapl_oai': 'oai.contentdm.lapl',
+    'csu_dspace_mets': 'oai.csu_dspace',
+    'csuci_mets': 'oai.csu_dspace.csuci',
+    'quartex_oai': 'oai.quartex',
+    'burbank_islandora': 'oai.islandora.burbank',
+    'chs_islandora': 'oai.islandora.chs',
+    'csu_sac_oai_dc': 'oai.content_dm.csu_sac',
+    'pspl_oai_dc': 'oai.pspl',
+    'omeka': 'oai.omeka',
+    'omeka_nothumb': 'oai.omeka.nothumb',
+    'csa_omeka': 'oai.omeka.csa'
+}
+
 
 def map_endpoint(url):
-    # TODO: this sort of translation from registry's mapper_type to
-    # rikolti's mapper_type should really be done in the registry.
-    # once we have a firmer rikolti vocabulary of mappers, we should
-    # migrate the registry's data.
-    lookup = {
-        'ucldc_nuxeo': 'nuxeo.nuxeo',
-        'oac_dc': 'oac.oac',
-        'islandora_oai_dc': 'oai.islandora',
-        'cca_vault_oai_dc': 'oai.cca_vault',
-        'chapman_oai_dc': 'oai.chapman',
-        'tv_academy_oai_dc': 'oai.tv_academy',
-        'yosemite_oai_dc': 'oai.yosemite',
-        'up_oai_dc': 'oai.up',
-        'ucsc_oai_dpla': 'oai.samvera',
-        'contentdm_oai_dc': 'oai.contentdm',
-        'arck_oai': 'oai.contentdm.arck',
-        'black_gold_oai': 'oai.contentdm.blackgold',
-        'chico_oai_dc': 'oai.contentdm.chico',
-        'chula_vista_pl_contentdm_oai_dc': 'oai.contentdm.cvpl',
-        'contentdm_oai_dc_get_sound_thumbs': 'oai.contentdm.pepperdine',
-        'csudh_contentdm_oai_dc': 'oai.contentdm.csudh',
-        'lapl_oai': 'oai.contentdm.lapl',
-        'csu_dspace_mets': 'oai.csu_dspace',
-        'csuci_mets': 'oai.csu_dspace.csuci',
-        'quartex_oai': 'oai.quartex',
-        'burbank_islandora': 'oai.islandora.burbank',
-        'chs_islandora': 'oai.islandora.chs',
-        'csu_sac_oai_dc': 'oai.content_dm.csu_sac',
-        'pspl_oai_dc': 'oai.pspl',
-        'omeka': 'oai.omeka',
-        'omeka_nothumb': 'oai.omeka.nothumb',
-        'csa_omeka': 'oai.omeka.csa'
-    }
-
     collection_page = url
     results = []
 

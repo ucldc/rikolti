@@ -11,11 +11,11 @@ from typing import Any, Callable
 from datetime import date
 
 import settings
+from .validator import Validator, ValidationErrors
 
 from . import constants
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
-from typing import Callable
 
 from utilities import returns_callable
 
@@ -83,9 +83,9 @@ class Vernacular(ABC, object):
         return False
 
 
-
-
 class Record(ABC, object):
+
+    validator = Validator
 
     def __init__(self, collection_id: int, record: dict[str, Any]):
         self.mapped_data = None
@@ -133,6 +133,10 @@ class Record(ABC, object):
         are merged together to produce a final result.
         """
         return {}
+
+    # Validation
+    def validate(self, comparison_data: dict) -> ValidationErrors:
+        return self.validator.validate(self.mapped_metadata, comparison_data)
 
     # Mapper Helpers
     @returns_callable

@@ -1,10 +1,14 @@
+import importlib
 import json
 import sys
+
+from typing import Union
 from urllib.parse import urlparse, parse_qs
+
 import settings
-import importlib
-from mappers.mapper import UCLDCWriter, Record, Vernacular
 import logging
+
+from mappers.mapper import UCLDCWriter, Record, Vernacular
 
 
 def import_vernacular_reader(mapper_type):
@@ -71,7 +75,7 @@ def run_enrichments(records, payload, enrichment_set):
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": "r-0"}
 # {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
 # AWS Lambda entry point
-def map_page(payload, context):
+def map_page(payload: Union[dict, str], context: dict = {}):
     if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
 
