@@ -1121,6 +1121,10 @@ class Record(ABC, object):
             "dataProvider",
             "provider/name"
         ]
+
+        def capitalize_str(value):
+            return f"{value[0].upper()}{value[1:]}" if len(value) > 0 else ""
+
         for field in props:
             if field in exclude:
                 continue
@@ -1129,12 +1133,14 @@ class Record(ABC, object):
             if field in self.mapped_data:
                 if isinstance(self.mapped_data[field], str):
                     val = self.mapped_data[field]
-                    self.mapped_data[field] = f"{val[0].upper()}{val[1:]}"
+                    self.mapped_data[field] = capitalize_str(val)
                 elif isinstance(self.mapped_data[field], list):
                     self.mapped_data[field] = [
-                        f"{v[0].upper()}{v[1:]}"
-                        for v in self.mapped_data[field] if isinstance(v, str)
+                        # This doesn't map dictionary values; it leaves them untouched
+                        capitalize_str(v) if isinstance(v, str) else v
+                        for v in self.mapped_data[field]
                     ]
+
         return self
 
     def cleanup_value(self):
