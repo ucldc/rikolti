@@ -116,7 +116,9 @@ class FlkFetcher(Fetcher):
         """
         return {
             "api_key": settings.FLICKR_API_KEY,
-            "method": method
+            "method": method,
+            "format": "json",
+            "nojsoncallback": "1"
         }
 
     def build_request_url(self, params: dict[str]) -> str:
@@ -147,21 +149,20 @@ class FlkFetcher(Fetcher):
     def get_text_from_response(self, response: requests.Response) -> str:
         """
         Accepts a response from a request for page of photos, and transforms it
-        in a dictionary. This requiresa `flickr.photos.getInfo` request for each
-         photo.
+        in a dictionary. This requires a `flickr.photos.getInfo` request for
+        each photo.
 
         Parameters:
             response: requests.Response
 
         Returns: str
         """
-        set_element_tree = ElementTree.fromstring(response.content)
-        photos = set_element_tree.findall(".//photo")
+        photos = json.loads(response.content)
 
         photo_data = []
-        for photo in photos:
-            content = self.get_photo_metadata(photo.attrib["id"]).content
-            photo_data.append(self.flickr_photo_info_xml_to_dict(content))
+        for photo in photos.get("photos", {}).get("photo", []):
+            content = self.get_photo_metadata(photo.get("id")).content
+            photo_data.append(json.loads(content).get("photo"))
             self.photo_index += 1
 
         print(
@@ -171,59 +172,6 @@ class FlkFetcher(Fetcher):
 
         return json.dumps(photo_data)
 
-    @staticmethod
-    def flickr_photo_info_xml_to_dict(xml: str) -> dict[Union[dict, list]]:
-        """
-        Transforms a raw Flickr XML response for `flickr.photos.getInfo` request
-        into a dictionary. Tag attributes and text node are combined,
-        with the text node included like this:
-
-        {"attribute1": "value1", "attribute2": "value2", "text": "look at
-        meeeeee!"}
-
-        Several tags in the response are given special treatment because there
-        can be multiple: `tags`, `notes`, `urls`.
-
-        Parameters:
-            xml: str
-
-        Returns: dict[dict]
-            The dict-ized
-        """
-
-        def node_to_dict(node: ElementTree.Element) -> dict:
-            """
-            Transforms an ElementTree.Element into a dictionary.
-
-            Parameters:
-                node: ElementTree.Element
-
-            Returns: dict
-            """
-            node_dict = node.attrib
-            node_text = node.text.strip() if node.text and\
-                node.text.strip() else None
-            if node_text:
-                node_dict['text'] = node_text
-
-            return node_dict
-
-        photo_dict = {}
-        tree = ElementTree.fromstring(xml)
-        photo_node = tree.find(".//photo")
-        photo_dict.update(photo_node.attrib)
-
-        for photo_child_node in photo_node:
-            if photo_child_node.tag in ("tags", "notes", "urls"):
-                node_value = [node_to_dict(node_dict) for node_dict
-                              in photo_child_node.iter()
-                              if node_dict.items()]
-            else:
-                node_value = node_to_dict(photo_child_node)
-
-            photo_dict[photo_child_node.tag] = node_value
-
-        return photo_dict
 
     def get_photo_metadata(self, id: str) -> requests.Response:
         """
@@ -248,9 +196,8 @@ class FlkFetcher(Fetcher):
 
         Returns: bool
         """
-        element_tree = ElementTree.fromstring(http_resp.content)
-        pagination = element_tree.findall(".//photo")
-        self.photo_total = len(pagination)
+        data = json.loads(http_resp.content)
+        self.photo_total = len(data.get("photos", {}).get("photo", []))
 
         print(
             f"[{self.collection_id}]: Fetched page {self.write_page} "
@@ -270,10 +217,10 @@ class FlkFetcher(Fetcher):
 
         tag = "photoset" if self.is_photoset() else "photos"
 
-        element_tree = ElementTree.fromstring(http_resp.content)
-        pagination = element_tree.find(tag)
-        page = int(pagination.attrib['page'])
-        pages = int(pagination.attrib['pages'])
+        data = json.loads(http_resp.content)
+        pagination = data.get(tag, {})
+        page = int(pagination.get("page", 0))
+        pages = int(pagination.get("pages", 0))
 
         self.next_url = self.get_current_url() if page < pages else None
 
