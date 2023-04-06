@@ -79,17 +79,18 @@ class Fetcher(object):
                 f"[{self.collection_id}]: unable to fetch page {page}")
 
         if self.check_page(response):
+            content = self.transform_vernacular_content(response.content)
             if settings.DATA_DEST == 'local':
-                self.fetchtolocal(self.get_text_from_response(response))
+                self.fetchtolocal(content)
             else:
-                self.fetchtos3(self.get_text_from_response(response))
+                self.fetchtos3(content)
 
         self.increment(response)
 
         return self.json()
 
-    def get_text_from_response(self, response):
-        return response.text
+    def transform_vernacular_content(self, content):
+        return content
 
     def build_fetch_request(self):
         """build parameters for the institution's requests.get()

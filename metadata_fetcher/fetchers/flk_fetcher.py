@@ -146,18 +146,18 @@ class FlkFetcher(Fetcher):
 
         return request
 
-    def get_text_from_response(self, response: requests.Response) -> str:
+    def transform_vernacular_content(self, content: str) -> str:
         """
-        Accepts a response from a request for page of photos, and transforms it
+        Accepts a content from a response for page of photos, and transforms it
         in a dictionary. This requires a `flickr.photos.getInfo` request for
         each photo.
 
         Parameters:
-            response: requests.Response
+            content: str
 
         Returns: str
         """
-        photos = json.loads(response.content)
+        photos = json.loads(content)
 
         photo_data = []
         for photo in photos.get("photos", {}).get("photo", []):
