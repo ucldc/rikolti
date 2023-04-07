@@ -160,7 +160,8 @@ class FlkFetcher(Fetcher):
         photos = json.loads(content)
 
         photo_data = []
-        for photo in photos.get("photos", {}).get("photo", []):
+        for photo in photos.get(self.response_items_attribute, {}).\
+                get("photo", []):
             content = self.get_photo_metadata(photo.get("id")).content
             photo_data.append(json.loads(content).get("photo"))
             self.photo_index += 1
@@ -197,7 +198,8 @@ class FlkFetcher(Fetcher):
         Returns: bool
         """
         data = json.loads(http_resp.content)
-        self.photo_total = len(data.get("photos", {}).get("photo", []))
+        self.photo_total = len(data.get(self.response_items_attribute, {}).
+                               get("photo", []))
 
         print(
             f"[{self.collection_id}]: Fetched page {self.write_page} "
@@ -215,14 +217,22 @@ class FlkFetcher(Fetcher):
         """
         super(FlkFetcher, self).increment(http_resp)
 
-        tag = "photoset" if self.is_photoset() else "photos"
-
         data = json.loads(http_resp.content)
-        pagination = data.get(tag, {})
+        pagination = data.get(self.response_items_attribute, {})
         page = int(pagination.get("page", 0))
         pages = int(pagination.get("pages", 0))
 
         self.next_url = self.get_current_url() if page < pages else None
+
+    @property
+    def response_items_attribute(self) -> str:
+        """
+        The API returns photos wrapped in an object named based on whether it's
+        returning a photoset or a user's photos
+
+        Returns: str
+        """
+        return "photoset" if self.is_photoset() else "photos"
 
     def json(self) -> str:
         """
