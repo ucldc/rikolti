@@ -4,6 +4,7 @@ import requests
 from urllib.parse import urlencode
 import settings
 
+
 class FlkFetcher(Fetcher):
     BASE_URL: str = "https://api.flickr.com/services/rest/"
 
@@ -173,7 +174,6 @@ class FlkFetcher(Fetcher):
 
         return json.dumps(photo_data)
 
-
     def get_photo_metadata(self, id: str) -> requests.Response:
         """
         Performs a request for photo info and returns the response.
@@ -183,12 +183,14 @@ class FlkFetcher(Fetcher):
 
         Returns: requests.Response
         """
+        url = self.get_photo_info_request_url(id)
+
         print(
             f"[{self.collection_id}]: Fetching photo {id} "
-            f"({self.photo_index} of {self.photo_total})"
+            f"({self.photo_index} of {self.photo_total}) at {url}"
         )
 
-        return requests.get(url=self.get_photo_info_request_url(id))
+        return requests.get(url=url)
 
     def check_page(self, http_resp: requests.Response) -> bool:
         """
