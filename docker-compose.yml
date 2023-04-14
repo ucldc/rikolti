@@ -1,0 +1,7 @@
+services:
+  python:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    volumes:
+      - .:/home/rikolti

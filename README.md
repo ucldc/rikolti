@@ -16,6 +16,8 @@ cd ~/Projects/
 git clone git@github.com:ucldc/rikolti.git
 ```
 
+### OSX
+
 Set up a python environment using python version 3.9. I'm working on a mac with a bash shell. I use [pyenv](https://github.com/pyenv/pyenv) to manage python versions and I use [python3 venv](https://docs.python.org/3/library/venv.html) to manage a python virtual environment located in `~/.venv/rikolti/`. The following commands are meant to serve as a guide - please check the installation instructions for pyenv for your own environment. 
 
 ```sh
@@ -46,6 +48,28 @@ pip install -r requirements.txt
 Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments.
 
 Note: We tried using `sam local` to develop the app locally and found that the overhead makes for a clunky and slow process that doesn't offer advantages over the local virtualenv development setup described above. We are using AWS SAM to build and deploy the lambda applications, however ([see below](#deploying-using-aws-sam)).
+
+### Docker
+
+After cloning the repo, run `script/up` to build and start the container. The 
+container will continue running until stopped. As most development tasks take place in 
+the Python console, there are two commands for starting the console in the 
+metadata_fetcher and metadata_mapper modules. They are:
+
+`bin/map` - starts the console from within the mapper module
+
+`bin/fetch` - starts the console from within the fetcher module
+
+These commands install pip requirements and start an ipython console session.
+
+The `autoreload` ipython extension is automatically loaded. Typing 
+`autoreload` or, just `r` in the console with reload all loaded modules.
+
+To run other commands in the container, run `docker compose exec` from the 
+project root:
+
+`docker compose exec python ls -al`
+
 
 ## Development Contribution Process
 The [Rikolti Wiki](https://github.com/ucldc/rikolti/wiki/) contains lots of helpful technical information. The [GitHub Issues](https://github.com/ucldc/rikolti/issues) tool tracks Rikolti development tasks. We organize issues using the GitHub project board [Rikolti MVP](https://github.com/orgs/ucldc/projects/1/views/1) to separate work out into [Milestones](https://github.com/ucldc/rikolti/milestones) and [Sprints](https://github.com/orgs/ucldc/projects/1/views/5). 
