@@ -1,6 +1,8 @@
 import json
 from .Fetcher import Fetcher
 import requests
+from requests.adapters import HTTPAdapter
+from requests.adapters import Retry
 from urllib.parse import urlencode
 import settings
 
@@ -40,11 +42,19 @@ class FlkFetcher(Fetcher):
 
         Returns: str
         """
+        params = {
+            "per_page": self.per_page,
+            "page": self.write_page + 1
+        }
+
         if self.is_photoset():
-            return self.get_photoset_request_url(self.harvest_extra_data,
-                                                 self.write_page + 1)
-        return self.get_user_photos_request_url(self.harvest_extra_data,
-                                                self.write_page + 1)
+            params.update(self.get_request_method_params("photosets.getPhotos"))
+            params.update({"photoset_id": self.harvest_extra_data})
+            return self.build_request_url(params)
+
+        params.update(self.get_request_method_params("people.getPublicPhotos"))
+        params.update({"user_id": self.harvest_extra_data})
+        return self.build_request_url(params)
 
     def is_photoset(self) -> bool:
         """
@@ -54,57 +64,6 @@ class FlkFetcher(Fetcher):
         Returns: bool
         """
         return "@N" not in self.harvest_extra_data
-
-    def get_user_photos_request_url(self, user_id: str, page: int) -> str:
-        """
-        Generates `flickr.people.getPublicPhotos` request URL.
-
-        Parameters:
-            user_id: str
-            page: int
-
-        Returns: str
-        """
-        params = self.get_request_method_params("flickr.people.getPublicPhotos")
-        params.update({
-            "user_id": user_id,
-            "per_page": self.per_page,
-            "page": page
-        })
-        return self.build_request_url(params)
-
-    def get_photoset_request_url(self, photoset_id: str, page: int) -> str:
-        """
-        Generates `flickr.photosets.getPhotos` request URL.
-
-        Parameters:
-            photoset_id: str
-            page: int
-
-        Returns: str
-        """
-        params = self.get_request_method_params("flickr.photosets.getPhotos")
-        params.update({
-            "photoset_id": photoset_id,
-            "per_page": self.per_page,
-            "page": page
-        })
-        return self.build_request_url(params)
-
-    def get_photo_info_request_url(self, photo_id: str) -> str:
-        """
-        Generates `flickr.photos.getInfo` request URL.
-
-        Parameters:
-            photo_id: str
-
-        Returns: str
-        """
-        params = self.get_request_method_params("flickr.photos.getInfo")
-        params.update({
-            "photo_id": photo_id
-        })
-        return self.build_request_url(params)
 
     def get_request_method_params(self, method: str) -> dict[str]:
         """
@@ -117,7 +76,7 @@ class FlkFetcher(Fetcher):
         """
         return {
             "api_key": settings.FLICKR_API_KEY,
-            "method": method,
+            "method": f"flickr.{method}",
             "format": "json",
             "nojsoncallback": "1"
         }
@@ -147,7 +106,7 @@ class FlkFetcher(Fetcher):
 
         return request
 
-    def transform_vernacular_content(self, content: str) -> str:
+    def aggregate_vernacular_content(self, content: str) -> str:
         """
         Accepts a content from a response for page of photos, and transforms it
         in a dictionary. This requires a `flickr.photos.getInfo` request for
@@ -159,6 +118,11 @@ class FlkFetcher(Fetcher):
         Returns: str
         """
         photos = json.loads(content)
+
+        print(
+            f"[{self.collection_id}]: Starting to fetch all photos for page"
+            f" {self.write_page}"
+        )
 
         photo_data = []
         for photo in photos.get(self.response_items_attribute, {}).\
@@ -176,21 +140,29 @@ class FlkFetcher(Fetcher):
 
     def get_photo_metadata(self, id: str) -> requests.Response:
         """
-        Performs a request for photo info and returns the response.
+        Performs a request for photo info and returns the response. Attempts
+        retries.
 
         Parameters:
             id: str
 
         Returns: requests.Response
         """
-        url = self.get_photo_info_request_url(id)
+        params = self.get_request_method_params("photos.getInfo")
+        params.update({
+            "photo_id": id
+        })
+        url = self.build_request_url(params)
 
         print(
             f"[{self.collection_id}]: Fetching photo {id} "
             f"({self.photo_index} of {self.photo_total}) at {url}"
         )
 
-        return requests.get(url=url)
+        session = requests.Session()
+        retries = Retry(total=3, backoff_factor=2)
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        return session.get(url=url)
 
     def check_page(self, http_resp: requests.Response) -> bool:
         """
@@ -204,7 +176,7 @@ class FlkFetcher(Fetcher):
                                get("photo", []))
 
         print(
-            f"[{self.collection_id}]: Fetched page {self.write_page} "
+            f"[{self.collection_id}]: Fetched ids for page {self.write_page} "
             f"at {http_resp.url} with {self.photo_total} hits"
         )
 

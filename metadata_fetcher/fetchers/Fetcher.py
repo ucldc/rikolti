@@ -79,7 +79,7 @@ class Fetcher(object):
                 f"[{self.collection_id}]: unable to fetch page {page}")
 
         if self.check_page(response):
-            content = self.transform_vernacular_content(response.content)
+            content = self.aggregate_vernacular_content(response.content)
             if settings.DATA_DEST == 'local':
                 self.fetchtolocal(content)
             else:
@@ -89,7 +89,7 @@ class Fetcher(object):
 
         return self.json()
 
-    def transform_vernacular_content(self, content):
+    def aggregate_vernacular_content(self, content):
         return content
 
     def build_fetch_request(self):
