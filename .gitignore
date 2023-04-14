@@ -12,3 +12,9 @@ local_settings.py
 rikolti_bucket/
 .aws-sam/
 samconfig.toml
+
+# For running in Docker container
+.bash_history
+.ipython
+.cache
+.local

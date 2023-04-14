@@ -1,0 +1,2 @@
+docker compose exec python pip install -q -r /home/rikolti/requirements_dev.txt
+docker compose cp ./docker/.ipython/profile_default/startup/bootstrap.py python:/home/rikolti/.ipython/profile_default/startup/
