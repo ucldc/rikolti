@@ -14,7 +14,7 @@ rikolti_bucket/
 samconfig.toml
 
 # For running in Docker container
-.bash_history
-.ipython
-.cache
-.local
+/.bash_history
+/.ipython
+/.cache
+/.local
