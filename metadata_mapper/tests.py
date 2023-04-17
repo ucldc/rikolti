@@ -4,7 +4,7 @@ import settings
 import logging
 import os
 from lambda_shepherd import map_collection
-from validate_mapping import validate_mapped_collection
+from validate_mapping import validate_collection
 from sample_data.nuxeo_harvests import nuxeo_harvests, \
     nuxeo_complex_object_harvests, nuxeo_nested_complex_object_harvests
 from sample_data.oac_harvests import oac_harvests
@@ -41,7 +41,7 @@ def test_static_samples():
 
     for harvest in harvests:
         print(f"validate mapping: {json.dumps(harvest)}")
-        validate_mapped_collection(json.dumps(harvest))
+        validate_collection(json.dumps(harvest))
         print(f"validated: {str(harvest)}")
 
 

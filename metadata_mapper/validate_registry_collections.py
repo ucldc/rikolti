@@ -7,7 +7,7 @@ import logging
 import settings
 import urllib3
 from datetime import datetime
-from validate_mapping import validate_mapped_collection
+from validate_mapping import validate_collection
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -50,7 +50,7 @@ def validate_endpoint(url):
             ))
             logging.debug(log_msg.format(f"lambda payload: {collection}"))
             try:
-                collection_validation = validate_mapped_collection(
+                collection_validation = validate_collection(
                     json.dumps(collection))
             except FileNotFoundError:
                 print(f"[{collection_id}]: not fetched yet")
