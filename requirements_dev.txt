@@ -1,3 +1,4 @@
 -r ./metadata_mapper/requirements.txt
 -r ./metadata_fetcher/requirements.txt
 ipython
+ruff
