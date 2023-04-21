@@ -122,6 +122,9 @@ class ValidationErrors:
 
         Returns: list[list[str]]
         """
+        def escape_csv_value(value):
+            return '"' + str(value).replace('"', '""') + '"'
+
         if include_fields:
             headers = [
                 h for (f, h) in self.CSV_FIELDS
@@ -139,7 +142,7 @@ class ValidationErrors:
         for row in self.errors:
             ret.append(
                 [
-                    f"\"{val}\"" for key, val in row.items()
+                    escape_csv_value(val) for key, val in row.items()
                     if key in fields
                 ]
             )
