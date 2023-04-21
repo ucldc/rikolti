@@ -447,7 +447,7 @@ class Validator:
         rikolti_value = self.rikolti_data.get(field)
         comp_value = self.comparison_data.get(field)
 
-        validations = self._normalize_validations(validation_def["validations"], validation_def["level"])
+        validations = self._normalize_validations(validation_def["validations"], validation_def.get("level", "error"))
 
         for validator, level in validations.items():
             raw_results = validator(validation_def, rikolti_value, comp_value)
