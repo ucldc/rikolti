@@ -71,6 +71,10 @@ class Fetcher(object):
 
     def fetch_page(self):
         page = self.build_fetch_request()
+        print(
+            f"[{self.collection_id}]: Fetching page {self.write_page} "
+            f"at {page.get('url')}"
+        )
         try:
             response = requests.get(**page)
             response.raise_for_status()
