@@ -8,9 +8,6 @@ from fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
 
 
 def import_fetcher(harvest_type):
-    if harvest_type == "flickr":
-        harvest_type = "flk"
-
     fetcher_module = importlib.import_module(
         f"fetchers.{harvest_type}_fetcher", package="metadata_fetcher")
     fetcher_module_words = harvest_type.split('_')
