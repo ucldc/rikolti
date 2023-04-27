@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 import settings
 
 
-class FlkFetcher(Fetcher):
+class FlickrFetcher(Fetcher):
     BASE_URL: str = "https://api.flickr.com/services/rest/"
 
     def __init__(self, params: dict[str]):
@@ -15,7 +15,7 @@ class FlkFetcher(Fetcher):
         Parameters:
             params: dict[str]
         """
-        super(FlkFetcher, self).__init__(params)
+        super(FlickrFetcher, self).__init__(params)
 
         # Tracks where we're at processing photo requests
         self.photo_index = 1
@@ -189,7 +189,7 @@ class FlkFetcher(Fetcher):
         Parameters:
              http_resp: requests.Response
         """
-        super(FlkFetcher, self).increment(http_resp)
+        super(FlickrFetcher, self).increment(http_resp)
 
         data = json.loads(http_resp.content)
         pagination = data.get(self.response_items_attribute, {})
