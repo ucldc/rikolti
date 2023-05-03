@@ -2001,5 +2001,3 @@ all_oac_collections = [
     }
 ]
 
-for oac_datel_test in oac_datel_tests:
-  fetch_collection(json.dumps(oac_datel_test), {})

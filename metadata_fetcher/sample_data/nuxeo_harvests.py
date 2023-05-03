@@ -25,7 +25,10 @@ nuxeo_harvests = [
     "harvest_type": "nuxeo",
     "write_page": 0,
     "harvest_data": {
-      "root_path": "/asset-library/UCR/Water Resources Collections & Archives/Andrae B. Nordskog papers"
+      "root_path": (
+        "/asset-library/UCR/Water Resources Collections & Archives"
+        "/Andrae B. Nordskog papers"
+      )
     }
   },
   { # 26697: Spectrum

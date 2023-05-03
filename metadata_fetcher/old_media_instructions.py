@@ -81,7 +81,7 @@ def make_instructions(metadata):
 
 
 def main(collection_id, page):
-    line_number = 0
+    # line_number = 0
 
     bucket = os.environ.get('S3_BUCKET', False)
     s3_client = boto3.client('s3')

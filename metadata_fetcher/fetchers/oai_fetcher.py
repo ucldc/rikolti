@@ -16,7 +16,8 @@ class OaiFetcher(Fetcher):
         self.oai = params.get('harvest_data')
 
         if self.oai.get('harvest_extra_data'):
-            # see if we have a query string, e.g. "metadataPrefix=marcxml&set=fritz-metcalf"
+            # see if we have a query string,
+            # e.g. "metadataPrefix=marcxml&set=fritz-metcalf"
             parsed_params = {
                 k: v[0]
                 for k, v in parse_qs(self.oai.get('harvest_extra_data')).items()
@@ -24,7 +25,8 @@ class OaiFetcher(Fetcher):
             self.metadata_prefix = parsed_params.get('metadataPrefix')
             self.metadata_set = parsed_params.get('set')
 
-            # if not, then assume we just have a string value for set, e.g. "big-pine-citizen-newspaper"
+            # if not, then assume we just have a string value for set,
+            # e.g. "big-pine-citizen-newspaper"
             if not parsed_params:
                 self.metadata_set = self.oai.get('harvest_extra_data')
         else:
