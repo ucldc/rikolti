@@ -122,6 +122,9 @@ class ValidationErrors:
 
         Returns: list[list[str]]
         """
+        def escape_csv_value(value):
+            return '"' + str(value).replace('"', '""') + '"'
+
         if include_fields:
             headers = [
                 h for (f, h) in self.CSV_FIELDS
@@ -139,7 +142,7 @@ class ValidationErrors:
         for row in self.errors:
             ret.append(
                 [
-                    f"\"{val}\"" for key, val in row.items()
+                    escape_csv_value(val) for key, val in row.items()
                     if key in fields
                 ]
             )
@@ -444,7 +447,7 @@ class Validator:
         rikolti_value = self.rikolti_data.get(field)
         comp_value = self.comparison_data.get(field)
 
-        validations = self._normalize_validations(validation_def["validations"], validation_def["level"])
+        validations = self._normalize_validations(validation_def["validations"], validation_def.get("level", "error"))
 
         for validator, level in validations.items():
             raw_results = validator(validation_def, rikolti_value, comp_value)
