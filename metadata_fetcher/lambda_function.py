@@ -1,7 +1,6 @@
 import json
 import boto3
 import sys
-import subprocess
 import settings
 import importlib
 from fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
@@ -42,11 +41,7 @@ def fetch_collection(payload, context):
     next_page = fetcher.json()
     if not json.loads(next_page).get('finished'):
         if settings.LOCAL_RUN:
-            subprocess.run([
-                'python',
-                'lambda_function.py',
-                next_page.encode('utf-8')
-            ])
+            fetch_collection(next_page, {})
         else:
             lambda_client = boto3.client('lambda', region_name="us-west-2",)
             lambda_client.invoke(

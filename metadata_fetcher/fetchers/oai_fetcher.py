@@ -49,53 +49,36 @@ class OaiFetcher(Fetcher):
 
     def build_fetch_request(self):
 
+        url = f"{self.oai['url']}?verb=ListRecords"
         if self.oai.get('resumption_token'):
-            url = (
-                f"{self.oai.get('url')}"
-                f"?verb=ListRecords"
-                f"&resumptionToken={self.oai.get('resumption_token')}"
-            )
+            url += f"&resumptionToken={self.oai.get('resumption_token')}"
         else:
-            url = self.get_original_url()
+            url += f"&metadataPrefix={self.metadata_prefix}"
+            if self.metadata_set:
+                url += f"&set={self.metadata_set}"
 
         request = {"url": url}
-
-        print(
-            f"[{self.collection_id}]: Fetching page {self.write_page} "
-            f"at {request.get('url')}")
-
         return request
 
     def check_page(self, http_resp):
         xml_resp = ElementTree.fromstring(http_resp.content)
-        xml_hits = xml_resp.find('oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
+        xml_hits = xml_resp.find(
+            'oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
 
         if len(xml_hits) > 0:
             print(
-                f"[{self.collection_id}]: Fetched page {self.write_page} "
-                f"at {self.get_original_url()} "
-                f"with {len(xml_hits)} hits"
+                f"[{self.collection_id}]: Fetched page {self.write_page}; "
+                f"{len(xml_hits)} hits; {self.build_fetch_request()['url']}"
             )
         return bool(len(xml_hits))
-
-    def get_original_url(self):
-        url = (
-            f"{self.oai.get('url')}"
-            f"?verb=ListRecords"
-            f"&metadataPrefix={self.metadata_prefix}"
-        )
-
-        if self.metadata_set:
-            url += f"&set={self.metadata_set}"
-
-        return url
 
     def increment(self, http_resp):
         super(OaiFetcher, self).increment(http_resp)
 
         # if there is a resumption token, then increment
         xml_resp = ElementTree.fromstring(http_resp.content)
-        resumption_token_node = xml_resp.find('oai2:ListRecords/oai2:resumptionToken', NAMESPACE)
+        resumption_token_node = xml_resp.find(
+            'oai2:ListRecords/oai2:resumptionToken', NAMESPACE)
 
         if resumption_token_node is not None:
             self.oai['resumption_token'] = resumption_token_node.text

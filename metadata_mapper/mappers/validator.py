@@ -205,17 +205,18 @@ class Validator:
 
         if not self.rikolti_data or not self.comparison_data:
             missing_data_desc = "mapped Rikolti" if not self.rikolti_data else "Solr"
-            error = {
-                "key": self.key,
-                "level": "ERROR",
-                "description": f"No {missing_data_desc} data found for key"
-            }
-            self.errors.add(**error)
+            print(f"ERROR: No {missing_data_desc} data found for key {self.key}")
+            # error = {
+            #     "key": self.key,
+            #     "level": "ERROR",
+            #     "description": f"No {missing_data_desc} data found for key"
+            # }
+            # self.errors.add(**error)
+        else:
+            self.before_validation()
 
-        self.before_validation()
-
-        for field in self.validatable_fields:
-            self._perform_validations(field)
+            for field in self.validatable_fields:
+                self._perform_validations(field)
 
         return self.errors
 
@@ -447,7 +448,8 @@ class Validator:
         rikolti_value = self.rikolti_data.get(field)
         comp_value = self.comparison_data.get(field)
 
-        validations = self._normalize_validations(validation_def["validations"], validation_def.get("level", "error"))
+        validations = self._normalize_validations(
+            validation_def["validations"], validation_def.get("level", "error"))
 
         for validator, level in validations.items():
             raw_results = validator(validation_def, rikolti_value, comp_value)
