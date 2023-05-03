@@ -1,5 +1,4 @@
 import requests
-import json
 from by_collection import harvest_collection
 import sys
 
