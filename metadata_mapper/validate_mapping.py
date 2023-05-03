@@ -13,8 +13,6 @@ from typing import Type, Union
 import settings
 import utilities
 
-from map_registry_collections import lookup
-
 from mappers.validator import Validator, ValidationErrors
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -67,8 +65,7 @@ def get_validator_class(collection_id: int) -> Type[Validator]:
         return
 
     mapper = collection_data.get("rikolti_mapper_type")
-    mapped_mapper = lookup.get(mapper, mapper)
-    vernacular = utilities.import_vernacular_reader(mapped_mapper)
+    vernacular = utilities.import_vernacular_reader(mapper)
 
     return vernacular.record_cls.validator
 

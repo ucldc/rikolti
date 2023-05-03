@@ -16,10 +16,10 @@ def import_vernacular_reader(mapper_type):
     accept underscored_module_name_prefixes
     accept CamelCase class name prefixes split on underscores
     for example:
-    mapper_type | mapper module       | class name
-    ------------|---------------------|------------------
-    nuxeo       | nuxeo_mapper        | NuxeoVernacular
-    content_dm  | content_dm_mapper   | ContentDmVernacular
+    mapper_type       | mapper module       | class name
+    ------------------|---------------------|------------------
+    nuxeo.nuxeo       | nuxeo_mapper        | NuxeoVernacular
+    oai.content_dm    | content_dm_mapper   | ContentDmVernacular
     """
     *mapper_parent_modules, snake_cased_mapper_name = mapper_type.split(".")
 
@@ -72,14 +72,14 @@ def run_enrichments(records, payload, enrichment_set):
     return records
 
 
-# {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": "r-0"}
-# {"collection_id": 26098, "mapper_type": "nuxeo", "page_filename": 2}
+# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "r-0"}
+# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": 2}
 # AWS Lambda entry point
 def map_page(payload: Union[dict, str], context: dict = {}):
     if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
 
-    vernacular_reader = import_vernacular_reader(payload.get('mapper_type'))
+    vernacular_reader = import_vernacular_reader(payload.get('rikolti_mapper_type'))
     source_vernacular = vernacular_reader(payload)
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
