@@ -1,6 +1,5 @@
 import boto3
 import json
-import time
 import botocore
 
 def lambda_handler(payload, context):
@@ -59,6 +58,7 @@ def lambda_handler(payload, context):
 			Body=json.dumps(body).encode('utf-8'),
 			Key=textract_recordname
 		)
+		print(response)
 
 	return {
 		'statusCode': 200,
