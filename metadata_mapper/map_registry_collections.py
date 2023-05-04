@@ -45,7 +45,10 @@ def map_endpoint(url):
                 return_val = lambda_shepherd.map_collection(
                     collection, None)
             except KeyError:
-                print(f"[{collection['collection_id']}]: {collection['rikolti_mapper_type']} not yet implemented")
+                print(
+                    f"[{collection['collection_id']}]: "
+                    f"{collection['rikolti_mapper_type']} not yet implemented"
+                )
                 continue
             except FileNotFoundError:
                 print(f"[{collection['collection_id']}]: not fetched yet")
