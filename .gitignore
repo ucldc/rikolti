@@ -17,3 +17,6 @@ samconfig.toml
 /.cache
 /.local
 !/.github
+*.pid
+*.db
+airflow/standalone_admin_password.txt
