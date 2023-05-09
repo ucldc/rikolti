@@ -76,7 +76,7 @@ class OacFetcher(Fetcher):
 
         return request
 
-    def check_page(self, http_resp):
+    def check_page(self, http_resp: requests.Response) -> int:
         xml_resp = ElementTree.fromstring(http_resp.content)
         xml_hits = (xml_resp.find('facet').findall('./group/docHit'))
         if len(xml_hits) > 0:
@@ -91,7 +91,7 @@ class OacFetcher(Fetcher):
                 f"at {requested_url} "
                 f"with {len(xml_hits)} hits"
             )
-        return bool(len(xml_hits))
+        return len(xml_hits)
 
     def increment(self, http_resp):
         super(OacFetcher, self).increment(http_resp)

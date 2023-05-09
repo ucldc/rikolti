@@ -3,6 +3,7 @@ from xml.etree import ElementTree
 from .Fetcher import Fetcher
 from urllib.parse import parse_qs
 from sickle import Sickle
+import requests
 
 NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 
@@ -60,7 +61,7 @@ class OaiFetcher(Fetcher):
         request = {"url": url}
         return request
 
-    def check_page(self, http_resp):
+    def check_page(self, http_resp: requests.Response) -> int:
         xml_resp = ElementTree.fromstring(http_resp.content)
         xml_hits = xml_resp.find(
             'oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
@@ -70,7 +71,7 @@ class OaiFetcher(Fetcher):
                 f"[{self.collection_id}]: Fetched page {self.write_page}; "
                 f"{len(xml_hits)} hits; {self.build_fetch_request()['url']}"
             )
-        return bool(len(xml_hits))
+        return len(xml_hits)
 
     def increment(self, http_resp):
         super(OaiFetcher, self).increment(http_resp)
