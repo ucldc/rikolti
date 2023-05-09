@@ -106,7 +106,7 @@ class FlickrFetcher(Fetcher):
 
         return request
 
-    def aggregate_vernacular_content(self, content: str) -> str:
+    def aggregate_vernacular_content(self, response) -> str:
         """
         Accepts a content from a response for page of photos, and transforms it
         in a dictionary. This requires a `flickr.photos.getInfo` request for
@@ -117,6 +117,7 @@ class FlickrFetcher(Fetcher):
 
         Returns: str
         """
+        content = response.content
         photos = json.loads(content)
 
         print(
