@@ -165,12 +165,12 @@ class FlickrFetcher(Fetcher):
         session.mount("https://", HTTPAdapter(max_retries=retries))
         return session.get(url=url)
 
-    def check_page(self, http_resp: requests.Response) -> bool:
+    def check_page(self, http_resp: requests.Response) -> int:
         """
         Parameters:
             http_resp: requests.Response
 
-        Returns: bool
+        Returns: int
         """
         data = json.loads(http_resp.content)
         self.photo_total = len(data.get(self.response_items_attribute, {}).
@@ -181,7 +181,7 @@ class FlickrFetcher(Fetcher):
             f"at {http_resp.url} with {self.photo_total} hits"
         )
 
-        return True
+        return self.photo_total
 
     def increment(self, http_resp: requests.Response):
         """

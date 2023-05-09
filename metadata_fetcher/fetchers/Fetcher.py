@@ -82,7 +82,8 @@ class Fetcher(object):
             raise FetchError(
                 f"[{self.collection_id}]: unable to fetch page {page}")
 
-        if self.check_page(response):
+        record_count = self.check_page(response)
+        if record_count:
             content = self.aggregate_vernacular_content(response)
             if settings.DATA_DEST == 'local':
                 self.fetchtolocal(content)
@@ -91,7 +92,7 @@ class Fetcher(object):
 
         self.increment(response)
 
-        return self.json()
+        return record_count
 
     def aggregate_vernacular_content(self, response):
         return response.text

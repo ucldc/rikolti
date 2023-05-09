@@ -141,7 +141,7 @@ class NuxeoFetcher(Fetcher):
 
         return request
 
-    def check_page(self, http_resp):
+    def check_page(self, http_resp: requests.Response) -> int:
         """Checks that the http_resp contains metadata records
 
         Also recurses down into documents & folders, calling
@@ -157,7 +157,7 @@ class NuxeoFetcher(Fetcher):
         response = http_resp.json()
         query_type = self.nuxeo.get('query_type')
 
-        documents = False
+        documents = 0
         if query_type in ['documents', 'children'] and response.get('entries'):
             print(
                 f"[{self.collection_id}]: "
@@ -170,7 +170,7 @@ class NuxeoFetcher(Fetcher):
                 num_docs = self.nuxeo.get('doc_count', [])
                 self.nuxeo['doc_count'] = (
                     num_docs + [len(response.get('entries'))])
-            documents = True
+            documents = len(response.get('entries'))
 
         if ((query_type == 'documents' and self.nuxeo['fetch_children'])
                 or query_type == 'folders'):

@@ -9,7 +9,7 @@ import logging
 def fetch_endpoint(url, limit=None):
 
     collection_page = url
-    results = []
+    results = {}
 
     while collection_page and (not limit or len(results) < limit):
         response = requests.get(url=collection_page)
@@ -37,15 +37,26 @@ def fetch_endpoint(url, limit=None):
             logging.debug(log_msg.format(f"lambda payload: {collection}"))
             return_val = lambda_function.fetch_collection(
                 collection, None)
-            results.append(return_val)
+            results[collection['collection_id']] = return_val
 
-            if return_val['statusCode'] != 200:
+            if return_val[-1]['status'] != 'success':
                 print(log_msg.format(f"Error: {return_val}"))
             else:
-                print(log_msg.format(f"Fetch successful: {return_val}"))
+                logging.debug(log_msg.format(f"Fetch successful: {return_val}"))
         collection_page = False
 
-    print(results)
+    for collection_id, collection_result in results.items():
+        success = all([page['status'] == 'success' for page in collection_result])
+        total_items = sum([page['document_count'] for page in collection_result])
+        total_pages = collection_result[-1]['page'] + 1
+        print(
+            f"[{collection_id}]: Fetch {'successful' if success else 'errored'} - "
+            f"Fetched {total_items} items over {total_pages} pages"
+        )
+        if not success:
+            print(f"[{collection_id}]: {collection_result[-1]}")
+
+    return results
 
 
 if __name__ == "__main__":
