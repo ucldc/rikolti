@@ -27,7 +27,8 @@ class ChapmanRecord(OaiRecord):
         return f"{url.replace('items', 'thumbs')}?gallery=preview" if url else None
 
     def map_description(self) -> Union[str, None]:
-        description = [d for d in self.source_metadata.get('description') if 'thumbnail' not in d]
+        description = [d for d in self.source_metadata.get('description')
+                       if 'thumbnail' not in d]
         aggregate = [
             self.source_metadata.get('abstract'),
             description[0] if description else None,
@@ -48,7 +49,8 @@ class ChapmanRecord(OaiRecord):
         if "identifier" not in self.source_metadata:
             return
 
-        identifiers = [i for i in self.source_metadata.get('identifier') if "context" not in i]
+        identifiers = [i for i in self.source_metadata.get('identifier')
+                       if "context" not in i]
         return identifiers[0] if identifiers else None
 
 class ChapmanVernacular(OaiVernacular):

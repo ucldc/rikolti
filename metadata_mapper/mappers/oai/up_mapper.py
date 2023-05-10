@@ -26,7 +26,8 @@ class UpRecord(OaiRecord):
         if 'description' not in self.source_metadata:
             return
 
-        return [d for d in filter(None, self.source_metadata.get('description')) if 'thumbnail.jpg' not in d]
+        return [d for d in filter(None, self.source_metadata.get('description'))
+                if 'thumbnail.jpg' not in d]
 
 
 class UpVernacular(OaiVernacular):

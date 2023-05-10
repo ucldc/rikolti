@@ -23,7 +23,8 @@ class CsudhRecord(ContentdmRecord):
         if isinstance(value, (str, bytes)):
             return value
 
-        return [t for t in value if not t.startswith('ark:') and not t.startswith('csudh')]
+        return [t for t in value
+                if not t.startswith('ark:') and not t.startswith('csudh')]
 
 
 class CsudhVernacular(ContentdmVernacular):

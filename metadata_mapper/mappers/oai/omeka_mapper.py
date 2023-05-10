@@ -4,11 +4,13 @@ import requests
 
 class OmekaRecord(OaiRecord):
     """
-    TODO: this mapper's `map_is_shown_by` makes a request to generate value in some cases
+    TODO: this mapper's `map_is_shown_by` makes a request to generate value in some
+    cases
     """
 
     def map_is_shown_at(self):
-        identifiers = [i for i in filter(None, self.source_metadata.get('identifier')) if 'items/show' in i]
+        identifiers = [i for i in filter(None, self.source_metadata.get('identifier'))
+                       if 'items/show' in i]
 
         # TODO: This is true to the legacy mapper, but some analysis may be in order
         if identifiers:
@@ -16,7 +18,8 @@ class OmekaRecord(OaiRecord):
 
     def map_is_shown_by(self):
         """
-        If this logic changes, those changes may need to be reflected in NothumbVernacular.skip()
+        If this logic changes, those changes may need to be reflected in
+        NothumbVernacular.skip()
         """
         identifiers = filter(None, self.source_metadata.get('identifier'))
         for i in identifiers:
