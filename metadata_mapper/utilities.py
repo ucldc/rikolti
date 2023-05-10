@@ -62,13 +62,15 @@ def get_files(directory: str, collection_id: int) -> list[str]:
         return s3.list_objects_v2(bucket, key)
 
 
-def read_from_bucket(directory: str, collection_id: int, file_name: Union[str, int]) -> str:
+def read_from_bucket(directory: str, collection_id: int,
+                     file_name: Union[str, int]) -> str:
     """
     Reads the contents of a file from the appropriate content bucket.
 
     Data comes from local filesystem or S3, depending on ENV vars.
 
     Parameters:
+        directory: str
         collection_id: str
             Files are separated into directories by collection_id
         file_name: Union[str, int]
