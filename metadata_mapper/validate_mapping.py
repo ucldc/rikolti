@@ -104,9 +104,10 @@ def validate_page(collection_id: int, page_id: int,
     return validator
 
 
-def create_collection_validation_csv(collection_id: int) -> None:
-    result = validate_collection(collection_id)
-    result.log.output_csv_to_bucket(collection_id)
+def create_collection_validation_csv(collection_id: int, **options) -> None:
+    result = validate_collection(collection_id, **options)
+    filename = result.log.output_csv_to_bucket(collection_id)
+    return f"Output {len(result.log.log)} rows to {filename}"
 
 
 ## Private-ish
@@ -214,7 +215,23 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Validate mapped metadata against SOLR")
+    
     parser.add_argument('collection_id', help='Collection ID')
+    parser.add_argument("--log-level", dest="log_level",
+                        help="Log level - can be ERROR, WARNING, INFO, or DEBUG")
+    parser.add_argument('-v', '--verbose', action="store_true", help="Verbose mode")
+    parser.add_argument('-f', '--filename', dest="filename", help="Output filename")
+
     args = parser.parse_args(sys.argv[1:])
-    collection_report = create_collection_validation_csv(args.collection_id)
+
+    opt_args = ["log_level", "verbose", "filename"]
+    kwargs = {attrname: getattr(args, attrname) for attrname in opt_args if getattr(args, attrname)}
+
+    if kwargs.get("log_level"):
+      kwargs["log_level"] = getattr(ValidationLogLevel, args.log_level.upper())
+
+    print(f"Generating validation file for collection {args.collection_id} with options:")
+    print(kwargs)
+
+    collection_report = create_collection_validation_csv(args.collection_id, **kwargs)
     print(collection_report)
