@@ -25,7 +25,15 @@ python run_worker.py
 
 ## Run a workflow
 
+Run all harvesting steps for collection 12345:
+
 ```
-python 
+python run_workflow.py 12345
+```
+
+Run only steps 1 and 2 (fetching and mapping) for collection 12345:
+
+```
+python run_workflow.py 12345 --tasks 12
 ```
 
