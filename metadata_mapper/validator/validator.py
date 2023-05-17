@@ -1,194 +1,28 @@
 import itertools
 
-from datetime import datetime
-from typing import Any, Callable, IO, Union
+from typing import Any, Callable, Union
 
-import utilities
-
-
-class ValidationErrors:
-    CSV_FIELDS: dict[str, str] = {
-        "harvest_id": "Harvest ID",
-        "level": "Level",
-        "field": "Field",
-        "description": "Description",
-        "expected": "Expected Value",
-        "actual": "Actual Value"
-    }
-
-    def __init__(self):
-        self.errors: list[dict[str, Any]] = []
-
-    def has_errors(self):
-        return True if len(self.errors) else False
-
-    def is_empty(self):
-        return not self.has_errors()
-
-    def add(self, key: str, field: str, description: str, expected: Any,
-            actual: Any, level: str = "ERROR", **context) -> None:
-        """
-        Adds an error to the errors list.
-
-        Parameters:
-            key: str
-                The harvest ID (or other key) used to join the Rikolti
-                and comparison record.
-            field: str
-                The field on which the error occurred
-            description: str
-                Error description
-            expected: Any
-                Expected value (probably from Solr)
-            actual: Any
-                Actual value (from Rikolti mapper)
-            type: str
-                Error type (ERROR, WARN, etc)
-            context: dict
-                Additional values to be added (will not have headers)
-        """
-        self.errors.append({
-            "harvest_id": key,
-            "level": level,
-            "description": description,
-            "field": field,
-            "expected": str(expected),
-            "actual": str(actual),
-            **context
-        })
-
-    def merge(self, other_errors: "ValidationErrors") -> "ValidationErrors":
-        """
-        Merges errors list with another.
-
-        Parameters:
-            other_errors: ValidationErrors
-                Another ValidationErrors instance to merge in
-
-        Returns: ValidationErrors
-        """
-        if not other_errors.errors:
-            return
-
-        self.errors = self.errors + other_errors.errors
-        return self.errors
-
-    def output_csv_to_file(self, file: IO[str], append: bool = False,
-                           include_fields: list[str] = None) -> None:
-        """
-        Given a file, generates a CSV with error output.
-
-        Parameters:
-            file: IO[str]
-                File path to write to
-            append: bool (default: False)
-                Should errors be appended to the file?
-            include_fields: list[str] (default: None)
-                List of fields to include in the output
-        """
-        with open(file, "a" if append else "w") as f:
-            f.write(self._csv_content_string(include_fields, append))
-
-    def output_csv_to_bucket(self, collection_id: int, filename: str = None,
-                             include_fields: list[str] = None) -> None:
-        """
-        Writes a CSV to the env-appropriate bucket (local or S3).
-
-        Parameters:
-            collection_id: int
-                The collection ID (for finding appropriate folder)
-            filename: str (default: None)
-                The name of the created file. If not provided, defaults to
-                timestamp
-            include_fields: list[str] (default: None)
-                A list of fields to include in the CSV. Defaults to all.
-        """
-        if not filename:
-            filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
-
-        utilities.write_to_bucket("validation", collection_id, filename,
-                                  self._csv_content_string(include_fields))
-
-    def _csv_content(self, include_fields: list[str] = None,
-                     include_headers: bool = True) -> list[list[str]]:
-        """
-        Generates a list from errors suitable for generating a CSV.
-
-        Parameters:
-            include_fields: list[str] (default: None)
-                List of fields to include in the CSV. Defaults to all.
-            include_headers: bool (default: True)
-                Should a list of header values be added at the top?
-
-        Returns: list[list[str]]
-        """
-        def escape_csv_value(value):
-            return '"' + str(value).replace('"', '""') + '"'
-
-        if include_fields:
-            headers = [
-                h for (f, h) in self.CSV_FIELDS
-                if f in include_fields
-            ]
-            fields = [
-                f for f in self._default_fields
-                if f in include_fields
-            ]
-        else:
-            headers = self._default_headers
-            fields = self._default_fields
-
-        ret = [headers] if include_headers else []
-        for row in self.errors:
-            ret.append(
-                [
-                    escape_csv_value(val) for key, val in row.items()
-                    if key in fields
-                ]
-            )
-
-        return ret
-
-    def _csv_content_string(self, include_fields: list[str] = None,
-                            include_headers: bool = True) -> str:
-        """
-        Generates a string of CSV content suitable for writing to a file.
-
-        Parameters:
-            include_fields: list[str] (default: None)
-                List of fields to include in the CSV. Defaults to all.
-            include_headers: bool (default: True)
-                Should a list of header values be added at the top?
-
-        Returns: str
-        """
-        content = self._csv_content(include_fields, include_headers)
-        content_strings = [",".join(row) for row in content]
-        return "\n".join(content_strings)
-
-    @property
-    def _default_fields(self) -> list[str]:
-        return list(self.CSV_FIELDS.keys())
-
-    @property
-    def _default_headers(self) -> list[str]:
-        return list(self.CSV_FIELDS.values())
-
+from .validation_log import ValidationLog, ValidationLogLevel
+from .validation_mode import ValidationMode
 
 class Validator:
 
-    def __init__(self, fields: list[dict[str, Any]] = None):
-        self.errors = ValidationErrors()
+    def __init__(self, fields: list[dict[str, Any]] = None,
+                 **options):
+        self.log = ValidationLog(options.get("log_level", ValidationLogLevel.WARNING))
         self.set_validatable_fields(fields or {})
+        self.default_validation_mode = options.get("default_validation_mode",
+                                                   ValidationMode.STRICT)
+        self.verbose = options.get("verbose", False)
 
     def validate(self, key: str, rikolti_data: dict,
-                 comparison_metadata: dict) -> ValidationErrors:
+                 comparison_metadata: dict, validation_mode = None) -> ValidationLog:
         """
         Performs validation of mapped_metadata against comparison_metadata.
 
         For each entry in validatable_fields, the defined validations
         are provided a key/value pair from both datasets and invoked.
-        If validation fails, an error entry is added to self.errors,
+        If validation fails, an entry is added to self.log,
         which is ultimately returned.
 
         Parameters:
@@ -197,11 +31,12 @@ class Validator:
             comparison_data: dict[str, Any]
                 Comparison (usually Solr) data
 
-        Returns: ValidationErrors
+        Returns: ValidationLog
         """
         self.key = key
         self.rikolti_data = rikolti_data
         self.comparison_data = comparison_metadata
+        self.validation_mode = validation_mode or self.default_validation_mode
 
         if not self.rikolti_data or not self.comparison_data:
             missing_data_desc = "mapped Rikolti" if not self.rikolti_data else "Solr"
@@ -211,14 +46,20 @@ class Validator:
             #     "level": "ERROR",
             #     "description": f"No {missing_data_desc} data found for key"
             # }
-            # self.errors.add(**error)
+            # self.log.add(**error)
         else:
+            self.successfully_validated_fields = []
+
             self.before_validation()
 
-            for field in self.validatable_fields:
-                self._perform_validations(field)
+            for validation_def in self.validatable_fields:
+                self._perform_validations(self._normalize_validation_definition(validation_def))
 
-        return self.errors
+            self.after_validation()
+
+            self._maybe_create_validation_success_entry()
+
+        return self.log
 
     def set_validatable_fields(self, fields: list[dict[str, Any]] = [],
                                merge: bool = True) -> list[dict]:
@@ -284,6 +125,12 @@ class Validator:
         Optional pre-validation callback.
         """
         pass
+    
+    def after_validation(self, **kwargs) -> None:
+        """
+        Optional post-validation callback.
+        """
+        pass
 
     # Static validators
     #
@@ -315,7 +162,7 @@ class Validator:
 
     @staticmethod
     def type_match(validation_def: dict, rikolti_value: Any,
-                   comparison_value: Any) -> Union[str, None]:
+                   _: Any) -> Union[str, None]:
         """
         Validates that the value is of the expected type.
         """
@@ -343,7 +190,8 @@ class Validator:
         """
         Validates that the content of the provided values is the equal.
         """
-        if not rikolti_value == comparison_value:
+        if not validation_def["validation_mode"].value.compare(
+            rikolti_value, comparison_value):
             return "Content mismatch"
 
     @staticmethod
@@ -439,7 +287,7 @@ class Validator:
     def _perform_validations(self, validation_def: dict[str, Any]) -> None:
         """
         Runs validations for a given validation definition and adds to
-        the errors list.
+        the log entry list.
         """
         if not validation_def.get("validations"):
             return
@@ -449,23 +297,45 @@ class Validator:
         comp_value = self.comparison_data.get(field)
 
         validations = self._normalize_validations(
-            validation_def["validations"], validation_def.get("level", "error"))
+            validation_def["validations"], validation_def["level"])
 
         for validator, level in validations.items():
             raw_results = validator(validation_def, rikolti_value, comp_value)
             normalized_results = self._normalize_validator_results(raw_results)
 
-            for result in normalized_results:
-                self._build_errors(validation_def, result, level,
-                                   rikolti_value, comp_value)
+            if len(normalized_results) > 1:
+                for result in normalized_results:
+                    self._build_entries(validation_def, result, level,
+                                        rikolti_value, comp_value)
+            else:
+                if self.verbose:
+                    self._build_entries(validation_def, "Validation success",
+                                        ValidationLogLevel.INFO, rikolti_value,
+                                        comp_value)
+                else:
+                    self.successfully_validated_fields.append(validation_def.get("field"))
+
+    def _normalize_validation_definition(self, validation_def: dict) -> dict[str, Any]:
+        validation_def["validation_mode"] = validation_def.get("validation_mode",
+                                                               self.validation_mode)
+        validation_def["level"] = validation_def.get("level",
+                                                     ValidationLogLevel.ERROR)
+
+        return validation_def
 
     def _normalize_validations(self, validations: Union[
                                                         Callable,
                                                         list[Callable],
                                                         dict[Callable, str]
                                                         ],
-                               default_level: str = "ERROR"
+                               default_level: ValidationLogLevel
                                ) -> dict[Callable, str]:
+        """
+        Ensures that provided validations are a dict of Callable: ValidationLogLevel
+
+        If a ValidationLogLevel is not provided for a validation, fall back to
+        self.default_level.
+        """
         if isinstance(validations, Callable):
             return {validations: default_level}
         elif isinstance(validations, list):
@@ -473,45 +343,53 @@ class Validator:
         elif isinstance(validations, dict):
             return validations
 
-    def _build_errors(self, validation_def: dict, validation_result: Any,
+    def _build_entries(self, validation_def: dict, validation_result: Any,
                       level: str, rikolti_value: Any, comp_value: Any) -> None:
         """
-        Given a validation failure result, adds to self.errors.
+        Given a validation result, adds to self.log.
 
         Builds additional default keys/values as needed.
         """
         if isinstance(validation_result, str):
-            error_dict = {
+            log_dict = {
                 "description": validation_result,
                 "level": level
             }
         elif isinstance(validation_result, dict):
-            error_dict = {**validation_result, "level": level}
+            log_dict = {**validation_result, "level": level}
         elif not validation_result:
-            error_dict = {
+            log_dict = {
                 "description": "Validation failed",
                 "level": level
             }
 
-        error = {
-            **self._default_error(validation_def,
-                                  rikolti_value,
-                                  comp_value),
-            **error_dict
+        entry = {
+            **self._default_log_entry(validation_def,
+                                      rikolti_value,
+                                      comp_value),
+            **log_dict
         }
 
-        self.errors.add(**error)
+        self.log.add(**entry)
 
-    def _default_error(self, validation_def: dict[str, Any],
-                       rikolti_value: Any, comparison_value: Any) -> None:
+    def _default_log_entry(self, validation_def: dict[str, Any],
+                            rikolti_value: Any, comparison_value: Any) -> None:
         return {
             "key": self.key,
-            "level": "ERROR",
+            "level": ValidationLogLevel.ERROR,
             "field": validation_def["field"],
             "description": "Validation failed",
             "actual": rikolti_value,
             "expected": comparison_value
         }
+
+    def _maybe_create_validation_success_entry(self) -> None:
+        self.log.add(
+            key=self.key,
+            level=ValidationLogLevel.INFO,
+            field=", ".join(self.successfully_validated_fields),
+            description="Successfully validated"
+        )
 
     @staticmethod
     def _normalize_validator_results(results: Any) -> list[Any]:
@@ -584,139 +462,155 @@ default_validatable_fields: list[dict[str, Any]] = [
                         lambda d, r, c: isinstance(r, list) and len(r) == 1
                         ]
     },
+    {
+        "field": "isShownAt",
+        "type": str,
+        "validations": [
+                        Validator.required_field,
+                        Validator.full_match
+                        ]
+    },
+    {
+        "field": "isShownBy",
+        "type": str,
+        "validations": [
+                        Validator.required_field,
+                        Validator.full_match
+                        ]
+    },
     # Partial fidelity fields
     # Content match required; nulls okay
     {
         "field": "alternative_title",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "contributor",
         "type": Validator.list_of(str),
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "coverage",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "creator",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "date",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "description",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "extent",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "format",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "genre",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "language",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "location",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "provenance",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "publisher",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "relation",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "rights_holder",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "rights_note",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "rights_date",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "source",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "spatial",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "subject",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "temporal",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     },
     {
         "field": "transcription",
         "type": str,
         "validations": [Validator.content_match],
-        "level": "WARN"
+        "level": ValidationLogLevel.WARNING
     }
 ]
 

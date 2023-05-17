@@ -8,14 +8,19 @@ from typing import Type
 import settings
 import utilities
 
-from mappers.validator import Validator
+from validator.validator import Validator
+from validator.validation_mode import ValidationMode
+from validator.validation_log import ValidationLogLevel
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def validate_collection(collection_id: int,
                         validator_class: Type[Validator] = None,
-                        validator: Validator = None
+                        validator: Validator = None,
+                        default_validation_mode = ValidationMode.STRICT,
+                        log_level = ValidationLogLevel.WARNING,
+                        verbose = False
                         ) -> Validator:
     """
     Validates all pages of a collection of mapped data.
@@ -35,7 +40,9 @@ def validate_collection(collection_id: int,
         validator_class = get_validator_class(collection_id)
 
     if not validator:
-        validator = validator_class()
+        validator = validator_class(default_validation_mode=default_validation_mode,
+                                    log_level = log_level,
+                                    verbose = verbose)
 
     for page_id in utilities.get_files("mapped_metadata", collection_id):
         validate_page(collection_id, page_id, validator)
@@ -99,10 +106,10 @@ def validate_page(collection_id: int, page_id: int,
 
 def create_collection_validation_csv(collection_id: int) -> None:
     result = validate_collection(collection_id)
-    result.errors.output_csv_to_bucket(collection_id)
+    result.log.output_csv_to_bucket(collection_id)
 
 
-## Private
+## Private-ish
 
 
 def get_mapped_data(collection_id: int, page_id: int) -> dict:
