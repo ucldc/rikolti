@@ -225,12 +225,14 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
 
     opt_args = ["log_level", "verbose", "filename"]
-    kwargs = {attrname: getattr(args, attrname) for attrname in opt_args if getattr(args, attrname)}
+    kwargs = {attrname: getattr(args, attrname)
+              for attrname in opt_args
+              if getattr(args, attrname)}
 
     if kwargs.get("log_level"):
       kwargs["log_level"] = getattr(ValidationLogLevel, args.log_level.upper())
 
-    print(f"Generating validation file for collection {args.collection_id} with options:")
+    print(f"Generating validations for collection {args.collection_id} with options:")
     print(kwargs)
 
     collection_report = create_collection_validation_csv(args.collection_id, **kwargs)

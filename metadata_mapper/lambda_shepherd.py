@@ -69,11 +69,9 @@ def map_collection(payload, context):
                          if os.path.isfile(os.path.join(vernacular_path, f))]
             children_path = os.path.join(vernacular_path, 'children')
             if os.path.exists(children_path):
-                page_list += [
-                    os.path.join('children', f)
-                    for f in os.listdir(children_path)
-                    if os.path.isfile(os.path.join(children_path, f))
-                ]
+                page_list += [os.path.join('children', f)
+                              for f in os.listdir(children_path)
+                              if os.path.isfile(os.path.join(children_path, f))]
         except FileNotFoundError as e:
             logging.debug(f"{e} - have you fetched {collection_id}?")
             return {
@@ -117,9 +115,10 @@ def map_collection(payload, context):
 
     validate = payload.get("validate")
     if validate:
+        opts = validate if isinstance(validate, dict) else {}
         validate_mapping.create_collection_validation_csv(
             collection_id,
-            **validate
+            **opts
             )
 
     return {
