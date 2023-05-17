@@ -12,7 +12,8 @@ from typing import Any, Callable
 from datetime import date
 
 import settings
-from .validator import Validator, ValidationErrors
+from validator.validator import Validator
+from validator.validation_log import ValidationLog
 
 from . import constants
 from .iso639_1 import iso_639_1
@@ -139,7 +140,7 @@ class Record(ABC, object):
         return {}
 
     # Validation
-    def validate(self, comparison_data: dict) -> ValidationErrors:
+    def validate(self, comparison_data: dict) -> ValidationLog:
         return self.validator.validate(self.mapped_metadata, comparison_data)
 
     # Mapper Helpers
