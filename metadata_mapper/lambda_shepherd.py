@@ -7,6 +7,8 @@ from lambda_function import map_page
 import settings
 import logging
 
+import validate_mapping
+
 
 def get_collection(collection_id):
     collection = requests.get(
@@ -58,6 +60,7 @@ def map_collection(payload, context):
 
     count = 0
     page_count = 0
+
     if settings.DATA_SRC == 'local':
         vernacular_path = settings.local_path(
             'vernacular_metadata', collection_id)
@@ -111,6 +114,14 @@ def map_collection(payload, context):
                 InvocationType="Event",  # invoke asynchronously
                 Payload=json.dumps(payload).encode('utf-8')
             )
+
+    validate = payload.get("validate")
+    if validate:
+        validate_mapping.create_collection_validation_csv(
+            collection_id,
+            **validate
+            )
+
     return {
         'statusCode': 200,
         'body': {
