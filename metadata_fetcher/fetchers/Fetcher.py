@@ -35,7 +35,7 @@ class Fetcher(object):
         path = self.get_local_path()
 
         filename = os.path.join(path, f"{self.write_page}")
-        f = open(filename, "w+")
+        f = open(filename, "wb+")
 
         f.write(page)
 
