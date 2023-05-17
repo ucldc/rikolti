@@ -121,6 +121,8 @@ class ValidationLog:
 
         utilities.write_to_bucket("validation", collection_id, filename,
                                   self._csv_content_string(include_fields))
+        
+        return filename
 
     def _csv_content(self, include_fields: list[str] = None,
                      include_headers: bool = True) -> list[list[str]]:
