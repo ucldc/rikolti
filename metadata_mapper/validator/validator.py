@@ -7,13 +7,16 @@ from .validation_mode import ValidationMode
 
 class Validator:
 
-    def __init__(self, fields: list[dict[str, Any]] = None,
-                 **options):
+    def __init__(self, **options):
         self.log = ValidationLog(options.get("log_level", ValidationLogLevel.WARNING))
-        self.set_validatable_fields(fields or {})
         self.default_validation_mode = options.get("default_validation_mode",
                                                    ValidationMode.STRICT)
         self.verbose = options.get("verbose", False)
+        self.setup()
+
+    def setup(self) -> None:
+        """Optional post-init callback, useful to modify validatable fields, etc."""
+        pass
 
     def validate(self, key: str, rikolti_data: dict,
                  comparison_metadata: dict, validation_mode = None) -> ValidationLog:
@@ -61,8 +64,7 @@ class Validator:
 
         return self.log
 
-    def set_validatable_fields(self, fields: list[dict[str, Any]] = [],
-                               merge: bool = True) -> list[dict]:
+    def set_validatable_fields(self, fields: list[dict[str, Any]]) -> list[dict]:
         """
         Set and/or overrides fields to be validated.
 
@@ -80,17 +82,46 @@ class Validator:
 
         Returns list[dict]
         """
-        if merge:
-            field_dict = {
-                **{d["field"]: d for d in default_validatable_fields},
-                **{d["field"]: d for d in fields}
-            }
-
-            self.validatable_fields = [v for k, v in field_dict.items()]
-        else:
-            self.validatable_fields = fields
-
+        self.validatable_fields = fields
         return self.validatable_fields
+    
+    def add_validatable_field(self, field: str, type: Any,
+                              validations: Union[Callable,
+                                                 list[Callable],
+                                                 dict[Callable, ValidationLogLevel]
+                                                 ],
+                              level: ValidationLogLevel = None,
+                              validation_mode: ValidationMode = None,
+                              replace: bool = True
+                              ) -> bool:
+        """
+        Adds a validatable field
+        """
+        existing = [f for f in self.validatable_fields if f["field"] == field]
+        if len(existing) > 0:
+            if replace:
+                self.remove_validatable_field(field)
+            else:
+                return False
+
+        validation_def = {
+            "field": field,
+            "type": type,
+            "validations": validations,
+            "level": level,
+            "validation_mode": validation_mode
+        }
+
+        self.validatable_fields.append({k: v for k, v in validation_def if v})
+        return True
+
+    def remove_validatable_field(self, field: str) -> bool:
+        orig_len = len(self.validatable_fields)
+
+        self.validatable_fields = [f for f in self.validatable_fields
+                                   if f["field"] != field]
+        
+        return orig_len < len(self.validatable_fields)
 
     def generate_keys(self, collection: list[dict], type: str = None,
                       context: dict = {}) -> dict[str, dict]:
@@ -668,3 +699,5 @@ enrichment_fields: list[str] = (
     search_fields +
     harvest_fields
 )
+
+Validator.validatable_fields = default_validatable_fields
