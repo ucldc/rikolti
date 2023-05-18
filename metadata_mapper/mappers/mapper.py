@@ -971,7 +971,7 @@ class Record(ABC, object):
         self.mapped_data[prop] = recursive_substring_replace(value, old[0], new)
         return self
 
-    def filter_fields(self, keys):
+    def filter_fields(self, **_):
         """
         called with the following parameters:
         2333 times: keys=["sourceResource"]
