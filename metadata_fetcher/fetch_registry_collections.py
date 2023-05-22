@@ -1,6 +1,5 @@
 import requests
 import argparse
-import json
 import sys
 import lambda_function
 import logging

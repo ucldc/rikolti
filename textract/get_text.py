@@ -1,7 +1,5 @@
 import boto3
 import json
-import os
-import time
 
 
 def get_text(sns_message, context):
@@ -9,14 +7,14 @@ def get_text(sns_message, context):
 	s3_client = boto3.client('s3')
 	
 	job=json.loads(sns_message['Records'][0]['Sns']['Message'])
-	date=sns_message['Records'][0]['Sns']['Timestamp'].split('T')[0]
+	# date=sns_message['Records'][0]['Sns']['Timestamp'].split('T')[0]
 
 	print(job['Status'])
 	if job['Status'] != 'SUCCEEDED':
 		print((
 			f"{job['Status']}: s3://"
 			f"{job['DocumentLocation']['S3Bucket']}"
-			f"{job['DocumentLocation'][S3ObjectName]}"
+			f"{job['DocumentLocation']['S3ObjectName']}"
 		))
 		return
 

@@ -4,6 +4,7 @@ import re
 import boto3
 import hashlib
 import itertools
+import numbers
 
 from abc import ABC
 from markupsafe import Markup
@@ -77,7 +78,10 @@ class Vernacular(ABC, object):
         return api_response
 
     def get_records(self, records):
-        return [self.record_cls(self.collection_id, record) for record in records if not self.skip(record)]
+        return [
+            self.record_cls(self.collection_id, record)
+            for record in records if not self.skip(record)
+        ]
 
     def skip(self, record):
         return False
@@ -160,8 +164,8 @@ class Record(ABC, object):
     @returns_callable
     def first_string_in_field(self, field):
         """
-        Fetches a field value from source_metadata, and returns it if it's a string, or the first
-        item if it's a list
+        Fetches a field value from source_metadata, and returns it if it's a 
+        string, or the first item if it's a list
         """
         value = self.source_metadata.get(field)
         if isinstance(value, str):
@@ -172,7 +176,8 @@ class Record(ABC, object):
     @returns_callable
     def split_and_flatten(self, field):
         """
-        Given a list of strings or nested lists, splits the values on the split string then flattens
+        Given a list of strings or nested lists, splits the values
+        on the split string then flattens
         """
         values = self.source_metadata.get(field)
 
@@ -1511,9 +1516,12 @@ class Record(ABC, object):
                 'repository_data': [compose_repo_data(repo) for repo in repos],
 
                 # source resource fields
-                'alternative_title': filter_blank_values(record.get('alternativeTitle')),
+                'alternative_title': filter_blank_values(
+                    record.get('alternativeTitle')),
                 'contributor': filter_blank_values(record.get('contributor')),
-                'coverage': filter_blank_values(record.get('coverage')),
+                # TODO: coverage is listed twice here - why?
+                # commenting out the first
+                # 'coverage': filter_blank_values(record.get('coverage')),
                 'creator': filter_blank_values(record.get('creator')),
                 'description': filter_blank_values(record.get('description')),
                 'extent': filter_blank_values(record.get('extent')),
@@ -1531,9 +1539,9 @@ class Record(ABC, object):
                 'coverage': filter_blank_values(record.get('spatial')),
                 'date': unpack_display_date(record.get('date')),
                 'language': [
-                    l.get('name', l.get('iso639_3'))
-                    if isinstance(l, dict) else l
-                    for l in record.get('language', [])
+                    lang.get('name', lang.get('iso639_3'))
+                    if isinstance(lang, dict) else lang
+                    for lang in record.get('language', [])
                 ],
                 'subject': [
                     s['name'] if isinstance(s, dict) else dejson(s)
@@ -1657,9 +1665,10 @@ class Record(ABC, object):
             #     print(message, file=sys.stderr)
             #     raise MissingMediaJSON(message)
             # except ValueError as e:
-            #     message = '---- OMITTED: Doc:{} Missing reference media file: {}'.format(
-            #         doc['harvest_id_s'],
-            #         e)
+            #     message = (
+            #         f"---- OMITTED: Doc:{doc['harvest_id_s']} "
+            #         f"Missing reference media file: {e}"
+            #     )
             #     print(message, file=sys.stderr)
             #     raise MediaJSONError(message)
 

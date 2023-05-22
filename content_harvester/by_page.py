@@ -4,7 +4,6 @@ import boto3
 import os
 import requests
 import derivatives
-from botocore.exceptions import ClientError
 from requests.adapters import HTTPAdapter, Retry
 from collections import Counter
 
@@ -81,7 +80,10 @@ class UnsupportedMimetype(Exception):
 def check_mimetype(mimetype):
     ''' do a basic pre-check on the object to see if we think it's
     something know how to deal with '''
-    valid_types = ['image/jpeg', 'image/gif', 'image/tiff', 'image/png', 'image/jp2', 'image/jpx', 'image/jpm']
+    valid_types = [
+        'image/jpeg', 'image/gif', 'image/tiff', 'image/png',
+        'image/jp2', 'image/jpx', 'image/jpm'
+    ]
 
     # see if we recognize this mime type
     if mimetype in valid_types:
@@ -362,10 +364,14 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
             )
 
     # reporting aggregate stats
-    media_mimetypes = [record.get('media', {}).get('mimetype') for record in records]
-    thumb_mimetypes = [record.get('thumbnail', {}).get('mimetype') for record in records]
-    media_source_mimetype = [record.get('media_source', {}).get('mimetype') for record in records]
-    thumb_source_mimetype = [record.get('thumbnail_source', {}).get('mimetype') for record in records]
+    media_mimetypes = [
+        record.get('media', {}).get('mimetype') for record in records]
+    thumb_mimetypes = [
+        record.get('thumbnail', {}).get('mimetype') for record in records]
+    media_source_mimetype = [
+        record.get('media_source', {}).get('mimetype') for record in records]
+    thumb_source_mimetype = [
+        record.get('thumbnail_source', {}).get('mimetype') for record in records]
     child_contents = [len(record.get('children', [])) for record in records]
 
     return {

@@ -1,5 +1,5 @@
-import sys, os
-from troposphere import Parameter, Output, Ref, Sub, Template
+import sys
+from troposphere import Parameter, Ref, Sub, Template #, Output
 from troposphere import GetAtt
 import troposphere.serverless as serverless
 import troposphere.awslambda as awslambda
@@ -16,7 +16,8 @@ def main():
 
     template = Template()
 
-    template.set_description("SAM Template for Rikolti metadata_fetcher and metadata_mapper")
+    template.set_description(
+        "SAM Template for Rikolti metadata_fetcher and metadata_mapper")
     template.set_transform("AWS::Serverless-2016-10-31")
     template.set_version("2010-09-09")
     template.set_globals({"function": {"Timeout": 900}})

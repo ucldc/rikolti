@@ -55,7 +55,6 @@ scdl_fix_format = {
     "color print": "Color prints",
     "color prints": "Color prints",
     "Image": "Images",
-    "Manuscript": "Manuscripts",
     "Masks (costume)": "Masks (costumes)",
     "Newspaper": "Newspapers",
     "Object": "Objects",
