@@ -95,7 +95,7 @@ class Validator:
                               replace: bool = True
                               ) -> bool:
         """
-        Adds a validatable field
+        Adds a single validatable field.
         """
         existing = [f for f in self.validatable_fields if f["field"] == field]
         if len(existing) > 0:
