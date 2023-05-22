@@ -334,7 +334,7 @@ class Validator:
             raw_results = validator(validation_def, rikolti_value, comp_value)
             normalized_results = self._normalize_validator_results(raw_results)
 
-            if len(normalized_results) > 1:
+            if len(normalized_results) > 0:
                 for result in normalized_results:
                     self._build_entries(validation_def, result, level,
                                         rikolti_value, comp_value)
