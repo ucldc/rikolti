@@ -1,19 +1,14 @@
-import boto3
 import json
-import logging
-import os
 import requests
 import sys
 import urllib3
 
-from datetime import datetime
-from pathlib import Path
-from typing import Type, Union
+from typing import Type
 
 import settings
 import utilities
 
-from mappers.validator import Validator, ValidationErrors
+from mappers.validator import Validator
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

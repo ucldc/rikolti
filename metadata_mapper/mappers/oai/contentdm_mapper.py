@@ -22,7 +22,8 @@ class ContentdmRecord(OaiRecord):
 
     def map_is_shown_by(self):
         """
-        This was originally a "post-map" function. but really, this is seems like it should be map_is_shown_by()
+        This was originally a "post-map" function. but really, this is seems like
+        it should be map_is_shown_by()
 
         Comment from calisphere function:
         To run post mapping. For this one, is_shown_by needs sourceResource/type
@@ -31,15 +32,17 @@ class ContentdmRecord(OaiRecord):
         if not record_type:
             return
 
-        record_type_list = [record_type] if isinstance(record_type, str) else record_type
+        record_types = [record_type] if isinstance(record_type, str) else record_type
 
-        if "sound" in [t.lower() for t in record_type_list]:
+        if "sound" in [t.lower() for t in record_types]:
             return None
 
         return self.get_preview_image_url()
 
     def map_type(self):
-        """Used by map_is_shown_by() in this class, so cannot be directly added to the mapping"""
+        """Used by map_is_shown_by() in this class, so cannot be directly added to
+        the mapping
+        """
         return self.split_and_flatten('type')()
 
     def map_spatial(self):
@@ -67,7 +70,8 @@ class ContentdmRecord(OaiRecord):
             return larger_preview_image
 
         parts = self.get_identifier_parts()
-        return f"{parts['base_url']}/utils/getthumbnail/collection/{parts['collection_id']}/id/{parts['object_id']}"
+        return f"{parts['base_url']}/utils/getthumbnail/collection/"\
+               f"{parts['collection_id']}/id/{parts['object_id']}"
 
     def get_larger_preview_image_url(self):
         image_info = self.get_image_info()
@@ -80,7 +84,8 @@ class ContentdmRecord(OaiRecord):
         else:
             scale = int((max_dim / image_info['width']) * 100)
         scale = 100 if scale > 100 else scale
-        return f"{self.get_url_image_info()}&action=2&DMHEIGHT=2000&DMWIDTH=2000&DMSCALE={scale}"
+        return f"{self.get_url_image_info()}&action=2&DMHEIGHT=2000"\
+               f"&DMWIDTH=2000&DMSCALE={scale}"
 
     def get_image_info(self):
         """
@@ -100,7 +105,8 @@ class ContentdmRecord(OaiRecord):
             return
 
         url_image_info = '/'.join((parts["base_url"], 'utils', 'ajaxhelper'))
-        return f"{url_image_info}?CISOROOT={parts['collection_id']}&CISOPTR={parts['object_id']}"
+        return f"{url_image_info}?CISOROOT={parts['collection_id']}"\
+               f"&CISOPTR={parts['object_id']}"
 
     def get_identifier_parts(self):
         identifier = self.get_matching_identifier()
@@ -115,7 +121,9 @@ class ContentdmRecord(OaiRecord):
         }
 
     def get_matching_identifier(self, last=False):
-        """Gets a matching identifier, defaults to the first one, pass last=True to get the last one"""
+        """Gets a matching identifier, defaults to the first one, pass last=True to
+        get the last one
+        """
         identifiers = [i for i in self.source_metadata.get("identifier", [])
                        if self.identifier_match in i]
         if not identifiers:

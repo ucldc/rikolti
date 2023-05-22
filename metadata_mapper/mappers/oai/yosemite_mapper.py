@@ -5,8 +5,9 @@ class YosemiteRecord(OaiRecord):
     def UCLDC_map(self):
         return {
             'temporal': None,
-            'date': self.collate_fields(["available", "created", "dateAccepted", "dateCopyrighted", "dateSubmitted",
-                                         "issued", "modified", "valid", "temporal"])
+            'date': self.collate_fields(["available", "created", "dateAccepted",
+                                         "dateCopyrighted", "dateSubmitted", "issued",
+                                         "modified", "valid", "temporal"])
         }
 
     def map_is_shown_at(self):

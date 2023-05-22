@@ -30,7 +30,8 @@ class OaiRecord(Record):
                 'modified',
                 'valid'
             ]),
-            'description': self.collate_fields(['abstract', 'description', 'tableOfContents']),
+            'description': self.collate_fields(['abstract', 'description',
+                                                'tableOfContents']),
             'extent': self.source_metadata.get('extent'),
             'format': self.collate_fields(['format', 'medium']),
             'identifier': self.collate_fields(['bibliographicCitation', 'identifier']),
@@ -61,7 +62,7 @@ class OaiRecord(Record):
         }
 
     def map_subject(self) -> Union[list[dict[str, str]], None]:
-        # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127
+        # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127 # noqa: E501
         value = self.source_metadata.get('subject')
         if not value:
             return None

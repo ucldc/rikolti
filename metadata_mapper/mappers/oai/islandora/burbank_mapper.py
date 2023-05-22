@@ -12,8 +12,8 @@ class BurbankRecord(IslandoraRecord):
 
     def map_date(self):
         """
-        Exclude date values matching YYYY-MM-DD. Note that the regex copied from the legacy system succeeds in
-        this, but casts a wider net than necessary.
+        Exclude date values matching YYYY-MM-DD. Note that the regex copied from the
+        legacy system succeeds in this, but casts a wider net than necessary.
         """
         dates = self.collate_fields([
             'available',

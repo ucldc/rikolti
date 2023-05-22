@@ -8,7 +8,8 @@ class CsuciRecord(CsuDspaceRecord):
         }
 
     def map_type(self):
-        values = [v for v in self.source_metadata.get("formatName", []) if "text/plain" not in v]
+        values = [v for v in self.source_metadata.get("formatName", [])
+                  if "text/plain" not in v]
         if not values:
             return
 

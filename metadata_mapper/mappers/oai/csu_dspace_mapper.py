@@ -17,12 +17,15 @@ class CsuDspaceRecord(OaiRecord):
         if not self.source_metadata.get('originalName'):
             return
 
+        extensions = ['.txt', '.doc', '.tif', '.wav', '.mp4']
+
         filenames = [f for f in filter(None, self.source_metadata.get('originalName'))
-                     if not any([x in f.lower() for x in ['.txt', '.doc', '.tif', '.wav', '.mp4']])]
+                     if not any([x in f.lower() for x in extensions])]
 
         thumbnail_url = None
         for filename in filenames:
-            thumbnail_url = f"{self.get_baseurl()}/bitstream/handle/{self.get_handle()}/{urllib.parse.quote(filename)}"
+            thumbnail_url = f"{self.get_baseurl()}/bitstream/handle/"\
+                            f"{self.get_handle()}/{urllib.parse.quote(filename)}"
 
             if filename.endswith('.pdf'):
                 thumbnail_url = thumbnail_url + '.jpg'

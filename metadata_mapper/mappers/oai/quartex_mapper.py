@@ -14,10 +14,12 @@ class QuartexRecord(OaiRecord):
 
     def map_is_shown_by(self):
         """
-        TODO: determine if the following comment from the legacy mapper needs to be implemented (code both
-            with and without follows):
+        TODO: determine if the following comment from the legacy mapper needs to be
+              implemented (code both with and without follows):
 
-        # Grab the image URL from identifier values and switch out Size2 for Size4 (largest possible)"""
+              # Grab the image URL from identifier values and switch out Size2 for Size4
+              # (largest possible)
+        """
 
         values = self.source_metadata.get("identifier")
         if not values:

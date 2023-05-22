@@ -10,9 +10,12 @@ class NothumbVernacular(OmekaVernacular):
 
     def skip(self, record):
         """
-        This is a lightweight version of OmekaRecord.map_is_shown_by(). Any changes here may need to be
-        reflected there.
+        This is a lightweight version of OmekaRecord.map_is_shown_by(). Any changes
+        here may need to be reflected there.
         """
+        searches = ['s3.amazonaws.com/omeka-net', '/files/thumbnails/',
+                    '/files/original/']
+
         return not any([search in identifier
-                        for search in ['s3.amazonaws.com/omeka-net', '/files/thumbnails/', '/files/original/']
+                        for search in searches
                         for identifier in filter(None, record.get('identifier'))])
