@@ -4,9 +4,22 @@ import re
 
 class SdasmRecord(FlickrRecord):
     def UCLDC_map(self):
+        split_description = self.split_description()
+
         return {
-            "description": self.map_description,
-            "identifier": self.map_identifier
+            "description": self.map_description(split_description),
+            "identifier": list(set(filter(None, [
+                split_description.get("piction_id"),
+                split_description.get("catalog"),
+                split_description.get("filename"),
+                split_description.get("sdasm_catalog"),
+                split_description.get("catalog_or_negative_number")
+            ]))),
+            "date": list(filter(None, [
+                split_description.get("date"),
+                split_description.get("date_on_neg"),
+                split_description.get("year")
+            ]))
         }
 
     @property
@@ -104,24 +117,8 @@ class SdasmRecord(FlickrRecord):
 
         return description_parts
 
-    def map_date(self):
-        return list(filter(None, [
-            self.split_description().get("date"),
-            self.split_description().get("date_on_neg"),
-            self.split_description().get("year")
-        ]))
-
-    def map_identifier(self):
-        return list(set(filter(None, [
-            self.split_description().get("piction_id"),
-            self.split_description().get("catalog"),
-            self.split_description().get("filename"),
-            self.split_description().get("sdasm_catalog"),
-            self.split_description().get("catalog_or_negative_number")
-        ])))
-
-    def map_description(self):
-        description = self.split_description().get("description")
+    def map_description(self, split_description):
+        description = split_description.get("description")
 
         # Get rid of the message wrapped in triple dashes at the end. This only
         # works if the repository field is already extracted.

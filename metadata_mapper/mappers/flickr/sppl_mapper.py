@@ -4,12 +4,15 @@ import re
 
 class SpplRecord(FlickrRecord):
     def UCLDC_map(self):
+        split_description = self.split_description()
         return {
-            "description": self.map_description,
-            "identifier": self.map_identifier,
-            "type": self.map_type,
-            "rights": self.map_rights,
-            "provenance": self.map_provenance
+            "description": split_description.get("description"),
+            "identifier": self.map_identifier(split_description),
+            "type": split_description.get("type"),
+            "rights": split_description.get("rights_information"),
+            "provenance": [split_description.get("provenance")],
+            "subject": self.map_subject(split_description),
+            "date": split_description.get("date")
         }
 
     @property
@@ -95,41 +98,25 @@ class SpplRecord(FlickrRecord):
 
         return description_parts
 
-    def map_subject(self):
-        subjects = [tag.get("raw") for tag
+    def map_subject(self, split_description):
+        subjects = [{"name": tag.get("raw")} for tag
                     in self.source_metadata.get("tags", {}).get("tag", [])]
 
-        category = self.split_description().get("category")
+        category = split_description.get("category")
 
         if category:
-            subjects.append(category.lower())
+            subjects.append({"name": category.lower()})
 
         return subjects
 
-    def map_type(self):
-        return self.split_description().get("type")
-
-    def map_provenance(self):
-        return self.split_description().get("provenance")
-
-    def map_rights(self):
-        return self.split_description().get("rights_information")
-
-    def map_date(self):
-        return self.split_description().get("date")
-
-    def map_description(self):
-        return self.split_description().get("description")
-
-    def map_identifier(self):
+    def map_identifier(self, split_description):
         """
         Combine `previous_identifier` and `identifier` values from description
         metadata. The `previous_identifier` may contain an ARK, which we
         extract.
         """
-        previous_identifiers = self.split_description().\
-            get("previous_identifier", "")
-        identifiers = [self.split_description().get("identifier")]
+        previous_identifiers = split_description.get("previous_identifier", "")
+        identifiers = [split_description.get("identifier")]
 
         for previous_identifier in previous_identifiers.split(" / "):
             if "ark:" in previous_identifier:
@@ -139,7 +126,7 @@ class SpplRecord(FlickrRecord):
             else:
                 identifiers.append(previous_identifier)
 
-        return identifiers
+        return [i for i in identifiers if i != "N/A"]
 
 
 class SpplVernacular(FlickrVernacular):
