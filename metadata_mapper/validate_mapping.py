@@ -174,8 +174,7 @@ def get_couch_db_data(collection_id: int,
             "_list/has_field_value/by_provider_name_wdoc" \
             f"?key=\"{collection_id}\"&field={field_name}&limit=1000"
       
-      #### TODO: REMOVE verify=False once cert issues are resolved!
-      response = requests.get(url, verify=False)
+      response = requests.get(url)
       data = {}
       for d in json.loads(response.content):
           key = list(d.keys())[0]
