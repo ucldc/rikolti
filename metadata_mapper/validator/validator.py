@@ -9,7 +9,7 @@ class Validator:
 
     def __init__(self, **options):
         self.log = ValidationLog(options.get("log_level", ValidationLogLevel.WARNING))
-        self.default_validation_mode = options.get("default_validation_mode",
+        self.default_validation_mode = options.get("validation_mode",
                                                    ValidationMode.STRICT)
         self.verbose = options.get("verbose", False)
         self.setup()
@@ -66,19 +66,12 @@ class Validator:
 
     def set_validatable_fields(self, fields: list[dict[str, Any]]) -> list[dict]:
         """
-        Set and/or overrides fields to be validated.
-
-        If merge is True, merges provided fields into
-        default_validatable_fields, overriding same-named keys.
-
-        If merge is False, simply sets the fields to the provided list.
+        Sets fields to be validated, replacing defaults.
 
         Parameters:
             fields: list[dict[str, Any]] (default: [])
                 A list of dicts containing validation definitions.
                 See default_validatable_fields for examples.
-            merge: bool (default: True)
-                Should `fields` be merged into `default_validatable_fields`?
 
         Returns list[dict]
         """
