@@ -90,7 +90,7 @@ def validate_page(collection_id: int, page_id: int,
 
     if len(mapped_metadata) == 0 or len(comparison_data) == 0:
         print("No data found in "
-              f"{'mapped Rikolti data' if len(mapped_metadata) else 'Solr'}."
+              f"{'mapped Rikolti data' if len(mapped_metadata) == 0 else 'Solr'}."
               " Aborting."
               )
         return
