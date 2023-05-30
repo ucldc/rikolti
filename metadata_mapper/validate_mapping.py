@@ -18,7 +18,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 def validate_collection(collection_id: int,
                         validator_class: Type[Validator] = None,
                         validator: Validator = None,
-                        default_validation_mode = ValidationMode.STRICT,
+                        validation_mode = ValidationMode.STRICT,
                         log_level = ValidationLogLevel.WARNING,
                         verbose = False
                         ) -> Validator:
@@ -32,6 +32,12 @@ def validate_collection(collection_id: int,
             The validator class to use. Can be derived if not provided.
         validator: Validator (default: None)
             A validator instance to use. Can be derived if not provided.
+        validation_mode: ValidationMode (default: ValidationMode.STRICT)
+            The validation mode to use (unless overridden in individual validations)
+        log_level: ValidationLogLevel (default: ValidationLogLevel.WARNING)
+            The lowest log level that should be included in the output
+        verbose: bool (default: False)
+            Include verbose output in file?
 
     Returns: Validator
         The validator containing errors
@@ -40,7 +46,7 @@ def validate_collection(collection_id: int,
         validator_class = get_validator_class(collection_id)
 
     if not validator:
-        validator = validator_class(default_validation_mode=default_validation_mode,
+        validator = validator_class(validation_mode=validation_mode,
                                     log_level = log_level,
                                     verbose = verbose)
 
