@@ -306,9 +306,10 @@ class Record(ABC, object):
                 collection.get('rights_statement')
             ]
             rights = [r for r in rights if r]
+
             if not rights:
                 rights = [constants.rights_statement_default]
-            field_value = rights
+            field_value = [r.strip() for r in rights]
 
         if field == "type":
             field_value = [constants.dcmi_types.get(collection.get('dcmi_type'), None)]
