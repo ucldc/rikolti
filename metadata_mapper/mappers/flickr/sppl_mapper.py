@@ -9,7 +9,7 @@ class SpplRecord(FlickrRecord):
             "description": split_description.get("description"),
             "identifier": self.map_identifier(split_description),
             "type": split_description.get("type"),
-            "rights": split_description.get("rights_information"),
+            "rights": [split_description.get("rights_information")],
             "provenance": [split_description.get("provenance")],
             "subject": self.map_subject(split_description),
             "date": split_description.get("date")
