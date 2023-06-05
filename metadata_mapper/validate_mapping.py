@@ -4,6 +4,7 @@ import sys
 import urllib3
 
 from typing import Type
+from re import sub
 
 import settings
 import utilities
@@ -172,6 +173,16 @@ def get_couch_db_data(collection_id: int,
     # This method get ALL data for the collection, then pares it down
     # TODO: See if there's a way to improve the query to only get relevant data
     # TODO: See if there's a way to get both fields in a single query
+
+    def snakeify(s):
+        res = ""
+        for i in s:
+            if i.isupper():
+                res += "_" + i.lower()
+            else:
+                res += i
+        return res
+
     ret = {}
 
     for field_name in ["isShownAt", "isShownBy"]:  
@@ -180,11 +191,11 @@ def get_couch_db_data(collection_id: int,
             "_list/has_field_value/by_provider_name_wdoc" \
             f"?key=\"{collection_id}\"&field={field_name}&limit=1000"
       
-      response = requests.get(url)
+      response = requests.get(url, verify=False)
       data = {}
       for d in json.loads(response.content):
           key = list(d.keys())[0]
-          data[key] = {field_name: d[key]}
+          data[key] = {snakeify(field_name): d[key]}
 
       ret = {
               key: {**(ret.get(key) or {}), **(data.get(key) or {})}
