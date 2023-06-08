@@ -224,7 +224,7 @@ def get_validator_class(collection_id: int) -> Type[Validator]:
     mapper = collection_data.get("rikolti_mapper_type")
     vernacular = utilities.import_vernacular_reader(mapper)
 
-    return vernacular.record_cls.validator
+    return vernacular.validator if hasattr(vernacular, "validator") else Validator
 
 
 if __name__ == "__main__":
