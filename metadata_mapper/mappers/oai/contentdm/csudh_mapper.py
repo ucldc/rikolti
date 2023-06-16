@@ -1,4 +1,4 @@
-from ..contentdm_mapper import ContentdmRecord, ContentdmVernacular
+from .contentdm_mapper import ContentdmRecord, ContentdmVernacular
 
 
 class CsudhRecord(ContentdmRecord):

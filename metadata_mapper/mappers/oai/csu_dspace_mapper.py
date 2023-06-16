@@ -1,4 +1,4 @@
-from ..oai import OaiRecord, OaiVernacular
+from .oai_mapper import OaiRecord, OaiVernacular
 import re
 import urllib
 
