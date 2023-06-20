@@ -283,7 +283,7 @@ class Record(ABC, object):
         return self
 
     def select_preservica_id(self):
-        calisphere_id = self.mapped_data.get("preservica_id", {}).get('$')
+        calisphere_id = self.source_metadata.get("entity_id")
         self.legacy_couch_db_id = f"{self.collection_id}--{calisphere_id}"
         return self
 
