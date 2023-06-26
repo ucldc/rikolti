@@ -4,7 +4,7 @@ import sys
 import urllib3
 
 from typing import Type
-from re import sub
+# from re import sub
 
 import settings
 import utilities
