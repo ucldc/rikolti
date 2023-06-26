@@ -134,17 +134,17 @@ def main():
     ###################################
     ## LAMBDA FUNCTION map_metadata
     ###################################
-    # map_metadata_function = template.add_resource(serverless.Function(
-    #     "MetadataMapperMapPageFunction",
-    #     FunctionName = "map_metadata",
-    #     CodeUri = "metadata_mapper/",
-    #     Handler = "lambda_function.map_page",
-    #     Runtime = "python3.9",
-    #     Architectures = ['x86_64']
-    #     # Role = GetAtt(shepherd_mappers_function_role, "Arn")
-    # ))
+    map_metadata_function = template.add_resource(serverless.Function(
+        "MetadataMapperMapPageFunction",
+        FunctionName = "map_metadata",
+        CodeUri = "metadata_mapper/",
+        Handler = "lambda_function.map_page",
+        Runtime = "python3.9",
+        Architectures = ['x86_64']
+        # Role = GetAtt(shepherd_mappers_function_role, "Arn")
+    ))
 
-    shepherd_mappers_function.Environment = awslambda.Environment(
+    map_metadata_function.Environment = awslambda.Environment(
         Variables = {
             "SKIP_UNDEFINED_ENRICHMENTS": True
         }
