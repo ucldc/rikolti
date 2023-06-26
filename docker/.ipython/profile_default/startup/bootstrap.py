@@ -3,10 +3,10 @@
 import os
 import glob
 import importlib
-from pprint import pprint
+# from pprint import pprint
 
-get_ipython().run_line_magic("load_ext", "autoreload")
-get_ipython().run_line_magic("alias_magic", "r %autoreload")
+get_ipython().run_line_magic("load_ext", "autoreload")  # noqa: F821
+get_ipython().run_line_magic("alias_magic", "r %autoreload")  # noqa: F821
 
 # import all modules in the current cwd excluding some
 excludes = ["tests", "utilities", "settings", "__init__"]
