@@ -306,9 +306,10 @@ class Record(ABC, object):
                 collection.get('rights_statement')
             ]
             rights = [r for r in rights if r]
+
             if not rights:
                 rights = [constants.rights_statement_default]
-            field_value = rights
+            field_value = [r.strip() for r in rights]
 
         if field == "type":
             field_value = [constants.dcmi_types.get(collection.get('dcmi_type'), None)]
@@ -970,7 +971,7 @@ class Record(ABC, object):
         self.mapped_data[prop] = recursive_substring_replace(value, old[0], new)
         return self
 
-    def filter_fields(self, keys):
+    def filter_fields(self, **_):
         """
         called with the following parameters:
         2333 times: keys=["sourceResource"]
@@ -1121,6 +1122,10 @@ class Record(ABC, object):
             "dataProvider",
             "provider/name"
         ]
+
+        def capitalize_str(value):
+            return f"{value[0].upper()}{value[1:]}" if len(value) > 0 else ""
+
         for field in props:
             if field in exclude:
                 continue
@@ -1129,12 +1134,14 @@ class Record(ABC, object):
             if field in self.mapped_data:
                 if isinstance(self.mapped_data[field], str):
                     val = self.mapped_data[field]
-                    self.mapped_data[field] = f"{val[0].upper()}{val[1:]}"
+                    self.mapped_data[field] = capitalize_str(val)
                 elif isinstance(self.mapped_data[field], list):
                     self.mapped_data[field] = [
-                        f"{v[0].upper()}{v[1:]}"
-                        for v in self.mapped_data[field] if isinstance(v, str)
+                        # This doesn't map dictionary values; it leaves them untouched
+                        capitalize_str(v) if isinstance(v, str) else v
+                        for v in self.mapped_data[field]
                     ]
+
         return self
 
     def cleanup_value(self):

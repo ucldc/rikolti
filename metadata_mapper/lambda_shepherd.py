@@ -26,7 +26,7 @@ def check_for_missing_enrichments(collection):
 
     not_yet_implemented = []
     collection_enrichments = (
-        collection.get('rikolti__pre_enrichments', []) +
+        (collection.get('rikolti__pre_enrichments') or []) +
         collection.get('rikolti__enrichments')
     )
     for e_url in collection_enrichments:
