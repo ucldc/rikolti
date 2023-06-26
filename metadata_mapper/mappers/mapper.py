@@ -1589,14 +1589,20 @@ class Record(ABC, object):
                 if isinstance(date_source, dict):
                     date_source = [date_source]
 
+                # make_datetime is not implemented in rikolti and this should
+                # fail if executed. Amy thinks this is unused cruft, and she
+                # is very curious to know about any records that have this data
                 dates_start = [
-                    make_datetime(dt.get('begin', None))
+                    make_datetime(dt.get('begin', None))  # noqa: F821
                     for dt in date_source if isinstance(dt, dict)]
                 dates_start = sorted(dates_start)
                 start_date = dates_start[0] if dates_start else None
 
+                # make_datetime is not implemented in rikolti and this should
+                # fail if executed. Amy thinks this is unused cruft, and she
+                # is very curious to know about any records that have this data
                 dates_end = [
-                    make_datetime(dt.get('end', None))
+                    make_datetime(dt.get('end', None))  # noqa: F821
                     for dt in date_source if isinstance(dt, dict)]
                 dates_end = sorted(dates_end)
                 # TODO: should this actually be the last date?
