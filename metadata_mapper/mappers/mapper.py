@@ -844,7 +844,7 @@ class Record(ABC, object):
             if isinstance(data, str):
                 try:
                     x = json.loads(data)
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     x = data
                 return x
             for key, value in list(data.items()):
@@ -854,7 +854,7 @@ class Record(ABC, object):
                         try:
                             x = jsonfy_obj(v)
                             new_list.append(x)
-                        except (ValueError, TypeError) as e:
+                        except (ValueError, TypeError):
                             new_list.append(v)
                     obj_jsonfied[key] = new_list
                 else:  # usually singlevalue string, not json
@@ -863,7 +863,7 @@ class Record(ABC, object):
                         # catch numbers already typed as singlevalue strings
                         if isinstance(x, int):
                             x = value
-                    except (ValueError, TypeError) as e:
+                    except (ValueError, TypeError):
                         x = value
                     obj_jsonfied[key] = x
             return obj_jsonfied

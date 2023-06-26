@@ -86,18 +86,10 @@ DATABASES = {
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},  # noqa: E501
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},  # noqa: E501
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},  # noqa: E501
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},  # noqa: E501
 ]
 
 
@@ -121,11 +113,11 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 try:
-    from collection_registry.local_settings import *
+    from collection_registry.local_settings import *  # noqa: F403
 except ImportError:
     pass
 
 try:
-    from quickUI.local_settings import *
+    from quickUI.local_settings import *  # noqa: F403
 except ImportError:
     pass
