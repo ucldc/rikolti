@@ -1,1 +1,1 @@
-from .nuxeo_mapper import NuxeoRecord, NuxeoVernacular
+from .nuxeo_mapper import NuxeoRecord, NuxeoVernacular  # noqa: F401

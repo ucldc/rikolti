@@ -43,7 +43,14 @@ def get_metadata(collection_id, filename):
         path = os.path.join(local_path, str(filename))
         file = open(path, "r")
         record = json.loads(file.read())
-        #s3_client.download_file(settings.S3_BUCKET, f"mapped_with_content/{collection_id}/{filename}", f"/usr/local/dev/rikolti/rikolti_bucket/mapped_with_content/{collection_id}/{filename}")
+        # s3_client.download_file(
+        #     settings.S3_BUCKET,
+        #     f"mapped_with_content/{collection_id}/{filename}",
+        #     (
+        #         "/usr/local/dev/rikolti/rikolti_bucket/mapped_with_content/"
+        #         f"{collection_id}/{filename}"
+        #     )
+        # )
     else:
         s3_client = boto3.client(
             's3',

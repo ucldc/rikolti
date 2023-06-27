@@ -144,7 +144,7 @@ def main():
         # Role = GetAtt(shepherd_mappers_function_role, "Arn")
     ))
 
-    shepherd_mappers_function.Environment = awslambda.Environment(
+    map_metadata_function.Environment = awslambda.Environment(
         Variables = {
             "SKIP_UNDEFINED_ENRICHMENTS": True
         }

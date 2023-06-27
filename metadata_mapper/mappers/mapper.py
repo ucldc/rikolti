@@ -845,7 +845,7 @@ class Record(ABC, object):
             if isinstance(data, str):
                 try:
                     x = json.loads(data)
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     x = data
                 return x
             for key, value in list(data.items()):
@@ -855,7 +855,7 @@ class Record(ABC, object):
                         try:
                             x = jsonfy_obj(v)
                             new_list.append(x)
-                        except (ValueError, TypeError) as e:
+                        except (ValueError, TypeError):
                             new_list.append(v)
                     obj_jsonfied[key] = new_list
                 else:  # usually singlevalue string, not json
@@ -864,7 +864,7 @@ class Record(ABC, object):
                         # catch numbers already typed as singlevalue strings
                         if isinstance(x, int):
                             x = value
-                    except (ValueError, TypeError) as e:
+                    except (ValueError, TypeError):
                         x = value
                     obj_jsonfied[key] = x
             return obj_jsonfied
@@ -1596,14 +1596,20 @@ class Record(ABC, object):
                 if isinstance(date_source, dict):
                     date_source = [date_source]
 
+                # make_datetime is not implemented in rikolti and this should
+                # fail if executed. Amy thinks this is unused cruft, and she
+                # is very curious to know about any records that have this data
                 dates_start = [
-                    make_datetime(dt.get('begin', None))
+                    make_datetime(dt.get('begin', None))  # noqa: F821
                     for dt in date_source if isinstance(dt, dict)]
                 dates_start = sorted(dates_start)
                 start_date = dates_start[0] if dates_start else None
 
+                # make_datetime is not implemented in rikolti and this should
+                # fail if executed. Amy thinks this is unused cruft, and she
+                # is very curious to know about any records that have this data
                 dates_end = [
-                    make_datetime(dt.get('end', None))
+                    make_datetime(dt.get('end', None))  # noqa: F821
                     for dt in date_source if isinstance(dt, dict)]
                 dates_end = sorted(dates_end)
                 # TODO: should this actually be the last date?

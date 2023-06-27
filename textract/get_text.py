@@ -22,7 +22,9 @@ def get_text(sns_message, context):
 	page=0
 	words = []
 	collection_id = job['DocumentLocation']['S3ObjectName'].split('/')[-2]
-	calisphere_id = job['DocumentLocation']['S3ObjectName'].split('/')[-1].split('::')[0]
+	calisphere_id = (
+		job['DocumentLocation']['S3ObjectName'].split('/')[-1].split('::')[0]
+	)
 	while(next):
 		if page==0:
 			response = textract_client.get_document_text_detection(
