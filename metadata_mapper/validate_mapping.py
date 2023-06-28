@@ -89,12 +89,12 @@ def validate_page(collection_id: int, page_id: int,
                         context=context
                       )
 
-    if len(mapped_metadata) == 0 or len(comparison_data) == 0:
-        print("No data found in "
-              f"{'mapped Rikolti data' if len(mapped_metadata) == 0 else 'Solr'}."
-              " Aborting."
-              )
-        return
+    # if len(mapped_metadata) == 0 or len(comparison_data) == 0:
+    #     print("No data found in "
+    #           f"{'mapped Rikolti data' if len(mapped_metadata) == 0 else 'Solr'}."
+    #           " Aborting."
+    #           )
+    #     return
 
     all_keys = set(mapped_metadata.keys()).union(set(comparison_data.keys()))
 
@@ -186,21 +186,21 @@ def get_couch_db_data(collection_id: int,
     ret = {}
 
     for field_name in ["isShownAt", "isShownBy"]:  
-      url = "https://harvest-prd.cdlib.org/" \
+        url = "https://harvest-prd.cdlib.org/" \
             "couchdb/ucldc/_design/all_provider_docs/" \
             "_list/has_field_value/by_provider_name_wdoc" \
             f"?key=\"{collection_id}\"&field={field_name}&limit=1000"
       
-      response = requests.get(url, verify=False)
-      data = {}
-      for d in json.loads(response.content):
-          key = list(d.keys())[0]
-          data[key] = {snakeify(field_name): d[key]}
+        response = requests.get(url, verify=False)
+        data = {}
+        for d in json.loads(response.content):
+            key = list(d.keys())[0]
+            data[key] = {snakeify(field_name): d[key]}
 
-      ret = {
-              key: {**(ret.get(key) or {}), **(data.get(key) or {})}
-              for key in harvest_ids
-            }
+        ret = {
+            key: {**(ret.get(key) or {}), **(data.get(key) or {})}
+            for key in harvest_ids
+        }
 
     return ret
 
