@@ -1,5 +1,5 @@
 import itertools
-
+import re
 from typing import Any, Callable, Union
 
 from .validation_log import ValidationLog, ValidationLogLevel
@@ -58,6 +58,7 @@ class Validator:
             for validation_def in self.validatable_fields:
                 self._perform_validations(self._normalize_validation_definition(validation_def))
 
+            self.rights_validation()
             self.after_validation()
 
             self._maybe_create_validation_success_entry()
@@ -149,7 +150,16 @@ class Validator:
         Optional pre-validation callback.
         """
         pass
-    
+
+    def rights_validation(self, **kwargs) -> None:
+        if (not self.rikolti_data.get('rights') and
+            not self.rikolti_data.get('rights_uri')):
+            self.log.add(
+                key=self.key,
+                field="record rights",
+                description="No rights or rights_uri found")
+        return
+
     def after_validation(self, **kwargs) -> None:
         """
         Optional post-validation callback.
@@ -185,11 +195,28 @@ class Validator:
         return [r for r in result if r is not None]
 
     @staticmethod
+    def ark_type(validation_def: dict, rikolti_value: Any,
+                 _: Any) -> Union[str, None]:
+        """
+        Validates that the value is an ARK.
+        """
+        if (
+            not isinstance(rikolti_value, str) and
+            not re.fullmatch(r'ark\:\/\d{5}\/\d{6}', rikolti_value)
+        ):
+            return "ID is not an 'ark:/'"
+
+    @staticmethod
     def type_match(validation_def: dict, rikolti_value: Any,
                    _: Any) -> Union[str, None]:
         """
         Validates that the value is of the expected type.
+        Most fields are optional, so None is always acceptable.
+        If a field is required, use #required_field.
         """
+        if rikolti_value is None:
+            return
+
         expected_type = validation_def["type"]
 
         if isinstance(expected_type, Callable):
@@ -441,15 +468,14 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "id",
         "type": str,
         "validations": [
-                        Validator.required_field,
-                        Validator.full_match
-                        ]
+                        Validator.full_match,
+                        Validator.ark_type
+        ]
     },
     {
         "field": "identifier",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.required_field,
                         Validator.full_match
                         ]
     },
@@ -473,7 +499,6 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "rights",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.required_field,
                         Validator.full_match
                         ]
     },
@@ -481,14 +506,13 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "rights_uri",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.required_field,
                         Validator.full_match,
                         lambda d, r, c: isinstance(r, list) and len(r) == 1
                         ]
     },
     {
         "field": "is_shown_at",
-        "type": str,
+        "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
                         Validator.full_match
@@ -496,7 +520,7 @@ default_validatable_fields: list[dict[str, Any]] = [
     },
     {
         "field": "is_shown_by",
-        "type": str,
+        "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
                         Validator.full_match
@@ -638,6 +662,7 @@ default_validatable_fields: list[dict[str, Any]] = [
     }
 ]
 
+# TODO: where does this list come from? - AW
 valid_types: list[str] = [
     "collection",
     "dataset",
