@@ -11,6 +11,7 @@ load_dotenv()
 
 NUXEO_TOKEN = os.environ.get('NUXEO')
 FLICKR_API_KEY = os.environ.get('FLICKR_API_KEY')
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
 
 DATA_DEST_URL = os.environ.get("FETCHER_DATA_DEST", "file:///tmp")
 DATA_DEST = {
