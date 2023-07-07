@@ -178,23 +178,6 @@ class Validator:
     # separately.
 
     @staticmethod
-    def full_match(validation_def: dict, rikolti_value: Any,
-                   comparison_value: Any) -> Union[list, None]:
-        """
-        Validates that both type and content match
-        """
-        result = [
-            Validator.type_match(validation_def,
-                                 rikolti_value,
-                                 comparison_value),
-            Validator.content_match(validation_def,
-                                    rikolti_value,
-                                    comparison_value)
-        ]
-
-        return [r for r in result if r is not None]
-
-    @staticmethod
     def ark_type(validation_def: dict, rikolti_value: Any,
                  _: Any) -> Union[str, None]:
         """
@@ -468,7 +451,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "id",
         "type": str,
         "validations": [
-                        Validator.full_match,
+                        Validator.content_match,
+                        Validator.type_match,
                         Validator.ark_type
         ]
     },
@@ -476,7 +460,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "identifier",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
@@ -484,7 +469,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
@@ -492,21 +478,24 @@ default_validatable_fields: list[dict[str, Any]] = [
         "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
         "field": "rights",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
         "field": "rights_uri",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.full_match,
+                        Validator.content_match,
+                        Validator.type_match,
                         lambda d, r, c: isinstance(r, list) and len(r) == 1
                         ]
     },
@@ -515,7 +504,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
@@ -523,7 +513,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     # Partial fidelity fields
