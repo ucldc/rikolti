@@ -501,7 +501,7 @@ default_validatable_fields: list[dict[str, Any]] = [
     },
     {
         "field": "is_shown_at",
-        "type": Validator.list_of(str),
+        "type": str,
         "validations": [
                         Validator.required_field,
                         Validator.content_match,
@@ -510,7 +510,7 @@ default_validatable_fields: list[dict[str, Any]] = [
     },
     {
         "field": "is_shown_by",
-        "type": Validator.list_of(str),
+        "type": str,
         "validations": [
                         Validator.required_field,
                         Validator.content_match,
