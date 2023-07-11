@@ -11,7 +11,7 @@ class FlickrRecord(Record):
             "date": self.map_date,
             "description": self.map_description,
             "format": ["Photo"],
-            "identifier": [self.source_metadata.get("id")],
+            # "identifier": [self.source_metadata.get("id")],
             "spatial": self.map_spatial,
             "subject": self.map_subject,
             "title": self.map_title,
