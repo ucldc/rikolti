@@ -1,5 +1,7 @@
-from ..mapper import Record, Vernacular
+from ..mapper import Record, Vernacular, Validator
 import json
+from typing import Any
+import re
 
 
 class FlickrRecord(Record):
@@ -72,8 +74,46 @@ class FlickrRecord(Record):
         pass
 
 
+class FlickrValidator(Validator):
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.add_validatable_field(
+            field="is_shown_by", type=str,
+            validations=[
+                Validator.required_field,
+                Validator.type_match,
+                FlickrValidator.content_match_regex
+            ]
+        )
+
+    @staticmethod
+    def content_match_regex(validation_def: dict, rikolti_value: Any,
+                      comparison_value: Any) -> None:
+        """
+        Validates that the content of the provided values is equal.
+
+        If comparison_value is in the old flickr url style, replace with new
+        flickr url style and compare; if not, then compare the value as-is
+        """
+        if comparison_value:
+            old_flickr_url_template = (
+                r"https://farm\d.staticflickr.com/(\d+)/([\d_\w]+).jpg"
+            )
+            match = re.fullmatch(old_flickr_url_template, comparison_value)
+            if match:
+                comparison_value = (
+                    f"https://live.staticflickr.com/{match.group(1)}/"
+                    f"{match.group(2)}.jpg"
+                )
+
+        if not validation_def["validation_mode"].value.compare(
+            rikolti_value, comparison_value):
+            return "Content mismatch"
+
+
 class FlickrVernacular(Vernacular):
     record_cls = FlickrRecord
+    validator = FlickrValidator
 
     def parse(self, api_response):
         def modify_record(record):
