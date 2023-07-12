@@ -97,7 +97,7 @@ class FlickrValidator(Validator):
         """
         if comparison_value:
             old_flickr_url_template = (
-                r"https://farm\d.staticflickr.com/(\d+)/([\d_\w]+).jpg"
+                r"https://farm\d+.staticflickr.com/(\d+)/([\d_\w]+).jpg"
             )
             match = re.fullmatch(old_flickr_url_template, comparison_value)
             if match:
