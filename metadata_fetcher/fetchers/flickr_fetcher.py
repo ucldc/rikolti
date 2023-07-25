@@ -101,13 +101,7 @@ class FlickrFetcher(Fetcher):
 
         Returns: dict[str]
         """
-        request = {"url": self.get_current_url()}
-
-        print(
-            f"[{self.collection_id}]: Fetching page {self.write_page} "
-            f"at {request.get('url')}")
-
-        return request
+        return {"url": self.get_current_url()}
 
     def aggregate_vernacular_content(self, content: str) -> str:
         """
