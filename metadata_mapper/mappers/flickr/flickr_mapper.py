@@ -2,7 +2,7 @@ from ..mapper import Record, Vernacular, Validator
 import json
 from typing import Any
 import re
-
+import sys
 
 class FlickrRecord(Record):
     def UCLDC_map(self):
@@ -72,6 +72,59 @@ class FlickrRecord(Record):
         the photo, as it's an attribute on the owner object
         """
         pass
+
+    @staticmethod
+    def get_mapping_configuration():
+        """
+        Provides configuration for locating and extracting metadata values from
+        the description field using regex. The "key" field gives the regex a
+        name. The capture group in the regex is the value that we extract for
+        that field. The entire match (including the parts outside the capture
+        group), are replaced with an empty string in the description field.
+        The "discard" field indicates whether we want to store the value or
+        not. The "keep_in_description" field indicates whether, after extraction,
+        the label and value should remain in the description field.
+
+        Note that values are have both "keep_in_description": True and
+        "discard": True will yield the same results as a field that was not defined
+        here at all. That's because a secondary goal is to document all the
+        extractable fields even if they are kept in the description, and not put
+        in any other field.
+
+        Example:
+
+
+        """
+        sys.exit("get_mapping_configuration must be defined on a child mapper of "
+                 "flickr mapper. See sppl_mapper and sdasm_mapper.")
+
+    def split_description(self):
+        description = self.source_description
+        description_parts = {}
+
+        for field_configuration in self.get_mapping_configuration():
+            matches = re.search(field_configuration.get("regex"),
+                                self.source_description, re.MULTILINE)
+            if not matches:
+                continue
+
+            if not field_configuration.get("keep_in_description", False):
+                description = description.replace(matches.group(0), "")
+
+            if field_configuration.get("discard", False):
+                continue
+
+            prepend = field_configuration.get("prepend", "")
+
+            description_parts.update({field_configuration.get("key"):
+                                          prepend + matches.groups()[-1].strip()})
+
+        # Set the description if it wasn't provided as metadata in the
+        # description field
+        if "description" not in description_parts:
+            description_parts.update({"description": description})
+
+        return description_parts
 
 
 class FlickrValidator(Validator):
