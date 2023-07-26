@@ -6,7 +6,7 @@ class SpplRecord(FlickrRecord):
     def UCLDC_map(self):
         split_description = self.split_description()
         return {
-            "description": split_description.get("description"),
+            "description": [split_description.get("description")],
             "identifier": self.map_identifier(split_description),
             "type": split_description.get("type"),
             "rights": [split_description.get("rights_information")],
@@ -22,14 +22,6 @@ class SpplRecord(FlickrRecord):
     @staticmethod
     def get_mapping_configuration():
         """
-        Provides configuration for locating and extracting metadata values from
-        the description field using regex. The "key" field gives the regex a
-        name. The capture group in the regex is the value that we extract for
-        that field. The entire match (including the parts outside the capture
-        group), are replaced with an empty string in the description field.
-        The "keep" field indicates whether we want to store the value or not, it
-        will be removed from the description string in all cases.
-
         The `rights_information` regex is a catch all that will capture
         everything after "Rights Information:" appears in the description,
         which is why it is last.
@@ -54,18 +46,18 @@ class SpplRecord(FlickrRecord):
             {
                 "key": "owner",
                 "regex": r"Owner:([^\n]+)\n\s*\n",
-                "keep": False
+                "discard": True
             },
             {
                 "key": "previous_identifier_discard",
                 "regex": r"Previous Identifier: *N/A\n\s*\n",
-                "keep": False
+                "discard": True,
+                "keep_in_description": True
             },
             {
                 "key": "previous_identifier",
                 "regex": r"Previous Identifier:([^\n]+)\n\s*\n"
             },
-
             {
                 "key": "category",
                 "regex": r"Category:([^\n]+)\n\s*\n"
@@ -75,28 +67,6 @@ class SpplRecord(FlickrRecord):
                 "regex": r"Rights Information:([\S\s]+)"
             }
         ]
-
-    def split_description(self):
-        description = self.source_description
-        description_parts = {}
-
-        for field_configuration in self.get_mapping_configuration():
-            matches = re.search(field_configuration.get("regex"),
-                                self.source_description, re.MULTILINE)
-            if not matches:
-                continue
-
-            description = description.replace(matches.group(0), "")
-
-            if not field_configuration.get("keep", True):
-                continue
-
-            description_parts.update({field_configuration.get("key"):
-                                      matches.group(1).strip()})
-
-        description_parts.update({"description": description})
-
-        return description_parts
 
     def map_subject(self, split_description):
         subjects = [{"name": tag.get("raw")} for tag
