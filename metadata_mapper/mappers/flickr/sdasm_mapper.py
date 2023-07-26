@@ -1,13 +1,13 @@
 from .flickr_mapper import FlickrRecord, FlickrVernacular
 import re
-
+import sys
 
 class SdasmRecord(FlickrRecord):
     def UCLDC_map(self):
         split_description = self.split_description()
 
         return {
-            "description": self.map_description(split_description),
+            "description": [self.map_description(split_description)],
             "identifier": list(set(filter(None, [
                 split_description.get("piction_id"),
                 split_description.get("catalog"),
@@ -29,12 +29,6 @@ class SdasmRecord(FlickrRecord):
     @staticmethod
     def get_mapping_configuration():
         """
-        Provides configuration for locating and extracting metadata values from
-        the description field using regex. The "key" field gives the regex a
-        name. The capture group in the regex is the value that we extract for
-        that field. The entire match (including the parts outside the capture
-        group), are replaced with an empty string in the description field.
-
         There are two formats that SDASM uses. One separates values with " - ".
         The other separates with linebreaks. The fields that use these two
         formats don't appear to mix fields, which is why this works. It might be
@@ -43,47 +37,49 @@ class SdasmRecord(FlickrRecord):
         return [
             {
                 "key": "piction_id",
-                "regex": r"(^| )PictionID: ?(\S+)"
+                "regex": r"(^| )PictionID: ?(\S+)",
+                "prepend": "PictionID: "
             },
             {
                 "key": "catalog",
-                "regex": r"(^| )Catalog: ?(\S+)"
+                "regex": r"(^| )Catalog: ?(\S+)",
+                "prepend": "Catalog: "
             },
             {
                 "key": "filename",
-                "regex": r"(^| )Filename: ?(\S+)"
+                "regex": r"(^| )Filename: ?(\S+)",
+                "prepend": "Filename: "
             },
             {
                 "key": "date_on_neg",
-                "regex": r"(^| )Date on Neg: ?(\S+)"
+                "regex": r"(^| )Date on Neg: ?(\S+)",
+                "keep_in_description": True
             },
             {
                 "key": "year",
-                "regex": r"(^| )Year: ?([^\n]+)\n"
+                "regex": r"(^| )Year: ?([^\n]+)\n",
+                "keep_in_description": True
             },
             {
                 "key": "date",
                 "regex": r"(^| )Date: ?(\S+)",
+                "keep_in_description": True
             },
             {
                 "key": "sdasm_catalog",
-                "regex": r"^SDASM Catalog #: ?([^\n]+)\n"
+                "regex": r"^SDASM Catalog #: ?([^\n]+)\n",
+                "prepend": "SDASM Catalog #: "
             },
             {
                 "key": "corp_name",
-                "regex": r"^Corp. Name: ?([^\n]+)\n"
-            },
-            {
-                "key": "title",
-                "regex": r"^Title: ?([^\n]+)\n"
+                "regex": r"^Corp. Name: ?([^\n]+)\n",
+                "discard": True,
+                "keep_in_description": True
             },
             {
                 "key": "catalog_or_negative_number",
-                "regex": r"^Catalog or Negative #: ?([^\n]+)\n"
-            },
-            {
-                "key": "media_negative_size",
-                "regex": r"^Media +\(negative size\): ?([^\n]+)\n"
+                "regex": r"^Catalog or Negative #: ?([^\n]+)\n",
+                "prepend": "Catalog or Negative #: "
             },
             {
                "key": "description",
@@ -91,38 +87,14 @@ class SdasmRecord(FlickrRecord):
             },
             {
                 "key": "repository",
-                "regex": r"Repository:(</b>)? ?([^\n]*)$"
+                "regex": r"Repository:(</b>)? ?([^\n]*)$",
+                "discard": True,
+                "keep_in_description": True
             }
         ]
 
-    def split_description(self):
-        description = self.source_description
-        description_parts = {}
-
-        for field_configuration in self.get_mapping_configuration():
-            matches = re.search(field_configuration.get("regex"),
-                                self.source_description, re.MULTILINE)
-            if not matches:
-                continue
-
-            description = description.replace(matches.group(0), "")
-
-            description_parts.update({field_configuration.get("key"):
-                                     matches.groups()[-1].strip()})
-
-        # Set the description if it wasn't provided as metadata in the
-        # description field
-        if "description" not in description_parts:
-            description_parts.update({"description": description})
-
-        return description_parts
-
     def map_description(self, split_description):
         description = split_description.get("description")
-
-        # Get rid of the message wrapped in triple dashes at the end. This only
-        # works if the repository field is already extracted.
-        description = re.sub(r"---[^-]+---$", "", description)
 
         # Get rid of multiple " -" which serve as separators
         description = re.sub(r"( +-){2,}", " -", description)
