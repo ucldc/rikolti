@@ -99,6 +99,16 @@ We use PR reviews to approve or reject, comment on, and request further iteratio
   - LOCALFOLDER
 
 
+## Dags
+
+Dags that use the rikolti modules in Airflow are defined in the `dags` folder.
+
+A very basic level of testing is done on the dags to ensure tey load as expected. 
+
+### Continuous Deployment
+
+On each merge to `main`, an `AWS CodeBuild` task will run, triggered by a webhook emitted from github that the `CodeBuild` project listens for.
+
 ## Airflow Development
 
 ### Set up `aws-mwaa-local-runner`
