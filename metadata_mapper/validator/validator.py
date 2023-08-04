@@ -106,7 +106,7 @@ class Validator:
             "validation_mode": validation_mode
         }
 
-        self.validatable_fields.append({k: v for k, v in validation_def if v})
+        self.validatable_fields.append({k: v for k, v in validation_def.items() if v})
         return True
 
     def remove_validatable_field(self, field: str) -> bool:
