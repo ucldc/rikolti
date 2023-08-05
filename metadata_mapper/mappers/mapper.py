@@ -1471,7 +1471,10 @@ class Record(ABC, object):
                 if not couch_doc.get('calisphere-id'):
                     raise Exception('no calisphere id')
                 hash_id = hashlib.md5()
-                hash_id.update(couch_doc['calisphere-id'].encode('utf-8'))
+                hash_id.update((
+                    f"{couch_doc['collection'][0]['id']}--"
+                    f"{couch_doc['calisphere-id']}"
+                ).encode('utf-8'))
                 solr_id = hash_id.hexdigest()
             return solr_id
 

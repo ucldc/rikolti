@@ -1,5 +1,5 @@
 import itertools
-
+import re
 from typing import Any, Callable, Union
 
 from .validation_log import ValidationLog, ValidationLogLevel
@@ -58,6 +58,7 @@ class Validator:
             for validation_def in self.validatable_fields:
                 self._perform_validations(self._normalize_validation_definition(validation_def))
 
+            self.rights_validation()
             self.after_validation()
 
             self._maybe_create_validation_success_entry()
@@ -105,7 +106,7 @@ class Validator:
             "validation_mode": validation_mode
         }
 
-        self.validatable_fields.append({k: v for k, v in validation_def if v})
+        self.validatable_fields.append({k: v for k, v in validation_def.items() if v})
         return True
 
     def remove_validatable_field(self, field: str) -> bool:
@@ -149,7 +150,16 @@ class Validator:
         Optional pre-validation callback.
         """
         pass
-    
+
+    def rights_validation(self, **kwargs) -> None:
+        if (not self.rikolti_data.get('rights') and
+            not self.rikolti_data.get('rights_uri')):
+            self.log.add(
+                key=self.key,
+                field="record rights",
+                description="No rights or rights_uri found")
+        return
+
     def after_validation(self, **kwargs) -> None:
         """
         Optional post-validation callback.
@@ -168,28 +178,28 @@ class Validator:
     # separately.
 
     @staticmethod
-    def full_match(validation_def: dict, rikolti_value: Any,
-                   comparison_value: Any) -> Union[list, None]:
+    def ark_type(validation_def: dict, rikolti_value: Any,
+                 _: Any) -> Union[str, None]:
         """
-        Validates that both type and content match
+        Validates that the value is an ARK.
         """
-        result = [
-            Validator.type_match(validation_def,
-                                 rikolti_value,
-                                 comparison_value),
-            Validator.content_match(validation_def,
-                                    rikolti_value,
-                                    comparison_value)
-        ]
-
-        return [r for r in result if r is not None]
+        if (
+            not isinstance(rikolti_value, str) and
+            not re.fullmatch(r'ark\:\/\d{5}\/\d{6}', rikolti_value)
+        ):
+            return "ID is not an 'ark:/'"
 
     @staticmethod
     def type_match(validation_def: dict, rikolti_value: Any,
                    _: Any) -> Union[str, None]:
         """
         Validates that the value is of the expected type.
+        Most fields are optional, so None is always acceptable.
+        If a field is required, use #required_field.
         """
+        if rikolti_value is None:
+            return
+
         expected_type = validation_def["type"]
 
         if isinstance(expected_type, Callable):
@@ -441,16 +451,17 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "id",
         "type": str,
         "validations": [
-                        Validator.required_field,
-                        Validator.full_match
-                        ]
+                        Validator.content_match,
+                        Validator.type_match,
+                        Validator.ark_type
+        ]
     },
     {
         "field": "identifier",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
@@ -458,7 +469,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
@@ -466,23 +478,24 @@ default_validatable_fields: list[dict[str, Any]] = [
         "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
         "field": "rights",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
         "field": "rights_uri",
         "type": Validator.list_of(str),
         "validations": [
-                        Validator.required_field,
-                        Validator.full_match,
+                        Validator.content_match,
+                        Validator.type_match,
                         lambda d, r, c: isinstance(r, list) and len(r) == 1
                         ]
     },
@@ -491,7 +504,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "type": str,
         "validations": [
                         Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     {
@@ -499,7 +513,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "type": str,
         "validations": [
                         Validator.required_field,
-                        Validator.full_match
+                        Validator.content_match,
+                        Validator.type_match
                         ]
     },
     # Partial fidelity fields
@@ -637,60 +652,5 @@ default_validatable_fields: list[dict[str, Any]] = [
         "level": ValidationLogLevel.WARNING
     }
 ]
-
-valid_types: list[str] = [
-    "collection",
-    "dataset",
-    "event",
-    "image",
-    "interactive resource",
-    "moving image",
-    "physical object",
-    "service",
-    "software",
-    "sound",
-    "text",
-]
-
-repository_fields: list[str] = [
-    'campus_data',
-    'campus_name',
-    'campus_url',
-    'collection_data',
-    'collection_name',
-    'collection_url',
-    'repository_data',
-    'repository_name',
-    'repository_url',
-    'sort_collection_data',
-]
-
-excluded_fields: list[str] = [
-    'reference_image_md5',
-    'reference_image_dimensions',
-    'structmap_url',
-    'url_item',
-    'harvest_id_s'
-]
-
-search_fields: list[str] = [
-    'facet_decade',
-    'sort_date_end',
-    'sort_date_start',
-    'sort_title',
-]
-
-harvest_fields: list[str] = [
-    '_version_',
-    'harvest_id_s',
-    'timestamp',
-]
-
-enrichment_fields: list[str] = (
-    repository_fields +
-    excluded_fields +
-    search_fields +
-    harvest_fields
-)
 
 Validator.validatable_fields = default_validatable_fields
