@@ -24,6 +24,7 @@ class SpplRecord(FlickrRecord):
         description = re.sub(r"Source:([^\n]+)\n\s*\n", "", description, count=1)
         description = re.sub(r"Date:([^\n]+)\n\s*\n", "", description, count=1)
         description = re.sub(r"Identifier:([^\n]+)\n\s*\n", "", description, count=1)
+        description = re.sub(r"Local Call number:([^\n]+)\n\s*\n", description, count=1)
         description = re.sub(r"Previous Identifier:(.+\n?(?!\n).*)\n\s*\n", "", description, count=1)
         description = re.sub(r"Category:([^\n]+)\n\s*\n", "", description, count=1)
         description = re.sub(r"Rights Information:([\S\s]+)", "", description, count=1)
@@ -55,6 +56,12 @@ class SpplRecord(FlickrRecord):
         if previous_identifiers:
             previous_identifiers = previous_identifiers.replace("N/A", "")
             previous_identifiers = re.split(r"\s+/\s+", previous_identifiers)
+        
+        local_call_number = self.search_description(
+            r"Local Call number:([^\n]+)\n\s*\n"
+        )
+        if local_call_number:
+            previous_identifiers.append(local_call_number)
 
         identifiers = self.search_description(r"Identifier:([^\n]+)\n\s*\n")
         if identifiers:
