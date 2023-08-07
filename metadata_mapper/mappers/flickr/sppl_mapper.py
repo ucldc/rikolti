@@ -25,8 +25,10 @@ class SpplRecord(FlickrRecord):
         description = re.sub(r"Source:([^\n]+)\n\s*\n", "", description, count=1)
         description = re.sub(r"Date:([^\n]+)\n\s*\n", "", description, count=1)
         description = re.sub(r"Identifier:([^\n]+)\n\s*\n", "", description, count=1)
-        description = re.sub(r"Local Call number:([^\n]+)\n\s*\n", "", description, count=1)
-        description = re.sub(r"Previous Identifier:(.+\n?(?!\n).*)\n\s*\n", "", description, count=1)
+        description = re.sub(
+            r"Local Call number:([^\n]+)\n\s*\n", "", description, count=1)
+        description = re.sub(
+            r"Previous Identifier:(.+\n?(?!\n).*)\n\s*\n", "", description, count=1)
         description = re.sub(r"Category:([^\n]+)\n\s*\n", "", description, count=1)
         description = re.sub(r"Rights Information:([\S\s]+)", "", description, count=1)
         return description
@@ -95,7 +97,8 @@ class SpplFlickrValidator(FlickrValidator):
             validation_def, rikolti_value, comparison_value)
 
         if content_match_validation == "Content mismatch":
-            if comparison_value == None and rikolti_value == ['Owner: South Pasadena Public Library']:
+            if (comparison_value is None and
+                 rikolti_value == ['Owner: South Pasadena Public Library']):
                 return
         return content_match_validation
 
