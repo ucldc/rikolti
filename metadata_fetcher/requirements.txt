@@ -2,3 +2,4 @@ boto3
 requests
 sickle
 python-dotenv
+beautifulsoup4
