@@ -13,7 +13,7 @@ from datetime import date
 
 import settings
 from validator.validator import Validator
-from validator.validation_log import ValidationLog
+from validator.validation_log import ValidationLog, ValidationLogLevel
 
 from . import constants
 from .iso639_1 import iso_639_1
