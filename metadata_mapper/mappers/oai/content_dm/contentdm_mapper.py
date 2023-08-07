@@ -1,7 +1,7 @@
 import requests
 import itertools
 
-from .oai_mapper import OaiRecord, OaiVernacular
+from ..oai_mapper import OaiRecord, OaiVernacular
 
 
 class ContentdmRecord(OaiRecord):

@@ -90,13 +90,11 @@ class OacRecord(Record):
         values = []
         if exists(self.source_metadata, provider_prop):
             for x in self.source_metadata[provider_prop]:
-                try:
-                    value = x['text']
-                except KeyError:
+                if not x.get('text'):
                     # not an elementtree type data value
                     values.append(x)
                     continue
-                if not x['attrib']:
+                if not x.get('attrib'):
                     values.append(x['text'])
                 else:
                     suppress = False

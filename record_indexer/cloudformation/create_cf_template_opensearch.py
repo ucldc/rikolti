@@ -1,9 +1,9 @@
 import sys
-from troposphere import Parameter, Output, Ref, Sub, Template, Tags
+from troposphere import Sub, Template  # Parameter, Output, Ref, Tags
 import troposphere.opensearchservice as opensearch
-import troposphere.ec2 as ec2
-from awacs.aws import Action, Allow, PolicyDocument, Principal, Statement
-import json
+# import troposphere.ec2 as ec2
+# from awacs.aws import Action, Allow, PolicyDocument, Principal, Statement
+# import json
 
 def main():
     template = Template()
@@ -11,11 +11,11 @@ def main():
     ####################
     ## PARAMETERS
     ####################
-    env = template.add_parameter(Parameter(
-        "Env",
-        Description="Environment",
-        Type="String"
-    ))
+    # env = template.add_parameter(Parameter(
+    #     "Env",
+    #     Description="Environment",
+    #     Type="String"
+    # ))
 
     '''
     vpc_id = template.add_parameter(Parameter(
@@ -35,7 +35,8 @@ def main():
     ##############################
     ## SECURITY GROUP
     ##############################
-    # using fine-grained access control with master user instead of security group for now
+    # using fine-grained access control with master user instead of
+    # security group for now
     '''
     security_group = template.add_resource(ec2.SecurityGroup(
         "SecurityGroup",
@@ -69,7 +70,24 @@ def main():
     Provisioned Throughput (MiB/s) 125 MiB/s
     '''
     '''
-    {"error":{"root_cause":[{"type":"security_exception","reason":"no permissions for [indices:monitor/stats] and User [name=arn:aws:iam::563907706919:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_pad-dsc-admin_7703dd36bc6fc585, backend_roles=[arn:aws:iam::563907706919:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_pad-dsc-admin_7703dd36bc6fc585], requestedTenant=null]"}],"type":"security_exception","reason":"no permissions for [indices:monitor/stats] and User [name=arn:aws:iam::563907706919:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_pad-dsc-admin_7703dd36bc6fc585, backend_roles=[arn:aws:iam::563907706919:role/aws-reserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_pad-dsc-admin_7703dd36bc6fc585], requestedTenant=null]"},"status":403}
+    {"error":{
+        "root_cause":[{
+            "type":"security_exception",
+            "reason":"no permissions for [indices:monitor/stats] and User [name
+                      =arn:aws:iam::563907706919:role/aws-reserved/sso.amazonaw
+                      s.com/us-west-2/AWSReservedSSO_pad-dsc-admin_7703dd36bc6f
+                      c585, backend_roles=[arn:aws:iam::563907706919:role/aws-r
+                      eserved/sso.amazonaws.com/us-west-2/AWSReservedSSO_pad-ds
+                      c-admin_7703dd36bc6fc585], requestedTenant=null]"
+        }],
+        "type":"security_exception",
+        "reason":"no permissions for [indices:monitor/stats] and User [name=arn
+                  :aws:iam::563907706919:role/aws-reserved/sso.amazonaws.com/us
+                  -west-2/AWSReservedSSO_pad-dsc-admin_7703dd36bc6fc585, backen
+                  d_roles=[arn:aws:iam::563907706919:role/aws-reserved/sso.amaz
+                  onaws.com/us-west-2/AWSReservedSSO_pad-dsc-admin_7703dd36bc6f
+                  c585], requestedTenant=null]"
+    },"status":403}
     '''
     domain = template.add_resource(opensearch.Domain(
         "OpenSearchDomain",

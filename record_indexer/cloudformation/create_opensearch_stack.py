@@ -78,6 +78,11 @@ def main(params):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('env', choices=['prod', 'stg', 'dev'])
-    parser.add_argument('--disable_rollback', help='disable rollback', action=argparse.BooleanOptionalAction, default=False),
+    parser.add_argument(
+        '--disable_rollback',
+        help='disable rollback',
+        action=argparse.BooleanOptionalAction,
+        default=False
+    ),
     args = parser.parse_args()
     sys.exit(main(args))

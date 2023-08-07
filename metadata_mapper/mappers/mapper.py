@@ -845,7 +845,7 @@ class Record(ABC, object):
             if isinstance(data, str):
                 try:
                     x = json.loads(data)
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     x = data
                 return x
             for key, value in list(data.items()):
@@ -855,7 +855,7 @@ class Record(ABC, object):
                         try:
                             x = jsonfy_obj(v)
                             new_list.append(x)
-                        except (ValueError, TypeError) as e:
+                        except (ValueError, TypeError):
                             new_list.append(v)
                     obj_jsonfied[key] = new_list
                 else:  # usually singlevalue string, not json
@@ -864,7 +864,7 @@ class Record(ABC, object):
                         # catch numbers already typed as singlevalue strings
                         if isinstance(x, int):
                             x = value
-                    except (ValueError, TypeError) as e:
+                    except (ValueError, TypeError):
                         x = value
                     obj_jsonfied[key] = x
             return obj_jsonfied
@@ -971,7 +971,7 @@ class Record(ABC, object):
         self.mapped_data[prop] = recursive_substring_replace(value, old[0], new)
         return self
 
-    def filter_fields(self, keys):
+    def filter_fields(self, **_):
         """
         called with the following parameters:
         2333 times: keys=["sourceResource"]
@@ -1122,6 +1122,10 @@ class Record(ABC, object):
             "dataProvider",
             "provider/name"
         ]
+
+        def capitalize_str(value):
+            return f"{value[0].upper()}{value[1:]}" if len(value) > 0 else ""
+
         for field in props:
             if field in exclude:
                 continue
@@ -1130,12 +1134,14 @@ class Record(ABC, object):
             if field in self.mapped_data:
                 if isinstance(self.mapped_data[field], str):
                     val = self.mapped_data[field]
-                    self.mapped_data[field] = f"{val[0].upper()}{val[1:]}"
+                    self.mapped_data[field] = capitalize_str(val)
                 elif isinstance(self.mapped_data[field], list):
                     self.mapped_data[field] = [
-                        f"{v[0].upper()}{v[1:]}"
-                        for v in self.mapped_data[field] if isinstance(v, str)
+                        # This doesn't map dictionary values; it leaves them untouched
+                        capitalize_str(v) if isinstance(v, str) else v
+                        for v in self.mapped_data[field]
                     ]
+
         return self
 
     def cleanup_value(self):
@@ -1465,7 +1471,10 @@ class Record(ABC, object):
                 if not couch_doc.get('calisphere-id'):
                     raise Exception('no calisphere id')
                 hash_id = hashlib.md5()
-                hash_id.update(couch_doc['calisphere-id'].encode('utf-8'))
+                hash_id.update((
+                    f"{couch_doc['collection'][0]['id']}--"
+                    f"{couch_doc['calisphere-id']}"
+                ).encode('utf-8'))
                 solr_id = hash_id.hexdigest()
             return solr_id
 
@@ -1590,14 +1599,20 @@ class Record(ABC, object):
                 if isinstance(date_source, dict):
                     date_source = [date_source]
 
+                # make_datetime is not implemented in rikolti and this should
+                # fail if executed. Amy thinks this is unused cruft, and she
+                # is very curious to know about any records that have this data
                 dates_start = [
-                    make_datetime(dt.get('begin', None))
+                    make_datetime(dt.get('begin', None))  # noqa: F821
                     for dt in date_source if isinstance(dt, dict)]
                 dates_start = sorted(dates_start)
                 start_date = dates_start[0] if dates_start else None
 
+                # make_datetime is not implemented in rikolti and this should
+                # fail if executed. Amy thinks this is unused cruft, and she
+                # is very curious to know about any records that have this data
                 dates_end = [
-                    make_datetime(dt.get('end', None))
+                    make_datetime(dt.get('end', None))  # noqa: F821
                     for dt in date_source if isinstance(dt, dict)]
                 dates_end = sorted(dates_end)
                 # TODO: should this actually be the last date?
