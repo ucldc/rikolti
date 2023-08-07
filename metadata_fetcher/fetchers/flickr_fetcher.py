@@ -1,4 +1,7 @@
 import json
+import math
+import time
+
 from .Fetcher import Fetcher
 import requests
 from requests.adapters import HTTPAdapter
@@ -98,17 +101,11 @@ class FlickrFetcher(Fetcher):
 
         Returns: dict[str]
         """
-        request = {"url": self.get_current_url()}
+        return {"url": self.get_current_url()}
 
-        print(
-            f"[{self.collection_id}]: Fetching page {self.write_page} "
-            f"at {request.get('url')}")
-
-        return request
-
-    def aggregate_vernacular_content(self, response) -> str:
+    def aggregate_vernacular_content(self, content: str) -> str:
         """
-        Accepts a content from a response for page of photos, and transforms it
+        Accepts content from a response for page of photos, and transforms it
         in a dictionary. This requires a `flickr.photos.getInfo` request for
         each photo.
 
@@ -117,7 +114,6 @@ class FlickrFetcher(Fetcher):
 
         Returns: str
         """
-        content = response.content
         photos = json.loads(content)
 
         print(
@@ -126,10 +122,21 @@ class FlickrFetcher(Fetcher):
         )
 
         photo_data = []
-        for photo in photos.get(self.response_items_attribute, {}).\
-                get("photo", []):
-            content = self.get_photo_metadata(photo.get("id")).content
-            photo_data.append(json.loads(content).get("photo"))
+        for photo in photos.get(self.response_items_attribute, {}).get("photo", []):
+            # Flickr API can be flaky, so if the response isn't ok (2xx), then sleep
+            # and retry. The sleep may not be necessary, but it doesn't hurt.
+            # If the final request fails, there will be an error when json.loads() is
+            # called with an invalid JSON value.
+            for i in range(3):
+                response = self.get_photo_metadata(photo.get("id"))
+                if response.ok:
+                    break
+                time.sleep(math.pow(i * 2, 2))
+                print(
+                    f"[{self.collection_id}]: Retrying request, response was not 2xx"
+                )
+
+            photo_data.append(json.loads(response.content).get("photo"))
             self.photo_index += 1
 
         print(

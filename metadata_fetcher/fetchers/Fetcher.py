@@ -84,7 +84,7 @@ class Fetcher(object):
 
         record_count = self.check_page(response)
         if record_count:
-            content = self.aggregate_vernacular_content(response)
+            content = self.aggregate_vernacular_content(response.text)
             if settings.DATA_DEST == 'local':
                 self.fetchtolocal(content)
             else:
@@ -95,7 +95,7 @@ class Fetcher(object):
         return record_count
 
     def aggregate_vernacular_content(self, response):
-        return response.text
+        return response
 
     def build_fetch_request(self):
         """build parameters for the institution's requests.get()

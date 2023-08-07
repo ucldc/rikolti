@@ -28,12 +28,12 @@ def lambda_handler(payload, context):
 					}
 				},
 				NotificationChannel={
-					'SNSTopicArn': "arn:aws:sns:us-west-2:563907706919:AmazonTextractPachamama",  # noqa: 501
+					'SNSTopicArn': "arn:aws:sns:us-west-2:563907706919:AmazonTextractPachamama",	# noqa: E501
 					'RoleArn': "arn:aws:iam::563907706919:role/TextractRole"
 				},
 				OutputConfig={
 					"S3Bucket": "rikolti",
-					"S3Prefix": f"textract/raw-output/{collection_id}/{calisphere_id}/textract-raw"  # noqa: 501
+					"S3Prefix": f"textract/raw-output/{collection_id}/{calisphere_id}/textract-raw"	# noqa: E501
 				}
 			)
 			print({'calisphere-id': key, 'job_id': textract_job})
