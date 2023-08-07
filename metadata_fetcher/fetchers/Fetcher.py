@@ -6,6 +6,8 @@ import boto3
 import requests
 
 from .. import settings
+from requests.adapters import HTTPAdapter, Retry
+
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +133,22 @@ class Fetcher(object):
     def json(self):
         """build json serialization of current state"""
         pass
+
+    def make_http_request(self, url: str) -> requests.Response:
+        """
+        Given a URL, will return the response, retrying per the argument passed to
+        Retry().
+
+        Parameters:
+            url: str
+
+        Returns:
+             requests.Response
+        """
+        session = requests.Session()
+        retries = Retry(total=3, backoff_factor=2)
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        return session.get(url=url)
 
     def __str__(self):
         """build string representation of current state"""
