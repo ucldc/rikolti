@@ -2,6 +2,8 @@ import requests
 import os
 import settings
 import boto3
+import logging
+logger = logging.getLogger(__name__)
 
 
 class InvalidHarvestEndpoint(Exception):
@@ -67,12 +69,12 @@ class Fetcher(object):
                 ),
                 Body=page)
         except Exception as e:
-            print(e)
+            logger.error(e)
 
     def fetch_page(self):
         page = self.build_fetch_request()
-        print(
-            f"[{self.collection_id}]: Fetching page {self.write_page} "
+        logger.debug(
+            f"[{self.collection_id}]: fetching page {self.write_page} "
             f"at {page.get('url')}"
         )
         try:

@@ -8,6 +8,8 @@ from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
 from urllib.parse import urlencode
 import settings
+import logging
+logger = logging.getLogger(__name__)
 
 
 class FlickrFetcher(Fetcher):
@@ -116,7 +118,7 @@ class FlickrFetcher(Fetcher):
         """
         photos = json.loads(content)
 
-        print(
+        logger.debug(
             f"[{self.collection_id}]: Starting to fetch all photos for page"
             f" {self.write_page}"
         )
@@ -132,14 +134,14 @@ class FlickrFetcher(Fetcher):
                 if response.ok:
                     break
                 time.sleep(math.pow(i * 2, 2))
-                print(
+                logger.debug(
                     f"[{self.collection_id}]: Retrying request, response was not 2xx"
                 )
 
             photo_data.append(json.loads(response.content).get("photo"))
             self.photo_index += 1
 
-        print(
+        logger.debug(
             f"[{self.collection_id}]: Fetched all photos for page"
             f" {self.write_page}"
         )
@@ -162,7 +164,7 @@ class FlickrFetcher(Fetcher):
         })
         url = self.build_request_url(params)
 
-        print(
+        logger.debug(
             f"[{self.collection_id}]: Fetching photo {id} "
             f"({self.photo_index} of {self.photo_total}) at {url}"
         )
@@ -183,7 +185,7 @@ class FlickrFetcher(Fetcher):
         self.photo_total = len(data.get(self.response_items_attribute, {}).
                                get("photo", []))
 
-        print(
+        logger.debug(
             f"[{self.collection_id}]: Fetched ids for page {self.write_page} "
             f"at {http_resp.url} with {self.photo_total} hits"
         )

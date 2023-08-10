@@ -2,6 +2,8 @@ import json
 import requests
 from xml.etree import ElementTree
 from .Fetcher import Fetcher
+import logging
+logger = logging.getLogger(__name__)
 
 
 class OacFetcher(Fetcher):
@@ -70,7 +72,7 @@ class OacFetcher(Fetcher):
             f"&startDoc={harvested+1}"
             f"&group={current_group}"
         )}
-        print(
+        logger.debug(
             f"[{self.collection_id}]: Fetching page "
             f"at {request.get('url')}")
 
@@ -86,7 +88,7 @@ class OacFetcher(Fetcher):
                 f"{self.oac.get('url')}&docsPerPage=100&"
                 f"startDoc={harvested+1}&group={current_group}"
             )
-            print(
+            logger.debug(
                 f"[{self.collection_id}]: Fetched page "
                 f"at {requested_url} "
                 f"with {len(xml_hits)} hits"
