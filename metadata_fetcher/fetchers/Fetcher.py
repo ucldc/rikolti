@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 import settings
 import boto3
 import logging
@@ -69,7 +70,7 @@ class Fetcher(object):
                 ),
                 Body=page)
         except Exception as e:
-            logger.error(e)
+            print(e, file=sys.stderr)
 
     def fetch_page(self):
         page = self.build_fetch_request()
