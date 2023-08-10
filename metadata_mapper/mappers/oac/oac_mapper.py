@@ -8,35 +8,120 @@ from ..utils import exists, getprop, iterify
 class OacRecord(Record):
 
     def UCLDC_map(self) -> dict:
+        def get_text(field):
+            return [n["text"] for n in self.source_metadata.get(field, [])]
+
         return {
-            "id": self.source_metadata.get("id", ""),
-            "isShownAt": self.pre_mapped_data.get("isShownAt", None),
+            "id": self.source_metadata.get("id"),
+            "isShownAt": self.source_metadata.get("isShownAt"),
             "isShownBy": self.get_best_image(),
-            "contributor": self.get_vals("contributor"),
-            "creator": self.get_vals("creator"),
-            "extent": self.get_vals("extent"),
-            "language": self.get_vals("language"),
-            "publisher": self.get_vals("publisher"),
-            "provenance": self.get_vals("provenance"),
+            "contributor": get_text("contributor"),
+            "creator": get_text("creator"),
+            "extent": get_text("extent"),
+            "language": get_text("language"),
+            "publisher": get_text("publisher"),
+            "provenance": get_text("provenance"),
             "description": self.collate_fields(
                 ("abstract", "description", "tableOfContents")),
-            "identifier": self.get_vals("identifier"),
+            "identifier": get_text("identifier"),
             "rights": self.collate_fields(("accessRights", "rights")),
-            "date": self.get_vals(
-                "date", suppress_attribs={"q": "dcterms:dateCopyrighted"}),
-            "format": self.get_vals("format", suppress_attribs={"q": "x"}),
-            "title": self.get_vals(
-                "title", suppress_attribs={"q": "alternative"}),
-            "type": self.get_vals(
-                "type", suppress_attribs={"q": "genreform"}),
-            "subject": self.map_subject(),
-            "copyrightDate": self.map_specific("date", "dcterms:dateCopyrighted"),
-            "alternativeTitle": self.map_specific("title", "alternative"),
-            "genre": self.map_specific("type", "genreform"),
+            "date": self.map_date,
+            "format": self.map_format,
+            "title": self.map_title,
+            "type": self.map_type,
+            "subject": self.map_subject,
+            "copyrightDate": self.map_copyright_date,
+            "alternativeTitle": self.map_alternative_title,
+            "genre": self.map_genre,
             "stateLocatedIn": [{"name": "California"}],
-            "spatial": self.map_spatial(),
-            "temporal": self.map_temporal(),
+            "spatial": self.map_spatial,
+            "temporal": self.map_temporal,
         }
+
+    def map_genre(self):
+        def include(n):
+            """
+            Include nodes that have a `q` attribute with value "genreform"
+            """
+            return ("q" in n.get("attribs", {}) and
+                    "genreform" == n.get("attribs").get("q"))
+
+        return [{"name": n["text"]} for n in self.source_metadata.get("type", [])
+                if include(n)]
+
+    def map_copyright_date(self):
+        def include(n):
+            """
+            Include nodes that have a `q` attribute with value "dcterms:dateCopyrighted"
+            """
+            return ("q" in n.get("attribs", {}) and
+                    "dcterms:dateCopyrighted" == n.get("attribs").get("q"))
+
+        return [{"name": n["text"]} for n in self.source_metadata.get("data", [])
+                if include(n)]
+
+    def map_alternative_title(self):
+        def include(n):
+            """
+            Include nodes that have a `title` attribute with value "alternative"
+            """
+            return ("q" in n.get("attribs", {}) and
+                    "alternative" == n.get("attribs").get("q"))
+
+        return [{"name": n["text"]} for n in self.source_metadata.get("title", [])
+                if include(n)]
+
+    def map_subject(self):
+        def include(n):
+            """
+            Disregard nodes that have a `q` attribute with value "series"
+            """
+            return ("q" not in n.get("attribs", {}) or
+                    "series" != n.get("attribs").get("q"))
+
+        return [{"name": n["text"]} for n in self.source_metadata.get("title", [])
+                if include(n)]
+
+    def map_title(self):
+        def include(n):
+            """
+            Disregard nodes that have a `q` attribute with value "alternative"
+            """
+            return ("q" not in n.get("attribs", {}) or
+                    "alternative" != n.get("attribs").get("q"))
+
+        return [n["text"] for n in self.source_metadata.get("title", []) if include(n)]
+
+    def map_type(self):
+        def include(n):
+            """
+            Disregard nodes that have a `q` attribute with value "genreform"
+            """
+            return ("q" not in n.get("attribs", {}) or
+                    "genreform" != n.get("attribs").get("q"))
+
+        return [n["text"] for n in self.source_metadata.get("type", []) if include(n)]
+
+    def map_format(self):
+        def include(n):
+            """
+            Disregard nodes that have a `q` attribute with value "x"
+            """
+            return "q" not in n.get("attribs", {}) or "x" != n.get("attribs").get("q")
+
+        return [n["text"] for n in self.source_metadata.get("format", []) if include(n)]
+
+    def map_date(self):
+        def include(n):
+            """
+            Disregard nodes that have a `q` attribute with value
+            "dcterms:dateCopyrighted", or have a `text` value that ends in "-00-00"
+            """
+            return (("q" not in n.get("attribs", {}).items() or
+                     "dcterms:dateCopyrighted" is not n.get("attribs").get("q"))
+                     and not n.get("text").endswith("-00-00"))
+
+        return [n["text"] for n in self.source_metadata.get("date", []) if include(n)]
 
     def collate_fields(self, original_fields):
         """
@@ -51,67 +136,26 @@ class OacRecord(Record):
             if not exists(self.source_metadata, field):
                 continue
             values.extend(
-                self.get_vals(field))
+                [n["text"] for n in self.source_metadata.get(field, [])])
         return values
-
-    def get_vals(self, provider_prop, suppress_attribs={}):
-        """
-        Return a list of string values take from the OAC type
-        original record (each value is {"text": <val>, "attrib": <val>} object)
-        """
-        values = []
-        if not exists(self.source_metadata, provider_prop):
-            return values
-
-        for x in self.source_metadata[provider_prop]:
-            try:
-                value = x["text"]
-            except KeyError:
-                # not an elementtree type data value
-                values.append(x)
-                continue
-            if not x["attrib"]:
-                values.append(value)
-            else:
-                suppress = False
-                for attrib, attval in x["attrib"].items():
-                    if attval in suppress_attribs.get(attrib, []):
-                        suppress = True
-                        break
-                if suppress:
-                    continue
-                if value.endswith("-00-00"):
-                    continue
-
-                values.append(value)
-        return values
-
-    def map_specific(self, src_prop, specify):
-        provider_data = self.source_metadata.get(src_prop, None)
-        if not provider_data:
-            return []
-
-        return [
-            d.get("text") for d in provider_data
-            if d.get("attrib") if d.get("attrib", {}).get("q") == specify
-        ]
 
     def get_best_image(self):
         """
         From the list of images, choose the largest one
         """
-        best_image = None
         if "thumbnail" not in self.source_metadata:
-            return best_image
+            return None
 
         dim = 0
+        best_image = None
+
         # "thumbnail" might be represented different in xmltodict
         # vs. the custom fetching mark was doing
-        thumbnail = self.source_metadata.get("thumbnail", None)
-        if thumbnail:
-            if "src" in thumbnail:
-                dim = max(int(thumbnail.get("X")), int(thumbnail.get("Y")))
-                best_image = thumbnail.get("src")
+        thumbnail = self.source_metadata.get("thumbnail")
+        if thumbnail and "src" in thumbnail:
+            dim = max(int(thumbnail.get("X")), int(thumbnail.get("Y")))
+            best_image = thumbnail.get("src")
+
         # "reference-image" might be represented differently in xmltodict
         # vs. the custom fetching mark was doing
         reference_image = self.source_metadata.get("reference-image", [])
@@ -121,27 +165,11 @@ class OacRecord(Record):
             if max(int(obj.get("X")), int(obj.get("Y"))) > dim:
                 dim = max(int(obj.get("X")), int(obj.get("Y")))
                 best_image = obj.get("src")
+
         if best_image and not best_image.startswith("http"):
-            best_image = f"http://content.cdlib.org/{best_image}"
+            best_image = f"https://content.cdlib.org/{best_image}"
+
         return best_image
-
-    def map_item_count(self):
-        """
-        Use reference-image-count value to determine compound objects.
-        NOTE: value is not always accurate so only determines complex (-1)
-        or not complex (no item_count value)
-        """
-        item_count = None
-        image_count = 0
-        if "reference-image-count" not in self.source_metadata:  # guard weird input
-            return item_count
-
-        ref_image_count = self.source_metadata.get("reference-image-count")
-        if ref_image_count:
-            image_count = ref_image_count[0]["text"]
-        if image_count > "1":
-            item_count = "-1"
-        return item_count
 
     def map_spatial(self):
         coverage = []
@@ -178,16 +206,6 @@ class OacRecord(Record):
                     and "temporal" in t.get("attrib", {}).get("q")):
                 temporal.append(t.get("text"))
         return temporal
-
-    def map_subject(self):
-        subject_values = self.get_vals(
-            "subject", suppress_attribs={"q": "series"})
-        subject_objs = [{"name": s} for s in subject_values]
-        return subject_objs
-
-    def to_dict(self):
-        self.pre_mapped_data.update(self.mapped_data)
-        return self.pre_mapped_data
 
 
 class OacVernacular(Vernacular):
