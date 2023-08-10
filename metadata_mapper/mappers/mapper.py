@@ -598,8 +598,7 @@ class Record(ABC, object):
             return self
 
         self.enrichment_report.append(
-            f"[enrich_location]: not implemented, "
-            f"self.mapped_data[{src}] = {self.mapped_data.get(src)}")
+            f"[enrich_location]: not implemented, source field {src}")
         return self
 
     def enrich_type(self):

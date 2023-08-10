@@ -10,6 +10,8 @@ import logging
 
 from mappers.mapper import UCLDCWriter, Record, Vernacular
 
+logger = logging.getLogger(__name__)
+
 
 def import_vernacular_reader(mapper_type):
     """
@@ -34,7 +36,7 @@ def import_vernacular_reader(mapper_type):
         mapper_module, f"{class_type}Vernacular")
 
     if not issubclass(vernacular_class, Vernacular):
-        print(f"{mapper_type} not a subclass of Vernacular")
+        print(f"{mapper_type} not a subclass of Vernacular", file=sys.stderr)
         exit()
     return vernacular_class
 
@@ -79,7 +81,8 @@ def map_page(payload: Union[dict, str], context: dict = {}):
     if settings.LOCAL_RUN and isinstance(payload, str):
         payload = json.loads(payload)
 
-    vernacular_reader = import_vernacular_reader(payload.get('rikolti_mapper_type'))
+    vernacular_reader = import_vernacular_reader(
+        payload.get('rikolti_mapper_type'))
     source_vernacular = vernacular_reader(payload)
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
@@ -104,29 +107,16 @@ def map_page(payload: Union[dict, str], context: dict = {}):
     mapped_records = [record.solr_updater() for record in mapped_records]
     mapped_records = [record.remove_none_values() for record in mapped_records]
 
-    exceptions = {
+    page_exceptions = {
         rec.legacy_couch_db_id: rec.enrichment_report
         for rec in mapped_records if rec.enrichment_report
     }
-    if exceptions:
-        group_by_report = {}
-        for couch_id, reports in exceptions.items():
-            report = " | ".join(reports)
-            if report in group_by_report:
-                group_by_report[report].append(couch_id)
-            else:
-                group_by_report[report] = [couch_id]
+    if page_exceptions:
         # Group like lists of enrichment chain errors
-        count_by_report = {
-            report: f"{len(couch_ids)} of {len(mapped_records)}"
-            for report, couch_ids in group_by_report.items()
-        }
-        # Rather than printing, this could get sent to the return value of
-        # map_page. We should maybe try to rationalize where to use
-        # printing vs. log messages vs. return values. TODO when we have a
-        # clearer sense of our workflow management tooling.
-        for report, count in count_by_report.items():
-            print(f"{count} records report enrichments errors: {report}")
+        group_page_exceptions = {}
+        for couch_id, reports in page_exceptions.items():
+            report = " | ".join(reports)
+            group_page_exceptions.setdefault(report, []).append(couch_id)
 
     # some enrichments had previously happened at ingest into Solr
     # TODO: these are just two, investigate further
@@ -142,8 +132,9 @@ def map_page(payload: Union[dict, str], context: dict = {}):
             record.to_dict() for record in mapped_records])
 
     return {
-        'statusCode': 200,
-        'num_records_mapped': len(mapped_records)
+        'status': 'success',
+        'num_records_mapped': len(mapped_records),
+        'page_exceptions': group_page_exceptions
     }
 
 
@@ -153,4 +144,11 @@ if __name__ == "__main__":
         description="Map metadata from the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    map_page(args.payload, {})
+    mapped_page = map_page(args.payload, {})
+
+    print(f"{mapped_page.get('num_records_mapped')} records mapped")
+
+    for report, couch_ids in mapped_page.get('exceptions', {}).items():
+        print(f"{len(couch_ids)} records report enrichments errors: {report}")
+        print(f"check the following ids for issues: {couch_ids}")
+

@@ -38,28 +38,8 @@ def check_for_missing_enrichments(collection):
     return not_yet_implemented
 
 
-# {"collection_id": 26098, "source_type": "nuxeo"}
-# {"collection_id": 26098, "source_type": "nuxeo"}
-# AWS Lambda entry point
-def map_collection(payload, context):
-    if settings.LOCAL_RUN and isinstance(payload, str):
-        payload = json.loads(payload)
-
-    collection_id = payload.get('collection_id')
-    collection = get_collection(collection_id)
-    payload.update({'collection': collection})
-
-    if not collection_id:
-        print("ERROR ERROR ERROR")
-        print('collection_id required')
-        exit()
-
-    missing_enrichments = check_for_missing_enrichments(collection)
-    if len(missing_enrichments) > 0:
-        print(f"[{collection_id}]: Missing enrichments: {missing_enrichments}")
-
-    count = 0
-    page_count = 0
+def get_vernacular_pages(collection_id):
+    page_list = []
 
     if settings.DATA_SRC == 'local':
         vernacular_path = settings.local_path(
@@ -73,45 +53,72 @@ def map_collection(payload, context):
                               for f in os.listdir(children_path)
                               if os.path.isfile(os.path.join(children_path, f))]
         except FileNotFoundError as e:
-            logging.debug(f"{e} - have you fetched {collection_id}?")
+            logging.error(f"{e} - have you fetched {collection_id}?")
             return {
                 'statusCode': 400,
                 'body': json.dumps({
                     'error': (
                         f"{repr(e)} - have you fetched {collection_id}? ",
                         f"looked in dir {e.filename}"
-                    ),
-                    'payload': payload
+                    )
                 })
             }
-        for page in page_list:
-            payload.update({'page_filename': page})
-            return_val = map_page(json.dumps(payload), {})
-            count += return_val['num_records_mapped']
-            page_count += 1
-        return {
-            'statusCode': 200,
-            'body': {
-                'collection_id': collection_id,
-                'missing_enrichments': missing_enrichments,
-                'count': count,
-            }
-        }
+
     else:
         # JUST A SKETCH
         s3 = boto3.resource('s3')
         rikolti_bucket = s3.Bucket('rikolti')
         page_list = rikolti_bucket.objects.filter(
             Prefix=f'vernacular_metadata/{collection_id}')
+        page_list = [p.key for p in page_list]
 
-        lambda_client = boto3.client('lambda', region_name="us-west-2",)
-        for page in page_list:
-            payload.update({'page_filename': page.key})
-            lambda_client.invoke(
-                FunctionName="map_metadata",
-                InvocationType="Event",  # invoke asynchronously
-                Payload=json.dumps(payload).encode('utf-8')
+    return page_list
+
+
+# {"collection_id": 26098, "source_type": "nuxeo"}
+# {"collection_id": 26098, "source_type": "nuxeo"}
+# AWS Lambda entry point
+def map_collection(payload, context):
+    if settings.LOCAL_RUN and isinstance(payload, str):
+        payload = json.loads(payload)
+
+    collection_id = payload.get('collection_id')
+    collection = get_collection(collection_id)
+    payload.update({'collection': collection})
+
+    if not collection_id:
+        print('collection_id required', file=sys.stderr)
+        exit()
+
+    count = 0
+    page_count = 0
+    collection_exceptions = []
+
+    page_list = get_vernacular_pages(collection_id)
+    for page in page_list:
+        payload.update({'page_filename': page})
+
+        try:
+            mapped_page = map_page(json.dumps(payload), {})
+        except KeyError:
+            print(
+                f"[{collection_id}]: {collection['rikolti_mapper_type']} "
+                "not yet implemented", file=sys.stderr
             )
+            continue
+
+        count += mapped_page['num_records_mapped']
+        page_count += 1
+        collection_exceptions.append(mapped_page.get('page_exceptions', {}))
+
+        # if settings.LOCAL_RUN:
+        # else:
+        #     lambda_client = boto3.client('lambda', region_name="us-west-2",)
+        #     lambda_client.invoke(
+        #         FunctionName="map_metadata",
+        #         InvocationType="Event",  # invoke asynchronously
+        #         Payload=json.dumps(payload).encode('utf-8')
+        #     )
 
     validate = payload.get("validate")
     if validate:
@@ -121,15 +128,18 @@ def map_collection(payload, context):
             **opts
             )
 
+    group_exceptions = {}
+    for page_exceptions in collection_exceptions:
+        for exception, couch_ids in page_exceptions.items():
+            group_exceptions.setdefault(exception, []).extend(couch_ids)
+
     return {
-        'statusCode': 200,
-        'body': {
-            'collection_id': collection_id,
-            'missing_enrichments': missing_enrichments,
-            'num_records_mapped': count,
-            'pages_mapped': page_count,
-            # 'payload': payload
-        }
+        'status': 'success',
+        'collection_id': collection_id,
+        'missing_enrichments': check_for_missing_enrichments(collection),
+        'records_mapped': count,
+        'pages_mapped': page_count,
+        'exceptions': group_exceptions
     }
 
 
@@ -139,4 +149,15 @@ if __name__ == "__main__":
         description="Map metadata from the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
-    map_collection(args.payload, {})
+    mapped_collection = map_collection(args.payload, {})
+    missing_enrichments = mapped_collection.get('missing_enrichments')
+    if len(missing_enrichments) > 0:
+        print(
+            f"{args.payload.get('collection_id')}, missing enrichments, ",
+            f"ALL, -, -, {missing_enrichments}"
+        )
+
+    exceptions = mapped_collection.get('exceptions', {})
+    for report, couch_ids in exceptions.items():
+        print(f"{len(couch_ids)} records report enrichments errors: {report}")
+        print(f"check the following ids for issues: {couch_ids}")
