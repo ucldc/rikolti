@@ -79,6 +79,7 @@ def fetch_endpoint(url, limit=None):
         if limit and len(results.keys()) >= limit:
             break
 
+    sys.stderr.write('\n')
     return results
 
 
