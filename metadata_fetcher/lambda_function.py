@@ -28,32 +28,32 @@ def fetch_collection(payload, context):
 
     fetcher_class = import_fetcher(payload.get('harvest_type'))
 
-    return_val = {'page': payload.get('write_page', 0), 'document_count': 0}
+    fetch_report = {'page': payload.get('write_page', 0), 'document_count': 0}
     try:
         fetcher = fetcher_class(payload)
-        return_val['document_count'] = fetcher.fetch_page()
+        fetch_report['document_count'] = fetcher.fetch_page()
     except InvalidHarvestEndpoint as e:
         logger.error(e)
-        return_val.update({
+        fetch_report.update({
             'status': 'error',
             'body': json.dumps({
                 'error': repr(e),
                 'payload': payload
             })
         })
-        return [return_val]
+        return [fetch_report]
 
     next_page = fetcher.json()
-    return_val.update({
+    fetch_report.update({
         'status': 'success',
         'next_page': next_page
     })
 
-    return_val = [return_val]
+    fetch_report = [fetch_report]
 
     if not json.loads(next_page).get('finished'):
         if settings.LOCAL_RUN:
-            return_val.extend(fetch_collection(next_page, {}))
+            fetch_report.extend(fetch_collection(next_page, {}))
         else:
             lambda_client = boto3.client('lambda', region_name="us-west-2",)
             lambda_client.invoke(
@@ -62,7 +62,7 @@ def fetch_collection(payload, context):
                 Payload=next_page.encode('utf-8')
             )
 
-    return return_val
+    return fetch_report
 
 
 if __name__ == "__main__":
