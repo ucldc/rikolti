@@ -1,6 +1,7 @@
-from typing import Union
+from typing import Union, Any
 
 from .oai_mapper import OaiRecord, OaiVernacular
+from ..mapper import Validator
 
 
 class ChapmanRecord(OaiRecord):
@@ -17,13 +18,15 @@ class ChapmanRecord(OaiRecord):
         }
 
     def map_is_shown_at(self) -> Union[str, None]:
-        return self.map_identifier()
+        identifiers = self.map_identifier()
+        return identifiers[0] if identifiers else None
 
     def map_is_shown_by(self) -> Union[str, None]:
         if not self.is_image_type():
             return
 
-        url: Union[str, None] = self.map_identifier()
+        identifiers = self.map_identifier()
+        url: Union[str, None] = identifiers[0] if identifiers else None
 
         return f"{url.replace('items', 'thumbs')}?gallery=preview" if url else None
 
@@ -52,7 +55,55 @@ class ChapmanRecord(OaiRecord):
 
         identifiers = [i for i in self.source_metadata.get('identifier')
                        if "context" not in i]
-        return identifiers[0] if identifiers else None
+        return identifiers
+
+
+class ChapmanValidator(Validator):
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.add_validatable_field(
+            field="identifier", type=Validator.list_of(str),
+            validations=[
+                ChapmanValidator.list_match_ignore_url_protocol,
+                Validator.type_match,
+            ]
+        )
+        self.add_validatable_field(
+            field="is_shown_at", type=str,
+            validations=[
+                Validator.required_field,
+                ChapmanValidator.str_match_ignore_url_protocol,
+                Validator.type_match,
+            ]
+        )
+
+    @staticmethod
+    def list_match_ignore_url_protocol(validation_def: dict,
+                                       rikolti_value: Any,
+                                       comparison_value: Any) -> None:
+        if rikolti_value == comparison_value:
+            return
+
+        for comparison_item in comparison_value:
+            if comparison_item.startswith('http'):
+                comparison_item.replace('http', 'https')
+        if not rikolti_value == comparison_value:
+            return "Content mismatch"
+
+
+    @staticmethod
+    def str_match_ignore_url_protocol(validation_def: dict,
+                                      rikolti_value: Any,
+                                      comparison_value: Any) -> None:
+        if rikolti_value == comparison_value:
+            return
+
+        if comparison_value.startswith('http'):
+            comparison_value.replace('http', 'https')
+        if not rikolti_value == comparison_value:
+            return "Content mismatch"
+
 
 class ChapmanVernacular(OaiVernacular):
     record_cls = ChapmanRecord
+    validator = ChapmanValidator
