@@ -6,6 +6,8 @@ from urllib.parse import quote as urllib_quote
 import boto3
 import settings
 import subprocess
+import logging
+logger = logging.getLogger(__name__)
 
 
 # {'harvest_data': {'harvest_extra_data'}}
@@ -137,7 +139,7 @@ class NuxeoFetcher(Fetcher):
                 'query': query
             }
         }
-        print(
+        logger.debug(
             f"[{self.collection_id}]: Fetching page {page} of {query_type} at "
             f"{self.nuxeo['prefix']} - {current_path['path']}"
         )
@@ -162,7 +164,7 @@ class NuxeoFetcher(Fetcher):
 
         documents = 0
         if query_type in ['documents', 'children'] and response.get('entries'):
-            print(
+            logger.debug(
                 f"[{self.collection_id}]: "
                 f"Fetched page {self.nuxeo.get('api_page')} of "
                 f"{query_type} at {self.nuxeo['prefix']} - "
@@ -192,7 +194,7 @@ class NuxeoFetcher(Fetcher):
                 )
 
         if not documents:
-            print(
+            logger.debug(
                 f"[{self.collection_id}]: Fetched page is empty")
 
         return documents

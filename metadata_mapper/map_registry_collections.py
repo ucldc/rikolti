@@ -1,63 +1,98 @@
 import requests
 import argparse
-import json
 import sys
 import lambda_shepherd
 import logging
+logger = logging.getLogger(__name__)
 
-def map_endpoint(url):
-    collection_page = url
-    results = []
+def registry_endpoint(url):
+    page = url
+    while page:
+        response = requests.get(url=page)
+        response.raise_for_status()
+        page = response.json().get('meta', {}).get('next', None)
+        if page:
+            page = f"https://registry.cdlib.org{page}"
 
-    while collection_page:
-        try:
-            response = requests.get(url=collection_page)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            msg = (
-                f"[{collection_page}]: "
-                f"{err}; A valid collection id is required for mapping"
-            )
-            print(msg)
-            collection_page = None
-            break
-        total_collections = response.json().get('meta', {}).get('total_count', 1)
-        print(
-            f">>> Mapping {total_collections} collections "
-            f"described at {collection_page}"
-        )
-
-        collection_page = response.json().get('meta', {}).get('next')
-        if collection_page:
-            collection_page = f"https://registry.cdlib.org{collection_page}"
-        logging.debug(f"Next page: {collection_page}")
         collections = response.json().get('objects', [response.json()])
         for collection in collections:
-            log_msg = f"[{collection['collection_id']}]: " + "{}"
-            print(log_msg.format(
-                f"Mapping collection {collection['collection_id']} - "
-                f"{collection['solr_count']} items in solr as of "
-                f"{collection['solr_last_updated']}"
-            ))
-            logging.debug(log_msg.format(f"lambda payload: {collection}"))
-            try:
-                # collection['mapper_type'] = lookup[collection['mapper_type']]
-                return_val = lambda_shepherd.map_collection(
-                    collection, None)
-            except KeyError:
+            yield collection
+
+def map_endpoint(url, limit=None):
+    response = requests.get(url=url)
+    response.raise_for_status()
+    total = response.json().get('meta', {}).get('total_count', 1)
+    progress = 0
+    map_report_headers = (
+        "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
+    )
+
+    if not limit:
+        limit = total
+
+    print(f">>> Mapping {limit}/{total} collections described at {url}")
+    print(map_report_headers)
+
+    for collection in registry_endpoint(url):
+        collection_id = collection['collection_id']
+
+        progress = progress + 1
+        sys.stderr.write('\r')
+        progress_bar = f"{progress}/{limit}"
+        sys.stderr.write(
+            f"{progress_bar:<9}: start mapping {collection_id:<6}")
+        sys.stderr.flush()
+
+        logger.debug(
+            f"[{collection_id}]: call lambda with payload: {collection}")
+
+        try:
+            map_result = lambda_shepherd.map_collection(
+                collection, None)
+        except FileNotFoundError:
+            print(f"[{collection_id}]: not fetched yet", file=sys.stderr)
+            continue
+
+        missing_enrichments = map_result.get('missing_enrichments')
+        if len(missing_enrichments) > 0:
+            print(
+                f"{collection_id}, missing enrichments, ",
+                f"ALL, -, -, {missing_enrichments}"
+            )
+        exceptions = map_result.get('exceptions')
+        if len(exceptions) > 0:
+            for exception, couch_ids in exceptions.items():
                 print(
-                    f"[{collection['collection_id']}]: "
-                    f"{collection['rikolti_mapper_type']} not yet implemented"
+                    f"{collection_id}, enrichment errors, "
+                    f'{len(couch_ids)}, -, -, "{exception}"'
                 )
-                continue
-            except FileNotFoundError:
-                print(f"[{collection['collection_id']}]: not fetched yet")
-                continue
-            results.append(return_val)
+                print(
+                    f"{collection_id}, enrichment error records, "
+                    f'{len(couch_ids)}, -, -, "{couch_ids}"'
+                )
 
-            print(log_msg.format(f"{json.dumps(return_val)}"))
 
-    # print(json.dumps(results))
+        # "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
+        success = 'success' if map_result['status'] == 'success' else 'error'
+        extent = map_result['records_mapped']
+        diff = extent - collection['solr_count']
+        map_report_row = (
+            f"{collection_id}, {success}, {extent}, "
+            f"{collection['solr_count']}, {diff}, "
+            f"{collection['solr_last_updated']}"
+        )
+        print(map_report_row)
+
+        sys.stderr.write('\r')
+        progress_bar = f"{progress}/{limit}"
+        sys.stderr.write(
+            f"{progress_bar:<9}: finish mapping {collection_id:<5}")
+        sys.stderr.flush()
+
+        if limit and progress >= limit:
+            break
+
+    sys.stderr.write('\n')
 
 
 if __name__ == "__main__":

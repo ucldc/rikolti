@@ -1,6 +1,8 @@
 import os
-
+import sys
+import logging
 from dotenv import load_dotenv
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -14,6 +16,10 @@ FLICKR_API_KEY = os.environ.get('FLICKR_API_KEY')
 if not LOCAL_RUN and DATA_DEST == 'local':
     print(
         "A local data destination is only valid "
-        "when the application is run locally"
+        "when the application is run locally",
+        file=sys.stderr
     )
     exit()
+
+for key, value in os.environ.items():
+    logger.debug(f"{key}={value}")

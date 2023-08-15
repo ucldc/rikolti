@@ -4,6 +4,7 @@ from .Fetcher import Fetcher
 from urllib.parse import parse_qs
 from sickle import Sickle
 import requests
+import logging
 
 NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 
@@ -69,9 +70,9 @@ class OaiFetcher(Fetcher):
             'oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
 
         if len(xml_hits) > 0:
-            print(
-                f"[{self.collection_id}]: Fetched page {self.write_page}; "
-                f"{len(xml_hits)} hits; {self.build_fetch_request()['url']}"
+            logging.debug(
+                f"{self.collection_id}, fetched page {self.write_page} - "
+                f"{len(xml_hits)} hits,-,-,-,-,-"
             )
         return len(xml_hits)
 
