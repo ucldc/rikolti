@@ -64,11 +64,11 @@ def map_endpoint(url, limit=None):
             for exception, couch_ids in exceptions.items():
                 print(
                     f"{collection_id}, enrichment errors, "
-                    f"{len(couch_ids)}, -, -, {exception}"
+                    f'{len(couch_ids)}, -, -, "{exception}"'
                 )
                 print(
                     f"{collection_id}, enrichment error records, "
-                    f"{len(couch_ids)}, -, -, {couch_ids}"
+                    f'{len(couch_ids)}, -, -, "{couch_ids}"'
                 )
 
 
