@@ -1,6 +1,7 @@
 from datetime import datetime
 from airflow.decorators import dag, task
 from airflow.models.param import Param
+from airflow.models import Variable
 from airflow.operators.python import get_current_context
 
 # from airflow.operators.python import PythonOperator
@@ -29,6 +30,20 @@ def taskflow_test_requests(dag_run=None, params=None):
 
     return True
 
+@task()
+def taskflow_get_admin_variables():
+    """ get admin variables from airflow """
+    foo = Variable.get("AIRFLOW_TEST")
+    print(foo)
+    return True
+
+@task()
+def taskflow_write_to_disk():
+    """ write a file to disk """
+    with open("/usr/local/airflow/rikolti_bucket/test.txt", "w") as f:
+        f.write("hello world")
+    return True
+
 @dag(
     schedule=None,
     start_date=datetime(2023, 1, 1),
@@ -40,5 +55,7 @@ def taskflow_test_requests(dag_run=None, params=None):
 )
 def taskflow_test_dag():
     taskflow_test_requests()
+    taskflow_get_admin_variables()
+    taskflow_write_to_disk()
 
 taskflow_test_dag()
