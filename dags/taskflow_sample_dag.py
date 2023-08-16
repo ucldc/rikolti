@@ -1,3 +1,5 @@
+import os
+
 from datetime import datetime
 from airflow.decorators import dag, task
 from airflow.models.param import Param
@@ -35,6 +37,19 @@ def taskflow_get_admin_variables():
     """ get admin variables from airflow """
     foo = Variable.get("AIRFLOW_TEST")
     print(foo)
+    os.environ["AIRFLOW_TEST"] = foo
+
+    boo = os.environ.get("AIRFLOW_TEST")
+    print(boo)
+
+    return True
+
+@task()
+def taskflow_mkdir():
+    """ get env variables previously set """
+    os.mkdir("/usr/local/airflow/rikolti_bucket/test_dir")
+    with open("/usr/local/airflow/rikolti_bucket/test_dir/test2.txt", "w") as f:
+        f.write("hi amy")
     return True
 
 @task()
@@ -56,6 +71,7 @@ def taskflow_write_to_disk():
 def taskflow_test_dag():
     taskflow_test_requests()
     taskflow_get_admin_variables()
+    taskflow_mkdir()
     taskflow_write_to_disk()
 
 taskflow_test_dag()
