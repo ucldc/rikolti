@@ -29,14 +29,7 @@ def taskflow_params(dag_run=None, params=None):
     collection_id = context.get('params', {}).get('collection_id')
     print(collection_id)
 
-    resp = requests.get(
-        "https://registry.cdlib.org/api/v1/"
-        f"rikolticollection/{collection_id}/"
-    )
-    resp.raise_for_status()
-    print(resp.json().get('name'))
-
-    return True
+    return collection_id
 
 @task()
 def taskflow_get_admin_variables():
@@ -52,7 +45,11 @@ def taskflow_get_admin_variables():
 
 @task()
 def taskflow_mkdir():
-    """ get env variables previously set """
+    """ we have permissions inside /airflow/, but nowhere else it seems """
+    if os.path.exists("/usr/local/airflow/rikolti_bucket/test_dir"):
+        os.remove("/usr/local/airflow/rikolti_bucket/test_dir/test2.txt")
+        os.rmdir("/usr/local/airflow/rikolti_bucket/test_dir")
+
     os.mkdir("/usr/local/airflow/rikolti_bucket/test_dir")
     with open("/usr/local/airflow/rikolti_bucket/test_dir/test2.txt", "w") as f:
         f.write("hi amy")
