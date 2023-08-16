@@ -89,7 +89,6 @@ We use PR reviews to approve or reject, comment on, and request further iteratio
 ## Code Style Guide
 
 - PEP 8 (enforced using flake8)
-- DRY
 - Readability & Transparency: Code as language
 - Favor explicitness over defensiveness
 
