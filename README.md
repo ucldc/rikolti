@@ -92,37 +92,6 @@ We use PR reviews to approve or reject, comment on, and request further iteratio
 - Readability & Transparency: Code as language
 - Favor explicitness over defensiveness
 
-## Deploying Using AWS SAM
-
-We are using AWS SAM to build the rikolti lambda applications and deploy to AWS. Following are proposed steps for building and deploying using SAM:
-
-Make sure you [have SAM CLI installed](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
-
-From the rikolti directory, which contains `template.yaml`, build the serverless applications:
-
-```
-sam build --use-container
-```
-
-Using the `--user-container` option has SAM compile dependencies for each lambda function in a lambda-like docker container. This is necessary for compiling libraries such as lxml, which need to be natively compiled. The runtime and system architecture are defined for each lambda in the `template.yaml` file.
-
-> **NOTE**
-> There is a [troposphere](https://troposphere.readthedocs.io/en/latest/quick_start.html) script stub named `create_sam_template.py` checked into the repo. This script generates `template.yaml`, but we decided not to use it for now since the template is simple and we don't need to introduce another layer of tooling at this point. We might use it in the future to generate templates for different environments and such.
-
-Once built, deploy to AWS:
-
-Make sure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` env vars are set. Then, the first time you deploy:
-
-```
-sam deploy --guided
-```
-
-Follow the prompts. Say yes to save arguments to a `samconfig.toml` configuration file. Then on subsequent deploys you can just type:
-
-```
-sam deploy
-```
-
 ## Airflow Development
 
 ### Set up `aws-mwaa-local-runner`
