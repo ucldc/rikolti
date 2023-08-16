@@ -1,7 +1,5 @@
 import json
-import boto3
 import sys
-import settings
 import importlib
 import logging
 from fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint

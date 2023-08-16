@@ -3,7 +3,6 @@ from .Fetcher import Fetcher, InvalidHarvestEndpoint
 import os
 import requests
 from urllib.parse import quote as urllib_quote
-import boto3
 import settings
 import subprocess
 import logging
