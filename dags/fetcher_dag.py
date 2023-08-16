@@ -18,7 +18,8 @@ def fetch_collection_task(dag_run=None):
         "https://registry.cdlib.org/api/v1/"
         f"rikoltifetcher/{collection_id}/"
     )
-    resp.raise_for_status()    
+    resp.raise_for_status()
+
     fetch_report = fetch_collection(resp.json(), {})
 
     return True
