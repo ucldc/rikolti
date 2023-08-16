@@ -78,7 +78,7 @@ def run_enrichments(records, payload, enrichment_set):
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": 2}
 # AWS Lambda entry point
 def map_page(payload: Union[dict, str], context: dict = {}):
-    if settings.LOCAL_RUN and isinstance(payload, str):
+    if isinstance(payload, str):
         payload = json.loads(payload)
 
     vernacular_reader = import_vernacular_reader(
