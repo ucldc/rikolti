@@ -11,9 +11,7 @@ SKIP_UNDEFINED_ENRICHMENTS = os.environ.get('SKIP_UNDEFINED_ENRICHMENTS', False)
 SOLR_URL = os.environ.get('UCLDC_SOLR_URL', False)
 SOLR_API_KEY = os.environ.get('UCLDC_SOLR_API_KEY', False)
 
-LOG_LEVEL = os.environ.get('LOG_LEVEL', 'DEBUG')    # doesn't currently do anything
 S3_BUCKET = os.environ.get('S3_BUCKET', False)
-
 
 def local_path(folder, collection_id):
     parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
