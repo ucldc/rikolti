@@ -10,7 +10,13 @@ from airflow.operators.python import get_current_context
 import requests
 
 @task()
-def taskflow_test_requests(dag_run=None, params=None):
+def taskflow_test_requests():
+    resp = requests.get("https://google.com")
+    resp.raise_for_status()
+    return resp.status_code
+
+@task()
+def taskflow_params(dag_run=None, params=None):
     """ three ways to get dag run parameters """
 
     if dag_run:
@@ -34,10 +40,10 @@ def taskflow_test_requests(dag_run=None, params=None):
 
 @task()
 def taskflow_get_admin_variables():
-    """ get admin variables from airflow """
-    foo = Variable.get("AIRFLOW_TEST")
-    print(foo)
-    os.environ["AIRFLOW_TEST"] = foo
+    """ get admin variables from airflow db """
+    airflow_test_env = Variable.get("AIRFLOW_TEST")
+    print(airflow_test_env)
+    os.environ["AIRFLOW_TEST"] = airflow_test_env
 
     boo = os.environ.get("AIRFLOW_TEST")
     print(boo)
@@ -59,6 +65,13 @@ def taskflow_write_to_disk():
         f.write("hello world")
     return True
 
+@task()
+def taskflow_get_env():
+    """ get env variables previously set """
+    startup_env = os.environ.get("ENVIRONMENT_STAGE")
+    print(startup_env)
+    return startup_env
+
 @dag(
     schedule=None,
     start_date=datetime(2023, 1, 1),
@@ -70,8 +83,10 @@ def taskflow_write_to_disk():
 )
 def taskflow_test_dag():
     taskflow_test_requests()
+    taskflow_params()
     taskflow_get_admin_variables()
     taskflow_mkdir()
     taskflow_write_to_disk()
+    taskflow_get_env()
 
 taskflow_test_dag()
