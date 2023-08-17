@@ -79,7 +79,7 @@ class NuxeoFetcher(Fetcher):
             }
 
         if self.nuxeo['query_type'] == 'children':
-            if settings.DATA_DEST == 'local':
+            if settings.DATA_DEST != 's3':
                 path = self.get_local_path()
                 children_path = os.path.join(path, "children")
                 if not os.path.exists(children_path):

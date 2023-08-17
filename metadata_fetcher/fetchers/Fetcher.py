@@ -27,7 +27,7 @@ class Fetcher(object):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        bucket = settings.S3_BUCKET
+        bucket = settings.DATA_DEST["BUCKET"]
 
         self.s3_data = {
             "ACL": 'bucket-owner-full-control',
@@ -46,10 +46,8 @@ class Fetcher(object):
         f.write(page)
 
     def get_local_path(self):
-        parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
         local_path = os.sep.join([
-            parent_dir,
-            'rikolti_bucket',
+            settings.DATA_DEST["PATH"],
             'vernacular_metadata',
             str(self.collection_id),
         ])
@@ -91,7 +89,7 @@ class Fetcher(object):
         record_count = self.check_page(response)
         if record_count:
             content = self.aggregate_vernacular_content(response.text)
-            if settings.DATA_DEST == 'local':
+            if settings.DATA_DEST["STORE"] != 's3':
                 self.fetchtolocal(content)
             else:
                 self.fetchtos3(content)
