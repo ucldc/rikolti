@@ -1,9 +1,4 @@
 boto3
 requests
-authlib
-jwt
-nuxeo
-xmltodict
 sickle
-flake8
 python-dotenv

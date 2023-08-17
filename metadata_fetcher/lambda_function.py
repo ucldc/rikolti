@@ -3,9 +3,6 @@ import json
 import logging
 import sys
 
-import boto3
-
-from . import settings
 from .fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
 
 logger = logging.getLogger(__name__)
@@ -24,7 +21,7 @@ def import_fetcher(harvest_type):
 
 # AWS Lambda entry point
 def fetch_collection(payload, context):
-    if settings.LOCAL_RUN and isinstance(payload, str):
+    if isinstance(payload, str):
         payload = json.loads(payload)
 
     logger.debug(f"fetch_collection payload: {payload}")
@@ -55,15 +52,7 @@ def fetch_collection(payload, context):
     fetch_report = [fetch_report]
 
     if not json.loads(next_page).get('finished'):
-        if settings.LOCAL_RUN:
-            fetch_report.extend(fetch_collection(next_page, {}))
-        else:
-            lambda_client = boto3.client('lambda', region_name="us-west-2",)
-            lambda_client.invoke(
-                FunctionName="fetch_metadata",
-                InvocationType="Event",  # invoke asynchronously
-                Payload=next_page.encode('utf-8')
-            )
+        fetch_report.extend(fetch_collection(next_page, {}))
 
     return fetch_report
 

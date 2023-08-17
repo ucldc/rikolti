@@ -80,7 +80,7 @@ def get_vernacular_pages(collection_id):
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # AWS Lambda entry point
 def map_collection(payload, context):
-    if settings.LOCAL_RUN and isinstance(payload, str):
+    if isinstance(payload, str):
         payload = json.loads(payload)
 
     collection_id = payload.get('collection_id')
@@ -112,14 +112,6 @@ def map_collection(payload, context):
         page_count += 1
         collection_exceptions.append(mapped_page.get('page_exceptions', {}))
 
-        # if settings.LOCAL_RUN:
-        # else:
-        #     lambda_client = boto3.client('lambda', region_name="us-west-2",)
-        #     lambda_client.invoke(
-        #         FunctionName="map_metadata",
-        #         InvocationType="Event",  # invoke asynchronously
-        #         Payload=json.dumps(payload).encode('utf-8')
-        #     )
 
     validate = payload.get("validate")
     if validate:

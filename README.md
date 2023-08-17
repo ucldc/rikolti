@@ -89,7 +89,6 @@ We use PR reviews to approve or reject, comment on, and request further iteratio
 ## Code Style Guide
 
 - PEP 8 (enforced using flake8)
-- DRY
 - Readability & Transparency: Code as language
 - Favor explicitness over defensiveness
 - Import statements grouped according to [isort](https://pycqa.github.io/isort/index.html) defaults:
@@ -100,34 +99,27 @@ We use PR reviews to approve or reject, comment on, and request further iteratio
   - LOCALFOLDER
 
 
-## Deploying Using AWS SAM
+## Airflow Development
 
-We are using AWS SAM to build the rikolti lambda applications and deploy to AWS. Following are proposed steps for building and deploying using SAM:
+### Set up `aws-mwaa-local-runner`
 
-Make sure you [have SAM CLI installed](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html).
+AWS provides the [aws-mwaa-local-runner](https://github.com/aws/aws-mwaa-local-runner) repo, which provides a command line interface (CLI) utility that replicates an Amazon Managed Workflows for Apache Airflow (MWAA) environment locally via use of a Docker container. We have forked this repository and made some small changes to enable us to use local-runner while keeping our dags stored in this repository. (See this slack thread for more info: https://apache-airflow.slack.com/archives/CCRR5EBA7/p1690405849653759)
 
-From the rikolti directory, which contains `template.yaml`, build the serverless applications:
-
-```
-sam build --use-container
-```
-
-Using the `--user-container` option has SAM compile dependencies for each lambda function in a lambda-like docker container. This is necessary for compiling libraries such as lxml, which need to be natively compiled. The runtime and system architecture are defined for each lambda in the `template.yaml` file.
-
-> **NOTE**
-> There is a [troposphere](https://troposphere.readthedocs.io/en/latest/quick_start.html) script stub named `create_sam_template.py` checked into the repo. This script generates `template.yaml`, but we decided not to use it for now since the template is simple and we don't need to introduce another layer of tooling at this point. We might use it in the future to generate templates for different environments and such.
-
-Once built, deploy to AWS:
-
-Make sure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` env vars are set. Then, the first time you deploy:
+To set up this dev environment, first clone the repo locally:
 
 ```
-sam deploy --guided
+git clone git@github.com:ucldc/aws-mwaa-local-runner.git
 ```
 
-Follow the prompts. Say yes to save arguments to a `samconfig.toml` configuration file. Then on subsequent deploys you can just type:
+Then, modify `aws-mwaa-local-runner/docker/.env`, setting the following env vars to wherever the directories live on your machine, for example:
 
 ```
-sam deploy
+DAGS_HOME="/Users/username/dev/rikolti/airflow/dags"
+PLUGINS_HOME="/Users/username/dev/rikolti/airflow/plugins"
+REQS_HOME="/Users/username/dev/rikolti/airflow"
+STARTUP_HOME="/Users/username/dev/rikolti/airflow"
 ```
 
+These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-local.yml` script (and other docker-compose scripts) to mount the relevant directories containing Airflow DAGs, requirements, and plugins files into the docker container.
+
+Then, follow the instructions in the [README](https://github.com/ucldc/aws-mwaa-local-runner/#readme) to build the docker image, run the container, and do local development.

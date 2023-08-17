@@ -4,7 +4,6 @@ import os
 import subprocess
 from urllib.parse import quote as urllib_quote
 
-import boto3
 import requests
 
 from .. import settings
@@ -255,16 +254,9 @@ class NuxeoFetcher(Fetcher):
                 'prefix': prefix if prefix else self.nuxeo['prefix']
             }
         }
-        if settings.LOCAL_RUN:
-            subprocess.run([
-                'python',
-                'lambda_function.py',
-                json.dumps(lambda_query).encode('utf-8')
-            ])
-        else:
-            lambda_client = boto3.client('lambda', region_name="us-west-2",)
-            lambda_client.invoke(
-                FunctionName="fetch_metadata",
-                InvocationType="Event",  # invoke asynchronously
-                Payload=json.dumps(lambda_query).encode('utf-8')
-            )
+        # TODO: AW: this shouldn't be a subprocess
+        subprocess.run([
+            'python',
+            'lambda_function.py',
+            json.dumps(lambda_query).encode('utf-8')
+        ])
