@@ -1,8 +1,11 @@
-import requests
 import argparse
-import sys
-import lambda_shepherd
 import logging
+import sys
+
+import requests
+
+from . import lambda_shepherd
+
 logger = logging.getLogger(__name__)
 
 def registry_endpoint(url):

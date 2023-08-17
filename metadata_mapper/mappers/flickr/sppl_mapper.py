@@ -1,7 +1,9 @@
-from .flickr_mapper import FlickrRecord, FlickrVernacular, FlickrValidator
-from ..mapper import Validator, ValidationLogLevel
 import re
 from typing import Any
+
+from ..mapper import ValidationLogLevel, Validator
+from .flickr_mapper import FlickrRecord, FlickrValidator, FlickrVernacular
+
 
 class SpplRecord(FlickrRecord):
     def UCLDC_map(self):

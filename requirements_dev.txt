@@ -2,3 +2,4 @@
 -r ./metadata_fetcher/requirements.txt
 ipython
 ruff
+isort

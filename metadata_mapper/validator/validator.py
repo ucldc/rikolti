@@ -5,6 +5,7 @@ from typing import Any, Callable, Union
 from .validation_log import ValidationLog, ValidationLogLevel
 from .validation_mode import ValidationMode
 
+
 class Validator:
 
     def __init__(self, **options):

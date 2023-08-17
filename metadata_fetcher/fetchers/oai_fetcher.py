@@ -1,10 +1,12 @@
 import json
-from xml.etree import ElementTree
-from .Fetcher import Fetcher
-from urllib.parse import parse_qs
-from sickle import Sickle
-import requests
 import logging
+from urllib.parse import parse_qs
+from xml.etree import ElementTree
+
+import requests
+from sickle import Sickle
+
+from .Fetcher import Fetcher
 
 NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 

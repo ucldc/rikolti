@@ -1,8 +1,9 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, IO
+from typing import IO, Any
 
-import utilities
+from .. import utilities
+
 
 class ValidationLogLevel(Enum):
     DEBUG = "DEBUG"

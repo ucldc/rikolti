@@ -1,14 +1,12 @@
 import importlib
 import json
-import sys
-
-from typing import Union
-from urllib.parse import urlparse, parse_qs
-
-import settings
 import logging
+import sys
+from typing import Union
+from urllib.parse import parse_qs, urlparse
 
-from mappers.mapper import UCLDCWriter, Record, Vernacular
+from . import settings
+from .mappers.mapper import Record, UCLDCWriter, Vernacular
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +24,7 @@ def import_vernacular_reader(mapper_type):
     *mapper_parent_modules, snake_cased_mapper_name = mapper_type.split(".")
 
     mapper_module = importlib.import_module(
-        f"mappers.{'.'.join(mapper_parent_modules)}.{snake_cased_mapper_name}_mapper",
+        f".mappers.{'.'.join(mapper_parent_modules)}.{snake_cased_mapper_name}_mapper",
         package="metadata_mapper"
     )
 

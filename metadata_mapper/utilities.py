@@ -1,11 +1,11 @@
-import boto3
 import importlib
 import json
 import os
-
 from typing import Callable, Union
 
-import settings
+import boto3
+
+from . import settings
 
 
 def returns_callable(func: Callable) -> Callable:

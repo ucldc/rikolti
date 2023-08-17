@@ -1,14 +1,15 @@
 import json
+import logging
 import math
 import time
-
-from .Fetcher import Fetcher
-import requests
-from requests.adapters import HTTPAdapter
-from requests.adapters import Retry
 from urllib.parse import urlencode
-import settings
-import logging
+
+import requests
+from requests.adapters import HTTPAdapter, Retry
+
+from .. import settings
+from .Fetcher import Fetcher
+
 logger = logging.getLogger(__name__)
 
 

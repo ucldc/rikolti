@@ -1,12 +1,15 @@
 import json
-from .Fetcher import Fetcher, InvalidHarvestEndpoint
-import os
-import requests
-from urllib.parse import quote as urllib_quote
-import boto3
-import settings
-import subprocess
 import logging
+import os
+import subprocess
+from urllib.parse import quote as urllib_quote
+
+import boto3
+import requests
+
+from .. import settings
+from .Fetcher import Fetcher, InvalidHarvestEndpoint
+
 logger = logging.getLogger(__name__)
 
 
