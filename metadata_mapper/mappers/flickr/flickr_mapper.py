@@ -1,8 +1,10 @@
-from ..mapper import Record, Vernacular, Validator
 import json
-from typing import Any
 import re
 import sys
+from typing import Any
+
+from ..mapper import Record, Validator, Vernacular
+
 
 class FlickrRecord(Record):
     def UCLDC_map(self):

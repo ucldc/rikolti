@@ -92,6 +92,13 @@ We use PR reviews to approve or reject, comment on, and request further iteratio
 - DRY
 - Readability & Transparency: Code as language
 - Favor explicitness over defensiveness
+- Import statements grouped according to [isort](https://pycqa.github.io/isort/index.html) defaults:
+  - FUTURE
+  - STDLIB
+  - THIRDPARTY
+  - FIRSTPARTY
+  - LOCALFOLDER
+
 
 ## Deploying Using AWS SAM
 

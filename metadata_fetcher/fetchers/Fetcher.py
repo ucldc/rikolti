@@ -1,9 +1,12 @@
-import requests
+import logging
 import os
 import sys
-import settings
+
 import boto3
-import logging
+import requests
+
+from .. import settings
+
 logger = logging.getLogger(__name__)
 
 

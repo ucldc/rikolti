@@ -1,5 +1,6 @@
-from ..islandora_mapper import IslandoraRecord, IslandoraVernacular
 import re
+
+from ..islandora_mapper import IslandoraRecord, IslandoraVernacular
 
 
 class BurbankRecord(IslandoraRecord):

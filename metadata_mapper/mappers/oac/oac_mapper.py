@@ -1,8 +1,8 @@
 import re
-# import lxml
-from xml.etree import ElementTree as ET
 from collections import defaultdict
-from ..mapper import Vernacular, Record
+from xml.etree import ElementTree as ET
+
+from ..mapper import Record, Vernacular
 from ..utils import exists, getprop, iterify
 
 

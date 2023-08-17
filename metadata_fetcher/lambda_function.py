@@ -1,10 +1,13 @@
-import json
-import boto3
-import sys
-import settings
 import importlib
+import json
 import logging
-from fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
+import sys
+
+import boto3
+
+from . import settings
+from .fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
+
 logger = logging.getLogger(__name__)
 
 def import_fetcher(harvest_type):

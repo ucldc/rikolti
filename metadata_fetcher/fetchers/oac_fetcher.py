@@ -1,8 +1,11 @@
 import json
-import requests
-from xml.etree import ElementTree
-from .Fetcher import Fetcher
 import logging
+from xml.etree import ElementTree
+
+import requests
+
+from .Fetcher import Fetcher
+
 logger = logging.getLogger(__name__)
 
 

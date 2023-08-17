@@ -1,13 +1,16 @@
-import json
-import settings
 import argparse
+import json
 import logging
-from lambda_function import fetch_collection
-from sample_data.nuxeo_harvests import nuxeo_harvests, \
-    nuxeo_complex_object_harvests, nuxeo_nested_complex_object_harvests
-from sample_data.oac_harvests import oac_harvests
-from sample_data.oai_harvests import oai_harvests
-from fetch_registry_collections import fetch_endpoint
+
+from . import settings
+from .fetch_registry_collections import fetch_endpoint
+from .lambda_function import fetch_collection
+from .sample_data.nuxeo_harvests import (nuxeo_complex_object_harvests,
+                                        nuxeo_harvests,
+                                        nuxeo_nested_complex_object_harvests)
+from .sample_data.oac_harvests import oac_harvests
+from .sample_data.oai_harvests import oai_harvests
+
 
 def main():
     harvests = [

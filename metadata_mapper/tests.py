@@ -1,16 +1,18 @@
-import json
 import argparse
-import settings
+import json
 import logging
 import os
-from lambda_shepherd import map_collection
-from validate_mapping import validate_collection
-from sample_data.nuxeo_harvests import nuxeo_harvests, \
-    nuxeo_complex_object_harvests, nuxeo_nested_complex_object_harvests
-from sample_data.oac_harvests import oac_harvests
-from sample_data.islandora_harvests import islandora_harvests
-from map_registry_collections import map_endpoint
-from validate_registry_collections import validate_endpoint
+
+from . import settings
+from .lambda_shepherd import map_collection
+from .map_registry_collections import map_endpoint
+from .sample_data.islandora_harvests import islandora_harvests
+from .sample_data.nuxeo_harvests import (nuxeo_complex_object_harvests,
+                                         nuxeo_harvests,
+                                         nuxeo_nested_complex_object_harvests)
+from .sample_data.oac_harvests import oac_harvests
+from .validate_mapping import validate_collection
+from .validate_registry_collections import validate_endpoint
 
 
 def main():

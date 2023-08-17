@@ -1,14 +1,12 @@
 import importlib
 import json
-import sys
-
-from typing import Union
-from urllib.parse import urlparse, parse_qs
-
-import settings
 import logging
+import sys
+from typing import Union
+from urllib.parse import parse_qs, urlparse
 
-from mappers.mapper import UCLDCWriter, Record, Vernacular
+from . import settings
+from .mappers.mapper import Record, UCLDCWriter, Vernacular
 
 logger = logging.getLogger(__name__)
 
