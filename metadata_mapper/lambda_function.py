@@ -24,7 +24,7 @@ def import_vernacular_reader(mapper_type):
     *mapper_parent_modules, snake_cased_mapper_name = mapper_type.split(".")
 
     mapper_module = importlib.import_module(
-        f"mappers.{'.'.join(mapper_parent_modules)}.{snake_cased_mapper_name}_mapper",
+        f".mappers.{'.'.join(mapper_parent_modules)}.{snake_cased_mapper_name}_mapper",
         package="metadata_mapper"
     )
 
