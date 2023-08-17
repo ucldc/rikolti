@@ -1,25 +1,23 @@
-import os
-import json
-import re
-import boto3
 import hashlib
 import itertools
+import json
 import numbers
-
+import os
+import re
 from abc import ABC
-from markupsafe import Markup
-from typing import Any, Callable
 from datetime import date
+from typing import Any, Callable
 
-import settings
-from validator.validator import Validator
-from validator.validation_log import ValidationLog, ValidationLogLevel # noqa: F401
+import boto3
+from markupsafe import Markup
 
+from .. import settings
+from ..utilities import returns_callable
+from ..validator.validation_log import ValidationLog  # noqa: F401
+from ..validator.validator import Validator
 from . import constants
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
-
-from utilities import returns_callable
 
 
 class UCLDCWriter(object):

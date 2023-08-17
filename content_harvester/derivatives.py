@@ -1,6 +1,7 @@
 import os
 import subprocess
-from settings import CONTENT_PROCESSES
+
+from .settings import CONTENT_PROCESSES
 
 
 class ThumbnailError(Exception):

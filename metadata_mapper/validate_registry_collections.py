@@ -1,13 +1,15 @@
-import os
-import requests
 import argparse
 import json
-import sys
 import logging
-import settings
-import urllib3
+import os
+import sys
 from datetime import datetime
-from validate_mapping import validate_collection
+
+import requests
+import urllib3
+
+from . import settings
+from .validate_mapping import validate_collection
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

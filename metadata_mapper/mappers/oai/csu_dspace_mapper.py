@@ -1,6 +1,7 @@
-from .oai_mapper import OaiRecord, OaiVernacular
 import re
 import urllib
+
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class CsuDspaceRecord(OaiRecord):

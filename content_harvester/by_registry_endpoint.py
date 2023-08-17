@@ -1,6 +1,8 @@
-import requests
-from by_collection import harvest_collection
 import sys
+
+import requests
+
+from .by_collection import harvest_collection
 
 
 def harvest_endpoint(url):

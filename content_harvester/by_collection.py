@@ -1,8 +1,10 @@
 import json
 import os
-import settings
+
 import boto3
-from by_page import harvest_page_content
+
+from . import settings
+from .by_page import harvest_page_content
 
 
 def get_mapped_pages(collection_id):

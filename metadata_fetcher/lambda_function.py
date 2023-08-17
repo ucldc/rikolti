@@ -1,13 +1,15 @@
-import json
-import sys
 import importlib
+import json
 import logging
-from fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
+import sys
+
+from .fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
+
 logger = logging.getLogger(__name__)
 
 def import_fetcher(harvest_type):
     fetcher_module = importlib.import_module(
-        f"fetchers.{harvest_type}_fetcher", package="metadata_fetcher")
+        f".fetchers.{harvest_type}_fetcher", package="metadata_fetcher")
     fetcher_module_words = harvest_type.split('_')
     class_type = ''.join([word.capitalize() for word in fetcher_module_words])
     fetcher_class = getattr(fetcher_module, f"{class_type}Fetcher")

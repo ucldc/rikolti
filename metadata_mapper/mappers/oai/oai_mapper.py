@@ -1,10 +1,10 @@
 import os
-import settings
 from typing import Union
 
 from lxml import etree
 from sickle import models
 
+from ... import settings
 from ..mapper import Record, Vernacular
 
 

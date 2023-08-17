@@ -2,6 +2,7 @@ from typing import Union
 
 from .oai_mapper import OaiRecord, OaiVernacular
 
+
 class ChapmanRecord(OaiRecord):
     """Mapping discrepancies:
 

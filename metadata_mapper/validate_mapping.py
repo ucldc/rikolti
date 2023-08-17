@@ -1,17 +1,14 @@
 import json
-import requests
 import sys
+from typing import Type
+
+import requests
 import urllib3
 
-from typing import Type
-# from re import sub
-
-import settings
-import utilities
-
-from validator.validator import Validator
-from validator.validation_mode import ValidationMode
-from validator.validation_log import ValidationLogLevel
+from . import settings, utilities
+from .validator.validation_log import ValidationLogLevel
+from .validator.validation_mode import ValidationMode
+from .validator.validator import Validator
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

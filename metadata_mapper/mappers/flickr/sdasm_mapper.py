@@ -1,5 +1,7 @@
-from .flickr_mapper import FlickrRecord, FlickrVernacular
 import re
+
+from .flickr_mapper import FlickrRecord, FlickrVernacular
+
 
 class SdasmRecord(FlickrRecord):
     def UCLDC_map(self):

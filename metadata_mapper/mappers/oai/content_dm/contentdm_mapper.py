@@ -1,5 +1,6 @@
-import requests
 import itertools
+
+import requests
 
 from ..oai_mapper import OaiRecord, OaiVernacular
 

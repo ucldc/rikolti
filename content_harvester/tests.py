@@ -1,14 +1,11 @@
-import os
 import json
-import settings
-from sample_data.nuxeo_harvests import nuxeo_complex_object_harvests
-    # nuxeo_harvests, \
-    # nuxeo_nested_complex_object_harvests
-# from sample_data.oac_harvests import oac_harvests
-# from sample_data.islandora_harvests import islandora_harvests
-from by_registry_endpoint import harvest_endpoint
-from by_collection import harvest_collection
+import os
 
+from . import settings
+
+from .by_collection import harvest_collection
+from .by_registry_endpoint import harvest_endpoint
+from .sample_data.nuxeo_harvests import nuxeo_complex_object_harvests
 
 def main():
     mapped_path = settings.local_path(

@@ -1,11 +1,14 @@
 import json
-import settings
-import boto3
 import os
-import requests
-import derivatives
-from requests.adapters import HTTPAdapter, Retry
 from collections import Counter
+
+import boto3
+import requests
+from requests.adapters import HTTPAdapter, Retry
+
+
+from . import derivatives
+from . import settings
 
 
 class DownloadError(Exception):

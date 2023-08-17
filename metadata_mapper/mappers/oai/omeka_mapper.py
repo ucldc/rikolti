@@ -1,5 +1,6 @@
-from .oai_mapper import OaiRecord, OaiVernacular
 import requests
+
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class OmekaRecord(OaiRecord):

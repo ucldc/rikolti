@@ -2,6 +2,7 @@ from abc import ABC
 from enum import Enum
 from typing import Any
 
+
 class ValidationMode(Enum):
 
     class Mode(ABC):

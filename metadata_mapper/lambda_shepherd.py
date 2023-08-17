@@ -1,13 +1,13 @@
 import json
-import os
-import boto3
-import sys
-import requests
-from lambda_function import map_page
-import settings
 import logging
+import os
+import sys
 
-import validate_mapping
+import boto3
+import requests
+
+from . import settings, validate_mapping
+from .lambda_function import map_page
 
 
 def get_collection(collection_id):
@@ -21,8 +21,9 @@ def get_collection(collection_id):
 def check_for_missing_enrichments(collection):
     """Check for missing enrichments - used for development but
     could likely be removed in production?"""
-    from mappers.mapper import Record
     from urllib.parse import urlparse
+
+    from mappers.mapper import Record
 
     not_yet_implemented = []
     collection_enrichments = (

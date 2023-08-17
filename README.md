@@ -91,6 +91,13 @@ We use PR reviews to approve or reject, comment on, and request further iteratio
 - PEP 8 (enforced using flake8)
 - Readability & Transparency: Code as language
 - Favor explicitness over defensiveness
+- Import statements grouped according to [isort](https://pycqa.github.io/isort/index.html) defaults:
+  - FUTURE
+  - STDLIB
+  - THIRDPARTY
+  - FIRSTPARTY
+  - LOCALFOLDER
+
 
 ## Airflow Development
 
