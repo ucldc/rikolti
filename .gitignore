@@ -17,5 +17,6 @@ samconfig.toml
 /.cache
 /.local
 !/.github
+startup.sh
 
 __pycache__
