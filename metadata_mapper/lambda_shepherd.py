@@ -42,7 +42,7 @@ def check_for_missing_enrichments(collection):
 def get_vernacular_pages(collection_id):
     page_list = []
 
-    if settings.DATA_SRC == 'local':
+    if settings.DATA_SRC["STORE"] == 'file':
         vernacular_path = settings.local_path(
             'vernacular_metadata', collection_id)
         try:
