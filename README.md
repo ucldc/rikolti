@@ -114,10 +114,10 @@ git clone git@github.com:ucldc/aws-mwaa-local-runner.git
 Then, modify `aws-mwaa-local-runner/docker/.env`, setting the following env vars to wherever the directories live on your machine, for example:
 
 ```
-DAGS_HOME="/Users/username/dev/rikolti/airflow/dags"
-PLUGINS_HOME="/Users/username/dev/rikolti/airflow/plugins"
-REQS_HOME="/Users/username/dev/rikolti/airflow"
-STARTUP_HOME="/Users/username/dev/rikolti/airflow"
+DAGS_HOME="/Users/username/dev/rikolti/dags"
+PLUGINS_HOME="/Users/username/dev/rikolti/plugins"
+REQS_HOME="/Users/username/dev/rikolti/dags"
+STARTUP_HOME="/Users/username/dev/rikolti/dags"
 ```
 
 These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-local.yml` script (and other docker-compose scripts) to mount the relevant directories containing Airflow DAGs, requirements, and plugins files into the docker container.
