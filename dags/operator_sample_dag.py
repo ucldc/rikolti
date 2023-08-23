@@ -23,7 +23,7 @@ def requests_test(collection_id):
     tags=["test"],
 )
 def testing_dag():
-    test_requests = PythonOperator(
+    test_requests = PythonOperator(         # noqa: F841
         task_id="test_requests",
         python_callable=requests_test,
         op_kwargs={
