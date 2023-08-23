@@ -33,7 +33,7 @@ def import_vernacular_reader(mapper_type):
 
     mapper_module = importlib.import_module(
         f".mappers.{'.'.join(mapper_parent_modules)}.{snake_cased_mapper_name}_mapper",
-        package="metadata_mapper"
+        package=__package__
     )
 
     mapper_type_words = snake_cased_mapper_name.split('_')

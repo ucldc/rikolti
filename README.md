@@ -125,12 +125,25 @@ git clone git@github.com:ucldc/aws-mwaa-local-runner.git
 Then, modify `aws-mwaa-local-runner/docker/.env`, setting the following env vars to wherever the directories live on your machine, for example:
 
 ```
-DAGS_HOME="/Users/username/dev/rikolti/airflow/dags"
-PLUGINS_HOME="/Users/username/dev/rikolti/airflow/plugins"
-REQS_HOME="/Users/username/dev/rikolti/airflow"
-STARTUP_HOME="/Users/username/dev/rikolti/airflow"
+DAGS_HOME="/Users/username/dev/rikolti"
+PLUGINS_HOME="/Users/username/dev/rikolti/plugins"
+REQS_HOME="/Users/username/dev/rikolti/dags"
+STARTUP_HOME="/Users/username/dev/rikolti/dags"
+RIKOLTI_DATA_HOME="/Users/username/dev/rikolti_data"
 ```
 
-These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-local.yml` script (and other docker-compose scripts) to mount the relevant directories containing Airflow DAGs, requirements, and plugins files into the docker container.
+These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-local.yml` script (and other docker-compose scripts) to mount the relevant directories containing Airflow DAGs, requirements, plugin files, startup file, and Rikolti data destination into the docker container.
 
-Then, follow the instructions in the [README](https://github.com/ucldc/aws-mwaa-local-runner/#readme) to build the docker image, run the container, and do local development.
+Then, create the `startup.sh` file by running `cp env.example startup.sh`. Update the startup.sh file with Nuxeo, Flickr, and Solr keys as available, and make sure that the following three environment variables are set:
+
+```
+export FETCHER_DATA_DEST=file:///usr/local/airflow/rikolti_data
+export MAPPER_DATA_SRC=file:///usr/local/airflow/rikolti_data
+export MAPPER_DATA_DEST=file:///usr/local/airflow/rikolti_data
+```
+
+The folder located at `/usr/local/airflow/rikolti_data` on the docker container is mounted to `RIKOLTI_DATA_HOME`, set in `aws-mwaa-local-runner/docker/.env`.
+
+Finally, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
+
+For more information on `mwaa-local-env`, look for instructions in the [ucldc/aws-mwaa-local-runner:README](https://github.com/ucldc/aws-mwaa-local-runner/#readme) to build the docker image, run the container, and do local development.

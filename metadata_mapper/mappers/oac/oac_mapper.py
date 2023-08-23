@@ -147,7 +147,7 @@ class OacRecord(Record):
             # vs. the custom fetching mark was doing
             ref_images = self.source_metadata.get('originalRecord', {}).get(
                 'reference-image', [])
-            if type(ref_images) == dict:
+            if type(ref_images) == dict:        # noqa: E721
                 ref_images = [ref_images]
             for obj in ref_images:
                 if max(int(obj.get('X')), int(obj.get('Y'))) > dim:
