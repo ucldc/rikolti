@@ -6,8 +6,11 @@ import sys
 import boto3
 import requests
 
+from urllib.parse import urlparse
+
 from . import settings, validate_mapping
 from .lambda_function import map_page
+from .mappers.mapper import Record
 
 
 def get_collection(collection_id):
@@ -21,9 +24,6 @@ def get_collection(collection_id):
 def check_for_missing_enrichments(collection):
     """Check for missing enrichments - used for development but
     could likely be removed in production?"""
-    from urllib.parse import urlparse
-
-    from mappers.mapper import Record
 
     not_yet_implemented = []
     collection_enrichments = (
@@ -42,7 +42,7 @@ def check_for_missing_enrichments(collection):
 def get_vernacular_pages(collection_id):
     page_list = []
 
-    if settings.DATA_SRC == 'local':
+    if settings.DATA_SRC["STORE"] == 'file':
         vernacular_path = settings.local_path(
             'vernacular_metadata', collection_id)
         try:

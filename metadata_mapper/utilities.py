@@ -28,11 +28,11 @@ def import_vernacular_reader(mapper_type):
     nuxeo       | nuxeo_mapper        | NuxeoVernacular
     content_dm  | content_dm_mapper   | ContentDmVernacular
     """
-    from mappers.mapper import Vernacular
+    from .mappers.mapper import Vernacular
     *mapper_parent_modules, snake_cased_mapper_name = mapper_type.split(".")
 
     mapper_module = importlib.import_module(
-        f"mappers.{'.'.join(mapper_parent_modules)}.{snake_cased_mapper_name}_mapper",
+        f".mappers.{'.'.join(mapper_parent_modules)}.{snake_cased_mapper_name}_mapper",
         package="metadata_mapper"
     )
 
@@ -51,7 +51,7 @@ def get_files(directory: str, collection_id: int) -> list[str]:
     """
     Gets a list of filenames in a given directory.
     """
-    if settings.DATA_SRC == "local":
+    if settings.DATA_SRC["STORE"] == "file":
         path = settings.local_path(directory, collection_id)
         return [f for f in os.listdir(path)
                 if os.path.isfile(os.path.join(path, f))]
@@ -79,7 +79,7 @@ def read_from_bucket(directory: str, collection_id: int,
     Returns: str
         The file contents
     """
-    if settings.DATA_SRC == 'local':
+    if settings.DATA_SRC["STORE"] == 'file':
         page_path = os.sep.join([
             settings.local_path(directory, collection_id),
             str(file_name)
@@ -87,7 +87,7 @@ def read_from_bucket(directory: str, collection_id: int,
 
         with open(page_path, "r") as metadata_file:
             return metadata_file.read()
-    elif settings.DATA_SRC == 's3':
+    elif settings.DATA_SRC["STORE"] == 's3':
         s3 = boto3.resource('s3')
         bucket = 'rikolti'
         key = f"{directory}/{collection_id}/{file_name}"
@@ -133,7 +133,7 @@ def write_to_bucket(directory: str, collection_id: int,
     if isinstance(content, list) or isinstance(content, dict):
         content = json.dumps(content)
 
-    if settings.DATA_SRC == 'local':
+    if settings.DATA_SRC["STORE"] == 'file':
         dir_path = settings.local_path(directory, collection_id)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
@@ -141,7 +141,7 @@ def write_to_bucket(directory: str, collection_id: int,
 
         with open(page_path, "a" if append else "w") as file:
             file.write(content)
-    elif settings.DATA_SRC == 's3':
+    elif settings.DATA_SRC["STORE"] == 's3':
         s3 = boto3.resource('s3')
         bucket = 'rikolti'
         key = f"{directory}/{collection_id}/{file_name}"

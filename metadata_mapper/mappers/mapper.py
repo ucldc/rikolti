@@ -55,7 +55,7 @@ class Vernacular(ABC, object):
         self.page_filename = payload.get('page_filename')
 
     def get_api_response(self) -> dict:
-        if settings.DATA_SRC == 'local':
+        if settings.DATA_SRC["STORE"] == 'file':
             return self.get_local_api_response()
         else:
             return self.get_s3_api_response()

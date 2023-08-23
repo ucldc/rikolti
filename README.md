@@ -35,19 +35,30 @@ python --version
 # > Python 3.9.15
 
 # create python virtual environment
-python -m venv ~/.venv/rikolti/
-source ~/.venv/rikolti/bin/activate
+python -m venv .venv/rikolti/
+source .venv/rikolti/bin/activate
 
 # install dependencies
-cd metadata_fetcher/
-pip install -r requirements.txt
-cd ../metadata_mapper/
-pip install -r requirements.txt
+pip install -r requirements_dev.txt
+
+# setup local environment variables
+cp env.example env.local
+vi env.local
 ```
 
 Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments.
 
-Note: We tried using `sam local` to develop the app locally and found that the overhead makes for a clunky and slow process that doesn't offer advantages over the local virtualenv development setup described above. We are using AWS SAM to build and deploy the lambda applications, however ([see below](#deploying-using-aws-sam)).
+Similarly, I also only use one env.local as well. Rikolti fetches data to your local system and then maps that data. Set `FETCHER_DATA_DEST` to the URI where you would like Rikolti to store fetched data - Rikolti will create a folder (or s3 prefix)`vernacular_metadata` at this location. Set `MAPPER_DATA_SRC` to the URI where Rikolti can find a `vernacular_metadata` folder that contains the fetched data you're attempting to map. Set `MAPPER_DATA_DEST` to the URI where you would like Rikolti to store mapped data - Rikolti will create a folder (or s3 prefix) `mapped_metadata` at this location.
+
+For example, one way to configure `env.local` is:
+
+```
+FETCHER_DATA_DEST=file:///Users/awieliczka/Projects/rikolti_data
+MAPPER_DATA_SRC=$FETCHER_DATA_DEST
+MAPPER_DATA_DEST=$FETCHER_DATA_DEST
+```
+
+Each of these can be different locations, however. For example, if you're attempting to re-run a mapper locally off of previously fetched data stored on s3, you might set `MAPPER_DATA_SRC=s3://rikolti_data`.
 
 ### Docker
 

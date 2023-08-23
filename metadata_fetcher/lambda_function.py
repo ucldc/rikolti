@@ -63,13 +63,14 @@ if __name__ == "__main__":
         description="Fetch metadata in the institution's vernacular")
     parser.add_argument('payload', help='json payload')
     args = parser.parse_args(sys.argv[1:])
+    payload = json.loads(args.payload)
 
     logging.basicConfig(
-        filename=f"fetch_collection_{args.payload.get('collection_id')}.log",
+        filename=f"fetch_collection_{payload.get('collection_id')}.log",
         encoding='utf-8',
         level=logging.DEBUG
     )
-    print(f"Starting to fetch collection {args.payload.get('collection_id')}")
-    fetch_collection(args.payload, {})
-    print(f"Finished fetching collection {args.payload.get('collection_id')}")
+    print(f"Starting to fetch collection {payload.get('collection_id')}")
+    fetch_collection(payload, {})
+    print(f"Finished fetching collection {payload.get('collection_id')}")
     sys.exit(0)

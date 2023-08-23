@@ -93,7 +93,7 @@ def map_page(payload: Union[dict, str], context: dict = {}):
     mapped_records = source_metadata_records
 
     writer = UCLDCWriter(payload)
-    if settings.DATA_DEST == 'local':
+    if settings.DATA_DEST["STORE"] == 'file':
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
@@ -123,7 +123,7 @@ def map_page(payload: Union[dict, str], context: dict = {}):
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    if settings.DATA_DEST == 'local':
+    if settings.DATA_DEST["STORE"] == 'file':
         writer.write_local_mapped_metadata(mapped_metadata)
     else:
         writer.write_s3_mapped_metadata([
