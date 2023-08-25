@@ -6,11 +6,11 @@ from airflow.decorators import dag, task
 from airflow.models.param import Param
 
 from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages, get_collection
-from rikolti.metadata_mapper.lambda_function import map_page as lambda_map_page
+from rikolti.metadata_mapper.lambda_function import map_page
 
 
 @task()
-def fetch_pages(params=None):
+def get_vernacular_pages_for_collection_task(params=None):
     if not params:
         return False
 
@@ -26,7 +26,7 @@ def fetch_pages(params=None):
     return pages
 
 @task()
-def map_page(page: str, params=None):
+def map_page_task(page: str, params=None):
     if not params:
         return False
 
@@ -67,9 +67,9 @@ def map_page(page: str, params=None):
 def mapper_dag():
     # simple dynamic task mapping
     # max_map_length=1024 by default. 
-    # if fetch_pages() generates more than this, that task will fail
+    # if get_vernacular_pages_for_collection_task() generates more than this, that task will fail
     # need to somehow chunk up pages into groups of 1024?
-    map_page.expand(page=fetch_pages())
+    map_page_task.expand(page=get_vernacular_pages_for_collection_task())
     
     # max_active_tis_per_dag - setting on the task to restrict how many
     # instances can be running at the same time, *across all DAG runs*
