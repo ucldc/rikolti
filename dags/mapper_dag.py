@@ -41,7 +41,7 @@ def map_page_task(page: str, params=None):
     payload.update({'page_filename': page})
 
     try:
-        mapped_page = lambda_map_page(json.dumps(payload), {})
+        mapped_page = map_page(json.dumps(payload), {})
     except KeyError:
         print(
             f"[{collection_id}]: {collection['rikolti_mapper_type']} "
