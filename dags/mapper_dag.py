@@ -65,13 +65,11 @@ def map_page(page: str, params=None):
     tags=["rikolti"],
 )
 def mapper_dag():
-    pages = fetch_pages()
-
     # simple dynamic task mapping
     # max_map_length=1024 by default. 
     # if fetch_pages() generates more than this, that task will fail
     # need to somehow chunk up pages into groups of 1024?
-    map_page.expand(page=pages)
+    map_page.expand(page=fetch_pages())
     
     # max_active_tis_per_dag - setting on the task to restrict how many
     # instances can be running at the same time, *across all DAG runs*
