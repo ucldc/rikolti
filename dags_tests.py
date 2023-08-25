@@ -1,9 +1,12 @@
+import sys
+
 from unittest import TestCase
 
 from airflow.models import DagBag
 
+sys.path.append('.')
 
-DAGS_FOLDER = "."
+DAGS_FOLDER = "./dags/"
 
 
 class HarvestDagsTest(TestCase):
@@ -12,3 +15,4 @@ class HarvestDagsTest(TestCase):
 
     def test_no_import_errors(self):
         assert not self.dag_bag().import_errors
+
