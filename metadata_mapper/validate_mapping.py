@@ -1,4 +1,5 @@
 import json
+import functools
 import sys
 from typing import Type
 
@@ -158,18 +159,41 @@ def make_solr_request(**params):
     return json.loads(res.content.decode('utf-8'))
 
 
+@functools.lru_cache(maxsize=3)
+def couch_db_request(collection_id: int, field_name: str) -> list[dict[str, str]]:
+    """
+    Requests isShownAt and iShownBy data from Couch DB.
+    This method gets all the data for a collection, but is invoked
+    for each page of a collection, so we cache the result in an
+    LRU cache to avoid hammering Couch DB.
+
+    I'm taking a conservative approach to the cache size here, since
+    the size of the response from Couch DB will be highly variable.
+    A single collection can be successfully validated with two entries
+    in the cache: one for isShownAt and one for isShownBy, so I set
+    the maxsize to 3.
+
+    Returns: list[dict]
+    """
+    url = "https://harvest-prd.cdlib.org/" \
+        "couchdb/ucldc/_design/all_provider_docs/" \
+        "_list/has_field_value/by_provider_name_wdoc" \
+        f"?key=\"{collection_id}\"&field={field_name}"
+    response = requests.get(url, verify=False)
+    return json.loads(response.content)
+
+
 def get_couch_db_data(collection_id: int,
                       harvest_ids: list[str]) -> dict[str, dict[str, str]]:
     """
-    Requests isShownAt and isShownBy data from Couch DB.
+    Parses down the data returned from the Couch DB request to only
+    the data we need for the harvest_ids we're validating.
 
     Data is returned as a list of single-entry dicts, so we'll
     parse them out into a dict[str, dict[str, str]] where the keys are
-    harvest_ids and the 
+    harvest_ids and the values are dicts: {field_name: field_value}
     """
-    # This method get ALL data for the collection, then pares it down
-    # TODO: See if there's a way to improve the query to only get relevant data
-    # TODO: See if there's a way to get both fields in a single query
+    # This method gets ALL data for the collection, then pares it down
 
     def snakeify(s):
         res = ""
@@ -183,14 +207,9 @@ def get_couch_db_data(collection_id: int,
     ret = {}
 
     for field_name in ["isShownAt", "isShownBy"]:  
-        url = "https://harvest-prd.cdlib.org/" \
-            "couchdb/ucldc/_design/all_provider_docs/" \
-            "_list/has_field_value/by_provider_name_wdoc" \
-            f"?key=\"{collection_id}\"&field={field_name}&limit=1000"
-      
-        response = requests.get(url, verify=False)
+        couch_data = couch_db_request(collection_id, field_name)
         data = {}
-        for d in json.loads(response.content):
+        for d in couch_data:
             key = list(d.keys())[0]
             data[key] = {snakeify(field_name): d[key]}
 
