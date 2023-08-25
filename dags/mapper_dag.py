@@ -1,11 +1,9 @@
 from datetime import datetime
 import json
-from time import sleep
-
-import requests
 
 from airflow.decorators import dag, task
 from airflow.models.param import Param
+
 from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages, get_collection
 from rikolti.metadata_mapper.lambda_function import map_page as lambda_map_page
 
@@ -17,7 +15,6 @@ def fetch_pages(params=None):
 
     payload = params.get('payload')
     collection_id = payload.get('collection_id', 0)
-
     # raise an error?
     if not collection_id:
         return []
@@ -36,7 +33,7 @@ def map_page(page: str, params=None):
     collection_id = payload.get('collection_id', 0)
     # raise an error?
     if not collection_id:
-        return []
+        return {}
 
     collection = get_collection(collection_id)
     payload.update({'collection': collection})
