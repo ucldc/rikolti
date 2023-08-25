@@ -25,6 +25,5 @@ jobs:
             ruff check --format=github ./dags
         - name: Test with Pytest
           run: |
-            pip install pytest apache-airflow
-            cd dags || exit
-            pytest tests.py -v
+            pip install pytest 
+            pytest dags_tests.py -v
