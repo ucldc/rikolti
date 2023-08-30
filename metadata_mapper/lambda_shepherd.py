@@ -79,17 +79,10 @@ def get_vernacular_pages(collection_id):
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # {"collection_id": 26098, "source_type": "nuxeo"}
 # AWS Lambda entry point
-def map_collection(payload, context):
-    if isinstance(payload, str):
-        payload = json.loads(payload)
-
-    collection_id = payload.get('collection_id')
+def map_collection(collection_id):
+    payload = {'collection_id': collection_id}
     collection = get_collection(collection_id)
     payload.update({'collection': collection})
-
-    if not collection_id:
-        print('collection_id required', file=sys.stderr)
-        exit()
 
     count = 0
     page_count = 0
@@ -100,7 +93,7 @@ def map_collection(payload, context):
         payload.update({'page_filename': page})
 
         try:
-            mapped_page = map_page(json.dumps(payload), {})
+            mapped_page = map_page(json.dumps(payload))
         except KeyError:
             print(
                 f"[{collection_id}]: {collection['rikolti_mapper_type']} "
@@ -140,13 +133,13 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
-    parser.add_argument('payload', help='json payload')
+    parser.add_argument('collection_id', help='collection ID from registry')
     args = parser.parse_args(sys.argv[1:])
-    mapped_collection = map_collection(args.payload, {})
+    mapped_collection = map_collection(args.collection_id)
     missing_enrichments = mapped_collection.get('missing_enrichments')
     if len(missing_enrichments) > 0:
         print(
-            f"{args.payload.get('collection_id')}, missing enrichments, ",
+            f"{args.collection_id}, missing enrichments, ",
             f"ALL, -, -, {missing_enrichments}"
         )
 

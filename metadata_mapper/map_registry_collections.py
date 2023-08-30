@@ -43,15 +43,15 @@ def map_endpoint(url, limit=None):
         sys.stderr.write('\r')
         progress_bar = f"{progress}/{limit}"
         sys.stderr.write(
-            f"{progress_bar:<9}: start mapping {collection_id:<6}")
+            f"{progress_bar:<9}: start mapping {collection_id:<6}\n")
         sys.stderr.flush()
 
         logger.debug(
-            f"[{collection_id}]: call lambda with payload: {collection}")
+            f"[{collection_id}]: call lambda with collection_id: {collection_id}")
 
         try:
             map_result = lambda_shepherd.map_collection(
-                collection, None)
+                collection_id)
         except FileNotFoundError:
             print(f"[{collection_id}]: not fetched yet", file=sys.stderr)
             continue

@@ -14,8 +14,7 @@ def get_vernacular_pages_for_collection_task(params=None):
     if not params:
         return False
 
-    payload = params.get('payload')
-    collection_id = payload.get('collection_id', 0)
+    collection_id = params.get('collection_id')
     # raise an error?
     if not collection_id:
         return []
@@ -26,22 +25,36 @@ def get_vernacular_pages_for_collection_task(params=None):
     return pages
 
 @task()
-def map_page_task(page: str, params=None):
+def get_registry_metadata_for_collection_task(params=None):
     if not params:
         return False
 
-    payload = params.get('payload')
-    collection_id = payload.get('collection_id', 0)
+    collection_id = params.get('collection_id')
+    # raise an error?
+    if not collection_id:
+        return []
+
+    collection = get_collection(collection_id)
+
+    return collection
+
+
+@task()
+def map_page_task(page: str, collection: dict, params=None):
+    if not params:
+        return False
+
+    collection_id = params.get('collection_id')
     # raise an error?
     if not collection_id:
         return {}
 
-    collection = get_collection(collection_id)
-    payload.update({'collection': collection})
+    payload = {'collection_id': collection_id}
     payload.update({'page_filename': page})
+    payload.update({'collection': collection})
 
     try:
-        mapped_page = map_page(json.dumps(payload), {})
+        mapped_page = map_page(json.dumps(payload))
     except KeyError:
         print(
             f"[{collection_id}]: {collection['rikolti_mapper_type']} "
@@ -54,22 +67,17 @@ def map_page_task(page: str, params=None):
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'payload': Param(
-            {
-                "collection_id": 26284, 
-                "rikolti_mapper_type": "oai.chapman", 
-                "page_filename": "0"
-            }, 
-            description="Payload from Collection Registry API"
-        )},
+    params={'collection_id': None},
     tags=["rikolti"],
 )
 def mapper_dag():
+    collection = get_registry_metadata_for_collection_task()
+
     # simple dynamic task mapping
     # max_map_length=1024 by default. 
     # if get_vernacular_pages_for_collection_task() generates more than this, that task will fail
     # need to somehow chunk up pages into groups of 1024?
-    map_page_task.expand(page=get_vernacular_pages_for_collection_task())
+    map_page_task.partial(collection=collection).expand(page=get_vernacular_pages_for_collection_task())
     
     # max_active_tis_per_dag - setting on the task to restrict how many
     # instances can be running at the same time, *across all DAG runs*

@@ -21,9 +21,9 @@ from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
 
 
 class UCLDCWriter(object):
-    def __init__(self, payload):
-        self.collection_id = payload.get('collection_id')
-        self.page_filename = payload.get('page_filename')
+    def __init__(self, collection_id: int, page_filename: str):
+        self.collection_id = collection_id
+        self.page_filename = page_filename
 
     def write_local_mapped_metadata(self, mapped_metadata):
         local_path = settings.local_path(
@@ -50,9 +50,9 @@ class UCLDCWriter(object):
 
 
 class Vernacular(ABC, object):
-    def __init__(self, payload: dict) -> None:
-        self.collection_id = payload.get('collection_id')
-        self.page_filename = payload.get('page_filename')
+    def __init__(self, collection_id: int, page_filename: str) -> None:
+        self.collection_id = collection_id
+        self.page_filename = page_filename
 
     def get_api_response(self) -> dict:
         if settings.DATA_SRC["STORE"] == 'file':
