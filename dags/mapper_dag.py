@@ -49,12 +49,8 @@ def map_page_task(page: str, collection: dict, params=None):
     if not collection_id:
         return {}
 
-    payload = {'collection_id': collection_id}
-    payload.update({'page_filename': page})
-    payload.update({'collection': collection})
-
     try:
-        mapped_page = map_page(json.dumps(payload))
+        mapped_page = map_page(collection_id, page, collection)
     except KeyError:
         print(
             f"[{collection_id}]: {collection['rikolti_mapper_type']} "
@@ -67,7 +63,7 @@ def map_page_task(page: str, collection: dict, params=None):
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'collection_id': None},
+    params={'collection_id': Param(None, description="Collection ID to map")},
     tags=["rikolti"],
 )
 def mapper_dag():

@@ -53,8 +53,7 @@ def parse_enrichment_url(enrichment_url):
     return enrichment_func, kwargs
 
 
-def run_enrichments(records, payload, enrichment_set):
-    collection = payload.get('collection', {})
+def run_enrichments(records, collection, enrichment_set, page_filename):
     for enrichment_url in collection.get(enrichment_set, []):
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
@@ -64,7 +63,7 @@ def run_enrichments(records, payload, enrichment_set):
             kwargs.update({'collection': collection})
         logging.debug(
             f"[{collection['id']}]: running enrichment: {enrichment_func} "
-            f"for page {payload['page_filename']} with kwargs: {kwargs}")
+            f"for page {page_filename} with kwargs: {kwargs}")
         records = [
             record.enrich(enrichment_func, **kwargs)
             for record in records
@@ -72,35 +71,30 @@ def run_enrichments(records, payload, enrichment_set):
     return records
 
 
-# AWS Lambda entry point
-# collection_id, page_filename, collection
-def map_page(payload: Union[dict, str]):
-    if isinstance(payload, str):
-        payload = json.loads(payload)
+def map_page(collection_id: int, page_filename: str, collection: Union[dict, str]):
+    if isinstance(collection, str):
+         collection = json.loads(collection)
 
     vernacular_reader = import_vernacular_reader(
-        payload.get('collection').get('rikolti_mapper_type'))
-    source_vernacular = vernacular_reader(
-        payload.get('collection_id'),
-        payload.get('page_filename'))
+        collection.get('rikolti_mapper_type'))
+    source_vernacular = vernacular_reader(collection_id, page_filename)
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
 
     source_metadata_records = run_enrichments(
-        source_metadata_records, payload, 'rikolti__pre_mapping')
+        source_metadata_records, collection, 'rikolti__pre_mapping', page_filename)
 
     for record in source_metadata_records:
         record.to_UCLDC()
     mapped_records = source_metadata_records
 
-    writer = UCLDCWriter(payload.get('collection_id'),
-        payload.get('page_filename'))
+    writer = UCLDCWriter(collection_id, page_filename)
     if settings.DATA_DEST["STORE"] == 'file':
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
 
     mapped_records = run_enrichments(
-        mapped_records, payload, 'rikolti__enrichments')
+        mapped_records, collection, 'rikolti__enrichments', page_filename)
 
     # TODO: analyze and simplify this straight port of the
     # solr updater module into the Rikolti framework
@@ -142,9 +136,12 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
-    parser.add_argument('payload', help='json payload')
+    parser.add_argument('collection_id', help='collection id')
+    parser.add_argument('page_filename', help='vernauclar metadata page filename')
+    parser.add_argument('collection', help='json collection metadata from registry')
+
     args = parser.parse_args(sys.argv[1:])
-    mapped_page = map_page(args.payload, {})
+    mapped_page = map_page(args.collection_id, args.page_filename, args.collection)
 
     print(f"{mapped_page.get('num_records_mapped')} records mapped")
 

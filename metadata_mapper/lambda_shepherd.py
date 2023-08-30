@@ -76,13 +76,11 @@ def get_vernacular_pages(collection_id):
     return page_list
 
 
-# {"collection_id": 26098, "source_type": "nuxeo"}
-# {"collection_id": 26098, "source_type": "nuxeo"}
-# AWS Lambda entry point
-def map_collection(collection_id):
-    payload = {'collection_id': collection_id}
+def map_collection(collection_id, validate=False):
+    if isinstance(validate, str):
+         validate = json.loads(validate)
+
     collection = get_collection(collection_id)
-    payload.update({'collection': collection})
 
     count = 0
     page_count = 0
@@ -90,10 +88,8 @@ def map_collection(collection_id):
 
     page_list = get_vernacular_pages(collection_id)
     for page in page_list:
-        payload.update({'page_filename': page})
-
         try:
-            mapped_page = map_page(json.dumps(payload))
+            mapped_page = map_page(collection_id, page, collection)
         except KeyError:
             print(
                 f"[{collection_id}]: {collection['rikolti_mapper_type']} "
@@ -105,8 +101,6 @@ def map_collection(collection_id):
         page_count += 1
         collection_exceptions.append(mapped_page.get('page_exceptions', {}))
 
-
-    validate = payload.get("validate")
     if validate:
         opts = validate if isinstance(validate, dict) else {}
         validate_mapping.create_collection_validation_csv(
@@ -134,8 +128,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
     parser.add_argument('collection_id', help='collection ID from registry')
+    parser.add_argument('--validate', help='validate mapping; may provide json opts',
+        const=True, nargs='?')
     args = parser.parse_args(sys.argv[1:])
-    mapped_collection = map_collection(args.collection_id)
+    mapped_collection = map_collection(args.collection_id, args.validate)
     missing_enrichments = mapped_collection.get('missing_enrichments')
     if len(missing_enrichments) > 0:
         print(
