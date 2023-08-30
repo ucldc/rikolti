@@ -72,16 +72,17 @@ def run_enrichments(records, payload, enrichment_set):
     return records
 
 
-# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "r-0"}
-# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": 2}
 # AWS Lambda entry point
-def map_page(payload: Union[dict, str], context: dict = {}):
+# collection_id, page_filename, collection
+def map_page(payload: Union[dict, str]):
     if isinstance(payload, str):
         payload = json.loads(payload)
 
     vernacular_reader = import_vernacular_reader(
-        payload.get('rikolti_mapper_type'))
-    source_vernacular = vernacular_reader(payload)
+        payload.get('collection').get('rikolti_mapper_type'))
+    source_vernacular = vernacular_reader(
+        payload.get('collection_id'),
+        payload.get('page_filename'))
     api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
 
@@ -92,7 +93,8 @@ def map_page(payload: Union[dict, str], context: dict = {}):
         record.to_UCLDC()
     mapped_records = source_metadata_records
 
-    writer = UCLDCWriter(payload)
+    writer = UCLDCWriter(payload.get('collection_id'),
+        payload.get('page_filename'))
     if settings.DATA_DEST["STORE"] == 'file':
         writer.write_local_mapped_metadata(
             [record.to_dict() for record in mapped_records])
