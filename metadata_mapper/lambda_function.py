@@ -102,13 +102,13 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     mapped_records = [record.solr_updater() for record in mapped_records]
     mapped_records = [record.remove_none_values() for record in mapped_records]
 
+    group_page_exceptions = {}
     page_exceptions = {
         rec.legacy_couch_db_id: rec.enrichment_report
         for rec in mapped_records if rec.enrichment_report
     }
     if page_exceptions:
         # Group like lists of enrichment chain errors
-        group_page_exceptions = {}
         for couch_id, reports in page_exceptions.items():
             report = " | ".join(reports)
             group_page_exceptions.setdefault(report, []).append(couch_id)
