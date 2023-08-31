@@ -1,0 +1,2 @@
+bin/install_dev_requirements
+docker compose exec python ipython

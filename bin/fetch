@@ -1,2 +1,2 @@
-bin/install_dev_requirements
-docker compose exec -w /home/rikolti/metadata_fetcher python ipython
+bin/install_dev_requirements fetcher
+docker compose exec python ipython
