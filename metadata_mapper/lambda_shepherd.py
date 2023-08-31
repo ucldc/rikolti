@@ -76,7 +76,7 @@ def get_vernacular_pages(collection_id):
     return page_list
 
 
-def get_mapping_stats(mapped_pages):
+def get_mapping_summary(mapped_pages):
     count = sum([page['num_records_mapped'] for page in mapped_pages])
     page_count = len(mapped_pages)
     collection_exceptions = [page.get('page_exceptions', {}) for page in mapped_pages]
@@ -111,7 +111,7 @@ def map_collection(collection_id, validate=False):
             )
             continue
 
-    collection_stats = get_mapping_stats(mapped_pages)
+    collection_stats = get_mapping_summary(mapped_pages)
 
     if validate:
         opts = validate if isinstance(validate, dict) else {}
