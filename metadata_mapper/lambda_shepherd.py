@@ -76,20 +76,34 @@ def get_vernacular_pages(collection_id):
     return page_list
 
 
+def get_mapping_stats(mapped_pages):
+    count = sum([page['num_records_mapped'] for page in mapped_pages])
+    page_count = len(mapped_pages)
+    collection_exceptions = [page.get('page_exceptions', {}) for page in mapped_pages]
+
+    group_exceptions = {}
+    for page_exceptions in collection_exceptions:
+        for exception, couch_ids in page_exceptions.items():
+            group_exceptions.setdefault(exception, []).extend(couch_ids)
+
+    return {
+        'count': count,
+        'page_count': page_count,
+        'group_exceptions': group_exceptions
+    }
+
 def map_collection(collection_id, validate=False):
     if isinstance(validate, str):
          validate = json.loads(validate)
 
     collection = get_collection(collection_id)
 
-    count = 0
-    page_count = 0
-    collection_exceptions = []
-
     page_list = get_vernacular_pages(collection_id)
+    mapped_pages = []
     for page in page_list:
         try:
             mapped_page = map_page(collection_id, page, collection)
+            mapped_pages.append(mapped_page)
         except KeyError:
             print(
                 f"[{collection_id}]: {collection['rikolti_mapper_type']} "
@@ -97,9 +111,7 @@ def map_collection(collection_id, validate=False):
             )
             continue
 
-        count += mapped_page['num_records_mapped']
-        page_count += 1
-        collection_exceptions.append(mapped_page.get('page_exceptions', {}))
+    collection_stats = get_mapping_stats(mapped_pages)
 
     if validate:
         opts = validate if isinstance(validate, dict) else {}
@@ -108,18 +120,13 @@ def map_collection(collection_id, validate=False):
             **opts
             )
 
-    group_exceptions = {}
-    for page_exceptions in collection_exceptions:
-        for exception, couch_ids in page_exceptions.items():
-            group_exceptions.setdefault(exception, []).extend(couch_ids)
-
     return {
         'status': 'success',
         'collection_id': collection_id,
         'missing_enrichments': check_for_missing_enrichments(collection),
-        'records_mapped': count,
-        'pages_mapped': page_count,
-        'exceptions': group_exceptions
+        'records_mapped': collection_stats.get('count'),
+        'pages_mapped': collection_stats.get('page_count'),
+        'exceptions': collection_stats.get('group_exceptions')
     }
 
 
