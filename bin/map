@@ -1,2 +1,2 @@
-bin/install_dev_requirements
-docker compose exec -w /home/rikolti/metadata_mapper python ipython
+bin/install_dev_requirements mapper
+docker compose exec -w /home/rikolti python ipython
