@@ -5,6 +5,11 @@ from ..mapper import Validator
 
 
 class CcaVaultRecord(OaiRecord):
+    def UCLDC_map(self):
+        return {
+            "language": self.source_metadata.get("language"),
+            "source": self.source_metadata.get("source")
+        }
 
     def map_is_shown_at(self) -> Union[str, None]:
         return self.identifier_for_image()
@@ -13,10 +18,8 @@ class CcaVaultRecord(OaiRecord):
         if not self.is_image_type():
             return
 
-        if not self.source_metadata.get("type", [])[0].lower() != "image":
-            return
-
         base_url: str = self.identifier_for_image()
+
         return f"{base_url.replace('items', 'thumbs')}?gallery=preview"
 
     def is_image_type(self) -> bool:
