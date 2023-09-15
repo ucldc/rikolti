@@ -101,6 +101,17 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict, params=None):
     tags=["rikolti"],
 )
 def mapper_dag():
+    # This is a functional duplicate of 
+    # rikolti.metadata_mapper.lambda_shepherd.map_collection
+
+    # Within an airflow runtime context, we take advantage of airflow's dynamic
+    # task mapping to fan out all calls to map_page. 
+    # Outside the airflow runtime context, on the command line for example, 
+    # map_collection performs manual "fan out" in the for loop below. 
+
+    # Any changes to mapper_dag should be carefully considered, duplicated
+    # to map_collection, and tested in both contexts. 
+
     collection = get_registry_metadata_for_collection_task()
 
     # simple dynamic task mapping
