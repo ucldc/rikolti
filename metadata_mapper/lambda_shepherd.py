@@ -76,50 +76,10 @@ def get_vernacular_pages(collection_id):
     return page_list
 
 
-# {"collection_id": 26098, "source_type": "nuxeo"}
-# {"collection_id": 26098, "source_type": "nuxeo"}
-# AWS Lambda entry point
-def map_collection(payload, context):
-    if isinstance(payload, str):
-        payload = json.loads(payload)
-
-    collection_id = payload.get('collection_id')
-    collection = get_collection(collection_id)
-    payload.update({'collection': collection})
-
-    if not collection_id:
-        print('collection_id required', file=sys.stderr)
-        exit()
-
-    count = 0
-    page_count = 0
-    collection_exceptions = []
-
-    page_list = get_vernacular_pages(collection_id)
-    for page in page_list:
-        payload.update({'page_filename': page})
-
-        try:
-            mapped_page = map_page(json.dumps(payload), {})
-        except KeyError:
-            print(
-                f"[{collection_id}]: {collection['rikolti_mapper_type']} "
-                "not yet implemented", file=sys.stderr
-            )
-            continue
-
-        count += mapped_page['num_records_mapped']
-        page_count += 1
-        collection_exceptions.append(mapped_page.get('page_exceptions', {}))
-
-
-    validate = payload.get("validate")
-    if validate:
-        opts = validate if isinstance(validate, dict) else {}
-        validate_mapping.create_collection_validation_csv(
-            collection_id,
-            **opts
-            )
+def get_mapping_summary(mapped_pages):
+    count = sum([page['num_records_mapped'] for page in mapped_pages])
+    page_count = len(mapped_pages)
+    collection_exceptions = [page.get('page_exceptions', {}) for page in mapped_pages]
 
     group_exceptions = {}
     for page_exceptions in collection_exceptions:
@@ -127,12 +87,56 @@ def map_collection(payload, context):
             group_exceptions.setdefault(exception, []).extend(couch_ids)
 
     return {
+        'count': count,
+        'page_count': page_count,
+        'group_exceptions': group_exceptions
+    }
+
+def map_collection(collection_id, validate=False):
+    # This is a functional duplicate of rikolti.dags.mapper_dag.mapper_dag
+
+    # Within an airflow runtime context, we take advantage of airflow's dynamic
+    # task mapping to fan out all calls to map_page. 
+    # Outside the airflow runtime context, on the command line for example, 
+    # map_collection performs manual "fan out" in the for loop below. 
+
+    # Any changes to map_collection should be carefully considered, duplicated
+    # to mapper_dag, and tested in both contexts. 
+
+    if isinstance(validate, str):
+         validate = json.loads(validate)
+
+    collection = get_collection(collection_id)
+
+    page_list = get_vernacular_pages(collection_id)
+    mapped_pages = []
+    for page in page_list:
+        try:
+            mapped_page = map_page(collection_id, page, collection)
+            mapped_pages.append(mapped_page)
+        except KeyError:
+            print(
+                f"[{collection_id}]: {collection['rikolti_mapper_type']} "
+                "not yet implemented", file=sys.stderr
+            )
+            continue
+
+    collection_stats = get_mapping_summary(mapped_pages)
+
+    if validate:
+        opts = validate if isinstance(validate, dict) else {}
+        validate_mapping.create_collection_validation_csv(
+            collection_id,
+            **opts
+            )
+
+    return {
         'status': 'success',
         'collection_id': collection_id,
         'missing_enrichments': check_for_missing_enrichments(collection),
-        'records_mapped': count,
-        'pages_mapped': page_count,
-        'exceptions': group_exceptions
+        'records_mapped': collection_stats.get('count'),
+        'pages_mapped': collection_stats.get('page_count'),
+        'exceptions': collection_stats.get('group_exceptions')
     }
 
 
@@ -140,13 +144,15 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
-    parser.add_argument('payload', help='json payload')
+    parser.add_argument('collection_id', help='collection ID from registry')
+    parser.add_argument('--validate', help='validate mapping; may provide json opts',
+        const=True, nargs='?')
     args = parser.parse_args(sys.argv[1:])
-    mapped_collection = map_collection(args.payload, {})
+    mapped_collection = map_collection(args.collection_id, args.validate)
     missing_enrichments = mapped_collection.get('missing_enrichments')
     if len(missing_enrichments) > 0:
         print(
-            f"{args.payload.get('collection_id')}, missing enrichments, ",
+            f"{args.collection_id}, missing enrichments, ",
             f"ALL, -, -, {missing_enrichments}"
         )
 
