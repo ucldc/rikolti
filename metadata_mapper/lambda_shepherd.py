@@ -93,6 +93,16 @@ def get_mapping_summary(mapped_pages):
     }
 
 def map_collection(collection_id, validate=False):
+    # This is a functional duplicate of rikolti.dags.mapper_dag.mapper_dag
+
+    # Within an airflow runtime context, we take advantage of airflow's dynamic
+    # task mapping to fan out all calls to map_page. 
+    # Outside the airflow runtime context, on the command line for example, 
+    # map_collection performs manual "fan out" in the for loop below. 
+
+    # Any changes to map_collection should be carefully considered, duplicated
+    # to mapper_dag, and tested in both contexts. 
+
     if isinstance(validate, str):
          validate = json.loads(validate)
 
