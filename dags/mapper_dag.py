@@ -8,7 +8,7 @@ from rikolti.metadata_mapper.lambda_shepherd import \
     get_vernacular_pages, get_collection, \
     get_mapping_summary, check_for_missing_enrichments
 from rikolti.metadata_mapper.lambda_function import map_page
-from rikolti.metadata_mapper import validate_mapping
+# from rikolti.metadata_mapper import validate_mapping
 
 
 @task()
@@ -71,7 +71,7 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict, params=None):
         return False
 
     collection_id = params.get('collection_id')
-    validate = params.get('validate')
+    # validate = params.get('validate')
 
     collection_summary = get_mapping_summary(mapped_pages)
 
@@ -108,7 +108,12 @@ def mapper_dag():
     # if get_vernacular_pages_for_collection_task() generates
     # more than this, that task will fail
     # need to somehow chunk up pages into groups of 1024?
-    mapped_pages = map_page_task.partial(collection=collection).expand(page=get_vernacular_pages_for_collection_task())
+    page_list = get_vernacular_pages_for_collection_task()
+    mapped_pages = (
+        map_page_task
+            .partial(collection=collection)
+            .expand(page=page_list)
+    )
 
     get_mapping_summary_task(mapped_pages, collection)
 mapper_dag()
