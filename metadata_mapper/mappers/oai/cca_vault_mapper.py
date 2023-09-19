@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Any
 
 from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
@@ -36,6 +36,16 @@ class CcaVaultRecord(OaiRecord):
 
 
 class CcaVaultValidator(Validator):
+
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.add_validatable_field(
+            field="is_shown_by", type=str, 
+            validations=[
+                Validator.required_field,
+                CcaVaultValidator.str_match_ignore_url_protocol,
+                Validator.type_match
+            ])
 
     def generate_keys(self, collection: list[dict], type: str = None,
                       context: dict = {}) -> dict[str, dict]:
@@ -81,6 +91,19 @@ class CcaVaultValidator(Validator):
                 return shimmed_ids
         elif type == "Solr":
             return {r['harvest_id_s']: r for r in collection}
+
+    @staticmethod
+    def str_match_ignore_url_protocol(validation_def: dict,
+                                    rikolti_value: Any,
+                                    comparison_value: Any) -> None:
+        if rikolti_value == comparison_value:
+            return
+
+        if comparison_value.startswith('http'):
+            comparison_value = comparison_value.replace('http', 'https')
+
+        if not rikolti_value == comparison_value:
+            return "Content mismatch"
 
 class CcaVaultVernacular(OaiVernacular):
     record_cls = CcaVaultRecord
