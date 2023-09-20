@@ -133,6 +133,8 @@ def map_collection(collection_id, validate=False):
     return {
         'status': 'success',
         'collection_id': collection_id,
+        'pre_mapping': collection.get('rikolti__pre_mapping'),
+        'enrichments': collection.get('rikolti__enrichments'),
         'missing_enrichments': check_for_missing_enrichments(collection),
         'records_mapped': collection_stats.get('count'),
         'pages_mapped': collection_stats.get('page_count'),
