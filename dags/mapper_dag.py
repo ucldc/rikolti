@@ -86,6 +86,8 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict, params=None):
     return {
         'status': 'success',
         'collection_id': collection_id,
+        'pre_mapping': collection.get('rikolti__pre_mapping'),
+        'enrichments': collection.get('rikolti__enrichments'),
         'missing_enrichments': check_for_missing_enrichments(collection),
         'records_mapped': collection_summary.get('count'),
         'pages_mapped': collection_summary.get('page_count'),
