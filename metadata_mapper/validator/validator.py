@@ -1,5 +1,6 @@
 import itertools
 import re
+import urllib.parse
 from typing import Any, Callable, Union
 
 from .validation_log import ValidationLog, ValidationLogLevel
@@ -408,14 +409,29 @@ class Validator:
         self.log.add(**entry)
 
     def _default_log_entry(self, validation_def: dict[str, Any],
-                            rikolti_value: Any, comparison_value: Any) -> None:
+                            rikolti_value: Any, comparison_value: Any) -> dict:
+        solr_query = f'harvest_id_s:"{self.key}"'
+        solr = (
+            "/solr/dc-collection/select?q="
+            f"{urllib.parse.quote_plus(solr_query)}"
+            "&wt=json&indent=true"
+        )
+        couch = f"/couchdb/_utils/document.html?ucldc/{self.key}"
+        calisphere = f"/search/?q={urllib.parse.quote_plus(self.key)}"
+
         return {
             "key": self.key,
             "level": ValidationLogLevel.ERROR,
             "field": validation_def["field"],
             "description": "Validation failed",
             "actual": rikolti_value,
-            "expected": comparison_value
+            "expected": comparison_value,
+            "calisphere_prd": f"https://calisphere.org{calisphere}",
+            "solr_prd": f"https://harvest-prd.cdlib.org{solr}",
+            "couch_prd": f"https://harvest-prd.cdlib.org{couch}",
+            "calisphere_test": f"https://calisphere-test.cdlib.org{calisphere}",
+            "solr_stg": f"https://harvest-stg.cdlib.org{solr}",
+            "couch_stg": f"https://harvest-stg.cdlib.org{couch}",
         }
 
     def _maybe_create_validation_success_entry(self) -> None:
