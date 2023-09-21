@@ -1,87 +1,53 @@
+import requests
+
 from datetime import datetime
-import sys
 
 from airflow.decorators import dag, task
 from airflow.models.param import Param
-
-from rikolti.metadata_mapper.lambda_shepherd import \
-    get_vernacular_pages, get_collection, \
-    get_mapping_summary, check_for_missing_enrichments
+from rikolti.metadata_mapper.lambda_shepherd import (get_vernacular_pages,
+    get_mapping_summary, check_for_missing_enrichments)
 from rikolti.metadata_mapper.lambda_function import map_page
-# from rikolti.metadata_mapper import validate_mapping
 
 
 @task()
-def get_registry_metadata_for_collection_task(params=None):
-    if not params:
+def get_collection_metadata_task(params=None):
+    if not params or not params.get('collection_id'):
         return False
-
     collection_id = params.get('collection_id')
-    # raise an error?
-    if not collection_id:
-        return []
 
-    collection = get_collection(collection_id)
+    resp = requests.get(
+        "https://registry.cdlib.org/api/v1/"
+        f"rikolticollection/{collection_id}/?format=json"
+    )
+    resp.raise_for_status()
 
-    return collection
+    return resp.json()
 
 
 @task()
-def get_vernacular_pages_for_collection_task(params=None):
-    if not params:
-        return False
-
-    collection_id = params.get('collection_id')
-    # raise an error?
+def get_vernacular_pages_task(collection: dict):
+    collection_id = collection.get('collection_id')
     if not collection_id:
-        return []
-
-    pages = get_vernacular_pages(
-                collection_id)
-
+        return False
+    pages = get_vernacular_pages(collection_id)
     return pages
 
 
+# max_active_tis_per_dag - setting on the task to restrict how many
+# instances can be running at the same time, *across all DAG runs*
 @task()
-def map_page_task(page: str, collection: dict, params=None):
-    # max_active_tis_per_dag - setting on the task to restrict how many
-    # instances can be running at the same time, *across all DAG runs*
-    if not params:
-        return False
-
-    collection_id = params.get('collection_id')
-    # raise an error?
+def map_page_task(page: str, collection: dict):
+    collection_id = collection.get('collection_id')
     if not collection_id:
-        return {}
-
-    try:
-        mapped_page = map_page(collection_id, page, collection)
-    except KeyError:
-        print(
-            f"[{collection_id}]: {collection['rikolti_mapper_type']} "
-            "not yet implemented", file=sys.stderr
-        )
-
+        return False
+    mapped_page = map_page(collection_id, page, collection)
     return mapped_page
 
 
 @task()
-def get_mapping_summary_task(mapped_pages: list, collection: dict, params=None):
-    if not params:
-        return False
-
-    collection_id = params.get('collection_id')
-    # validate = params.get('validate')
-
+def get_mapping_summary_task(mapped_pages: list, collection: dict):
+    collection_id = collection.get('collection_id')
     collection_summary = get_mapping_summary(mapped_pages)
-
-    # TODO
-    #if validate:
-    #    opts = validate if isinstance(validate, dict) else {}
-    #    validate_mapping.create_collection_validation_csv(
-    #        collection_id,
-    #        **opts
-    #        )
 
     return {
         'status': 'success',
@@ -95,6 +61,21 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict, params=None):
     }
 
 
+# This is a functional duplicate of 
+# rikolti.metadata_mapper.lambda_shepherd.map_collection
+
+# Within an airflow runtime context, we take advantage of airflow's dynamic
+# task mapping to fan out all calls to map_page. 
+# Outside the airflow runtime context, on the command line for example, 
+# map_collection performs manual "fan out" in the for loop below. 
+
+# TODO: Any changes to mapper_dag should be carefully considered, duplicated
+# to map_collection, and tested in both contexts. Resolve multiple contexts.
+
+# TODO: this is a simple dynamic task mapping w/ max_map_length=1024 by default
+# if get_vernacular_pages_task() returns more than 1024 pages, map_page_task
+# will fail - need to somehow chunk up pages into groups of 1024?
+
 @dag(
     schedule=None,
     start_date=datetime(2023, 1, 1),
@@ -103,25 +84,8 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict, params=None):
     tags=["rikolti"],
 )
 def mapper_dag():
-    # This is a functional duplicate of 
-    # rikolti.metadata_mapper.lambda_shepherd.map_collection
-
-    # Within an airflow runtime context, we take advantage of airflow's dynamic
-    # task mapping to fan out all calls to map_page. 
-    # Outside the airflow runtime context, on the command line for example, 
-    # map_collection performs manual "fan out" in the for loop below. 
-
-    # Any changes to mapper_dag should be carefully considered, duplicated
-    # to map_collection, and tested in both contexts. 
-
-    collection = get_registry_metadata_for_collection_task()
-
-    # simple dynamic task mapping
-    # max_map_length=1024 by default. 
-    # if get_vernacular_pages_for_collection_task() generates
-    # more than this, that task will fail
-    # need to somehow chunk up pages into groups of 1024?
-    page_list = get_vernacular_pages_for_collection_task()
+    collection = get_collection_metadata_task()
+    page_list = get_vernacular_pages_task(collection=collection)
     mapped_pages = (
         map_page_task
             .partial(collection=collection)
