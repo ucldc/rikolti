@@ -56,13 +56,27 @@ def map_endpoint(url, limit=None):
             print(f"[{collection_id}]: not fetched yet", file=sys.stderr)
             continue
 
-        missing_enrichments = map_result.get('missing_enrichments')
+        pre_mapping = map_result.get('pre_mapping', [])
+        if len(pre_mapping) > 0:
+            print(
+                f"{collection_id}, pre-mapping enrichments, ",
+                f"ALL, -, -, \"{pre_mapping}\""
+            )
+
+        enrichments = map_result.get('enrichments', [])
+        if len(enrichments) > 0:
+            print(
+                f"{collection_id}, post-mapping enrichments, ",
+                f"ALL, -, -, \"{enrichments}\""
+            )
+
+        missing_enrichments = map_result.get('missing_enrichments', [])
         if len(missing_enrichments) > 0:
             print(
                 f"{collection_id}, missing enrichments, ",
-                f"ALL, -, -, {missing_enrichments}"
+                f"ALL, -, -, \"{missing_enrichments}\""
             )
-        exceptions = map_result.get('exceptions')
+        exceptions = map_result.get('exceptions', {})
         if len(exceptions) > 0:
             for exception, couch_ids in exceptions.items():
                 print(
@@ -73,7 +87,6 @@ def map_endpoint(url, limit=None):
                     f"{collection_id}, enrichment error records, "
                     f'{len(couch_ids)}, -, -, "{couch_ids}"'
                 )
-
 
         # "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
         success = 'success' if map_result['status'] == 'success' else 'error'

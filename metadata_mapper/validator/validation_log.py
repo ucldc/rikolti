@@ -19,7 +19,13 @@ class ValidationLog:
         "field": "Field",
         "description": "Description",
         "expected": "Expected Value",
-        "actual": "Actual Value"
+        "actual": "Actual Value",
+        "calisphere_prd": "Calisphere Production",
+        "solr_prd": "Solr Production",
+        "couch_prd": "Couch Production",
+        "calisphere_test": "Calisphere Test",
+        "solr_stg": "Solr Stage",
+        "couch_stg": "Couch Stage",
     }
 
     def __init__(self, log_level: ValidationLogLevel = ValidationLogLevel.WARNING):
