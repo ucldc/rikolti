@@ -178,8 +178,11 @@ def couch_db_request(collection_id: int, field_name: str) -> list[dict[str, str]
     url = "https://harvest-prd.cdlib.org/" \
         "couchdb/ucldc/_design/all_provider_docs/" \
         "_list/has_field_value/by_provider_name_wdoc" \
-        f"?key=\"{collection_id}\"&field={field_name}"
+        f"?key=\"{collection_id}\"&field={field_name}&limit=100000"
     response = requests.get(url, verify=False)
+    # TODO: add a timeout to this request & if it times out, signal to the user
+    # that the request timed out and validation is continuing without data from
+    # Couch DB - a message to std.out should suffice
     return json.loads(response.content)
 
 
