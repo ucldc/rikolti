@@ -1,5 +1,8 @@
+import csv
 import json
 import sys
+from datetime import datetime
+from pathlib import Path
 from typing import Type
 
 import requests
@@ -112,6 +115,71 @@ def create_collection_validation_csv(collection_id: int, **options) -> None:
     result = validate_collection(collection_id, **options)
     filename = result.log.output_csv_to_bucket(collection_id)
     return f"Output {len(result.log.log)} rows to {filename}"
+
+def compare_collection_validation(collection_id: int, filename: str = None,
+                                  **options) -> None:
+    old_filename = utilities.get_files("validation", collection_id)[-1]
+    old_filepath = utilities.get_local_bucket_filepath("validation",
+                                                       collection_id,
+                                                       old_filename)
+    if not Path(old_filepath).is_file():
+        print("Previous validation data not found. Exiting.")
+        return
+
+    print("Running validator")
+    result = validate_collection(collection_id, **options)
+    new_filename = result.log.output_csv_to_bucket(collection_id)
+    new_filepath = utilities.get_local_bucket_filepath("validation",
+                                                       collection_id,
+                                                       new_filename)
+
+    print("Running comparison")
+    with open(new_filepath, "r") as new_file:
+        new = csv.DictReader(new_file, delimiter=",")
+        with open(old_filepath, "r") as old_file:
+            old = csv.DictReader(old_file, delimiter=",")
+
+            for index, new_row in enumerate(new):
+                if new_row["Level"] in ["INFO", "DEBUG"]:
+                    continue
+                
+                # Find old row(s) that match ID and field
+                old_rows = [
+                    [index, old_row] for old_row in old
+                    if old_row["Harvest ID"] == new_row["Harvest ID"]
+                        and old_row["Field"] == new_row["Field"]
+                        and bool(old_row["Field"])
+                        and old_row["Level"] not in ["INFO", "DEBUG"]
+                        and old_row["Description"] != new_row["Description"]
+                ]
+
+                if not old_rows:
+                    return "No changes"
+
+                ret = [["Harvest ID", "Field", "Reason", "New Value", "Old Value"]]
+                for (index, old_row) in old_rows:
+                    ret.append([
+                        old_row["Harvest ID"],
+                        old_row["Field"],
+                        "Description changed",
+                        new_row["Description"],
+                        old_row["Description"]
+                    ])
+
+                content_string = "\n".join([
+                    ",".join(row)
+                    for row in ret
+                ])
+
+                if not filename:
+                    filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
+
+                utilities.write_to_bucket("validation_comparisons",
+                                          collection_id,
+                                          filename,
+                                          content_string)
+            
+                return filename
 
 
 ## Private-ish
