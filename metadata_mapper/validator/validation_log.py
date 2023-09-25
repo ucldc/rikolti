@@ -1,3 +1,5 @@
+import csv
+
 from datetime import datetime
 from enum import Enum
 from typing import IO, Any
@@ -17,6 +19,7 @@ class ValidationLog:
         "harvest_id": "Harvest ID",
         "level": "Level",
         "field": "Field",
+        "validation": "Failed Validation",
         "description": "Description",
         "expected": "Expected Value",
         "actual": "Actual Value",
@@ -43,7 +46,7 @@ class ValidationLog:
 
     def add(self, key: str, field: str, description: str, expected: Any = "",
             actual: Any = "", level: ValidationLogLevel = ValidationLogLevel.ERROR,
-            **context) -> None:
+            validation: str = "", **context) -> None:
         """
         Adds an entry to the log.
 
@@ -70,6 +73,7 @@ class ValidationLog:
         self.log.append({
             "harvest_id": key,
             "level": level,
+            "validation": validation,
             "description": description,
             "field": field,
             "expected": str(expected),
@@ -93,6 +97,20 @@ class ValidationLog:
         self.log = self.log + other_log.log
         return self.log
 
+    def compare(self, other: 'ValidationLog') -> list[dict[str, str]]:
+        pass
+
+    def ingest_csv_file(self, file: IO[str]) -> None:
+        csv_dicts = csv.DictReader(file, delimiter=",", quote=csv.QUOTE_ALL)
+        for row in csv_dicts:
+            args_dict = {
+                arg_key: row[header_key]
+                for arg_key, header_key
+                in self.CSV_FIELDS.items()
+            }
+
+            self.add(**args_dict)
+
     def output_csv_to_file(self, file: IO[str], append: bool = False,
                            include_fields: list[str] = None) -> None:
         """
@@ -110,7 +128,8 @@ class ValidationLog:
             f.write(self._csv_content_string(include_fields, append))
 
     def output_csv_to_bucket(self, collection_id: int, filename: str = None,
-                             include_fields: list[str] = None) -> None:
+                             include_fields: list[str] = None,
+                             bucket_name: str = "validation") -> None:
         """
         Writes a CSV to the env-appropriate bucket (local or S3).
 
@@ -126,7 +145,7 @@ class ValidationLog:
         if not filename:
             filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
 
-        utilities.write_to_bucket("validation", collection_id, filename,
+        utilities.write_to_bucket(bucket_name, collection_id, filename,
                                   self._csv_content_string(include_fields))
         
         return filename

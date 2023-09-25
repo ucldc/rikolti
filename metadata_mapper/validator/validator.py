@@ -159,6 +159,7 @@ class Validator:
             self.log.add(
                 key=self.key,
                 field="record rights",
+                validation="rights_validation",
                 description="No rights or rights_uri found")
         return
 
@@ -341,13 +342,13 @@ class Validator:
 
             if len(normalized_results) > 0:
                 for result in normalized_results:
-                    self._build_entries(validation_def, result, level,
-                                        rikolti_value, comp_value)
+                    self._build_entries(validation_def, validator.__name__, result,
+                                        level, rikolti_value, comp_value)
             else:
                 if self.verbose:
-                    self._build_entries(validation_def, "Validation success",
-                                        ValidationLogLevel.INFO, rikolti_value,
-                                        comp_value)
+                    self._build_entries(validation_def, validator.__name__,
+                                        "Validation success", ValidationLogLevel.INFO,
+                                        rikolti_value, comp_value)
                 else:
                     self.successfully_validated_fields.append(validation_def.get("field"))
 
@@ -379,8 +380,9 @@ class Validator:
         elif isinstance(validations, dict):
             return validations
 
-    def _build_entries(self, validation_def: dict, validation_result: Any,
-                      level: str, rikolti_value: Any, comp_value: Any) -> None:
+    def _build_entries(self, validation_def: dict, validation_name: str,
+                       validation_result: Any, level: str, rikolti_value: Any,
+                       comp_value: Any) -> None:
         """
         Given a validation result, adds to self.log.
 
@@ -438,6 +440,7 @@ class Validator:
         self.log.add(
             key=self.key,
             level=ValidationLogLevel.INFO,
+            validator="",
             field=", ".join(self.successfully_validated_fields),
             description="Successfully validated"
         )
