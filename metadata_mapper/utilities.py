@@ -62,6 +62,12 @@ def get_files(directory: str, collection_id: int) -> list[str]:
         return s3.list_objects_v2(bucket, key)
 
 
+def get_local_bucket_filepath(directory: str, collection_id: int, file_name: str) -> str:
+    return os.sep.join([
+        settings.local_path(directory, collection_id),
+        str(file_name)
+    ])
+
 def read_from_bucket(directory: str, collection_id: int,
                      file_name: Union[str, int]) -> str:
     """
