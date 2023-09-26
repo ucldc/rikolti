@@ -46,19 +46,19 @@ def taskflow_get_admin_variables():
 @task()
 def taskflow_mkdir():
     """ we have permissions inside /airflow/, but nowhere else it seems """
-    if os.path.exists("/usr/local/airflow/rikolti_bucket/test_dir"):
-        os.remove("/usr/local/airflow/rikolti_bucket/test_dir/test2.txt")
-        os.rmdir("/usr/local/airflow/rikolti_bucket/test_dir")
+    if os.path.exists("/usr/local/airflow/rikolti_data/test_dir"):
+        os.remove("/usr/local/airflow/rikolti_data/test_dir/test2.txt")
+        os.rmdir("/usr/local/airflow/rikolti_data/test_dir")
 
-    os.mkdir("/usr/local/airflow/rikolti_bucket/test_dir")
-    with open("/usr/local/airflow/rikolti_bucket/test_dir/test2.txt", "w") as f:
+    os.mkdir("/usr/local/airflow/rikolti_data/test_dir")
+    with open("/usr/local/airflow/rikolti_data/test_dir/test2.txt", "w") as f:
         f.write("hi amy")
     return True
 
 @task()
 def taskflow_write_to_disk():
     """ write a file to disk """
-    with open("/usr/local/airflow/rikolti_bucket/test.txt", "w") as f:
+    with open("/usr/local/airflow/rikolti_data/test.txt", "w") as f:
         f.write("hello world")
     return True
 
@@ -68,6 +68,22 @@ def taskflow_get_env():
     startup_env = os.environ.get("ENVIRONMENT_STAGE")
     print(startup_env)
     return startup_env
+
+@task()
+def fails_sometimes():
+    """ sometimes this task fails """
+    nowish = datetime.now().second
+    print(nowish)
+    print(nowish % 2)
+    if nowish % 2 == 0:
+        raise Exception(f"this task fails sometimes: {nowish} % 2 == 0")
+    return True
+
+@task()
+def downstream_should_fail(upstream_result):
+    """ this task should never run """
+    print(upstream_result)
+    return True
 
 @dag(
     schedule=None,
@@ -85,5 +101,7 @@ def taskflow_test_dag():
     taskflow_mkdir()
     taskflow_write_to_disk()
     taskflow_get_env()
+    result = fails_sometimes()
+    downstream_should_fail(result)
 
 taskflow_test_dag()
