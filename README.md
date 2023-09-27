@@ -64,12 +64,16 @@ Each of these can be different locations, however. For example, if you're attemp
 
 After cloning the repo, run `script/up` to build and start the container. The 
 container will continue running until stopped. As most development tasks take place in 
-the Python console, there are two commands for starting the console in the 
-metadata_fetcher and metadata_mapper modules. They are:
+the Python console, there are two commands for starting the console with
+metadata_fetcher or metadata_mapper modules imported. They are:
 
-`bin/map` - starts the console from within the mapper module
+`bin/map` - starts the console with the mapper modules imported
 
-`bin/fetch` - starts the console from within the fetcher module
+`bin/fetch` - starts the console with the fetcher modules imported
+
+Additionally, there is:
+
+`bin/console` - starts with console without importing fetcher or mapper modules
 
 These commands install pip requirements and start an ipython console session.
 
