@@ -1145,29 +1145,21 @@ class Record(ABC, object):
         """
         2076 times: no parameters
         """
-        default_fields = [
-            "sourceResource/language", "sourceResource/title",
-            "sourceResource/creator", "sourceResource/relation",
-            "sourceResource/publisher", "sourceResource/subject",
-            "sourceResource/date",
-            "sourceResource/collection/title",
-            "sourceResource/collection/description",
-            "sourceResource/contributor", "sourceResource/spatial/name"
+        strip_trailing_dot = [
+            "language", "title", "relation", "subject", "date"
         ]
-        dont_strip_trailing_dot = [
-            "hasView/format", "sourceResource/format", "sourceResource/extent",
-            "sourceResource/rights",
-            "sourceResource/place", "sourceResource/collection/title"
+        do_not_strip_trailing_dot = [
+            "format", "extent", "rights", "place", "creator", "publisher", "contributor"
         ]
 
         def cleanup(value, field):
             strip_dquote = '"' if field not in ["title", "description"] else ''
-            strip_dot = '.' if field not in dont_strip_trailing_dot else ''
-            strip_leading = '[\.\' \r\t\n;,%s]*' % (strip_dquote)
-            strip_trailing = '[%s\' \r\t\n;,%s]*' % (strip_dot, strip_dquote)
+            strip_dot = '.' if field not in do_not_strip_trailing_dot else ''
+            strip_leading = r"[.' \r\t\n;,%s]*" % strip_dquote
+            strip_trailing = r"[%s' \r\t\n;,%s]*" % (strip_dot, strip_dquote)
 
-            regexps = ('\( ', '('), \
-                      (' \)', ')'), \
+            regexps = (r"( ", '('), \
+                      (r" )", ')'), \
                       (' *-- *', '--'), \
                       ('[\t ]{2,}', ' '), \
                       ('^' + strip_leading, ''), \
@@ -1179,10 +1171,7 @@ class Record(ABC, object):
                     value = re.sub(pattern, replacement, value)
             return value
 
-        for field in default_fields + dont_strip_trailing_dot:
-            # TODO: this won't work for deeply nested fields
-            field.split('/')[1]  # remove sourceResource
-
+        for field in strip_trailing_dot + do_not_strip_trailing_dot:
             if field not in self.mapped_data:
                 continue
             if isinstance(self.mapped_data[field], str):
