@@ -132,7 +132,13 @@ To set up this dev environment, first clone the repo locally:
 git clone git@github.com:ucldc/aws-mwaa-local-runner.git
 ```
 
-Then, modify `aws-mwaa-local-runner/docker/.env`, setting the following env vars to wherever the directories live on your machine, for example:
+Then, copy `aws-mwaa-local-runner/docker/.env.example`: 
+
+```
+cp aws-mwaa-local-runner/docker/.env.example aws-mwaa-local-runner/docker/.env
+```
+
+Set the following env vars to wherever the directories live on your machine, for example:
 
 ```
 DAGS_HOME="/Users/username/dev/rikolti"
