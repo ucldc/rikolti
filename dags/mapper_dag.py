@@ -33,6 +33,7 @@ def get_vernacular_pages_task(collection: dict):
 # will fail - need to somehow chunk up pages into groups of 1024?
 
 @dag(
+    dag_id="map_collection",
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
