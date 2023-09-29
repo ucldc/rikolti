@@ -31,7 +31,37 @@ def get_collection_fetchdata_task(params=None):
 @task()
 def fetch_collection_task(collection: dict):
     fetch_report = fetch_collection(collection, {})
-    return fetch_report
+
+    success = all([page['status'] == 'success' for page in fetch_report])
+    total_items = sum([page['document_count'] for page in fetch_report])
+    total_pages = fetch_report[-1]['page'] + 1
+    diff_items = total_items - collection['solr_count']
+    date = datetime.strptime(
+        collection['solr_last_updated'],
+        "%Y-%m-%dT%H:%M:%S.%f"
+    )
+
+    print(
+        f"{'Successfully fetched' if success else 'Error fetching'} "
+        f"collection {collection['collection_id']}"
+    )
+    print(
+        f"Fetched {total_items} items across {total_pages} pages "
+        f"at a rate of ~{total_items / total_pages} items per page"
+    )
+    print(
+        f"As of {datetime.strftime(date, '%B %d, %Y %H:%M:%S.%f')} "
+        f"Solr has {collection['solr_count']} items"
+    )
+    if diff_items != 0:
+        print(
+            f"Rikolti fetched {abs(diff_items)} "
+            f"{'more' if diff_items > 0 else 'fewer'} items."
+        )
+
+    return [
+        str(page['page']) for page in fetch_report if page['status'] == 'success'
+    ]
 
 
 @task()
@@ -91,7 +121,7 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict):
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'collection_id': Param(None, description="Collection ID to map")},
+    params={'collection_id': Param(3433, description="Collection ID to map")},
     tags=["rikolti"],
 )
 def harvest():
@@ -99,7 +129,7 @@ def harvest():
     @task_group(group_id="fetching")
     def fetching():
         fetchdata = get_collection_fetchdata_task()
-        fetch_report = fetch_collection_task(collection=fetchdata)
+        fetched_pages = fetch_collection_task(collection=fetchdata)
 
     @task_group(group_id="mapping")
     def mapping():
