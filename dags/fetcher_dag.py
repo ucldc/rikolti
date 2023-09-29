@@ -3,7 +3,7 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
 
-
+from rikolti.dags.harvest_dag import get_collection_fetchdata_task
 from rikolti.dags.harvest_dag import fetch_collection_task
 
 @dag(
@@ -14,6 +14,7 @@ from rikolti.dags.harvest_dag import fetch_collection_task
     tags=["rikolti"],
 )
 def fetcher_dag():
-    fetch_collection_task()
+    fetchdata = get_collection_fetchdata_task()
+    fetch_report = fetch_collection_task(collection=fetchdata)
 
 fetcher_dag()

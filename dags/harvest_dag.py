@@ -1,5 +1,4 @@
 import requests
-
 from datetime import datetime
 
 from airflow.decorators import dag, task_group, task
@@ -12,10 +11,12 @@ from rikolti.metadata_mapper.lambda_shepherd import \
     get_mapping_summary, check_for_missing_enrichments
 
 
+# TODO: remove the rikoltifetcher registry endpoint and restructure
+# the fetch_collection function to accept a rikolticollection resource.
 @task()
-def fetch_collection_task(params=None):
+def get_collection_fetchdata_task(params=None):
     if not params or not params.get('collection_id'):
-        return False
+        raise ValueError("Collection ID not found in params")
     collection_id = params.get('collection_id')
 
     resp = requests.get(
@@ -24,15 +25,19 @@ def fetch_collection_task(params=None):
     )
     resp.raise_for_status()
 
-    fetch_report = fetch_collection(resp.json(), {})
+    return resp.json()
 
+
+@task()
+def fetch_collection_task(collection: dict):
+    fetch_report = fetch_collection(collection, {})
     return fetch_report
 
 
 @task()
 def get_collection_metadata_task(params=None):
     if not params or not params.get('collection_id'):
-        return False
+        raise ValueError("Collection ID not found in params")
     collection_id = params.get('collection_id')
 
     resp = requests.get(
@@ -90,14 +95,15 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict):
     tags=["rikolti"],
 )
 def harvest():
-    collection = get_collection_metadata_task()
 
     @task_group(group_id="fetching")
-    def fetching(collection):
-        fetch_report = fetch_collection_task()
+    def fetching():
+        fetchdata = get_collection_fetchdata_task()
+        fetch_report = fetch_collection_task(collection=fetchdata)
 
     @task_group(group_id="mapping")
-    def mapping(collection):
+    def mapping():
+        collection = get_collection_metadata_task()
         page_list = get_vernacular_pages_task(collection=collection)
         mapped_pages = (
             map_page_task
@@ -106,6 +112,6 @@ def harvest():
         )
         get_mapping_summary_task(mapped_pages, collection)
     
-    fetching(collection) >> mapping(collection)
+    fetching() >> mapping()
 
 harvest()
