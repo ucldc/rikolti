@@ -1,11 +1,21 @@
 from datetime import datetime
 
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 from airflow.models.param import Param
 from rikolti.dags.harvest_dag import get_collection_metadata_task
-from rikolti.dags.harvest_dag import get_vernacular_pages_task
 from rikolti.dags.harvest_dag import map_page_task
 from rikolti.dags.harvest_dag import get_mapping_summary_task
+from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages
+
+
+@task()
+def get_vernacular_pages_task(collection: dict):
+    collection_id = collection.get('id')
+    if not collection_id:
+        raise ValueError(
+            f"Collection ID not found in collection metadata: {collection}")
+    pages = get_vernacular_pages(collection_id)
+    return pages
 
 # This is a functional duplicate of 
 # rikolti.metadata_mapper.lambda_shepherd.map_collection
