@@ -47,6 +47,9 @@ def sample_docker_operators():
     # since the docker daemon is running on the host machine, we can mount
     # a folder from the host machine into the container, but we cannot mount
     # a folder from the airflow container machine into the container
+
+    # TODO: template image, version, and mount
+    # https://airflow.apache.org/docs/apache-airflow/stable/templates-ref.html#airflow-variables-in-templates
     mount_folder_task = DockerOperator(
         task_id="mount_folder_task",
         image="simple_python:latest",
