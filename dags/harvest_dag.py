@@ -5,7 +5,6 @@ from airflow.decorators import dag, task_group, task
 from airflow.models.param import Param
 
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
-from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages
 from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import \
     get_mapping_summary, check_for_missing_enrichments
@@ -79,16 +78,6 @@ def get_collection_metadata_task(params=None):
     return resp.json()
 
 
-@task()
-def get_vernacular_pages_task(collection: dict):
-    collection_id = collection.get('id')
-    if not collection_id:
-        raise ValueError(
-            f"Collection ID not found in collection metadata: {collection}")
-    pages = get_vernacular_pages(collection_id)
-    return pages
-
-
 # max_active_tis_per_dag - setting on the task to restrict how many
 # instances can be running at the same time, *across all DAG runs*
 @task()
@@ -126,22 +115,16 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict):
 )
 def harvest():
 
-    @task_group(group_id="fetching")
-    def fetching():
-        fetchdata = get_collection_fetchdata_task()
-        fetched_pages = fetch_collection_task(collection=fetchdata)
+    fetchdata = get_collection_fetchdata_task()
+    collection = get_collection_metadata_task()
 
-    @task_group(group_id="mapping")
-    def mapping():
-        collection = get_collection_metadata_task()
-        page_list = get_vernacular_pages_task(collection=collection)
-        mapped_pages = (
-            map_page_task
-                .partial(collection=collection)
-                .expand(page=page_list)
-        )
-        get_mapping_summary_task(mapped_pages, collection)
+    fetched_pages = fetch_collection_task(collection=fetchdata)
+    mapped_pages = (
+        map_page_task
+            .partial(collection=collection)
+            .expand(page=fetched_pages)
+    )
+    get_mapping_summary_task(mapped_pages, collection)
     
-    fetching() >> mapping()
 
 harvest()
