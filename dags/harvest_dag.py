@@ -98,7 +98,7 @@ def get_mapping_status_task(collection: dict, mapped_pages: list):
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'collection_id': Param(None, description="Collection ID to map")},
+    params={'collection_id': Param(None, description="Collection ID to harvest")},
     tags=["rikolti"],
 )
 def harvest():
