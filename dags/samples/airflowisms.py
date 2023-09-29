@@ -6,11 +6,11 @@ from airflow.models.param import Param
 from airflow.models import Variable
 from airflow.operators.python import get_current_context
 
-# from airflow.operators.python import PythonOperator
 import requests
 
 @task()
 def taskflow_test_requests():
+    """ this did not work with airflow standalone """
     resp = requests.get("https://google.com")
     resp.raise_for_status()
     return resp.status_code
@@ -44,25 +44,6 @@ def taskflow_get_admin_variables():
     return True
 
 @task()
-def taskflow_mkdir():
-    """ we have permissions inside /airflow/, but nowhere else it seems """
-    if os.path.exists("/usr/local/airflow/rikolti_data/test_dir"):
-        os.remove("/usr/local/airflow/rikolti_data/test_dir/test2.txt")
-        os.rmdir("/usr/local/airflow/rikolti_data/test_dir")
-
-    os.mkdir("/usr/local/airflow/rikolti_data/test_dir")
-    with open("/usr/local/airflow/rikolti_data/test_dir/test2.txt", "w") as f:
-        f.write("hi amy")
-    return True
-
-@task()
-def taskflow_write_to_disk():
-    """ write a file to disk """
-    with open("/usr/local/airflow/rikolti_data/test.txt", "w") as f:
-        f.write("hello world")
-    return True
-
-@task()
 def taskflow_get_env():
     """ get env variables previously set """
     startup_env = os.environ.get("ENVIRONMENT_STAGE")
@@ -92,16 +73,14 @@ def downstream_should_fail(upstream_result):
     params={
         'collection_id': Param(1, description="Collection ID")
     },
-    tags=["test"],
+    tags=["sample"],
 )
-def taskflow_test_dag():
+def sample_airflowisms():
     taskflow_test_requests()
     taskflow_params()
     taskflow_get_admin_variables()
-    taskflow_mkdir()
-    taskflow_write_to_disk()
     taskflow_get_env()
     result = fails_sometimes()
     downstream_should_fail(result)
 
-taskflow_test_dag()
+sample_airflowisms()
