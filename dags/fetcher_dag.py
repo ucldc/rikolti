@@ -15,6 +15,6 @@ from rikolti.dags.harvest_dag import fetch_collection_task
 )
 def fetcher_dag():
     fetchdata = get_collection_fetchdata_task()
-    fetch_report = fetch_collection_task(collection=fetchdata)
+    fetched_pages = fetch_collection_task(collection=fetchdata)
 
 fetcher_dag()
