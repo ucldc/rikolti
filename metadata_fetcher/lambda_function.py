@@ -28,33 +28,33 @@ def fetch_collection(payload, context):
 
     fetcher_class = import_fetcher(payload.get('harvest_type'))
 
-    fetch_report = {'page': payload.get('write_page', 0), 'document_count': 0}
+    fetch_status = {'page': payload.get('write_page', 0), 'document_count': 0}
     try:
         fetcher = fetcher_class(payload)
-        fetch_report['document_count'] = fetcher.fetch_page()
+        fetch_status['document_count'] = fetcher.fetch_page()
     except InvalidHarvestEndpoint as e:
         logger.error(e)
-        fetch_report.update({
+        fetch_status.update({
             'status': 'error',
             'body': json.dumps({
                 'error': repr(e),
                 'payload': payload
             })
         })
-        return [fetch_report]
+        return [fetch_status]
 
     next_page = fetcher.json()
-    fetch_report.update({
+    fetch_status.update({
         'status': 'success',
         'next_page': next_page
     })
 
-    fetch_report = [fetch_report]
+    fetch_status = [fetch_status]
 
     if not json.loads(next_page).get('finished'):
-        fetch_report.extend(fetch_collection(next_page, {}))
+        fetch_status.extend(fetch_collection(next_page, {}))
 
-    return fetch_report
+    return fetch_status
 
 
 if __name__ == "__main__":

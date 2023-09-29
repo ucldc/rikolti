@@ -7,7 +7,7 @@ from airflow.models.param import Param
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import \
-    get_mapping_summary, check_for_missing_enrichments
+    get_mapping_status, check_for_missing_enrichments
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
@@ -29,11 +29,11 @@ def get_collection_fetchdata_task(params=None):
 
 @task()
 def fetch_collection_task(collection: dict):
-    fetch_report = fetch_collection(collection, {})
+    fetch_status = fetch_collection(collection, {})
 
-    success = all([page['status'] == 'success' for page in fetch_report])
-    total_items = sum([page['document_count'] for page in fetch_report])
-    total_pages = fetch_report[-1]['page'] + 1
+    success = all([page['status'] == 'success' for page in fetch_status])
+    total_items = sum([page['document_count'] for page in fetch_status])
+    total_pages = fetch_status[-1]['page'] + 1
     diff_items = total_items - collection['solr_count']
     date = datetime.strptime(
         collection['solr_last_updated'],
@@ -59,7 +59,7 @@ def fetch_collection_task(collection: dict):
         )
 
     return [
-        str(page['page']) for page in fetch_report if page['status'] == 'success'
+        str(page['page']) for page in fetch_status if page['status']=='success'
     ]
 
 
@@ -90,20 +90,9 @@ def map_page_task(page: str, collection: dict):
 
 
 @task()
-def get_mapping_summary_task(mapped_pages: list, collection: dict):
-    collection_id = collection.get('id')
-    collection_summary = get_mapping_summary(mapped_pages)
-
-    return {
-        'status': 'success',
-        'collection_id': collection_id,
-        'pre_mapping': collection.get('rikolti__pre_mapping'),
-        'enrichments': collection.get('rikolti__enrichments'),
-        'missing_enrichments': check_for_missing_enrichments(collection),
-        'records_mapped': collection_summary.get('count'),
-        'pages_mapped': collection_summary.get('page_count'),
-        'exceptions': collection_summary.get('group_exceptions')
-    }
+def get_mapping_status_task(collection: dict, mapped_pages: list):
+    mapping_status = get_mapping_status(collection, mapped_pages)
+    return mapping_status
 
 
 @dag(
@@ -115,6 +104,7 @@ def get_mapping_summary_task(mapped_pages: list, collection: dict):
 )
 def harvest():
 
+    # see TODO at get_collection_fetchdata_task
     fetchdata = get_collection_fetchdata_task()
     collection = get_collection_metadata_task()
 
@@ -124,7 +114,7 @@ def harvest():
             .partial(collection=collection)
             .expand(page=fetched_pages)
     )
-    get_mapping_summary_task(mapped_pages, collection)
+    get_mapping_status_task(collection, mapped_pages)
     
 
 harvest()

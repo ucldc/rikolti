@@ -76,7 +76,7 @@ def get_vernacular_pages(collection_id):
     return page_list
 
 
-def get_mapping_summary(mapped_pages):
+def get_mapping_status(collection, mapped_pages):
     count = sum([page['num_records_mapped'] for page in mapped_pages])
     page_count = len(mapped_pages)
     collection_exceptions = [page.get('page_exceptions', {}) for page in mapped_pages]
@@ -87,6 +87,11 @@ def get_mapping_summary(mapped_pages):
             group_exceptions.setdefault(exception, []).extend(couch_ids)
 
     return {
+        'status': 'success',
+        'collection_id': collection.get('id'),
+        'pre_mapping': collection.get('rikolti__pre_mapping'),
+        'enrichments': collection.get('rikolti__enrichments'),
+        'missing_enrichments': check_for_missing_enrichments(collection),
         'count': count,
         'page_count': page_count,
         'group_exceptions': group_exceptions
@@ -121,7 +126,7 @@ def map_collection(collection_id, validate=False):
             )
             continue
 
-    collection_stats = get_mapping_summary(mapped_pages)
+    collection_stats = get_mapping_status(collection, mapped_pages)
 
     if validate:
         opts = validate if isinstance(validate, dict) else {}
@@ -130,16 +135,7 @@ def map_collection(collection_id, validate=False):
             **opts
             )
 
-    return {
-        'status': 'success',
-        'collection_id': collection_id,
-        'pre_mapping': collection.get('rikolti__pre_mapping'),
-        'enrichments': collection.get('rikolti__enrichments'),
-        'missing_enrichments': check_for_missing_enrichments(collection),
-        'records_mapped': collection_stats.get('count'),
-        'pages_mapped': collection_stats.get('page_count'),
-        'exceptions': collection_stats.get('group_exceptions')
-    }
+    return collection_stats
 
 
 if __name__ == "__main__":
