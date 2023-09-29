@@ -136,7 +136,13 @@ To set up this dev environment, first clone the repo locally:
 git clone git@github.com:ucldc/aws-mwaa-local-runner.git
 ```
 
-Then, modify `aws-mwaa-local-runner/docker/.env`, setting the following env vars to wherever the directories live on your machine, for example:
+Then, copy `aws-mwaa-local-runner/docker/.env.example`: 
+
+```
+cp aws-mwaa-local-runner/docker/.env.example aws-mwaa-local-runner/docker/.env
+```
+
+Set the following env vars to wherever the directories live on your machine, for example:
 
 ```
 DAGS_HOME="/Users/username/dev/rikolti"
@@ -144,9 +150,12 @@ PLUGINS_HOME="/Users/username/dev/rikolti/plugins"
 REQS_HOME="/Users/username/dev/rikolti/dags"
 STARTUP_HOME="/Users/username/dev/rikolti/dags"
 RIKOLTI_DATA_HOME="/Users/username/dev/rikolti_data"
+DOCKER_SOCKET="/var/run/docker.sock"
 ```
 
-These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-local.yml` script (and other docker-compose scripts) to mount the relevant directories containing Airflow DAGs, requirements, plugin files, startup file, and Rikolti data destination into the docker container.
+These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-local.yml` script (and other docker-compose scripts) to mount the relevant directories containing Airflow DAGs, requirements, plugin files, startup file, Rikolti data destination, and docker socket into the docker container.
+
+The docker socket will typically be at `/var/run/docker.sock`. On Mac OS Docker Desktop you can check that the socket is available and at this location by opening Docker Desktop's settings, looking under "Advanced", and checking the "Allow the Docker socket to be used" setting. 
 
 Then, create the `startup.sh` file by running `cp env.example startup.sh`. Update the startup.sh file with Nuxeo, Flickr, and Solr keys as available, and make sure that the following three environment variables are set:
 
