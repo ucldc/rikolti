@@ -3,8 +3,8 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
 
-from rikolti.dags.harvest_dag import get_collection_fetchdata_task
-from rikolti.dags.harvest_dag import fetch_collection_task
+from rikolti.dags.shared_tasks import get_collection_fetchdata_task
+from rikolti.dags.shared_tasks import fetch_collection_task
 
 @dag(
     dag_id="fetch_collection",
