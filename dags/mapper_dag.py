@@ -2,9 +2,9 @@ from datetime import datetime
 
 from airflow.decorators import dag, task
 from airflow.models.param import Param
-from rikolti.dags.harvest_dag import get_collection_metadata_task
-from rikolti.dags.harvest_dag import map_page_task
-from rikolti.dags.harvest_dag import get_mapping_status_task
+from shared_tasks import get_collection_metadata_task
+from shared_tasks import map_page_task
+from shared_tasks import get_mapping_status_task
 from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages
 
 
