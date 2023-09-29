@@ -7,6 +7,7 @@ from rikolti.dags.harvest_dag import get_collection_fetchdata_task
 from rikolti.dags.harvest_dag import fetch_collection_task
 
 @dag(
+    dag_id="fetch_collection",
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
