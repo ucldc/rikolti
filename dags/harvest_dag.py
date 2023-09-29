@@ -1,13 +1,12 @@
 import requests
 from datetime import datetime
 
-from airflow.decorators import dag, task_group, task
+from airflow.decorators import dag, task
 from airflow.models.param import Param
 
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.metadata_mapper.lambda_function import map_page
-from rikolti.metadata_mapper.lambda_shepherd import \
-    get_mapping_status, check_for_missing_enrichments
+from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
