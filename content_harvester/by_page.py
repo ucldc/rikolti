@@ -17,15 +17,14 @@ class DownloadError(Exception):
 
 def get_mapped_records(collection_id, page_filename, s3_client) -> list:
     mapped_records = []
-    if settings.METADATA_SRC == 'local':
-        local_path = settings.local_path(
-            'mapped_metadata', collection_id)
+    if settings.DATA_SRC["STORE"] == 'file':
+        local_path = settings.local_path('mapped_metadata', collection_id)
         page_path = os.path.join(local_path, str(page_filename))
         page = open(page_path, "r")
         mapped_records = json.loads(page.read())
     else:
         page = s3_client.get_object(
-            Bucket=settings.S3_BUCKET,
+            Bucket=settings.DATA_SRC["BUCKET"],
             Key=f"mapped_metadata/{collection_id}/{page_filename}"
         )
         mapped_records = json.loads(page['Body'].read())
@@ -33,15 +32,14 @@ def get_mapped_records(collection_id, page_filename, s3_client) -> list:
 
 
 def write_mapped_record(collection_id, record, s3_client):
-    if settings.METADATA_DEST == 'local':
-        local_path = settings.local_path(
-            'mapped_with_content', collection_id)
+    if settings.DATA_DEST["STORE"] == 'file':
+        local_path = settings.local_path('mapped_with_content', collection_id)
         page_path = os.path.join(local_path, str(record.get('calisphere-id')))
         page = open(page_path, "w")
         page.write(json.dumps(record))
     else:
         upload_status = s3_client.put_object(
-            Bucket=settings.S3_BUCKET,
+            Bucket=settings.DATA_DEST["BUCKET"],
             Key=f"mapped_with_content/{collection_id}/{record.get('calisphere-id')}",
             Body=json.dumps(record)
         )
@@ -50,7 +48,7 @@ def write_mapped_record(collection_id, record, s3_client):
 
 def get_child_records(collection_id, parent_id, s3_client) -> list:
     mapped_child_records = []
-    if settings.METADATA_SRC == 'local':
+    if settings.DATA_SRC["STORE"] == 'file':
         local_path = settings.local_path('mapped_metadata', collection_id)
         children_path = os.path.join(local_path, 'children')
 
@@ -63,12 +61,12 @@ def get_child_records(collection_id, parent_id, s3_client) -> list:
                 mapped_child_records.extend(json.loads(page.read()))
     else:
         child_pages = s3_client.list_objects_v2(
-            Bucket=settings.S3_BUCKET,
+            Bucket=settings.DATA_SRC["BUCKET"],
             Prefix=f"mapped_metadata/{collection_id}/children/{parent_id}"
         )
         for child_page in child_pages['Contents']:
             page = s3_client.get_object(
-                Bucket=settings.S3_BUCKET,
+                Bucket=settings.DATA_SRC["BUCKET"],
                 Key=child_page['Key']
             )
             mapped_child_records.extend(json.loads(page['Body'].read()))
@@ -128,7 +126,7 @@ class ContentHarvester(object):
         self.src_auth = src_auth
         self.harvest_context = context
 
-        if settings.CONTENT_DEST == 's3':
+        if settings.CONTENT_DEST["STORE"] == 's3':
             self.s3 = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
@@ -154,7 +152,7 @@ class ContentHarvester(object):
                 media_filepath = media_src_file
 
             media_dest = {'mimetype': 'image/jp2'}
-            if settings.CONTENT_DEST == 'local':
+            if settings.CONTENT_DEST["STORE"] == 'file':
                 media_dest['media_filepath'] = media_filepath
             else:
                 media_dest['media_filepath'] = self.upload_to_s3(
@@ -162,7 +160,7 @@ class ContentHarvester(object):
         else:
             media_filepath = media_src_file
             media_dest = {'mimetype': media_src.get('mimetype')}
-            if settings.CONTENT_DEST == 'local':
+            if settings.CONTENT_DEST["STORE"] == 'file':
                 media_dest['media_filepath'] = media_filepath
             else:
                 media_dest['media_filepath'] = self.upload_to_s3(
@@ -195,7 +193,7 @@ class ContentHarvester(object):
         # mimetype if it's always image/jpeg? (is it always image/jpeg?)
         thumbnail_dest = {'mimetype': 'image/jpeg'}
 
-        if settings.CONTENT_DEST == 'local':
+        if settings.CONTENT_DEST["STORE"] == 'file':
             thumbnail_dest['thumbnail_filepath'] = thumbnail_filepath
         else:
             thumbnail_dest['thumbnail_filepath'] = self.upload_to_s3(
@@ -319,8 +317,8 @@ class ContentHarvester(object):
             upload file to s3
         '''
         s3_key = f"{s3_prefix}/{os.path.basename(filepath)}"
-        s3_url = f"{settings.S3_BASE_URL}/{s3_key}"
-        self.s3.upload_file(filepath, settings.S3_CONTENT_BUCKET, s3_key)
+        s3_url = f"{settings.CONTENT_DEST['PATH']}/{s3_key}"
+        self.s3.upload_file(filepath, settings.CONTENT_DEST["BUCKET"], s3_key)
         return s3_url
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "r-0"}
