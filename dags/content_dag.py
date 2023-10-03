@@ -1,3 +1,5 @@
+import os
+
 from datetime import datetime
 from docker.types import Mount
 from airflow.decorators import dag
@@ -14,22 +16,37 @@ from airflow.providers.docker.operators.docker import DockerOperator
     tags=["rikolti"],
 )
 def content_harvest():
-    
+    mounts = []
+    if os.environ.get("CONTENT_DATA_MOUNT"):
+        mounts.append(Mount(
+            source=os.environ.get("CONTENT_DATA_MOUNT"),
+            target="/rikolti_data",
+            type="bind",
+        ))
+    if os.environ.get("CONTENT_MOUNT"):
+        mounts.append(Mount(
+            source=os.environ.get("CONTENT_MOUNT"),
+            target="/rikolti_content",
+            type="bind",
+        ))
+    if not mounts:
+        mounts=None
+
     content_harvester_task = DockerOperator(
-        task_id="content_harvester", 
+        task_id="content_harvester",
         image="content_harvester:latest",
         container_name="content_harvest_dag_task",
-        command="{{ params.collection_id }}",
+        command=["{{ params.collection_id }}"],
         network_mode="bridge",
         auto_remove='force',
         mount_tmp_dir=False,
-        mounts=[
-            Mount(
-                source="/Users/awieliczka/Projects/rikolti_data",
-                target="/rikolti_data",
-                type="bind",
-            )
-        ]
+        mounts=mounts,
+        environment={
+            "CONTENT_DATA_SRC": os.environ.get("CONTENT_DATA_SRC"),
+            "CONTENT_DATA_DEST": os.environ.get("CONTENT_DATA_DEST"),
+            "CONTENT_DEST": os.environ.get("CONTENT_DEST"),
+            "NUXEO": os.environ.get("NUXEO"),
+        }
     )
 
     content_harvester_task

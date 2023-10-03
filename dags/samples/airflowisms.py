@@ -51,6 +51,11 @@ def taskflow_get_env():
     return startup_env
 
 @task()
+def taskflow_print(message=None):
+    print(message)
+    return message
+
+@task()
 def fails_sometimes():
     """ sometimes this task fails """
     nowish = datetime.now().second
@@ -76,6 +81,12 @@ def downstream_should_fail(upstream_result):
     tags=["sample"],
 )
 def sample_airflowisms():
+    dag_var = "boo"
+    if os.environ.get("ENVIRONMENT_STAGE") == "dev":
+        dag_var = "foo"
+
+    taskflow_print(dag_var)
+    taskflow_print(os.environ.get("ENVIRONMENT_STAGE"))
     taskflow_test_requests()
     taskflow_params()
     taskflow_get_admin_variables()

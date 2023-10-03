@@ -15,5 +15,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY ./ /content_harvester
 
+RUN chmod +x /content_harvester/by_collection.py
+
 # ENTRYPOINT [ "python", "-m", "content_harvester.by_registry_endpoint" ]
 ENTRYPOINT ["python3", "-m", "content_harvester.by_collection"]

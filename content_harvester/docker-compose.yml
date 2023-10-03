@@ -4,10 +4,19 @@ services:
       context: ./
       dockerfile: Dockerfile
     image: content_harvester
-    # command: tail -f /dev/null
-    working_dir: /content_harvester
+    # default entrypoint is python -m content_harvester.by_collection
+    # override with tail -f /dev/null to keep container running for development
+    entrypoint: tail -f /dev/null
+    # optionally, remove entrypoint override and uncomment command definition
+    # below to run a specific collection by id - 3433 in this example
+    # command: ["3433"]
+    working_dir: /
     volumes: 
-      - ../rikolti_bucket:/rikolti_bucket
+      - ../rikolti_data:/rikolti_data
+      - ../rikolti_content:/rikolti_content
       - ./:/content_harvester
-    env_file:
-      - ./env.local
+    environment:
+      - CONTENT_DATA_SRC=file:///rikolti_data
+      - CONTENT_DATA_DEST=file:///rikolti_data
+      - CONTENT_DEST=file:///rikolti_content
+      - NUXEO=${NUXEO}

@@ -48,7 +48,7 @@ vi env.local
 
 Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments.
 
-Similarly, I also only use one env.local as well. Rikolti fetches data to your local system and then maps that data. Set `FETCHER_DATA_DEST` to the URI where you would like Rikolti to store fetched data - Rikolti will create a folder (or s3 prefix)`vernacular_metadata` at this location. Set `MAPPER_DATA_SRC` to the URI where Rikolti can find a `vernacular_metadata` folder that contains the fetched data you're attempting to map. Set `MAPPER_DATA_DEST` to the URI where you would like Rikolti to store mapped data - Rikolti will create a folder (or s3 prefix) `mapped_metadata` at this location.
+Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `FETCHER_DATA_DEST` to the URI where you would like Rikolti to store fetched data - Rikolti will create a folder (or s3 prefix)`vernacular_metadata` at this location. Set `MAPPER_DATA_SRC` to the URI where Rikolti can find a `vernacular_metadata` folder that contains the fetched data you're attempting to map. Set `MAPPER_DATA_DEST` to the URI where you would like Rikolti to store mapped data - Rikolti will create a folder (or s3 prefix) `mapped_metadata` at this location. Set `CONTENT_DATA_SRC` to the URI where Rikolti can find a `mapped_metadata` folder that contains the mapped metadata describing where to find content. Set `CONTENT_DATA_DEST` to the URI where you would like Rikolti to store mapped data that has been updated with pointers to content files - Rikolti will create a folder (or s3 prefix) `mapped_with_content` at this location. Set `CONTENT_DEST` to the URI where you would like Rikolti to store content files.
 
 For example, one way to configure `env.local` is:
 
@@ -56,9 +56,14 @@ For example, one way to configure `env.local` is:
 FETCHER_DATA_DEST=file:///Users/awieliczka/Projects/rikolti_data
 MAPPER_DATA_SRC=$FETCHER_DATA_DEST
 MAPPER_DATA_DEST=$FETCHER_DATA_DEST
+CONTENT_DATA_SRC=$FETCHER_DATA_DEST
+CONTENT_DATA_DEST=$FETCHER_DATA_DEST
+CONTENT_DEST=file:///Users/awieliczka/Projects/rikolti_content
 ```
 
 Each of these can be different locations, however. For example, if you're attempting to re-run a mapper locally off of previously fetched data stored on s3, you might set `MAPPER_DATA_SRC=s3://rikolti_data`.
+
+In env.example you'll also see `CONTENT_DATA_MOUNT` and `CONTENT_MOUNT` environment variables. These are only relevant if you are running the content harvester using airflow, and want to set and of the CONTENT_ environment variables to the local filesystem. Their usage is described below in the Airflow Development section.
 
 ### Docker
 
@@ -157,7 +162,7 @@ These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-loca
 
 The docker socket will typically be at `/var/run/docker.sock`. On Mac OS Docker Desktop you can check that the socket is available and at this location by opening Docker Desktop's settings, looking under "Advanced", and checking the "Allow the Docker socket to be used" setting. 
 
-Then, create the `startup.sh` file by running `cp env.example startup.sh`. Update the startup.sh file with Nuxeo, Flickr, and Solr keys as available, and make sure that the following three environment variables are set:
+Then, create the `startup.sh` file by running `cp env.example startup.sh`. Update the startup.sh file with Nuxeo, Flickr, and Solr keys as available, and make sure that the following environment variables are set:
 
 ```
 export FETCHER_DATA_DEST=file:///usr/local/airflow/rikolti_data
@@ -165,7 +170,21 @@ export MAPPER_DATA_SRC=file:///usr/local/airflow/rikolti_data
 export MAPPER_DATA_DEST=file:///usr/local/airflow/rikolti_data
 ```
 
-The folder located at `/usr/local/airflow/rikolti_data` on the docker container is mounted to `RIKOLTI_DATA_HOME`, set in `aws-mwaa-local-runner/docker/.env`.
+The folder located at `RIKOLTI_DATA_HOME` (set in `aws-mwaa-local-runner/docker/.env`) is mounted to `/usr/local/airflow/rikolti_data` on the airflow docker container.
+
+Please also make sure the following `CONTENT_*` variables are set - `CONTENT_DATA_MOUNT` and `CONTENT_MOUNT` to wherever the rikolti_data and rikolti_content folders live on your local machine, for example:
+
+```
+export CONTENT_DATA_MOUNT=/Users/awieliczka/Projects/rikolti_data
+export CONTENT_MOUNT=/Users/awieliczka/Projects/rikolti_content
+export CONTENT_DATA_SRC=file:///rikolti_data
+export CONTENT_DATA_DEST=file:///rikolti_data
+export CONTENT_DEST=file:///rikolti_content
+```
+
+The folder located at `CONTENT_DATA_MOUNT` is mounted to `/rikolti_data` and the folder located at `CONTENT_MOUNT` is mounted to `/rikolti_content` on the content_harvester docker container.
+
+Run `docker build -t content_harvester content_harvester` to build the `content_harvester` container locally.
 
 Finally, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 
