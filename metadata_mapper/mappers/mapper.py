@@ -1181,7 +1181,7 @@ class Record(ABC, object):
 
         for field in default_fields + dont_strip_trailing_dot:
             # TODO: this won't work for deeply nested fields
-            field.split('/')[1]  # remove sourceResource
+            field = field.split('/')[1]  # remove sourceResource
 
             if field not in self.mapped_data:
                 continue
