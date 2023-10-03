@@ -4,4 +4,4 @@ Django==3.1.14
 elasticsearch==7.9.1
 pytz==2020.1
 sqlparse==0.4.4
-urllib3==1.26.5
+urllib3==1.26.17
