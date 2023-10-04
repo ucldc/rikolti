@@ -1,8 +1,20 @@
 from datetime import datetime
 from docker.types import Mount
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 from airflow.models.param import Param
 from airflow.providers.docker.operators.docker import DockerOperator
+
+class SpecialDockerOperator(DockerOperator):
+    def __init__(self, value, **kwargs):
+        super().__init__(
+            image="simple_python:latest",
+            container_name=f"special_docker_operator_container_{value}",
+            entrypoint="python3 add_one.py",
+            command=f"{value}",
+            network_mode="bridge",
+            auto_remove='force',
+            **kwargs
+        )
 
 @dag(
     schedule=None,
@@ -67,5 +79,20 @@ def sample_docker_operators():
         ]
     )
     mount_folder_task
+
+    special_docker_task = (
+        SpecialDockerOperator
+            .partial(task_id="special_docker_operator")
+            .expand(value=[1, 2, 3])
+    )
+    special_docker_task
+
+    @task()
+    def sum_it_task(values):
+        values = [int(value) for value in values]
+        print(sum(values))
+        return(sum(values))
+
+    sum_it_task(special_docker_task.output)
 
 sample_docker_operators()
