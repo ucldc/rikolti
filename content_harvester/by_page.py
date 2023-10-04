@@ -359,6 +359,16 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
             record_with_content = harvester.harvest(record)
             write_mapped_record(
                 collection_id, record_with_content, harvester.s3)
+            if not record_with_content.get('thumbnail'):
+                warn_level = "ERROR"
+                if 'sound' in record.get('type', []):
+                    warn_level = "WARNING"
+                print(
+                    f"[{collection_id}, {page_filename}]: "
+                    f"{record.get('calisphere-id')}: {warn_level} - "
+                    f"NO THUMBNAIL: {record.get('type')}"
+                )
+
         except Exception as e:
             print(
                 f"[{collection_id}, {page_filename}, "
@@ -367,16 +377,6 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
             print(f"Exiting after harvesting {i} of {len(records)} items "
                   f"in page {page_filename} of collection {collection_id}")
             raise e
-
-        if not record_with_content.get('thumbnail'):
-            warn_level = "ERROR"
-            if 'sound' in record.get('type', []):
-                warn_level = "WARNING"
-            print(
-                f"[{collection_id}, {page_filename}]: "
-                f"{record.get('calisphere-id')}: {warn_level} - "
-                f"NO THUMBNAIL: {record.get('type')}"
-            )
 
     # reporting aggregate stats
     media_mimetypes = [
