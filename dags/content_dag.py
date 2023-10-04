@@ -36,6 +36,25 @@ def content_harvest():
         task_id="content_harvester",
         image="content_harvester:latest",
         container_name="content_harvest_dag_task",
+        command=["{{ params.collection_id }}", "0"],
+        network_mode="bridge",
+        auto_remove='force',
+        mount_tmp_dir=False,
+        mounts=mounts,
+        environment={
+            "CONTENT_DATA_SRC": os.environ.get("CONTENT_DATA_SRC"),
+            "CONTENT_DATA_DEST": os.environ.get("CONTENT_DATA_DEST"),
+            "CONTENT_DEST": os.environ.get("CONTENT_DEST"),
+            "NUXEO": os.environ.get("NUXEO"),
+        }
+    )
+    content_harvester_task
+
+    collection_content_harvester_task = DockerOperator(
+        task_id="collection_content_harvester",
+        image="content_harvester:latest",
+        container_name="collection_content_harvest_dag_task",
+        entrypoint="python3 -m content_harvester.by_collection",
         command=["{{ params.collection_id }}"],
         network_mode="bridge",
         auto_remove='force',
@@ -49,6 +68,6 @@ def content_harvest():
         }
     )
 
-    content_harvester_task
+    collection_content_harvester_task
 
 content_harvest()

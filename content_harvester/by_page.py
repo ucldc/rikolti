@@ -453,4 +453,4 @@ if __name__ == "__main__":
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
-    print(harvest_page_content(arguments))
+    print(harvest_page_content(**arguments))

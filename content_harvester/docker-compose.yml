@@ -4,11 +4,12 @@ services:
       context: ./
       dockerfile: Dockerfile
     image: content_harvester
-    # default entrypoint is python -m content_harvester.by_collection
+    # default entrypoint is python -m content_harvester.by_page
     # override with tail -f /dev/null to keep container running for development
     entrypoint: tail -f /dev/null
-    # optionally, remove entrypoint override and uncomment command definition
+    # optionally, swap entrypoint override and uncomment command definition
     # below to run a specific collection by id - 3433 in this example
+    # entrypoint: python3 -m content_harvester.by_collection
     # command: ["3433"]
     working_dir: /
     volumes: 
