@@ -2,7 +2,6 @@ import os
 
 from datetime import datetime
 from airflow.decorators import dag, task
-from airflow.models.param import Param
 
 @task()
 def taskflow_mkdir():

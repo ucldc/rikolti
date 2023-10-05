@@ -5,6 +5,7 @@ import requests
 from docker.types import Mount
 
 from airflow.decorators import task
+from airflow.models import Variable
 from airflow.providers.docker.operators.docker import DockerOperator
 
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
@@ -115,8 +116,16 @@ class ContentHarvestDockerOperator(DockerOperator):
         if not mounts:
             mounts=None
 
+        container_image = Variable.get(
+            'content_harvester_image',
+            default_var='content_harvester'
+        )
+        container_version = Variable.get(
+            'content_harvester_version',
+            default_var='latest'
+        )
         args = {
-            "image": "{{ var.value.get('content_harvester_image', 'content_harvester') }}:{{ var.value.get('content_harvester_version', 'latest') }}",
+            "image": f"{container_image}:{container_version}",
             "container_name": f"content_harvester_{collection_id}_{page}",
             "command": [f"{collection_id}", f"{page}"],
             "network_mode": "bridge",

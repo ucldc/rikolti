@@ -10,20 +10,25 @@ import docker
 
 @task()
 def get_user_and_group():
+    # Get the effective user ID of current process
     print('USER')
-    uid = os.geteuid()              # effective user ID of current process
+    uid = os.geteuid()
     print(pwd.getpwuid(uid))
 
+    # Get the effective group ID of the current process, then
+    # Get the group for given group ID
     print('GROUP')
-    gid = os.getegid()             # effective group ID of current process
-    print(grp.getgrgid(gid)) # Get group for given group ID
+    gid = os.getegid()
+    print(grp.getgrgid(gid))
 
+    # Get the process ID of the current process
     print('PROCESS')
     pid = os.getpid()
-    print(pid)                      # process ID of current process
+    print(pid)
 
+    # Get the session ID of the process with the given PID
     print('SESSION')
-    print(os.getsid(pid))           # Get the session ID of the process with the given PID
+    print(os.getsid(pid))
 
 @task()
 def inspect_socket_permissions():

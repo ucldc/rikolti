@@ -15,7 +15,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Example DAG demonstrating the usage of dynamic task mapping with non-TaskFlow operators."""
+"""Example DAG demonstrating the usage of dynamic task mapping 
+with non-TaskFlow operators."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -57,9 +58,11 @@ class SumItOperator(BaseOperator):
 )
 def sample_dynamic_tasks():
     # map the task to a list of values
-    add_one_task = AddOneOperator.partial(task_id="add_one").expand(value=[1, 2, 3])
+    add_one_task = AddOneOperator.partial(task_id="add_one").expand(
+        value=[1, 2, 3])
 
     # aggregate (reduce) the mapped tasks results
-    sum_it_task = SumItOperator(task_id="sum_it", values=add_one_task.output)
+    sum_it_task = SumItOperator(                            # noqa: F841
+        task_id="sum_it", values=add_one_task.output) 
 
 sample_dynamic_tasks()

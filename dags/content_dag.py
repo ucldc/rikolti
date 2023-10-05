@@ -1,5 +1,3 @@
-import os
-
 from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
@@ -11,7 +9,10 @@ from rikolti.dags.shared_tasks import ContentHarvestDockerOperator
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'collection_id': Param(27425, description="Collection ID to harvet_content")},
+    params={
+        'collection_id': 
+        Param(27425, description="Collection ID to harvet_content")
+    },
     tags=["rikolti"],
 )
 def content_harvest():

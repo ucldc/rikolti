@@ -20,7 +20,13 @@ class SpecialDockerOperator(DockerOperator):
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'message': Param("hello from your dags parameters", description="message to print")},
+    params={
+        'message': 
+        Param(
+            "hello from your dags parameters", 
+            description="message to print"
+        )
+    },
     tags=["sample"],
 )
 def sample_docker_operators():
@@ -66,7 +72,10 @@ def sample_docker_operators():
         task_id="mount_folder_task",
         image="simple_python:latest",
         container_name="mount_folder_task_container",
-        command="--message '{{ params.message }}' --output /tmp/rikolti_data/output.txt",
+        command=(
+            "--message '{{ params.message }}' "
+            "--output /tmp/rikolti_data/output.txt"
+        ),
         network_mode="bridge",
         auto_remove='force',
         mount_tmp_dir=False,

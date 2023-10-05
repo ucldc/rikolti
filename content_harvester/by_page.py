@@ -409,9 +409,11 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
             f"Mimetypes: {Counter(media_mimetypes)}"
         )
 
-    thumb_source = [r for r in records if r.get('thumbnail_source', r.get('is_shown_by'))]
+    thumb_source = [
+        r for r in records if r.get('thumbnail_source', r.get('is_shown_by'))]
     thumb_harvested = [r for r in records if r.get('thumbnail')]
-    thumb_src_mimetypes = [r.get('thumbnail_source', {}).get('mimetype') for r in records]
+    thumb_src_mimetypes = [
+        r.get('thumbnail_source', {}).get('mimetype') for r in records]
     thumb_mimetypes = [r.get('thumbnail', {}).get('mimetype') for r in records]
     print(
         f"[{collection_id}, {page_filename}]: Harvested "
