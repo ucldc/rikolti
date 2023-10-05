@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 from airflow.models.param import Param
 
 
@@ -9,8 +9,11 @@ from rikolti.dags.shared_tasks import get_collection_fetchdata_task
 from rikolti.dags.shared_tasks import get_collection_metadata_task
 from rikolti.dags.shared_tasks  import map_page_task
 from rikolti.dags.shared_tasks  import get_mapping_status_task
+from rikolti.dags.shared_tasks import ContentHarvestDockerOperator
 
-
+@task()
+def get_mapped_page_filenames_task(mapped_pages):
+    return [mapped['page_filename'] for mapped in mapped_pages]
 
 @dag(
     dag_id="harvest_collection",
@@ -33,6 +36,19 @@ def harvest():
             .expand(page=fetched_pages)
     )
     get_mapping_status_task(collection, mapped_pages)
+    mapped_page_filenames = get_mapped_page_filenames_task(mapped_pages)
+
+    content_harvest_task = (
+        ContentHarvestDockerOperator
+            .partial(
+                task_id="content_harvest", 
+                collection_id="{{ params.collection_id }}",
+            )
+            .expand(
+                page=mapped_page_filenames
+            )
+    )
+    content_harvest_task
     
 
 harvest()

@@ -128,7 +128,8 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     return {
         'status': 'success',
         'num_records_mapped': len(mapped_records),
-        'page_exceptions': group_page_exceptions
+        'page_exceptions': group_page_exceptions,
+        'page_filename': page_filename,
     }
 
 
