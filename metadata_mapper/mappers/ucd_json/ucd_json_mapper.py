@@ -14,17 +14,16 @@ class UcdJsonRecord(Record):
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.BASE_URL + self.source_metadata.get("@id"),
             "isShownBy": self.BASE_URL + self.source_metadata.get("thumbnailUrl"),
-            "title": self.source_metadata.get("name"),
+            "title": self.mapped_data,
             "date": self.source_metadata.get("datePublished"),
-            # Description's length is determined by drop_long_values, must be a string
-            "description": self.source_metadata.get("description", ""),
+            "description": self.map_description,
             "subject": self.map_subject,
             "format": self.source_metadata.get("material", []),
             "creator": self.map_creator,
             "identifier": self.source_metadata.get("identifier"),
-            "publisher": [v for v in self.source_metadata.get("publisher", [])],
+            "publisher": self.map_publisher,
             "type": self.source_metadata.get("type"),
-            "rights": self.source_metadata.get("license")
+            "rightsURI": self.source_metadata.get("license")
         }
 
     def get_legacy_couch_id(self) -> str:
@@ -33,19 +32,42 @@ class UcdJsonRecord(Record):
 
         return f"{self.collection_id}--{ark[0]}"
 
+    def map_title(self) -> list:
+        value = self.source_metadata.get("name", [])
+
+        if isinstance(value, list):
+            return value
+
+        return [value]
+
+    def map_description(self) -> list:
+        value = self.source_metadata.get("description", [])
+
+        if isinstance(value, list):
+            return value
+
+        return [value]
+
     def map_subject(self) -> list:
         value = self.source_metadata.get("about", [])
-
         # Wrap dicts in lists, see collection 8, item ark:/13030/tf629006kp
         if isinstance(value, dict):
             value = [value]
 
-        return [v.get("name") for v in value if "name" in v]
+        return [{"name": v.get("name")} for v in value if "name" in v]
 
     def map_creator(self) -> list:
         value = self.source_metadata.get("creator", [])
 
         # Wrap dicts in lists, see collection 8, item ark:/13030/tf4c6004gh
+        if isinstance(value, dict):
+            value = [value]
+
+        return [v.get("name") for v in value if "name" in v]
+
+    def map_publisher(self) -> list:
+        value = self.source_metadata.get("publisher", [])
+
         if isinstance(value, dict):
             value = [value]
 
