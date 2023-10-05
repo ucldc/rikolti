@@ -54,6 +54,7 @@ class Fetcher(object):
         )
         try:
             response = requests.get(**page)
+            response.encoding = response.apparent_encoding
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             raise FetchError(
