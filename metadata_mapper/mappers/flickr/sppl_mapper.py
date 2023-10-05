@@ -1,7 +1,8 @@
 import re
 from typing import Any
 
-from ..mapper import ValidationLogLevel, Validator
+from ..mapper import Validator
+from ...validator import ValidationLogLevel
 from .flickr_mapper import FlickrRecord, FlickrValidator, FlickrVernacular
 
 
