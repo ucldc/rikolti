@@ -184,7 +184,9 @@ export CONTENT_DEST=file:///rikolti_content
 
 The folder located at `CONTENT_DATA_MOUNT` is mounted to `/rikolti_data` and the folder located at `CONTENT_MOUNT` is mounted to `/rikolti_content` on the content_harvester docker container.
 
-Run `docker build -t content_harvester content_harvester` to build the `content_harvester` container locally.
+Run `docker build -t content_harvester content_harvester` to build the `content_harvester` container locally. 
+
+You can specify a `content_harvester_image` and `content_harvester_version` through the Airflow UI > Admin > Variables. The default value for `content_harvester_image` is `content_harvester` and the default value for `content_harvester_version` is `latest`.
 
 Finally, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 

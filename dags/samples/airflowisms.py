@@ -5,6 +5,7 @@ from airflow.decorators import dag, task
 from airflow.models.param import Param
 from airflow.models import Variable
 from airflow.operators.python import get_current_context
+from airflow.operators.bash import BashOperator
 
 import requests
 
@@ -34,7 +35,14 @@ def taskflow_params(dag_run=None, params=None):
 @task()
 def taskflow_get_admin_variables():
     """ get admin variables from airflow db """
-    airflow_test_env = Variable.get("AIRFLOW_TEST")
+    airflow_test_env = Variable.get("AIRFLOW_TEST", default_var=None)
+    json_test_var = Variable.get(
+        "json_test_var", 
+        deserialize_json=True, 
+        default_var=None
+    )
+
+    print(json_test_var)
     print(airflow_test_env)
     os.environ["AIRFLOW_TEST"] = airflow_test_env
 
@@ -81,11 +89,11 @@ def downstream_should_fail(upstream_result):
     tags=["sample"],
 )
 def sample_airflowisms():
-    dag_var = "boo"
+    dag_variable = "boo"
     if os.environ.get("ENVIRONMENT_STAGE") == "dev":
-        dag_var = "foo"
+        dag_variable = "foo"
 
-    taskflow_print(dag_var)
+    taskflow_print(dag_variable)
     taskflow_print(os.environ.get("ENVIRONMENT_STAGE"))
     taskflow_test_requests()
     taskflow_params()
@@ -93,5 +101,11 @@ def sample_airflowisms():
     taskflow_get_env()
     result = fails_sometimes()
     downstream_should_fail(result)
+
+    bashop_get_admin_vars_jinja = BashOperator(
+        task_id="bashop_get_admin_vars_jinja",
+        bash_command='echo "{{ var.value.AIRFLOW_TEST }} {{ var.json.json_test_var }}"',
+    )
+    bashop_get_admin_vars_jinja
 
 sample_airflowisms()

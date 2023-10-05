@@ -116,7 +116,7 @@ class ContentHarvestDockerOperator(DockerOperator):
             mounts=None
 
         args = {
-            "image": "content_harvester:latest",
+            "image": "{{ var.value.get('content_harvester_image', 'content_harvester') }}:{{ var.value.get('content_harvester_version', 'latest') }}",
             "container_name": f"content_harvester_{collection_id}_{page}",
             "command": [f"{collection_id}", f"{page}"],
             "network_mode": "bridge",
