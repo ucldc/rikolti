@@ -1145,20 +1145,18 @@ class Record(ABC, object):
         """
         2076 times: no parameters
         """
+        # Previously in default fields, not sure how they map to new system:
+        # "sourceResource/collection/title",
+        # "sourceResource/collection/description",
+        # "sourceResource/contributor", "sourceResource/spatial/name"
         default_fields = [
-            "sourceResource/language", "sourceResource/title",
-            "sourceResource/creator", "sourceResource/relation",
-            "sourceResource/publisher", "sourceResource/subject",
-            "sourceResource/date",
-            "sourceResource/collection/title",
-            "sourceResource/collection/description",
-            "sourceResource/contributor", "sourceResource/spatial/name"
+            "language", "title", "creator", "relation",
+            "publisher", "subject", "date",
         ]
-        dont_strip_trailing_dot = [
-            "hasView/format", "sourceResource/format", "sourceResource/extent",
-            "sourceResource/rights",
-            "sourceResource/place", "sourceResource/collection/title"
-        ]
+        # Previously in dont strip trailing dot fields, 
+        # not sure how they map to new system:
+        # "hasView/format", "sourceResource/collection/title"
+        dont_strip_trailing_dot = ["format", "extent", "rights", "place"]
 
         def cleanup(value, field):
             strip_dquote = '"' if field not in ["title", "description"] else ''
@@ -1180,9 +1178,6 @@ class Record(ABC, object):
             return value
 
         for field in default_fields + dont_strip_trailing_dot:
-            # TODO: this won't work for deeply nested fields
-            field = field.split('/')[1]  # remove sourceResource
-
             if field not in self.mapped_data:
                 continue
             if isinstance(self.mapped_data[field], str):
