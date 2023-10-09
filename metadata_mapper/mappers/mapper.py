@@ -1333,8 +1333,8 @@ class Record(ABC, object):
             if not data:
                 return []
 
-            items_not_blank = []
             items = dejson(data)
+
             if isinstance(items, str) and items:
                 items_not_blank = items
             else:
