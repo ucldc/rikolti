@@ -90,7 +90,7 @@ def map_endpoint(url, limit=None):
 
         # "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
         success = 'success' if map_result['status'] == 'success' else 'error'
-        extent = map_result['records_mapped']
+        extent = map_result['count']
         diff = extent - collection['solr_count']
         map_report_row = (
             f"{collection_id}, {success}, {extent}, "
