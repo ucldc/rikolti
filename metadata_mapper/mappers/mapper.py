@@ -847,42 +847,38 @@ class Record(ABC, object):
         """
 
         def jsonfy_obj(data):
-            '''Jsonfy a python dict object. For immediate sub items (not fully
-            recursive yet) if the data can be turned into a json object, do so.
-            Unpacks string json objects buried in some blacklight/solr feeds.
-            '''
-            obj_jsonfied = {}
-            if isinstance(data, numbers.Number) or isinstance(data, bool):
+            """
+            Unpack JSON data from a list or dictionary. This method
+            is recursive, and will iterate as deeply as it finds strings
+            on a list or dictionary.
+            """
+            if isinstance(data, (int, float, bool)) or data is None:
                 return data
             if isinstance(data, str):
                 try:
                     x = json.loads(data)
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as e:
                     x = data
                 return x
-            for key, value in list(data.items()):
-                if isinstance(value, list):
-                    new_list = []
-                    for v in value:
-                        try:
-                            x = jsonfy_obj(v)
-                            new_list.append(x)
-                        except (ValueError, TypeError):
-                            new_list.append(v)
-                    obj_jsonfied[key] = new_list
-                else:  # usually singlevalue string, not json
+            if isinstance(data, list):
+                new_list = []
+                for v in data:
                     try:
-                        x = json.loads(value)
-                        # catch numbers already typed as singlevalue strings
-                        if isinstance(x, int):
-                            x = value
-                    except (ValueError, TypeError):
-                        x = value
-                    obj_jsonfied[key] = x
-            return obj_jsonfied
+                        x = jsonfy_obj(v)
+                        new_list.append(x)
+                    except (ValueError, TypeError) as e:
+                        new_list.append(v)
+                return new_list
+            if isinstance(data, dict):
+                obj_jsonfied = {}
+                for key, value in list(data.items()):
+                    obj_jsonfied[key] = jsonfy_obj(value)
+                return obj_jsonfied
 
-        obj_jsonfied = jsonfy_obj(self.mapped_data)
-        return json.dumps(obj_jsonfied)
+            return data
+
+        self.source_metadata = jsonfy_obj(self.source_metadata)
+        return self
 
     def drop_long_values(self, field=None, max_length=[150]):
         """ Look for long values in the sourceResource field specified.
