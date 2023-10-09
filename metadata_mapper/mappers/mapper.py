@@ -384,8 +384,8 @@ class Record(ABC, object):
                 )
         if delim not in value:
             return self
+        shredded = re.split(re.escape(delim), value)
 
-        shredded = value.split(re.escape(delim))
         shredded = [s.strip() for s in shredded if s.strip()]
         result = []
         for s in shredded:
