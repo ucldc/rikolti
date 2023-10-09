@@ -1,6 +1,8 @@
 import re
+from typing import Any
 
-from .flickr_mapper import FlickrRecord, FlickrVernacular
+from .flickr_mapper import FlickrRecord, FlickrValidator, FlickrVernacular
+from ..mapper import Validator
 
 
 class SdasmRecord(FlickrRecord):
@@ -108,5 +110,73 @@ class SdasmRecord(FlickrRecord):
         return description
 
 
+class SdasmValidator(FlickrValidator):
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.add_validatable_field(
+            field="identifier", type=Validator.list_of(str),
+            validations=[
+                SdasmValidator.content_match,
+                Validator.type_match
+            ]
+        )
+        self.add_validatable_field(
+            field="type", type=Validator.list_of(str),
+            validations=[
+                Validator.required_field,
+                SdasmValidator.type_exception,
+                Validator.type_match
+            ]
+
+        )
+    
+    @staticmethod
+    def type_exception(validation_def: dict, rikolti_value: Any,
+                      comparison_value: Any) -> None:
+        """
+        Validates that the content of the provided values is equal.
+
+        If content_match validation fails, checks if expected value is
+        'Image' and rikolti value is 'image'. 
+        """
+        content_match_validation = Validator.content_match(
+            validation_def, rikolti_value, comparison_value)
+
+        if content_match_validation == "Content mismatch":
+            if (comparison_value == ['Image'] and rikolti_value == ['image']):
+                return
+
+        return content_match_validation
+
+    @staticmethod
+    def content_match(validation_def: dict, rikolti_value: Any,
+                      comparison_value: Any) -> None:
+        """
+        Validates that the content of the provided values is equal.
+
+        If content_match validation fails, strip out identifier labels:
+        "Catalog: ", "PictionID: ", "Filename: ", and "SDASM Catalog #: "
+        then remove duplicate values, and compare again, disregarding order. 
+        """
+        content_match_validation = Validator.content_match(
+            validation_def, rikolti_value, comparison_value)
+
+        if (content_match_validation == "Content mismatch" 
+            and rikolti_value and comparison_value):
+            no_rikolti_label = [
+                re.sub(
+                    r"^(Catalog|PictionID|Filename|SDASM Catalog #): ", "",
+                    value
+                )
+                for value in rikolti_value
+            ]
+            no_label_no_dupes = list(dict.fromkeys(no_rikolti_label))
+            if sorted(no_label_no_dupes) == sorted(comparison_value):
+                return
+
+        return content_match_validation
+
+
 class SdasmVernacular(FlickrVernacular):
     record_cls = SdasmRecord
+    validator = SdasmValidator
