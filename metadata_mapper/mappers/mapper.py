@@ -1300,13 +1300,24 @@ class Record(ABC, object):
             if isinstance(data, list):
                 dejson_data = [dejson(d) for d in data]
             elif isinstance(data, dict):
+                # If there's only one item in the dictionary, we assume the
+                # value we want is the only value in the dictionary. This was done
+                # because collection 184 had data that looks like this:
+                # `{'genre': ['Oral histories--California--San Diego--1980-1989']}`
                 dejson_data = data.get(
                     'item', data.get(
                         'name', data.get(
                             'text', None)))
+                if not dejson_data:
+                    items = data.items()
+                    if len(items) == 1:
+                        dejson_data = list(items)[0][1]
+                if not dejson_data:
+                    return data
+
             else:
                 try:
-                    j = json.loads(data)
+                    j = json.loads(str(data))
                     flatdata = j.get('name', data)
                 except (ValueError, AttributeError):
                     flatdata = data
