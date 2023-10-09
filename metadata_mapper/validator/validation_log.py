@@ -160,14 +160,16 @@ class ValidationLog:
             headers = self._default_headers
             fields = self._default_fields
 
-        ret = [headers] if include_headers else []
+        rows = []
         for row in self.log:
-            ret.append(
+            rows.append(
                 [
                     escape_csv_value(val) for key, val in row.items()
                     if key in fields
                 ]
             )
+        rows = sorted(rows, key=lambda x: x[0])
+        ret = [headers] + rows if include_headers else rows
 
         return ret
 
