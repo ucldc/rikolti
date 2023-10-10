@@ -72,6 +72,12 @@ class Vernacular(ABC, object):
 
     def get_s3_api_response(self) -> str:
         s3_client = boto3.client('s3')
+        if not self.page_filename.startswith('vernacular_metadata'):
+            self.page_filename = (
+                f"vernacular_metadata/{self.collection_id}/"
+                f"{self.page_filename}"
+            )
+
         page = s3_client.get_object(
             Bucket=settings.DATA_SRC["BUCKET"],
             Key=self.page_filename
