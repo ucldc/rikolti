@@ -6,6 +6,7 @@ from airflow.models.param import Param
 from rikolti.dags.shared_tasks import get_collection_metadata_task
 from rikolti.dags.shared_tasks import map_page_task
 from rikolti.dags.shared_tasks import get_mapping_status_task
+from rikolti.dags.shared_tasks import validate_collection_task
 from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages
 
 
@@ -38,7 +39,10 @@ def get_vernacular_pages_task(collection: dict):
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'collection_id': Param(None, description="Collection ID to map")},
+    params={
+        'collection_id': Param(None, description="Collection ID to map"),
+        'validate': Param(True, description="Validate mapping?"),
+    },
     tags=["rikolti"],
 )
 def mapper_dag():
@@ -50,5 +54,7 @@ def mapper_dag():
             .expand(page=page_list)
     )
 
-    get_mapping_status_task(collection, mapped_pages)
+    mapping_status = get_mapping_status_task(collection, mapped_pages)
+    validate_collection_task(mapping_status)
+
 mapper_dag()

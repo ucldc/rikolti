@@ -6,6 +6,7 @@ from airflow.decorators import task
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
+from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
@@ -91,3 +92,17 @@ def map_page_task(page: str, collection: dict):
 def get_mapping_status_task(collection: dict, mapped_pages: list):
     mapping_status = get_mapping_status(collection, mapped_pages)
     return mapping_status
+
+@task()
+def validate_collection_task(collection_status: dict, params=None) -> None:
+    if not params or not params.get('validate'):
+        raise ValueError("Validate flag not found in params")
+
+    # let this throw an error if no collection_id
+    collection_id = int(collection_status['collection_id'])
+
+    if collection_status.get('status') != 'success':
+        raise Exception(f"Collection {collection_id} not successfully mapped")
+
+    result = create_collection_validation_csv(collection_id)
+    return result
