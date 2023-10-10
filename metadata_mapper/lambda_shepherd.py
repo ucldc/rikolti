@@ -54,25 +54,20 @@ def get_vernacular_pages(collection_id):
                               for f in os.listdir(children_path)
                               if os.path.isfile(os.path.join(children_path, f))]
         except FileNotFoundError as e:
-            logging.error(f"{e} - have you fetched {collection_id}?")
-            return {
-                'statusCode': 400,
-                'body': json.dumps({
-                    'error': (
-                        f"{repr(e)} - have you fetched {collection_id}? ",
-                        f"looked in dir {e.filename}"
-                    )
-                })
-            }
-
-    else:
-        # JUST A SKETCH
-        s3 = boto3.resource('s3')
-        rikolti_bucket = s3.Bucket('rikolti')
-        page_list = rikolti_bucket.objects.filter(
-            Prefix=f'vernacular_metadata/{collection_id}')
-        page_list = [p.key for p in page_list]
-
+            print(
+                f"{e} - have you fetched {collection_id}? "
+                f"looked in dir {e.filename}"
+            )
+            raise(e)
+    elif settings.DATA_SRC["STORE"] == 's3':
+        s3_client = boto3.client('s3')
+        resp = s3_client.list_objects_v2(
+            Bucket=settings.DATA_SRC["BUCKET"],
+            Prefix=f"vernacular_metadata/{collection_id}"
+        )
+        # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
+        page_list = [page['Key'] for page in resp['Contents']]
+        # TODO: split page_list into pages and children
     return page_list
 
 

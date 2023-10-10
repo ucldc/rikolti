@@ -40,11 +40,13 @@ class UCLDCWriter(object):
 
     def write_s3_mapped_metadata(self, mapped_metadata):
         s3_client = boto3.client('s3')
-        bucket = 'rikolti'
-        key = f"mapped_metadata/{self.collection_id}/{self.page_filename}"
+        key = (
+            f"mapped_metadata/{self.collection_id}/"
+            f"{self.page_filename.split('/')[-1]}"
+        )
         s3_client.put_object(
             ACL='bucket-owner-full-control',
-            Bucket=bucket,
+            Bucket=settings.DATA_DEST["BUCKET"],
             Key=key,
             Body=json.dumps(mapped_metadata))
 
@@ -69,11 +71,12 @@ class Vernacular(ABC, object):
         return api_response
 
     def get_s3_api_response(self) -> str:
-        s3 = boto3.resource('s3')
-        bucket = 'rikolti'
-        key = f"vernacular_metadata/{self.collection_id}/{self.page_filename}"
-        s3_obj_summary = s3.Object(bucket, key).get()
-        api_response = s3_obj_summary['Body'].read()
+        s3_client = boto3.client('s3')
+        page = s3_client.get_object(
+            Bucket=settings.DATA_SRC["BUCKET"],
+            Key=self.page_filename
+        )
+        api_response = page['Body'].read()
         return api_response
 
     def get_records(self, records):

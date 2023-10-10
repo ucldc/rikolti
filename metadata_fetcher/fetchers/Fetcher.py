@@ -71,7 +71,8 @@ class Fetcher(object):
                 ),
                 Body=page)
         except Exception as e:
-            print(e, file=sys.stderr)
+            print(f"Metadata Fetcher: {e}", file=sys.stderr)
+            raise(e)
 
     def fetch_page(self):
         page = self.build_fetch_request()

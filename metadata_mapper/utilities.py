@@ -55,12 +55,14 @@ def get_files(directory: str, collection_id: int) -> list[str]:
         path = settings.local_path(directory, collection_id)
         return [f for f in os.listdir(path)
                 if os.path.isfile(os.path.join(path, f))]
-    else:
-        s3 = boto3.resource('s3')
-        bucket = 'rikolti'
-        key = f"{directory}/{collection_id}"
-        return s3.list_objects_v2(bucket, key)
-
+    elif settings.DATA_SRC["STORE"] == "s3":
+        s3_client = boto3.client('s3')
+        resp = s3_client.list_objects_v2(
+            Bucket=settings.DATA_SRC["BUCKET"],
+            Prefix=f"{directory}/{collection_id}"
+        )
+        # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
+        return [page['Key'] for page in resp['Contents']]
 
 def read_from_bucket(directory: str, collection_id: int,
                      file_name: Union[str, int]) -> str:
@@ -88,10 +90,11 @@ def read_from_bucket(directory: str, collection_id: int,
         with open(page_path, "r") as metadata_file:
             return metadata_file.read()
     elif settings.DATA_SRC["STORE"] == 's3':
-        s3 = boto3.resource('s3')
-        bucket = 'rikolti'
-        key = f"{directory}/{collection_id}/{file_name}"
-        s3_obj_summary = s3.Object(bucket, key).get()
+        s3_client = boto3.client('s3')
+        s3_obj_summary = s3_client.get_object(
+            Bucket=settings.DATA_SRC["BUCKET"],
+            Key=f"{directory}/{collection_id}/{file_name}"
+        )
         return s3_obj_summary['Body'].read()
 
 
@@ -142,8 +145,12 @@ def write_to_bucket(directory: str, collection_id: int,
         with open(page_path, "a" if append else "w") as file:
             file.write(content)
     elif settings.DATA_SRC["STORE"] == 's3':
-        s3 = boto3.resource('s3')
-        bucket = 'rikolti'
-        key = f"{directory}/{collection_id}/{file_name}"
-        s3_obj = s3.Object(bucket, key)
-        s3_obj.put(Body=content)
+        s3_client = boto3.client('s3')
+        key = (
+            f"{directory}/{collection_id}/"
+            f"{file_name}"
+        )
+        s3_client.put_object(
+            Bucket=settings.DATA_DEST["BUCKET"],
+            Key=key,
+            Body=content)
