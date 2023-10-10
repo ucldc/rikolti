@@ -126,10 +126,11 @@ class ValidationLog:
         if not filename:
             filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
 
-        utilities.write_to_bucket("validation", collection_id, filename,
-                                  self._csv_content_string(include_fields))
+        file_location = utilities.write_to_bucket(
+            "validation", collection_id, filename,
+            self._csv_content_string(include_fields))
         
-        return filename
+        return file_location
 
     def _csv_content(self, include_fields: list[str] = None,
                      include_headers: bool = True) -> list[list[str]]:

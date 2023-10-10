@@ -93,7 +93,7 @@ def read_from_bucket(directory: str, collection_id: int,
         s3_client = boto3.client('s3')
         s3_obj_summary = s3_client.get_object(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Key=f"{directory}/{collection_id}/{file_name}"
+            Key=file_name
         )
         return s3_obj_summary['Body'].read()
 
@@ -144,6 +144,7 @@ def write_to_bucket(directory: str, collection_id: int,
 
         with open(page_path, "a" if append else "w") as file:
             file.write(content)
+        file_location = f"file://{page_path}"
     elif settings.DATA_SRC["STORE"] == 's3':
         s3_client = boto3.client('s3')
         key = (
@@ -154,3 +155,6 @@ def write_to_bucket(directory: str, collection_id: int,
             Bucket=settings.DATA_DEST["BUCKET"],
             Key=key,
             Body=content)
+        file_location = f"s3://{settings.DATA_DEST['BUCKET']}/{key}"
+
+    return file_location
