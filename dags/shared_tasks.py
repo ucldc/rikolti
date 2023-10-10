@@ -2,6 +2,7 @@ from datetime import datetime
 
 import requests
 from airflow.decorators import task
+from urllib.parse import urlparse
 
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.metadata_mapper.lambda_function import map_page
@@ -94,7 +95,7 @@ def get_mapping_status_task(collection: dict, mapped_pages: list):
     return mapping_status
 
 @task()
-def validate_collection_task(collection_status: dict, params=None) -> None:
+def validate_collection_task(collection_status: dict, params=None) -> str:
     if not params or not params.get('validate'):
         raise ValueError("Validate flag not found in params")
 
@@ -104,5 +105,15 @@ def validate_collection_task(collection_status: dict, params=None) -> None:
     if collection_status.get('status') != 'success':
         raise Exception(f"Collection {collection_id} not successfully mapped")
 
-    result = create_collection_validation_csv(collection_id)
-    return result
+    num_rows, file_location = create_collection_validation_csv(collection_id)
+    print(f"Output {num_rows} rows to {file_location}")
+
+    # create a link to the file in the logs
+    if file_location.startswith('s3://'):
+        parsed_loc = urlparse(file_location)
+        file_location = (
+            f"https://{parsed_loc.netloc}.s3.us-west-2."
+            f"amazonaws.com{parsed_loc.path}"
+        )
+
+    return file_location
