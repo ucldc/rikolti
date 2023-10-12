@@ -1,11 +1,16 @@
-import os
-from indexer import bulk_add
-import settings
-import boto3
+import argparse
 import json
+import os
+import sys
+
+import boto3
+
+from urllib.parse import urlparse
+
+from .indexer import index_records
+from . import settings
 
 
-# TODO: make use of utilities.py
 def get_file_list(collection_id):
 
     file_list = []
@@ -19,15 +24,9 @@ def get_file_list(collection_id):
             print(f"{e} - have you run content fetcher for {collection_id}?")
     else:
         # TODO: instantiate one boto3 client and pass it around
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            aws_session_token=settings.AWS_SESSION_TOKEN,
-            region_name=settings.AWS_REGION
-        )
+        s3_client = boto3.client('s3')
         response = s3_client.list_objects_v2(
-            Bucket=settings.S3_BUCKET,
+            Bucket=settings.DATA_SRC["BUCKET"],
             Prefix=f'mapped_with_content/{collection_id}/'
         )
         file_list = [obj['Key'].split('/')[-1] for obj in response['Contents']]
@@ -35,49 +34,29 @@ def get_file_list(collection_id):
     return file_list
 
 
-def get_metadata(collection_id, filename):
-    # TODO: instantiate one boto3 client and pass it around
-    if settings.DATA_SRC == 'local':
-        local_path = settings.local_path(
-            'mapped_with_content', collection_id)
-        path = os.path.join(local_path, str(filename))
-        file = open(path, "r")
-        record = json.loads(file.read())
-        # s3_client.download_file(
-        #     settings.S3_BUCKET,
-        #     f"mapped_with_content/{collection_id}/{filename}",
-        #     (
-        #         "/usr/local/dev/rikolti/rikolti_bucket/mapped_with_content/"
-        #         f"{collection_id}/{filename}"
-        #     )
-        # )
-    else:
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            aws_session_token=settings.AWS_SESSION_TOKEN,
-            region_name=settings.AWS_REGION
-        )
-        file = s3_client.get_object(
-            Bucket=settings.S3_BUCKET,
-            Key=f"mapped_with_content/{collection_id}/{filename}"
-        )
-        record = json.loads(file['Body'].read())
-    
-    return record
-
-
 def index_collection(collection_id):
 
     print(f"{settings.DATA_SRC=}")
 
+    # each file contains metadata for a single record
     file_list = get_file_list(collection_id)
+
+    # we should group the records into ideally-sized sized batches
+    # whose job is this? the indexer's? the content harvester's?
+    # https://www.elastic.co/guide/en/elasticsearch/guide/current/indexing-performance.html#_using_and_sizing_bulk_requests
+    # right now, simply creating one batch per collection
+    batches = [file_list]
 
     print(f"Indexing records for collection {collection_id}")
 
-    records = [get_metadata(collection_id, file) for file in file_list]
+    for batch in batches:
+        print(f"Indexing batch")
+        index_records(batch, collection_id)
 
-    index_name = "rikolti-test"
-
-    bulk_add(records, index_name)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Add collection data to OpenSearch index")
+    parser.add_argument('collection_id', help='Registry collection ID')
+    args = parser.parse_args(sys.argv[1:])
+    index_collection(args.collection_id)
+    sys.exit(0)
