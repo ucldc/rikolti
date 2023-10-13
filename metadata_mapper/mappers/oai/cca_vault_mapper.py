@@ -2,6 +2,7 @@ from typing import Union, Any
 
 from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
+from ...validator import ValidationLogLevel
 
 
 class CcaVaultRecord(OaiRecord):
@@ -46,6 +47,13 @@ class CcaVaultValidator(Validator):
                 CcaVaultValidator.str_match_ignore_url_protocol,
                 Validator.type_match
             ])
+        self.add_validatable_field(
+            field="source", type=str,
+            validations=[
+                CcaVaultValidator.source_content_match,
+            ],
+            level=ValidationLogLevel.WARNING
+        )
 
     def generate_keys(self, collection: list[dict], type: str = None,
                       context: dict = {}) -> dict[str, dict]:
@@ -99,11 +107,27 @@ class CcaVaultValidator(Validator):
         if rikolti_value == comparison_value:
             return
 
-        if comparison_value.startswith('http'):
+        if comparison_value and comparison_value.startswith('http'):
             comparison_value = comparison_value.replace('http', 'https')
 
         if not rikolti_value == comparison_value:
             return "Content mismatch"
+
+    # this represents a known improvement in rikolti's mapping logic
+    @staticmethod
+    def source_content_match(validation_def: dict, rikolti_value: Any,
+                             comparison_value: Any) -> None:
+        accepted_values = [
+            ['Hamaguchi Study Print Collection'],
+            ['Capp Street Project Archive'],
+            ['CCA/C Archives']
+        ]
+        if comparison_value is None and rikolti_value in accepted_values:
+            return
+        else:
+            return Validator.content_match(
+                validation_def, rikolti_value, comparison_value)
+
 
 class CcaVaultVernacular(OaiVernacular):
     record_cls = CcaVaultRecord
