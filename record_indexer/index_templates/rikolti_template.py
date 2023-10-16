@@ -1,13 +1,14 @@
-import sys
-import json
-import requests
 import copy
-from record_indexer import settings
+import json
+import sys
+
+import requests
+
+from .. import settings
 
 '''
     Create OpenSearch index template for rikolti
-    https://www.elastic.co/guide/en/elasticsearch/reference/7.9/index-templates.html
-    https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-component-template.html
+    https://opensearch.org/docs/2.3/opensearch/index-templates/
 '''
 
 
@@ -17,7 +18,7 @@ def main():
     # solr filter documentation: https://solr.apache.org/guide/8_6/filter-descriptions.html
     # TODO add aliases, version, _meta, priority to record_index_template.json
     # TODO make sort_title a multifield of title?
-    record_index_config = json.load(open('record_index_config.json'))
+    record_index_config = json.load(open('record_indexer/index_templates/record_index_config.json'))
     record_schema = record_index_config['template']['mappings']['properties']
 
     # child schema == record schema, except without the "children" field

@@ -73,10 +73,11 @@
                 "repository_id": {"type": "integer"},
                 "item_count": {"type": "integer"},
 
+
                 "media": {
                     "properties": {
                         "media_filepath": {"type": "keyword"},
-                        "mimetype": {"type": "keyword"},
+                        "mimetype": {"type": "keyword"}
                     }
                 },
                 "media_source": {
