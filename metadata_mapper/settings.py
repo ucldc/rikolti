@@ -24,6 +24,7 @@ SKIP_UNDEFINED_ENRICHMENTS = os.environ.get('SKIP_UNDEFINED_ENRICHMENTS', False)
 
 SOLR_URL = os.environ.get('UCLDC_SOLR_URL', False)
 SOLR_API_KEY = os.environ.get('UCLDC_SOLR_API_KEY', False)
+COUCH_URL = os.environ.get('UCLDC_COUCH_URL', False)
 
 def local_path(folder, collection_id):
     local_path = os.sep.join([

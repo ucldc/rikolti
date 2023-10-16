@@ -174,7 +174,7 @@ def couch_db_request(collection_id: int, field_name: str) -> list[dict[str, str]
 
     Returns: list[dict]
     """
-    url = "https://harvest-prd.cdlib.org/" \
+    url = f"{settings.COUCH_URL}/" \
         "couchdb/ucldc/_design/all_provider_docs/" \
         "_list/has_field_value/by_provider_name_wdoc" \
         f"?key=\"{collection_id}\"&field={field_name}&limit=100000"
