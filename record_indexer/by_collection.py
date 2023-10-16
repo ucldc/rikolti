@@ -15,7 +15,7 @@ def get_file_list(collection_id):
 
     file_list = []
 
-    if settings.DATA_SRC == 'local':
+    if settings.DATA_SRC["STORE"] == 'file':
         path = settings.local_path('mapped_with_content', collection_id)
         try:
             file_list = [f for f in os.listdir(path)
@@ -36,22 +36,11 @@ def get_file_list(collection_id):
 
 def index_collection(collection_id):
 
-    print(f"{settings.DATA_SRC=}")
-
     # each file contains metadata for a single record
-    file_list = get_file_list(collection_id)
+    page_list = get_file_list(collection_id)
 
-    # we should group the records into ideally-sized sized batches
-    # whose job is this? the indexer's? the content harvester's?
-    # https://www.elastic.co/guide/en/elasticsearch/guide/current/indexing-performance.html#_using_and_sizing_bulk_requests
-    # right now, simply creating one batch per collection
-    batches = [file_list]
-
-    print(f"Indexing records for collection {collection_id}")
-
-    for batch in batches:
-        print(f"Indexing batch")
-        index_records(batch, collection_id)
+    for page in page_list:
+        index_records(page, collection_id)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

@@ -1,7 +1,9 @@
-import sys
-import settings
-import requests
 import argparse
+import sys
+
+import requests
+
+from . import settings
 
 
 def main(index):

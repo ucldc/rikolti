@@ -13,10 +13,9 @@ DATA_SRC = {
     "PATH": urlparse(DATA_SRC_URL).path
 }
 
-#ENDPOINT = os.environ.get('RIKOLTI_ES_ENDPOINT')
-#AUTH = ('rikolti', os.environ.get('RIKOLTI_ES_PASS'))
+ENDPOINT = os.environ.get('RIKOLTI_ES_ENDPOINT')
+AUTH = ('rikolti', os.environ.get('RIKOLTI_ES_PASS'))
 
-'''
 def local_path(folder, collection_id):
     local_path = os.sep.join([
         DATA_SRC["PATH"],
@@ -24,4 +23,3 @@ def local_path(folder, collection_id):
         str(collection_id),
     ])
     return local_path
-'''
