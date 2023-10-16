@@ -2,7 +2,7 @@ from typing import Union, Any
 
 from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
-from ...validator import ValidationLogLevel
+from ...validator import ValidationLogLevel, ValidationMode
 
 
 class CcaVaultRecord(OaiRecord):
@@ -53,6 +53,38 @@ class CcaVaultValidator(Validator):
                 CcaVaultValidator.source_content_match,
             ],
             level=ValidationLogLevel.WARNING
+        )
+        self.add_validatable_field(
+            field="description", type=str,
+            validations=[CcaVaultValidator.description_match],
+            level=ValidationLogLevel.WARNING,
+        )
+        # these are all modified to indicate order doesn't matter with
+        # otherwise they're the same as the default validator
+        # validation_mode=ValidationMode.LAX
+        self.add_validatable_field(
+            field="temporal", type=str,
+            validations=[Validator.content_match],
+            level=ValidationLogLevel.WARNING,
+            validation_mode=ValidationMode.LAX
+        )
+        self.add_validatable_field(
+            field="date", type=str,
+            validations=[Validator.content_match],
+            level=ValidationLogLevel.WARNING,
+            validation_mode=ValidationMode.LAX
+        )
+        self.add_validatable_field(
+            field="creator", type=str,
+            validations=[Validator.content_match],
+            level=ValidationLogLevel.WARNING,
+            validation_mode=ValidationMode.LAX
+        )
+        self.add_validatable_field(
+            field="format", type=str,
+            validations=[Validator.content_match],
+            level=ValidationLogLevel.WARNING,
+            validation_mode=ValidationMode.LAX
         )
 
     # def generate_keys(self, collection: list[dict], type: str = None,
@@ -127,6 +159,15 @@ class CcaVaultValidator(Validator):
         else:
             return Validator.content_match(
                 validation_def, rikolti_value, comparison_value)
+
+    @staticmethod
+    def description_match(validation_def: dict, rikolti_value: Any,
+                          comparison_value: Any) -> None:
+        if not validation_def["validation_mode"].value.compare(
+            rikolti_value, comparison_value):
+            new_comparison_value = [v.rstrip("\n ") for v in comparison_value]
+            return Validator.content_match(
+                validation_def, rikolti_value, new_comparison_value)
 
 
 class CcaVaultVernacular(OaiVernacular):
