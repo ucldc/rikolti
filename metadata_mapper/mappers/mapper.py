@@ -1416,21 +1416,6 @@ class Record(ABC, object):
                         return match.group(0)
             return None
 
-        def ucsd_ark(doc):
-            # is this UCSD?
-            campus = None
-            ark = None
-            collection = doc['collection'][0]
-            campus_list = collection.get('campus', None)
-            if campus_list:
-                campus = campus_list[0]['@id']
-            if campus == "https://registry.cdlib.org/api/v1/campus/6/":
-                # UCSD get ark id
-                ark_frag = doc['originalRecord'].get('id', None)
-                if ark_frag:
-                    ark = 'ark:/20775/' + ark_frag
-            return ark
-
         def ucla_ark(doc):
             '''UCLA ARKs are buried in a mods field in originalRecord:
             "mods_recordInfo_recordIdentifier_mlt": "21198-zz002b1833",
@@ -1477,8 +1462,6 @@ class Record(ABC, object):
                     solr_id = couch_doc.get('calisphere-id', None)
                 else:
                     solr_id = None
-            if not solr_id:
-                solr_id = ucsd_ark(couch_doc)
             if not solr_id:
                 solr_id = ucla_ark(couch_doc)
             if not solr_id:

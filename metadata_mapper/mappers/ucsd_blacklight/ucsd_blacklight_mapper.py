@@ -6,6 +6,8 @@ from ..mapper import Record, Vernacular
 class UcsdBlacklightMapper(Record):
     BASE_URL = "https://library.ucsd.edu/dc/object/"
 
+    BASE_ARK = "ark:/20775/"
+
     def UCLDC_map(self) -> dict:
         return {
             "calisphere-id": self.legacy_couch_db_id.split("--")[1],
@@ -16,13 +18,12 @@ class UcsdBlacklightMapper(Record):
             "stateLocatedIn": {"name": "California"},
             "extent": self.source_metadata.get("extent_json_tesim"),
             "publisher": self.source_metadata.get("publisher_json_tesim"),
-            "contributor": self.source_metadata.get("contributor"),
             "coverage": self.source_metadata.get("geographic_tesim"),
             "creator": self.map_creator,
             "date": self.map_date,
             "description": self.map_description,
+            "identifier": self.map_identifier,
             "format": self.map_format,
-            "identifier": [],
             "is_part_of": self.map_is_part_of,
             "language": self.map_language,
             "rights": self.map_rights,
@@ -41,8 +42,8 @@ class UcsdBlacklightMapper(Record):
         }
 
     def map_is_shown_at(self) -> str:
-        id_t = self.source_metadata.get('id_t')
-        return f"{self.BASE_URL}{id_t}"
+        id = self.source_metadata.get('id')
+        return f"{self.BASE_URL}{id}"
 
     def map_is_shown_by(self) -> [None, str]:
         """
@@ -73,8 +74,8 @@ class UcsdBlacklightMapper(Record):
         if not file_id:
             return None
 
-        id_t = self.source_metadata.get("id_t")
-        return f"{self.BASE_URL}{id_t}/_{file_id}"
+        id = self.source_metadata.get("id")
+        return f"{self.BASE_URL}{id}/_{file_id}"
 
     @property
     def relationship(self) -> str:
@@ -106,8 +107,8 @@ class UcsdBlacklightMapper(Record):
         return descriptions
 
     def map_contributor(self) -> list:
-        return [c for r, c in self.relationship.items()
-                if r in contributor_role_list]
+        return [item for r, c in self.relationship.items()
+                if r in contributor_role_list for item in c]
 
     def map_creator(self) -> [None, list]:
         if not self.relationship:
@@ -115,9 +116,12 @@ class UcsdBlacklightMapper(Record):
 
         if len(self.relationship) == 1:
             return list(self.relationship.values())[0]
-        else:
-            return [c for r, c in self.relationship.items() if r in
-                    creator_role_list]
+
+        creators = []
+        for r, c in self.relationship.items():
+            if r in creator_role_list:
+                creators.extend(c)
+        return creators
 
     def map_relation(self) -> [None, str]:
         related_resource = self.source_metadata. \
@@ -143,10 +147,14 @@ class UcsdBlacklightMapper(Record):
         else:  # no creation date, use first date
             date = dates[0]
 
+        begin_date = date.get("beginDate")
+        end_date = date.get("endDate")
+        display_date = date.get("value") or f"{begin_date} to {end_date}"
+
         return {
-            "end": date.get("endDate"),
-            "begin": date.get("beginDate"),
-            "displayDate": date.get("value")
+            "begin": begin_date,
+            "end": end_date,
+            "displayDate": display_date
         }
 
     def extract_notes_by_type(self, note_type) -> list:
@@ -165,8 +173,12 @@ class UcsdBlacklightMapper(Record):
         genre = self.source_metadata.get('genreForm_tesim', None)
         return {"genre": genre} if genre else None
 
-    def map_identifier(self):
-        pass
+    def map_identifier(self) -> list:
+        identifier = self.source_metadata.get('id')
+        if isinstance(identifier, list):
+            identifier = identifier[0]
+
+        return [f"{self.BASE_ARK}{identifier}"]
 
     def map_language(self) -> list:
         values = self.source_metadata.get('language_tesim', [])
