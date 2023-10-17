@@ -1,16 +1,31 @@
 import os
 
+from urllib.parse import urlparse
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
-METADATA_SRC = 'local'
-METADATA_DEST = 's3'
-CONTENT_DEST = 's3'
+DATA_SRC_URL = os.environ.get('CONTENT_DATA_SRC', 'file:///tmp')
+DATA_SRC = {
+    "STORE": urlparse(DATA_SRC_URL).scheme,
+    "BUCKET": urlparse(DATA_SRC_URL).netloc,
+    "PATH": urlparse(DATA_SRC_URL).path
+}
 
-S3_BUCKET = os.environ.get('S3_BUCKET', False)
-S3_CONTENT_BUCKET = os.environ.get('S3_CONTENT_BUCKET', False)
-S3_BASE_URL = os.environ.get('S3_BASE_URL', False)
+DATA_DEST_URL = os.environ.get('CONTENT_DATA_DEST', 'file:///tmp')
+DATA_DEST = {
+    "STORE": urlparse(DATA_DEST_URL).scheme,
+    "BUCKET": urlparse(DATA_DEST_URL).netloc,
+    "PATH": urlparse(DATA_DEST_URL).path
+}
+
+CONTENT_DEST_URL = os.environ.get("CONTENT_DEST", 'file:///tmp')
+CONTENT_DEST = {
+    "STORE": urlparse(CONTENT_DEST_URL).scheme,
+    "BUCKET": urlparse(CONTENT_DEST_URL).netloc,
+    "PATH": urlparse(CONTENT_DEST_URL).path
+}
 
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', False)
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', False)
@@ -28,10 +43,8 @@ CONTENT_PROCESSES = {
 }
 
 def local_path(folder, collection_id):
-    parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
     local_path = os.sep.join([
-        parent_dir,
-        'rikolti_bucket',
+        DATA_SRC["PATH"],
         folder,
         str(collection_id),
     ])

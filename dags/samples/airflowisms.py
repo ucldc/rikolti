@@ -5,12 +5,13 @@ from airflow.decorators import dag, task
 from airflow.models.param import Param
 from airflow.models import Variable
 from airflow.operators.python import get_current_context
+from airflow.operators.bash import BashOperator
 
-# from airflow.operators.python import PythonOperator
 import requests
 
 @task()
 def taskflow_test_requests():
+    """ this did not work with airflow standalone """
     resp = requests.get("https://google.com")
     resp.raise_for_status()
     return resp.status_code
@@ -34,7 +35,14 @@ def taskflow_params(dag_run=None, params=None):
 @task()
 def taskflow_get_admin_variables():
     """ get admin variables from airflow db """
-    airflow_test_env = Variable.get("AIRFLOW_TEST")
+    airflow_test_env = Variable.get("AIRFLOW_TEST", default_var=None)
+    json_test_var = Variable.get(
+        "json_test_var", 
+        deserialize_json=True, 
+        default_var=None
+    )
+
+    print(json_test_var)
     print(airflow_test_env)
     os.environ["AIRFLOW_TEST"] = airflow_test_env
 
@@ -44,30 +52,16 @@ def taskflow_get_admin_variables():
     return True
 
 @task()
-def taskflow_mkdir():
-    """ we have permissions inside /airflow/, but nowhere else it seems """
-    if os.path.exists("/usr/local/airflow/rikolti_data/test_dir"):
-        os.remove("/usr/local/airflow/rikolti_data/test_dir/test2.txt")
-        os.rmdir("/usr/local/airflow/rikolti_data/test_dir")
-
-    os.mkdir("/usr/local/airflow/rikolti_data/test_dir")
-    with open("/usr/local/airflow/rikolti_data/test_dir/test2.txt", "w") as f:
-        f.write("hi amy")
-    return True
-
-@task()
-def taskflow_write_to_disk():
-    """ write a file to disk """
-    with open("/usr/local/airflow/rikolti_data/test.txt", "w") as f:
-        f.write("hello world")
-    return True
-
-@task()
 def taskflow_get_env():
     """ get env variables previously set """
     startup_env = os.environ.get("ENVIRONMENT_STAGE")
     print(startup_env)
     return startup_env
+
+@task()
+def taskflow_print(message=None):
+    print(message)
+    return message
 
 @task()
 def fails_sometimes():
@@ -92,16 +86,26 @@ def downstream_should_fail(upstream_result):
     params={
         'collection_id': Param(1, description="Collection ID")
     },
-    tags=["test"],
+    tags=["sample"],
 )
-def taskflow_test_dag():
+def sample_airflowisms():
+    dag_variable = "boo"
+    if os.environ.get("ENVIRONMENT_STAGE") == "dev":
+        dag_variable = "foo"
+
+    taskflow_print(dag_variable)
+    taskflow_print(os.environ.get("ENVIRONMENT_STAGE"))
     taskflow_test_requests()
     taskflow_params()
     taskflow_get_admin_variables()
-    taskflow_mkdir()
-    taskflow_write_to_disk()
     taskflow_get_env()
     result = fails_sometimes()
     downstream_should_fail(result)
 
-taskflow_test_dag()
+    bashop_get_admin_vars_jinja = BashOperator(
+        task_id="bashop_get_admin_vars_jinja",
+        bash_command='echo "{{ var.value.AIRFLOW_TEST }} {{ var.json.json_test_var }}"',
+    )
+    bashop_get_admin_vars_jinja
+
+sample_airflowisms()
