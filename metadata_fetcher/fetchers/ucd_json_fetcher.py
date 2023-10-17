@@ -47,11 +47,11 @@ class UcdJsonFetcher(Fetcher):
         ns = {"ns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         xml = ElementTree.fromstring(response.text)
         loc_nodes = xml.findall(".//ns:loc", ns)
-        pages = math.ceil(len(loc_nodes) / self.per_page) - 1
+        pages = math.ceil(len(loc_nodes) / self.per_page)
 
         for page in range(pages):
-            print(f"[{self.collection_id}]: Fetching URLs for page {page} "
-                  f"({page + 1}/{pages + 1})")
+            print(f"[{self.collection_id}]: Fetching URLs for page {page + 1} "
+                  f"({page + 1}/{pages})")
             skip = self.write_page * self.per_page
             urls = loc_nodes[skip:(skip + self.per_page)]
             records = list(filter(None, [self.fetch_json_ld(url.text) for url in urls]))
