@@ -7,8 +7,8 @@ import requests
 from . import settings
 
 
-def bulk_add(json_data: str, index: str):
-
+def bulk_add(records: list, index:str):
+    data = build_bulk_request_body(records, index)
     url = f"{settings.ENDPOINT}/_bulk"
 
     headers = {
@@ -16,7 +16,7 @@ def bulk_add(json_data: str, index: str):
     }
 
     r = requests.post(
-        url, headers=headers, data=json_data, auth=settings.AUTH)
+        url, headers=headers, data=data, auth=settings.AUTH)
     r.raise_for_status()
 
 
@@ -118,8 +118,7 @@ def add_page(page: str, collection_id: str, index: str):
     for record in records:
         record.pop('is_shown_at', None)
 
-    bulk_request_body = build_bulk_request_body(records, index)
-    bulk_add(bulk_request_body, index)
+    bulk_add(records, index)
 
     print(f"added page `{page}` to index `{index}`")
 
