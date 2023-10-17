@@ -10,6 +10,7 @@ env.local
 .idea/
 local_settings.py
 rikolti_bucket/
+rikolti_data/
 .aws-sam/
 samconfig.toml
 /.bash_history
