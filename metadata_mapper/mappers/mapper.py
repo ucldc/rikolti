@@ -40,11 +40,13 @@ class UCLDCWriter(object):
 
     def write_s3_mapped_metadata(self, mapped_metadata):
         s3_client = boto3.client('s3')
-        bucket = 'rikolti'
-        key = f"mapped_metadata/{self.collection_id}/{self.page_filename}"
+        key = (
+            f"mapped_metadata/{self.collection_id}/"
+            f"{self.page_filename.split('/')[-1]}"
+        )
         s3_client.put_object(
             ACL='bucket-owner-full-control',
-            Bucket=bucket,
+            Bucket=settings.DATA_DEST["BUCKET"],
             Key=key,
             Body=json.dumps(mapped_metadata))
 
@@ -69,11 +71,18 @@ class Vernacular(ABC, object):
         return api_response
 
     def get_s3_api_response(self) -> str:
-        s3 = boto3.resource('s3')
-        bucket = 'rikolti'
-        key = f"vernacular_metadata/{self.collection_id}/{self.page_filename}"
-        s3_obj_summary = s3.Object(bucket, key).get()
-        api_response = s3_obj_summary['Body'].read()
+        s3_client = boto3.client('s3')
+        if not self.page_filename.startswith('vernacular_metadata'):
+            self.page_filename = (
+                f"vernacular_metadata/{self.collection_id}/"
+                f"{self.page_filename}"
+            )
+
+        page = s3_client.get_object(
+            Bucket=settings.DATA_SRC["BUCKET"],
+            Key=self.page_filename
+        )
+        api_response = page['Body'].read()
         return api_response
 
     def get_records(self, records):
@@ -1145,20 +1154,18 @@ class Record(ABC, object):
         """
         2076 times: no parameters
         """
+        # Previously in default fields, not sure how they map to new system:
+        # "sourceResource/collection/title",
+        # "sourceResource/collection/description",
+        # "sourceResource/contributor", "sourceResource/spatial/name"
         default_fields = [
-            "sourceResource/language", "sourceResource/title",
-            "sourceResource/creator", "sourceResource/relation",
-            "sourceResource/publisher", "sourceResource/subject",
-            "sourceResource/date",
-            "sourceResource/collection/title",
-            "sourceResource/collection/description",
-            "sourceResource/contributor", "sourceResource/spatial/name"
+            "language", "title", "creator", "relation",
+            "publisher", "subject", "date",
         ]
-        dont_strip_trailing_dot = [
-            "hasView/format", "sourceResource/format", "sourceResource/extent",
-            "sourceResource/rights",
-            "sourceResource/place", "sourceResource/collection/title"
-        ]
+        # Previously in dont strip trailing dot fields, 
+        # not sure how they map to new system:
+        # "hasView/format", "sourceResource/collection/title"
+        dont_strip_trailing_dot = ["format", "extent", "rights", "place"]
 
         def cleanup(value, field):
             strip_dquote = '"' if field not in ["title", "description"] else ''
@@ -1180,9 +1187,6 @@ class Record(ABC, object):
             return value
 
         for field in default_fields + dont_strip_trailing_dot:
-            # TODO: this won't work for deeply nested fields
-            field.split('/')[1]  # remove sourceResource
-
             if field not in self.mapped_data:
                 continue
             if isinstance(self.mapped_data[field], str):

@@ -9,6 +9,7 @@ from rikolti.dags.shared_tasks import get_collection_fetchdata_task
 from rikolti.dags.shared_tasks import get_collection_metadata_task
 from rikolti.dags.shared_tasks  import map_page_task
 from rikolti.dags.shared_tasks  import get_mapping_status_task
+from rikolti.dags.shared_tasks import validate_collection_task
 from rikolti.dags.shared_tasks import ContentHarvestDockerOperator
 
 @task()
@@ -20,7 +21,10 @@ def get_mapped_page_filenames_task(mapped_pages):
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'collection_id': Param(None, description="Collection ID to harvest")},
+    params={
+        'collection_id': Param(None, description="Collection ID to harvest"),
+        'validate': Param(True, description="Validate mapping?")
+    },
     tags=["rikolti"],
 )
 def harvest():
@@ -35,7 +39,9 @@ def harvest():
             .partial(collection=collection)
             .expand(page=fetched_pages)
     )
-    get_mapping_status_task(collection, mapped_pages)
+
+    mapping_status = get_mapping_status_task(collection, mapped_pages)
+    validate_collection_task(mapping_status)
     mapped_page_filenames = get_mapped_page_filenames_task(mapped_pages)
 
     content_harvest_task = (

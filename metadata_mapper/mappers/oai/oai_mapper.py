@@ -105,13 +105,24 @@ class OaiVernacular(Vernacular):
             if sickle_header.deleted:
                 continue
 
-            record = sickle_rec.metadata
+            record = self.strip_metadata(sickle_rec.metadata)
             record['datestamp'] = sickle_header.datestamp
             record['id'] = sickle_header.identifier
             record['request_url'] = request_url
             records.append(record)
 
         return self.get_records(records)
+
+    def strip_metadata(self, record_metadata):
+        stripped = {}
+        for key, value in record_metadata.items():
+            if isinstance(value, str):
+                value = value.strip()
+            elif isinstance(value, list):
+                value = [v.strip() if isinstance(v, str) else v for v in value]
+            stripped[key] = value
+
+        return stripped
 
     # lxml parser requires bytes input or XML fragments without declaration,
     # so use 'rb' mode
