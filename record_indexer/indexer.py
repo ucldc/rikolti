@@ -55,7 +55,9 @@ def get_json_content(collection_id: str, filename: str):
 
     return records
 
-def add_index_to_alias(index: str, alias: str, collection_id: str):
+def update_alias_for_collection_index(alias: str, collection_id: str, index: str):
+    remove_collection_indices_from_alias(alias, collection_id)
+
     url = f"{settings.ENDPOINT}/_aliases"
     headers = {
         "Content-Type": "application/json"
@@ -79,7 +81,7 @@ def add_index_to_alias(index: str, alias: str, collection_id: str):
     print(f"added index `{index}` to alias `{alias}`")
 
 
-def remove_indices_from_alias(collection_id: str, alias: str):
+def remove_collection_indices_from_alias(alias: str, collection_id: str):
     url = f"{settings.ENDPOINT}/rikolti-{collection_id}-*"
     r = requests.head(url=url, auth=settings.AUTH, params={'allow_no_indices':'false'})
     if r.status_code == 404:
