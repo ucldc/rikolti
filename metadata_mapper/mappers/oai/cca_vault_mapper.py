@@ -59,33 +59,7 @@ class CcaVaultValidator(Validator):
             validations=[CcaVaultValidator.description_match],
             level=ValidationLogLevel.WARNING,
         )
-        # these are all modified to indicate order doesn't matter with
-        # otherwise they're the same as the default validator
-        # validation_mode=ValidationMode.LAX
-        self.add_validatable_field(
-            field="temporal", type=str,
-            validations=[Validator.content_match],
-            level=ValidationLogLevel.WARNING,
-            validation_mode=ValidationMode.LAX
-        )
-        self.add_validatable_field(
-            field="date", type=str,
-            validations=[Validator.content_match],
-            level=ValidationLogLevel.WARNING,
-            validation_mode=ValidationMode.LAX
-        )
-        self.add_validatable_field(
-            field="creator", type=str,
-            validations=[Validator.content_match],
-            level=ValidationLogLevel.WARNING,
-            validation_mode=ValidationMode.LAX
-        )
-        self.add_validatable_field(
-            field="format", type=str,
-            validations=[Validator.content_match],
-            level=ValidationLogLevel.WARNING,
-            validation_mode=ValidationMode.LAX
-        )
+
 
     @staticmethod
     def str_match_ignore_url_protocol(validation_def: dict,

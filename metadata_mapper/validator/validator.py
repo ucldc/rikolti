@@ -479,7 +479,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "validations": [
                         Validator.content_match,
                         Validator.type_match
-                        ]
+                        ],
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "title",
@@ -558,13 +559,15 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "creator",
         "type": str,
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "date",
         "type": str,
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "description",
@@ -582,7 +585,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "format",
         "type": str,
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "genre",
@@ -654,13 +658,15 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "subject",
         "type": str,
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "temporal",
         "type": str,
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "transcription",
