@@ -10,7 +10,7 @@ from .by_page import harvest_page_content
 def get_mapped_pages(collection_id):
     page_list = []
     if settings.DATA_SRC['STORE'] == 'file':
-        mapped_path = settings.local_path('mapped_metadata', collection_id)
+        mapped_path = settings.local_path(collection_id, 'mapped_metadata')
         try:
             page_list = [f for f in os.listdir(mapped_path)
                             if os.path.isfile(os.path.join(mapped_path, f))]
@@ -26,7 +26,7 @@ def get_mapped_pages(collection_id):
         )
         response = s3_client.list_objects_v2(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f'mapped_metadata/{collection_id}/'
+            Prefix=f'{collection_id}/mapped_metadata/'
         )
         page_list = [obj['Key'].split('/')[-1] for obj in response['Contents']]
     return page_list

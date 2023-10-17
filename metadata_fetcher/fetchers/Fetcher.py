@@ -32,7 +32,7 @@ class Fetcher(object):
         self.s3_data = {
             "ACL": 'bucket-owner-full-control',
             "Bucket": bucket,
-            "Key": f"vernacular_metadata/{self.collection_id}/"
+            "Key": f"{self.collection_id}/vernacular_metadata/"
         }
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
@@ -48,8 +48,8 @@ class Fetcher(object):
     def get_local_path(self):
         local_path = os.sep.join([
             settings.DATA_DEST["PATH"],
-            'vernacular_metadata',
             str(self.collection_id),
+            'vernacular_metadata',
         ])
         if not os.path.exists(local_path):
             os.makedirs(local_path)

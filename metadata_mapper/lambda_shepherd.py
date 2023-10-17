@@ -43,7 +43,7 @@ def get_vernacular_pages(collection_id):
 
     if settings.DATA_SRC["STORE"] == 'file':
         vernacular_path = settings.local_path(
-            'vernacular_metadata', collection_id)
+            collection_id, 'vernacular_metadata')
         try:
             page_list = [f for f in os.listdir(vernacular_path)
                          if os.path.isfile(os.path.join(vernacular_path, f))]
@@ -62,7 +62,7 @@ def get_vernacular_pages(collection_id):
         s3_client = boto3.client('s3')
         resp = s3_client.list_objects_v2(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"vernacular_metadata/{collection_id}"
+            Prefix=f"{collection_id}/vernacular_metadata"
         )
         # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
         page_list = [page['Key'] for page in resp['Contents']]

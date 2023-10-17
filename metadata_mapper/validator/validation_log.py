@@ -127,7 +127,7 @@ class ValidationLog:
             filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
 
         file_location = utilities.write_to_bucket(
-            "validation", collection_id, filename,
+            collection_id, "validation", filename,
             self._csv_content_string(include_fields))
         
         return file_location

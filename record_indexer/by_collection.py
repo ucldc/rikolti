@@ -11,7 +11,7 @@ def get_file_list(collection_id):
     file_list = []
 
     if settings.DATA_SRC == 'local':
-        path = settings.local_path('mapped_with_content', collection_id)
+        path = settings.local_path(collection_id, 'mapped_with_content')
         try:
             file_list = [f for f in os.listdir(path)
                             if os.path.isfile(os.path.join(path, f))]
@@ -28,7 +28,7 @@ def get_file_list(collection_id):
         )
         response = s3_client.list_objects_v2(
             Bucket=settings.S3_BUCKET,
-            Prefix=f'mapped_with_content/{collection_id}/'
+            Prefix=f'{collection_id}/mapped_with_content/'
         )
         file_list = [obj['Key'].split('/')[-1] for obj in response['Contents']]
 
@@ -39,16 +39,16 @@ def get_metadata(collection_id, filename):
     # TODO: instantiate one boto3 client and pass it around
     if settings.DATA_SRC == 'local':
         local_path = settings.local_path(
-            'mapped_with_content', collection_id)
+            collection_id, 'mapped_with_content')
         path = os.path.join(local_path, str(filename))
         file = open(path, "r")
         record = json.loads(file.read())
         # s3_client.download_file(
         #     settings.S3_BUCKET,
-        #     f"mapped_with_content/{collection_id}/{filename}",
+        #     f"{collection_id}/mapped_with_content/{filename}",
         #     (
-        #         "/usr/local/dev/rikolti/rikolti_data/mapped_with_content/"
-        #         f"{collection_id}/{filename}"
+        #         "/usr/local/dev/rikolti/rikolti_data/{collection_id}/"
+        #         f"{mapped_with_content}/{filename}"
         #     )
         # )
     else:
@@ -61,7 +61,7 @@ def get_metadata(collection_id, filename):
         )
         file = s3_client.get_object(
             Bucket=settings.S3_BUCKET,
-            Key=f"mapped_with_content/{collection_id}/{filename}"
+            Key=f"{collection_id}/mapped_with_content/{filename}"
         )
         record = json.loads(file['Body'].read())
     

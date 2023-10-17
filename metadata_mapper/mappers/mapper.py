@@ -27,7 +27,7 @@ class UCLDCWriter(object):
 
     def write_local_mapped_metadata(self, mapped_metadata):
         local_path = settings.local_path(
-            'mapped_metadata', self.collection_id)
+            self.collection_id, 'mapped_metadata')
         if not os.path.exists(local_path):
             os.makedirs(local_path)
         page_path = os.sep.join([local_path, str(self.page_filename)])
@@ -64,7 +64,7 @@ class Vernacular(ABC, object):
 
     def get_local_api_response(self) -> str:
         local_path = settings.local_path(
-            'vernacular_metadata', self.collection_id)
+            self.collection_id, 'vernacular_metadata')
         page_path = os.sep.join([local_path, str(self.page_filename)])
         page = open(page_path, "r")
         api_response = page.read()
@@ -72,9 +72,10 @@ class Vernacular(ABC, object):
 
     def get_s3_api_response(self) -> str:
         s3_client = boto3.client('s3')
-        if not self.page_filename.startswith('vernacular_metadata'):
+        if not self.page_filename.startswith(
+            f'{self.collection_id}/vernacular_metadata'):
             self.page_filename = (
-                f"vernacular_metadata/{self.collection_id}/"
+                f"{self.collection_id}/vernacular_metadata/"
                 f"{self.page_filename}"
             )
 

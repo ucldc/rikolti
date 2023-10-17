@@ -23,14 +23,14 @@ class UnsupportedMimetype(Exception):
 def get_mapped_records(collection_id, page_filename, s3_client) -> list:
     mapped_records = []
     if settings.DATA_SRC["STORE"] == 'file':
-        local_path = settings.local_path('mapped_metadata', collection_id)
+        local_path = settings.local_path(collection_id, 'mapped_metadata')
         page_path = os.path.join(local_path, str(page_filename))
         page = open(page_path, "r")
         mapped_records = json.loads(page.read())
     else:
         page = s3_client.get_object(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Key=f"mapped_metadata/{collection_id}/{page_filename}"
+            Key=f"{collection_id}/mapped_metadata/{page_filename}"
         )
         mapped_records = json.loads(page['Body'].read())
     return mapped_records
@@ -38,7 +38,7 @@ def get_mapped_records(collection_id, page_filename, s3_client) -> list:
 
 def write_mapped_record(collection_id, record, s3_client):
     if settings.DATA_DEST["STORE"] == 'file':
-        local_path = settings.local_path('mapped_with_content', collection_id)
+        local_path = settings.local_path(collection_id, 'mapped_with_content')
         if not os.path.exists(local_path):
             os.makedirs(local_path)
         
@@ -54,7 +54,7 @@ def write_mapped_record(collection_id, record, s3_client):
         upload_status = s3_client.put_object(
             Bucket=settings.DATA_DEST["BUCKET"],
             Key=(
-                f"mapped_with_content/{collection_id}/"
+                f"{collection_id}/mapped_with_content/"
                 f"{record.get('calisphere-id')}"
             ),
             Body=json.dumps(record)
@@ -64,7 +64,7 @@ def write_mapped_record(collection_id, record, s3_client):
 
 def write_mapped_page(collection_id, page, records):
     if settings.DATA_DEST["STORE"] == 'file':
-        local_path = settings.local_path('mapped_with_content', collection_id)
+        local_path = settings.local_path(collection_id, 'mapped_with_content')
         if not os.path.exists(local_path):
             os.makedirs(local_path)
         page_path = os.path.join(local_path, page)
@@ -75,7 +75,7 @@ def write_mapped_page(collection_id, page, records):
 def get_child_records(collection_id, parent_id, s3_client) -> list:
     mapped_child_records = []
     if settings.DATA_SRC["STORE"] == 'file':
-        local_path = settings.local_path('mapped_metadata', collection_id)
+        local_path = settings.local_path(collection_id, 'mapped_metadata')
         children_path = os.path.join(local_path, 'children')
 
         if os.path.exists(children_path):
@@ -88,7 +88,7 @@ def get_child_records(collection_id, parent_id, s3_client) -> list:
     else:
         child_pages = s3_client.list_objects_v2(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"mapped_metadata/{collection_id}/children/{parent_id}"
+            Prefix=f"{collection_id}/mapped_metadata/children/{parent_id}"
         )
         for child_page in child_pages['Contents']:
             page = s3_client.get_object(
