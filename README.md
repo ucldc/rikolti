@@ -48,17 +48,17 @@ vi env.local
 
 Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments.
 
-Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `FETCHER_DATA_DEST` to the URI where you would like Rikolti to store fetched data - Rikolti will create a folder (or s3 prefix)`vernacular_metadata` at this location. Set `MAPPER_DATA_SRC` to the URI where Rikolti can find a `vernacular_metadata` folder that contains the fetched data you're attempting to map. Set `MAPPER_DATA_DEST` to the URI where you would like Rikolti to store mapped data - Rikolti will create a folder (or s3 prefix) `mapped_metadata` at this location. Set `CONTENT_DATA_SRC` to the URI where Rikolti can find a `mapped_metadata` folder that contains the mapped metadata describing where to find content. Set `CONTENT_DATA_DEST` to the URI where you would like Rikolti to store mapped data that has been updated with pointers to content files - Rikolti will create a folder (or s3 prefix) `mapped_with_content` at this location. Set `CONTENT_DEST` to the URI where you would like Rikolti to store content files.
+Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `FETCHER_DATA_DEST` to the URI where you would like Rikolti to store fetched data - Rikolti will create a folder (or s3 prefix) `<collection_id>/vernacular_metadata` at this location. Set `MAPPER_DATA_SRC` to the URI where Rikolti can find a `<collection_id>/vernacular_metadata` folder that contains the fetched data you're attempting to map. Set `MAPPER_DATA_DEST` to the URI where you would like Rikolti to store mapped data - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_metadata` at this location. Set `CONTENT_DATA_SRC` to the URI where Rikolti can find a `<collection_id>/mapped_metadata` folder that contains the mapped metadata describing where to find content. Set `CONTENT_DATA_DEST` to the URI where you would like Rikolti to store mapped data that has been updated with pointers to content files - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_with_content` at this location. Set `CONTENT_DEST` to the URI where you would like Rikolti to store content files.
 
 For example, one way to configure `env.local` is:
 
 ```
-FETCHER_DATA_DEST=file:///Users/awieliczka/Projects/rikolti_data
+FETCHER_DATA_DEST=file:///Users/awieliczka/Projects/rikolti/rikolti_data
 MAPPER_DATA_SRC=$FETCHER_DATA_DEST
 MAPPER_DATA_DEST=$FETCHER_DATA_DEST
 CONTENT_DATA_SRC=$FETCHER_DATA_DEST
 CONTENT_DATA_DEST=$FETCHER_DATA_DEST
-CONTENT_DEST=file:///Users/awieliczka/Projects/rikolti_content
+CONTENT_DEST=file:///Users/awieliczka/Projects/rikolti/rikolti_content
 ```
 
 Each of these can be different locations, however. For example, if you're attempting to re-run a mapper locally off of previously fetched data stored on s3, you might set `MAPPER_DATA_SRC=s3://rikolti_data`.

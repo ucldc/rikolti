@@ -8,7 +8,7 @@ from .by_registry_endpoint import harvest_endpoint
 from .sample_data.nuxeo_harvests import nuxeo_complex_object_harvests
 
 def main():
-    mapped_path = settings.local_path('mapped_metadata', 0)[:-1]
+    mapped_path = settings.DATA_SRC['PATH']
     urls = [
         f"https://registry.cdlib.org/api/v1/rikoltimapper/{f}/?format=json"
         for f in os.listdir(mapped_path)

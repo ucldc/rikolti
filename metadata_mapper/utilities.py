@@ -47,24 +47,24 @@ def import_vernacular_reader(mapper_type):
     return vernacular_class
 
 
-def get_files(directory: str, collection_id: int) -> list[str]:
+def get_files(collection_id: int, directory: str) -> list[str]:
     """
     Gets a list of filenames in a given directory.
     """
     if settings.DATA_SRC["STORE"] == "file":
-        path = settings.local_path(directory, collection_id)
+        path = settings.local_path(collection_id, directory)
         return [f for f in os.listdir(path)
                 if os.path.isfile(os.path.join(path, f))]
     elif settings.DATA_SRC["STORE"] == "s3":
         s3_client = boto3.client('s3')
         resp = s3_client.list_objects_v2(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"{directory}/{collection_id}"
+            Prefix=f"{collection_id}/{directory}"
         )
         # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
         return [page['Key'] for page in resp['Contents']]
 
-def read_from_bucket(directory: str, collection_id: int,
+def read_from_bucket(collection_id: int, directory: str,
                      file_name: Union[str, int]) -> str:
     """
     Reads the contents of a file from the appropriate content bucket.
@@ -83,7 +83,7 @@ def read_from_bucket(directory: str, collection_id: int,
     """
     if settings.DATA_SRC["STORE"] == 'file':
         page_path = os.sep.join([
-            settings.local_path(directory, collection_id),
+            settings.local_path(collection_id, directory),
             str(file_name)
         ])
 
@@ -93,7 +93,7 @@ def read_from_bucket(directory: str, collection_id: int,
         s3_client = boto3.client('s3')
         s3_obj_summary = s3_client.get_object(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Key=file_name
+            Key={collection_id}/{directory}/file_name
         )
         return s3_obj_summary['Body'].read()
 
@@ -111,7 +111,7 @@ def read_mapped_metadata(collection_id: int, page_id: int) -> list[dict]:
     Returns: list[dict]
         The parsed data
     """
-    return json.loads(read_from_bucket("mapped_metadata", collection_id, page_id))
+    return json.loads(read_from_bucket(collection_id, "mapped_metadata", page_id))
 
 
 def read_vernacular_metadata(collection_id: int, page_id: int) -> list[dict]:
@@ -130,14 +130,14 @@ def read_vernacular_metadata(collection_id: int, page_id: int) -> list[dict]:
     return json.loads(read_from_bucket("vernacular_metadata", collection_id, page_id))
 
 
-def write_to_bucket(directory: str, collection_id: int,
+def write_to_bucket(collection_id: int, directory: str,
                     file_name: Union[str, int], content: str,
                     append: bool = False) -> None:
     if isinstance(content, list) or isinstance(content, dict):
         content = json.dumps(content)
 
     if settings.DATA_SRC["STORE"] == 'file':
-        dir_path = settings.local_path(directory, collection_id)
+        dir_path = settings.local_path(collection_id, directory)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
         page_path = os.sep.join([dir_path, str(file_name)])
@@ -148,7 +148,7 @@ def write_to_bucket(directory: str, collection_id: int,
     elif settings.DATA_SRC["STORE"] == 's3':
         s3_client = boto3.client('s3')
         key = (
-            f"{directory}/{collection_id}/"
+            f"{collection_id}/{directory}/"
             f"{file_name}"
         )
         s3_client.put_object(

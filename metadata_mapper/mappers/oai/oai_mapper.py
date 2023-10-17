@@ -128,7 +128,7 @@ class OaiVernacular(Vernacular):
     # so use 'rb' mode
     def get_local_api_response(self):
         local_path = settings.local_path(
-            'vernacular_metadata', self.collection_id)
+            self.collection_id, 'vernacular_metadata')
         page_path = os.sep.join([local_path, str(self.page_filename)])
         page = open(page_path, "rb")
         api_response = page.read()
