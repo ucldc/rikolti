@@ -19,7 +19,7 @@ def local_path(folder, collection_id):
     parent_dir = os.sep.join(os.getcwd().split(os.sep)[:-1])
     local_path = os.sep.join([
         parent_dir,
-        'rikolti_bucket',
+        'rikolti_data',
         folder,
         str(collection_id),
     ])

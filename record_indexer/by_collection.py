@@ -47,7 +47,7 @@ def get_metadata(collection_id, filename):
         #     settings.S3_BUCKET,
         #     f"mapped_with_content/{collection_id}/{filename}",
         #     (
-        #         "/usr/local/dev/rikolti/rikolti_bucket/mapped_with_content/"
+        #         "/usr/local/dev/rikolti/rikolti_data/mapped_with_content/"
         #         f"{collection_id}/{filename}"
         #     )
         # )
