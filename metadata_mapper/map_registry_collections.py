@@ -40,11 +40,9 @@ def map_endpoint(url, limit=None):
         collection_id = collection['collection_id']
 
         progress = progress + 1
-        sys.stderr.write('\r')
         progress_bar = f"{progress}/{limit}"
-        sys.stderr.write(
+        print(
             f"{progress_bar:<9}: start mapping {collection_id:<6}\n")
-        sys.stderr.flush()
 
         logger.debug(
             f"[{collection_id}]: call lambda with collection_id: {collection_id}")
@@ -99,16 +97,13 @@ def map_endpoint(url, limit=None):
         )
         print(map_report_row)
 
-        sys.stderr.write('\r')
         progress_bar = f"{progress}/{limit}"
-        sys.stderr.write(
+        print(
             f"{progress_bar:<9}: finish mapping {collection_id:<5}")
-        sys.stderr.flush()
 
         if limit and progress >= limit:
             break
 
-    sys.stderr.write('\n')
 
 
 if __name__ == "__main__":

@@ -44,11 +44,9 @@ def fetch_endpoint(url, limit=None):
         collection_id = collection['collection_id']
 
         progress = progress + 1
-        sys.stderr.write('\r')
         progress_bar = f"{progress}/{limit}"
-        sys.stderr.write(
+        print(
             f"{progress_bar:<9}: start fetching {collection_id:<6}")
-        sys.stderr.flush()
 
         logger.debug(
             f"[{collection_id}]: call lambda with payload: {collection}")
@@ -73,16 +71,13 @@ def fetch_endpoint(url, limit=None):
                 f"{collection_id}, {fetch_result[-1]}, -, -, -, -, -")
             print(fetch_report_failure_row)
 
-        sys.stderr.write('\r')
         progress_bar = f"{progress}/{limit}"
-        sys.stderr.write(
+        print(
             f"{progress_bar:<9}: finish fetching {collection_id:<5}")
-        sys.stderr.flush()
 
         if limit and len(results.keys()) >= limit:
             break
 
-    sys.stderr.write('\n')
     return results
 
 
