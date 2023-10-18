@@ -307,6 +307,7 @@ class Record(ABC, object):
         """
         field = field[0]
         mode = mode[0]
+        field_value = None
 
         if field == "rights":
             rights = [
@@ -320,21 +321,24 @@ class Record(ABC, object):
             field_value = [r.strip() for r in rights]
 
         if field == "type":
-            field_value = [constants.dcmi_types.get(collection.get('dcmi_type'), None)]
+            field_value = constants.dcmi_types.get(
+                collection.get('dcmi_type'), None)
+            field_value = [field_value] if field_value else None
 
         if field == "title":
             field_value = ["Title unknown"]
 
-        if mode == "overwrite":
-            self.mapped_data[field] = field_value
-        elif mode == "append":
-            if field in self.mapped_data:
-                self.mapped_data[field] += (field_value)
-            else:
+        if field_value:
+            if mode == "overwrite":
                 self.mapped_data[field] = field_value
-        else:  # default is fill if empty
-            if field not in self.mapped_data:
-                self.mapped_data[field] = field_value
+            elif mode == "append":
+                if field in self.mapped_data:
+                    self.mapped_data[field] += (field_value)
+                else:
+                    self.mapped_data[field] = field_value
+            else:  # default is fill if empty
+                if field not in self.mapped_data:
+                    self.mapped_data[field] = field_value
 
         # not sure what this is about
         # if not exists(data, "@context"):
