@@ -132,31 +132,22 @@ class UcsdBlacklightMapper(Record):
                 return [relation.get("uri")]
 
     def map_date(self) -> [None, dict]:
-        # If the dates don't look right, skip the item, otherwise we end up
-        # with an error in map_couch_to_solr_doc()
-        date_regex = r"^\d{4}(-\d{2}-\d{2})?$"
-        dates = [date for date in self.source_metadata.get("date_json_tesim", [])
-                 if re.match(date_regex, date.get("endDate")) and
-                 re.match(date_regex, date.get("beginDate"))]
-
-        if not dates:
+        date_list = self.source_metadata.get('date_json_tesim', [])
+        if not len(date_list):
             return
 
-        for date in filter(None, dates):
-            if date.get("type") == "creation":
+        # "creation" date is priority, otherwise use first date
+        for date_obj in filter(None, date_list):
+            if date_obj.get('type') == 'creation':
                 break
-        else:  # no creation date, use first date
-            date = dates[0]
+        else:
+            date_obj = date_list[0]
 
-        begin_date = date.get("beginDate")
-        end_date = date.get("endDate")
-        display_date = date.get("value") or f"{begin_date} to {end_date}"
-
-        return {
-            "begin": begin_date,
-            "end": end_date,
-            "displayDate": display_date
-        }
+        return [{
+            "end": date_obj.get('endDate'),
+            "begin": date_obj.get('beginDate'),
+            "displayDate": date_obj.get('value')
+        }]
 
     def extract_notes_by_type(self, note_type) -> list:
         value = self.source_metadata.get('otherNote_json_tesim')
