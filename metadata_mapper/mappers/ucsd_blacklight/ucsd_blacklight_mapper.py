@@ -1,6 +1,7 @@
 import json
 import re
-from ..mapper import Record, Vernacular
+from ..mapper import Record, Validator, Vernacular
+from typing import Any
 
 
 class UcsdBlacklightMapper(Record):
@@ -363,8 +364,32 @@ contributor_role_list = ["Contributor", "Abridger", "Actor", "Adapter",
                          "Writer of supplementary textual content"]
 
 
+class UcsdBlacklightValidator(Validator):
+    def setup(self, **options):
+        self.add_validatable_field(
+            field="identifier", type=Validator.list_of(str),
+            validations=[
+                UcsdBlacklightValidator.identifier_content_match
+            ]
+        )
+
+    @staticmethod
+    def identifier_content_match(validation_def: dict, rikolti_value: Any,
+                                 comparison_value: Any) -> None:
+        """
+        The `identifier` field will be populated with the ARK going forward. We don't
+        need validator errors when this happens.
+        """
+        if comparison_value is None and isinstance(rikolti_value, list) and \
+                len(rikolti_value) == 1 and isinstance(rikolti_value[0], str) and \
+                rikolti_value[0].startswith("ark:/"):
+            return None
+        return Validator.content_match(validation_def, rikolti_value, comparison_value)
+
+
 class UcsdBlacklightVernacular(Vernacular):
     record_cls = UcsdBlacklightMapper
+    validator = UcsdBlacklightValidator
 
     def parse(self, api_response) -> list:
         def modify_record(record) -> dict:
