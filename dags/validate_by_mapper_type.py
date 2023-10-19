@@ -1,4 +1,6 @@
 import requests
+import logging
+
 from datetime import datetime
 
 from airflow.decorators import dag, task
@@ -9,20 +11,27 @@ from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import registry_endpoint
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 
+logger = logging.getLogger("airflow.task")
+
+
 @task()
 def make_mapper_type_endpoint(params=None):
     if not params or not params.get('mapper_type'):
         raise ValueError("Mapper type not found in params")
     mapper_type = params.get('mapper_type')
-    return (
+    endpoint = (
         "https://registry.cdlib.org/api/v1/rikoltifetcher/?format=json"
         f"&mapper_type={mapper_type}&ready_for_publication=true"
     )
 
+    print("Fetching, mapping, and validating collections listed at: ")
+    print(endpoint)
+    return endpoint
+
 @task()
 def fetch_endpoint_task(endpoint, params=None):
     limit = params.get('limit', None) if params else None
-    return fetch_endpoint(endpoint, limit)
+    return fetch_endpoint(endpoint, limit, logger)
 
 @task()
 def map_endpoint_task(endpoint, params=None):
@@ -42,7 +51,7 @@ def validate_endpoint_task(url, params=None):
     print(f">>> Validating {limit}/{total} collections described at {url}")
 
     for collection in registry_endpoint(url):
-        print(f"Validating collection {collection['collection_id']}")
+        print(f"{collection['collection_id']:<6} Validating collection")
         create_collection_validation_csv(collection['collection_id'])
 
 @dag(
