@@ -109,11 +109,10 @@ def validate_page(collection_id: int, page_id: int,
     return validator
 
 
-def create_collection_validation_csv(collection_id: int, **options) -> None:
+def create_collection_validation_csv(collection_id: int, **options) -> tuple[int, str]:
     result = validate_collection(collection_id, **options)
     filename = result.log.output_csv_to_bucket(collection_id)
-    return f"Output {len(result.log.log)} rows to {filename}"
-
+    return len(result.log.log), filename
 
 ## Private-ish
 
@@ -175,7 +174,7 @@ def couch_db_request(collection_id: int, field_name: str) -> list[dict[str, str]
 
     Returns: list[dict]
     """
-    url = "https://harvest-prd.cdlib.org/" \
+    url = f"{settings.COUCH_URL}/" \
         "couchdb/ucldc/_design/all_provider_docs/" \
         "_list/has_field_value/by_provider_name_wdoc" \
         f"?key=\"{collection_id}\"&field={field_name}&limit=100000"
@@ -270,5 +269,6 @@ if __name__ == "__main__":
     print(f"Generating validations for collection {args.collection_id} with options:")
     print(kwargs)
 
-    collection_report = create_collection_validation_csv(args.collection_id, **kwargs)
-    print(collection_report)
+    num_rows, file_location = create_collection_validation_csv(
+        args.collection_id, **kwargs)
+    print(f"Output {num_rows} rows to {file_location}")

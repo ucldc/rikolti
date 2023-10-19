@@ -124,10 +124,13 @@ def map_collection(collection_id, validate=False):
 
     if validate:
         opts = validate if isinstance(validate, dict) else {}
-        validate_mapping.create_collection_validation_csv(
-            collection_id,
-            **opts
+        num_rows, file_location = (
+            validate_mapping.create_collection_validation_csv(
+                collection_id,
+                **opts
             )
+        )
+        print(f"Output {num_rows} rows to {file_location}")
 
     return collection_stats
 

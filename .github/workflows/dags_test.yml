@@ -23,7 +23,7 @@ jobs:
         - name: Lint dags with ruff
           run: |
             pip install ruff
-            ruff check --format=github ./dags
+            ruff check --output-format=github ./dags
         - name: Test with Pytest
           run: |
             pip install pytest 
