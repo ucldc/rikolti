@@ -41,12 +41,10 @@ def create_new_index(collection_id):
 
     update_alias_for_collection_index("rikolti-stg", collection_id, index_name)
 
-    # TODO: archive older collection indices
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Add collection data to OpenSearch index")
+        description="Add collection data to OpenSearch")
     parser.add_argument('collection_id', help='Registry collection ID')
     args = parser.parse_args(sys.argv[1:])
     create_new_index(args.collection_id)

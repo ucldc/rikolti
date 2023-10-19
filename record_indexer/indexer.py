@@ -55,6 +55,18 @@ def get_json_content(collection_id: str, filename: str):
 
     return records
 
+
+def flag_and_remove_unexpected_fields(record: dict, expected_fields: list):
+    calisphere_id = record.get("calisphere-id", None)
+    for field in list(record.keys()):
+        if field not in expected_fields:
+            print(f"unexpected field `{field}` found in record `{calisphere_id}`")
+            print("   removing field from record")
+            record.pop(field)
+
+    return record
+
+
 def update_alias_for_collection_index(alias: str, collection_id: str, index: str):
     remove_collection_indices_from_alias(alias, collection_id)
 
@@ -73,10 +85,9 @@ def update_alias_for_collection_index(alias: str, collection_id: str, index: str
             }
         ]
     }
-    json_data = json.dumps(data)
 
     r = requests.post(
-        url, headers=headers, data=json_data, auth=settings.AUTH)
+        url, headers=headers, data=json.dumps(data), auth=settings.AUTH)
     r.raise_for_status()
     print(f"added index `{index}` to alias `{alias}`")
 
@@ -103,10 +114,9 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
                 }
             ]
         }
-        json_data = json.dumps(data)
 
         r = requests.post(
-            url, headers=headers, data=json_data, auth=settings.AUTH)
+            url, headers=headers, data=json.dumps(data), auth=settings.AUTH)
         r.raise_for_status()
         print(f"removed indices `{indices}` from alias `{alias}`")
 
@@ -114,9 +124,8 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
 def add_page(page: str, collection_id: str, index: str):
     records = get_json_content(collection_id, page)
 
-    # FIXME Create an alert for unexpected fields and remove from json
     for record in records:
-        record.pop('is_shown_at', None)
+        record = flag_and_remove_unexpected_fields(record, settings.EXPECTED_FIELDS)
 
     bulk_add(records, index)
 

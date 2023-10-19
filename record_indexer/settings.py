@@ -1,3 +1,4 @@
+import json
 import os
 
 from urllib.parse import urlparse
@@ -23,3 +24,11 @@ def local_path(folder, collection_id):
         str(collection_id),
     ])
     return local_path
+
+def expected_fields():
+    record_index_config = json.load(open('record_indexer/index_templates/record_index_config.json'))
+    record_schema = record_index_config['template']['mappings']['properties']
+    fields = list(record_schema.keys())
+    return fields
+
+EXPECTED_FIELDS = expected_fields()
