@@ -26,9 +26,9 @@ def map_endpoint(url, limit=None):
     response.raise_for_status()
     total = response.json().get('meta', {}).get('total_count', 1)
     progress = 0
-    map_report_headers = (
-        "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
-    )
+    # map_report_headers = (
+    #     "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
+    # )
 
     if not limit:
         limit = total
