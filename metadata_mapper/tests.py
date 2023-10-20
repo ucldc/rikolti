@@ -16,8 +16,7 @@ from .validate_registry_collections import validate_endpoint
 
 
 def main():
-    vernacular_path = settings.local_path(
-        'vernacular_metadata', 0)[:-1]
+    vernacular_path = settings.DATA_SRC["PATH"]
     urls = [
         f"https://registry.cdlib.org/api/v1/rikoltimapper/{f}/?format=json"
         for f in os.listdir(vernacular_path)

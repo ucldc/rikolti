@@ -22,21 +22,21 @@ def registry_endpoint(url):
             yield collection
 
 
-def fetch_endpoint(url, limit=None):
+def fetch_endpoint(url, limit=None, job_logger=logger):
     response = requests.get(url=url)
     response.raise_for_status()
     total = response.json().get('meta', {}).get('total_count', 1)
     progress = 0
-    fetch_report_headers = (
-        "Collection ID, Status, Total Pages, Rikolti Count, Solr Count, "
-        "Diff Count, Solr Last Updated"
-    )
+    # fetch_report_headers = (
+    #     "Collection ID, Status, Total Pages, Rikolti Count, Solr Count, "
+    #     "Diff Count, Solr Last Updated"
+    # )
 
     if not limit:
         limit = total
 
     print(f">>> Fetching {limit}/{total} collections described at {url}")
-    print(fetch_report_headers)
+    # print(fetch_report_headers)
 
     results = {}
 
@@ -44,14 +44,12 @@ def fetch_endpoint(url, limit=None):
         collection_id = collection['collection_id']
 
         progress = progress + 1
-        sys.stderr.write('\r')
         progress_bar = f"{progress}/{limit}"
-        sys.stderr.write(
-            f"{progress_bar:<9}: start fetching {collection_id:<6}")
-        sys.stderr.flush()
+        job_logger.debug(
+            f"{collection_id:<6}: start fetching {progress_bar} collections")
 
-        logger.debug(
-            f"[{collection_id}]: call lambda with payload: {collection}")
+        job_logger.debug(
+            f"{collection_id:<6}: call lambda with payload: {collection}")
 
         fetch_result = lambda_function.fetch_collection(collection, None)
         results[collection_id] = fetch_result
@@ -60,29 +58,35 @@ def fetch_endpoint(url, limit=None):
         total_items = sum([page['document_count'] for page in fetch_result])
         total_pages = fetch_result[-1]['page'] + 1
         diff_items = total_items - collection['solr_count']
+        diff_items_label = ""
+        if diff_items > 0:
+            diff_items_label = 'new items'
+        elif diff_items < 0:
+            diff_items_label = 'lost items'
+        else:
+            diff_items_label = 'same extent'
+
+        progress_bar = f"{progress}/{limit}"
+        job_logger.debug(
+            f"{collection_id:<6}: finish fetching {progress_bar} collections")
 
         fetch_report_row = (
-            f"{collection_id}, {'success' if success else 'error'}, "
-            f"{total_pages}, {total_items}, {collection['solr_count']}, "
-            f"{diff_items}, {collection['solr_last_updated']}"
+            f"{collection_id:<6}: {'success,' if success else 'error,':9} "
+            f"{total_pages:>4} pages, {total_items:>6} items, "
+            f"{collection['solr_count']:>6} solr items, "
+            f"{str(diff_items) + ' ' + diff_items_label + ',':>16} "
+            f"solr count last updated: {collection['solr_last_updated']}"
         )
         print(fetch_report_row)
 
         if not success:
             fetch_report_failure_row = (
-                f"{collection_id}, {fetch_result[-1]}, -, -, -, -, -")
+                f"{collection_id:<6}: {fetch_result[-1]}")
             print(fetch_report_failure_row)
-
-        sys.stderr.write('\r')
-        progress_bar = f"{progress}/{limit}"
-        sys.stderr.write(
-            f"{progress_bar:<9}: finish fetching {collection_id:<5}")
-        sys.stderr.flush()
 
         if limit and len(results.keys()) >= limit:
             break
 
-    sys.stderr.write('\n')
     return results
 
 

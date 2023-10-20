@@ -11,9 +11,10 @@ from .indexer import add_page, update_alias_for_collection_index
 from . import settings
 
 
+
 def get_page_list(collection_id):
     if settings.DATA_SRC["STORE"] == 'file':
-        path = settings.local_path('mapped_with_content', collection_id)
+        path = settings.local_path(collection_id, 'mapped_with_content')
         try:
             page_list = [f for f in os.listdir(path)
                             if os.path.isfile(os.path.join(path, f))]
@@ -23,7 +24,7 @@ def get_page_list(collection_id):
         s3_client = boto3.client('s3')
         response = s3_client.list_objects_v2(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f'mapped_with_content/{collection_id}/'
+            Prefix=f'{collection_id}/mapped_with_content/'
         )
         page_list = [obj['Key'].split('/')[-1] for obj in response['Contents']]
 

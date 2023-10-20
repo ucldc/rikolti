@@ -49,7 +49,7 @@ def validate_collection(collection_id: int,
                                     log_level = log_level,
                                     verbose = verbose)
 
-    for page_id in utilities.get_files("mapped_metadata", collection_id):
+    for page_id in utilities.get_files(collection_id, "mapped_metadata"):
         validate_page(collection_id, page_id, validator)
 
     return validator
