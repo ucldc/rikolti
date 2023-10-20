@@ -17,11 +17,11 @@ DATA_SRC = {
 ENDPOINT = os.environ.get('RIKOLTI_ES_ENDPOINT')
 AUTH = ('rikolti', os.environ.get('RIKOLTI_ES_PASS'))
 
-def local_path(folder, collection_id):
+def local_path(collection_id, folder):
     local_path = os.sep.join([
         DATA_SRC["PATH"],
-        folder,
         str(collection_id),
+        folder
     ])
     return local_path
 

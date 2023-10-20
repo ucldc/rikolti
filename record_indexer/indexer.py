@@ -41,7 +41,7 @@ def build_bulk_request_body(records: list, index: str):
 def get_json_content(collection_id: str, filename: str):
     if settings.DATA_SRC["STORE"] == 'file':
         local_path = settings.local_path(
-            'mapped_with_content', collection_id)
+            collection_id, 'mapped_with_content')
         path = os.path.join(local_path, str(filename))
         file = open(path, "r")
         records = json.loads(file.read())
@@ -49,7 +49,7 @@ def get_json_content(collection_id: str, filename: str):
         s3_client = boto3.client('s3')
         file = s3_client.get_object(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Key=f"mapped_with_content/{collection_id}/{filename}"
+            Key=f"{collection_id}/mapped_with_content/{filename}"
         )
         records = json.loads(file['Body'].read())
 
