@@ -169,7 +169,7 @@ These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-loca
 
 The docker socket will typically be at `/var/run/docker.sock`. On Mac OS Docker Desktop you can check that the socket is available and at this location by opening Docker Desktop's settings, looking under "Advanced", and checking the "Allow the Docker socket to be used" setting. 
 
-Next, back in the Rikolti repository, create the `startup.sh` file by running `cp env.example startup.sh`. Update the startup.sh file with Nuxeo, Flickr, and Solr keys as available, and make sure that the following environment variables are set:
+Next, back in the Rikolti repository, create the `startup.sh` file by running `cp env.example dags/startup.sh`. Update the startup.sh file with Nuxeo, Flickr, and Solr keys as available, and make sure that the following environment variables are set:
 
 ```
 export FETCHER_DATA_DEST=file:///usr/local/airflow/rikolti_data
@@ -191,10 +191,10 @@ export CONTENT_DEST=file:///rikolti_content
 
 The folder located at `CONTENT_DATA_MOUNT` is mounted to `/rikolti_data` and the folder located at `CONTENT_MOUNT` is mounted to `/rikolti_content` on the content_harvester docker container.
 
-Run `docker build -t content_harvester content_harvester` to build the `content_harvester` container locally. 
+From inside the Rikolti repo, run `docker build -t content_harvester content_harvester` to build the `content_harvester` container locally. 
 
 You can specify a `content_harvester_image` and `content_harvester_version` through the Airflow UI > Admin > Variables. The default value for `content_harvester_image` is `content_harvester` and the default value for `content_harvester_version` is `latest`.
 
-Finally, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
+Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 
 For more information on `mwaa-local-env`, look for instructions in the [ucldc/aws-mwaa-local-runner:README](https://github.com/ucldc/aws-mwaa-local-runner/#readme) to build the docker image, run the container, and do local development.
