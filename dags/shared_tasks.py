@@ -14,6 +14,7 @@ from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
+from rikolti.record_indexer.by_collection import create_new_index
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
@@ -124,6 +125,14 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
         )
 
     return file_location
+
+@task()
+def create_new_index_task(collection: dict):
+    collection_id = collection.get('id')
+    if not collection_id:
+        raise ValueError(
+            f"Collection ID not found in collection metadata: {collection}")
+    create_new_index(collection_id)
 
 
 class ContentHarvestDockerOperator(DockerOperator):
