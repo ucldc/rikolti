@@ -18,7 +18,7 @@ def main():
     # solr filter documentation: https://solr.apache.org/guide/8_6/filter-descriptions.html
     # TODO add aliases, version, _meta, priority to record_index_template.json
     # TODO make sort_title a multifield of title?
-    record_index_config = json.load(open('record_indexer/index_templates/record_index_config.json'))
+    record_index_config = json.load(open(settings.RECORD_INDEX_CONFIG))
     record_schema = record_index_config['template']['mappings']['properties']
 
     # child schema == record schema, except without the "children" field

@@ -67,65 +67,24 @@ def flag_and_remove_unexpected_fields(record: dict, expected_fields: list):
     return record
 
 
-def update_alias_for_collection_index(alias: str, collection_id: str, index: str):
-    remove_collection_indices_from_alias(alias, collection_id)
+def get_expected_fields():
+    record_index_config = os.sep.join([
+        settings.RIKOLTI_HOME,
+        'record_indexer/index_templates/record_index_config.json'
+    ])
+    record_index_config = json.load(open(record_index_config))
+    record_schema = record_index_config['template']['mappings']['properties']
+    expected_fields = list(record_schema.keys())
 
-    url = f"{settings.ENDPOINT}/_aliases"
-    headers = {
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "actions": [
-            {
-                "add": {
-                    "index": index,
-                    "alias": alias
-                }
-            }
-        ]
-    }
-
-    r = requests.post(
-        url, headers=headers, data=json.dumps(data), auth=settings.AUTH)
-    r.raise_for_status()
-    print(f"added index `{index}` to alias `{alias}`")
-
-
-def remove_collection_indices_from_alias(alias: str, collection_id: str):
-    url = f"{settings.ENDPOINT}/rikolti-{collection_id}-*"
-    r = requests.head(url=url, auth=settings.AUTH, params={'allow_no_indices':'false'})
-    if r.status_code == 404:
-        return
-    else:
-        url = f"{settings.ENDPOINT}/_aliases"
-        headers = {
-            "Content-Type": "application/json"
-        }
-
-        indices = f"rikolti-{collection_id}-*"
-        data = {
-            "actions": [
-                {
-                    "remove": {
-                        "indices": [indices],
-                        "alias": alias
-                    }
-                }
-            ]
-        }
-
-        r = requests.post(
-            url, headers=headers, data=json.dumps(data), auth=settings.AUTH)
-        r.raise_for_status()
-        print(f"removed indices `{indices}` from alias `{alias}`")
+    return expected_fields
 
 
 def add_page(page: str, collection_id: str, index: str):
     records = get_json_content(collection_id, page)
 
+    expected_fields = get_expected_fields()
     for record in records:
-        record = flag_and_remove_unexpected_fields(record, settings.EXPECTED_FIELDS)
+        record = flag_and_remove_unexpected_fields(record, expected_fields)
 
     bulk_add(records, index)
 
