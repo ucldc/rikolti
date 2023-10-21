@@ -38,7 +38,7 @@ def update_alias_for_collection(alias: str, collection_id: str, index: str):
 
 
 def remove_collection_indices_from_alias(alias: str, collection_id: str):
-    url = f"{settings.ENDPOINT}/_alias/rikolti-stg"
+    url = f"{settings.ENDPOINT}/_alias/{alias}"
     r = requests.get(url=url, auth=settings.AUTH)
     r.raise_for_status()
     aliases = json.loads(r.text)
@@ -65,33 +65,6 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
         r.raise_for_status()
         print(f"removed indices `{indices_to_remove}` from alias `{alias}`")
 
-def old():
-    url = f"{settings.ENDPOINT}/rikolti-{collection_id}-*"
-    r = requests.head(url=url, auth=settings.AUTH, params={'allow_no_indices':'false'})
-    if r.status_code == 404:
-        return
-    else:
-        url = f"{settings.ENDPOINT}/_aliases"
-        headers = {
-            "Content-Type": "application/json"
-        }
-
-        indices = f"rikolti-{collection_id}-*"
-        data = {
-            "actions": [
-                {
-                    "remove": {
-                        "indices": [indices],
-                        "alias": alias
-                    }
-                }
-            ]
-        }
-
-        r = requests.post(
-            url, headers=headers, data=json.dumps(data), auth=settings.AUTH)
-        r.raise_for_status()
-        print(f"removed indices `{indices}` from alias `{alias}`")
 
 def get_page_list(collection_id: str):
     if settings.DATA_SRC["STORE"] == 'file':
