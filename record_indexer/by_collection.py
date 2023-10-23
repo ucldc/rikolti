@@ -9,7 +9,6 @@ import boto3
 import requests
 
 from .indexer import add_page
-from .indexer import delete_index
 from . import settings
 
 
@@ -88,6 +87,14 @@ def delete_old_collection_indices(collection_id:str, retain:int=1):
         counter += 1
         if counter > retain:
             delete_index(unaliased_indices[date])
+
+
+def delete_index(index: str):
+    url = f"{settings.ENDPOINT}/{index}"
+
+    r = requests.delete(url, auth=settings.AUTH)
+    r.raise_for_status()
+    print(f"deleted index `{index}`")
 
 
 def get_page_list(collection_id: str):

@@ -85,11 +85,3 @@ def add_page(page: str, collection_id: str, index: str):
     bulk_add(records, index)
 
     print(f"added page `{page}` to index `{index}`")
-
-
-def delete_index(index: str):
-    url = f"{settings.ENDPOINT}/{index}"
-
-    r = requests.delete(url, auth=settings.AUTH)
-    r.raise_for_status()
-    print(f"deleted index `{index}`")
