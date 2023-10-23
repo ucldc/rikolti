@@ -1598,13 +1598,13 @@ class Record(ABC, object):
 
                 dates_start = [
                     parser.parse(dt.get('begin', None)).strftime("%Y-%m-%d")
-                    for dt in date_source if isinstance(dt, dict)]
+                    for dt in date_source if isinstance(dt, dict) and dt.get("begin")]
                 dates_start = sorted(dates_start)
                 start_date = dates_start[0] if dates_start else None
 
                 dates_end = [
                     parser.parse(dt.get('end', None)).strftime("%Y-%m-%d")
-                    for dt in date_source if isinstance(dt, dict)]
+                    for dt in date_source if isinstance(dt, dict) and dt.get("end")]
                 dates_end = sorted(dates_end)
                 # TODO: should this actually be the last date?
                 end_date = dates_end[0] if dates_end else None
