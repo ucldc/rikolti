@@ -38,54 +38,30 @@ class CcaVaultRecord(OaiRecord):
 
 class CcaVaultValidator(Validator):
 
-    def __init__(self, **options):
-        super().__init__(**options)
-        self.add_validatable_field(
-            field="is_shown_by", type=str, 
-            validations=[
-                Validator.required_field,
-                CcaVaultValidator.str_match_ignore_url_protocol,
-                Validator.type_match
-            ])
-        self.add_validatable_field(
-            field="source", type=str,
-            validations=[
-                CcaVaultValidator.source_content_match,
-            ],
-            level=ValidationLogLevel.WARNING
+    def setup(self):
+        self.add_validatable_fields(
+            {
+                "field": "is_shown_by",
+                "validations": [
+                    Validator.required_field,
+                    CcaVaultValidator.str_match_ignore_url_protocol,
+                    Validator.verify_type(str)
+                ]
+            },
+            {
+                "field": "source",
+                "validations": [CcaVaultValidator.source_content_match],
+                "level": ValidationLogLevel.WARNING
+            },
+            {
+                "field": "description",
+                "validations": [CcaVaultValidator.description_match],
+                "level": ValidationLogLevel.WARNING,
+            }
         )
-        self.add_validatable_field(
-            field="description", type=str,
-            validations=[CcaVaultValidator.description_match],
-            level=ValidationLogLevel.WARNING,
-        )
-        # these are all modified to indicate order doesn't matter with
-        # otherwise they're the same as the default validator
-        # validation_mode=ValidationMode.LAX
-        self.add_validatable_field(
-            field="temporal", type=str,
-            validations=[Validator.content_match],
-            level=ValidationLogLevel.WARNING,
-            validation_mode=ValidationMode.LAX
-        )
-        self.add_validatable_field(
-            field="date", type=str,
-            validations=[Validator.content_match],
-            level=ValidationLogLevel.WARNING,
-            validation_mode=ValidationMode.LAX
-        )
-        self.add_validatable_field(
-            field="creator", type=str,
-            validations=[Validator.content_match],
-            level=ValidationLogLevel.WARNING,
-            validation_mode=ValidationMode.LAX
-        )
-        self.add_validatable_field(
-            field="format", type=str,
-            validations=[Validator.content_match],
-            level=ValidationLogLevel.WARNING,
-            validation_mode=ValidationMode.LAX
-        )
+
+        self.modify_validatable_fields("temporal", "date", "creator", "format",
+                                       validation_mode=ValidationMode.LAX)
 
     @staticmethod
     def str_match_ignore_url_protocol(validation_def: dict,
