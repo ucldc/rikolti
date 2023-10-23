@@ -76,12 +76,12 @@ class Validator:
                 A list of dicts containing validation definitions.
                 See default_validatable_fields for examples.
 
-        Returns list[dict]
+        Returns: list[dict]
         """
         self.validatable_fields = fields
         return self.validatable_fields
     
-    def add_validatable_field(self, field: str, type: Any,
+    def add_validatable_field(self, field: str,
                               validations: Union[Callable,
                                                  list[Callable],
                                                  dict[Callable, ValidationLogLevel]
@@ -91,7 +91,23 @@ class Validator:
                               replace: bool = True
                               ) -> bool:
         """
-        Adds a single validatable field.
+        Adds a single field to this validator's validatable_fields list.
+
+        Parameters:
+            field: str
+                The unique field name
+            validations: list[Callable, list[Callable], dict[Callable, ValidationLogLevel]]
+                The validation(s) to run on this field. If a dict, you can define a
+                ValidationLogLevel per validation to log on failure.
+            level: ValidationLogLevel
+                The log level for failure. Can be overridden on individual validations.
+            validation_mode: ValidationMode
+                The ValidationMode to use for these validations
+            replace: bool
+                If a validation definition already exists for this field, should this
+                definition replace it?
+
+        Returns: bool
         """
         existing = [f for f in self.validatable_fields if f["field"] == field]
         if len(existing) > 0:
@@ -110,6 +126,51 @@ class Validator:
 
         self.validatable_fields.append({k: v for k, v in validation_def.items() if v})
         return True
+
+    def add_validatable_fields(self, *fields: list[dict[str, Any]]) -> dict[str, bool]:
+        """
+        Adds a list of validatable fields.
+
+        Parameters:
+            fields: list[dict[str, Any]]
+                A list of validatable fields to add, following the pattern
+                described in #add_validatable_field
+        
+        Returns: dict[str, bool]
+        """
+        return {
+            field["field"]: self.add_validatable_field(field)
+            for field in fields
+        }
+
+    def modify_validatable_field(self, field: str, **changes) -> bool:
+        """
+        Merges options into an existing validatable field definition.
+
+        Parameters:
+            field: str
+                The validatable field definition to modify
+            changes: dict[str, Any]
+                The changes to merge into the validatable field
+
+        Returns: bool
+        """
+        existing = [f for f in self.validatable_fields if f["field"] == field]
+        if len(existing != 1):
+            return False
+        else:
+            new_field_def = { **existing[0], **changes }
+            self.remove_validatable_field(field)
+            self.add_validatable_field(new_field_def)
+
+    def modify_validatable_fields(self, *fields: list[str],
+                                  **changes) -> dict[str, bool]:
+        """
+        Merges a single set of options into multiple validatable field definitions.
+        """
+        return { field: self.modify_validatable_field(field, **changes)
+                for field in fields
+                }
 
     def remove_validatable_field(self, field: str) -> bool:
         orig_len = len(self.validatable_fields)
