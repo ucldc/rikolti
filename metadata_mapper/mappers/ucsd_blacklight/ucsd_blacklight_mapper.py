@@ -181,12 +181,8 @@ class UcsdBlacklightMapper(Record):
 
     def map_language(self) -> list:
         values = self.source_metadata.get('language_tesim', [])
-        for lang in self.source_metadata.get("sourceResource", {}). \
-                get("language", []):
-            lang["iso639"] = lang.get("code")
-            del lang["code"]
-            del lang["externalAuthority"]
-            values.append(lang)
+        for language_data in self.source_metadata.get("language_json_tesim", []):
+            values.append(language_data.get("code"))
 
         return list(filter(None, values))
 
