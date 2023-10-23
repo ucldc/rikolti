@@ -130,13 +130,12 @@ class FlickrRecord(Record):
 
 
 class FlickrValidator(Validator):
-    def __init__(self, **options):
-        super().__init__(**options)
+    def setup(self):
         self.add_validatable_field(
-            field="is_shown_by", type=str,
+            field="is_shown_by",
             validations=[
                 Validator.required_field,
-                Validator.type_match,
+                Validator.verify_type(str),
                 FlickrValidator.content_match_regex
             ]
         )
