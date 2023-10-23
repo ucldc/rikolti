@@ -108,10 +108,17 @@ class UcsdBlacklightMapper(Record):
         return descriptions
 
     def map_contributor(self) -> list:
+        """
+        Match contributor role names case insensitively
+        """
+        lower_contributor_role_list = [r.lower() for r in contributor_role_list]
         return [item for r, c in self.relationship.items()
-                if r in contributor_role_list for item in c]
+                if r.lower() in lower_contributor_role_list for item in c]
 
     def map_creator(self) -> [None, list]:
+        """
+        Does this need to be case-insensitive like contributors? Seems like it does not.
+        """
         if not self.relationship:
             return
 
