@@ -9,6 +9,7 @@ import boto3
 import requests
 
 from .indexer import add_page
+from .indexer import delete_index
 from . import settings
 
 
@@ -65,6 +66,29 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
         r.raise_for_status()
         print(f"removed indices `{indices_to_remove}` from alias `{alias}`")
 
+def delete_old_collection_indices(collection_id:str, retain:int=1):
+    """
+    Deletes older unaliased indices, retaining a specified number
+    """
+    url = f"{settings.ENDPOINT}/rikolti-{collection_id}-*"
+    params = {"ignore_unavailable": "true"}
+    r = requests.get(url=url, auth=settings.AUTH)
+    r.raise_for_status()
+    indices = json.loads(r.text)
+
+    unaliased_indices = {}
+    for index in indices.keys():
+        if not indices[index]["aliases"]:
+            creation_date = indices[index]["settings"]["index"]["creation_date"]
+            unaliased_indices[creation_date] = index
+
+    unaliased_indices_to_retain = 1
+    counter = 0
+    for date in reversed(sorted(unaliased_indices)):
+        counter += 1
+        if counter > retain:
+            delete_index(unaliased_indices[date])
+
 
 def get_page_list(collection_id: str):
     if settings.DATA_SRC["STORE"] == 'file':
@@ -95,6 +119,8 @@ def create_new_index(collection_id: str):
         add_page(page, collection_id, index_name)
 
     update_alias_for_collection("rikolti-stg", collection_id, index_name)
+
+    delete_old_collection_indices(collection_id)
 
 
 if __name__ == "__main__":

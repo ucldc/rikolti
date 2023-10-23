@@ -92,4 +92,4 @@ def delete_index(index: str):
 
     r = requests.delete(url, auth=settings.AUTH)
     r.raise_for_status()
-    print(f"deleted index {index}")
+    print(f"deleted index `{index}`")
