@@ -68,11 +68,7 @@ def flag_and_remove_unexpected_fields(record: dict, expected_fields: list):
 
 
 def get_expected_fields():
-    record_index_config = os.sep.join([
-        settings.RIKOLTI_HOME,
-        'record_indexer/index_templates/record_index_config.json'
-    ])
-    record_index_config = json.load(open(record_index_config))
+    record_index_config = json.load(open(settings.RECORD_INDEX_CONFIG))
     record_schema = record_index_config['template']['mappings']['properties']
     expected_fields = list(record_schema.keys())
 
