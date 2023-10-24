@@ -93,7 +93,7 @@ def read_from_bucket(collection_id: int, directory: str,
         s3_client = boto3.client('s3')
         s3_obj_summary = s3_client.get_object(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Key={collection_id}/{directory}/file_name
+            Key=f"{file_name}"
         )
         return s3_obj_summary['Body'].read()
 
@@ -127,7 +127,7 @@ def read_vernacular_metadata(collection_id: int, page_id: int) -> list[dict]:
     Returns: list[dict]
         The parsed data
     """
-    return json.loads(read_from_bucket("vernacular_metadata", collection_id, page_id))
+    return json.loads(read_from_bucket(collection_id, "vernacular_metadata", page_id))
 
 
 def write_to_bucket(collection_id: int, directory: str,
