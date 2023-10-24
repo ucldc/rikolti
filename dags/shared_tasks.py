@@ -14,7 +14,7 @@ from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
-from rikolti.record_indexer.by_collection import create_new_index
+from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure

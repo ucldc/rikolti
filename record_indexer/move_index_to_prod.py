@@ -4,7 +4,7 @@ import sys
 
 import requests
 
-from .by_collection import update_alias_for_collection
+from .create_collection_index import update_alias_for_collection
 from . import settings
 
 
