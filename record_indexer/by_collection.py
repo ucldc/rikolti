@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import boto3
 import requests
 
-from .indexer import add_page
+from .add_page_to_index import add_page
 from . import settings
 
 
@@ -40,30 +40,34 @@ def update_alias_for_collection(alias: str, collection_id: str, index: str):
 def remove_collection_indices_from_alias(alias: str, collection_id: str):
     url = f"{settings.ENDPOINT}/_alias/{alias}"
     r = requests.get(url=url, auth=settings.AUTH)
-    r.raise_for_status()
-    indices = json.loads(r.text)
-    indices_to_remove = [key for key in indices if key.startswith(f"rikolti-{collection_id}-")]
-
-    if len(indices_to_remove) > 0:
-        url = f"{settings.ENDPOINT}/_aliases"
-        headers = {
-            "Content-Type": "application/json"
-        }
-        data = {
-            "actions": [
-                {
-                    "remove": {
-                        "indices": indices_to_remove,
-                        "alias": alias
-                    }
-                }
-            ]
-        }
-
-        r = requests.post(
-            url, headers=headers, data=json.dumps(data), auth=settings.AUTH)
+    if r.status_code == 404:
+        return
+    else:
         r.raise_for_status()
-        print(f"removed indices `{indices_to_remove}` from alias `{alias}`")
+        indices = json.loads(r.text)
+        indices_to_remove = [key for key in indices if key.startswith(f"rikolti-{collection_id}-")]
+
+        if len(indices_to_remove) > 0:
+            url = f"{settings.ENDPOINT}/_aliases"
+            headers = {
+                "Content-Type": "application/json"
+            }
+            data = {
+                "actions": [
+                    {
+                        "remove": {
+                            "indices": indices_to_remove,
+                            "alias": alias
+                        }
+                    }
+                ]
+            }
+
+            r = requests.post(
+                url, headers=headers, data=json.dumps(data), auth=settings.AUTH)
+            r.raise_for_status()
+            print(f"removed indices `{indices_to_remove}` from alias `{alias}`")
+
 
 def delete_old_collection_indices(collection_id:str, retain:int=1):
     """
