@@ -119,10 +119,13 @@ class CcaVaultValidator(Validator):
     def description_match(validation_def: dict, rikolti_value: Any,
                           comparison_value: Any) -> None:
         if not validation_def["validation_mode"].value.compare(
-            rikolti_value, comparison_value):
+            rikolti_value, comparison_value) and comparison_value:
             new_comparison_value = [v.rstrip("\n ") for v in comparison_value]
             return Validator.content_match(
                 validation_def, rikolti_value, new_comparison_value)
+        else:
+            return Validator.content_match(
+                validation_def, rikolti_value, comparison_value)
 
 
 class CcaVaultVernacular(OaiVernacular):
