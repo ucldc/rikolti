@@ -4,3 +4,4 @@ requests
 sickle
 python-dotenv
 apache-airflow-providers-docker
+apache-airflow-providers-google
