@@ -4,7 +4,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.adapters import Retry
 from urllib.parse import urlencode
-import settings
+from .. import settings
 
 
 class YoutubeFetcher(Fetcher):
@@ -104,17 +104,16 @@ class YoutubeFetcher(Fetcher):
 
         return request
 
-    def aggregate_vernacular_content(self, response: requests.Response) -> str:
+    def aggregate_vernacular_content(self, content: str) -> str:
         """
         If it's a single video, this response is our page content. Otherwise, we
         need to iterate the returned records and fetch them by id.
 
         Parameters:
-            response: requests.Response
+            content: str
 
         Returns: str
         """
-        content = response.text
         if self.is_single():
             return content
 
