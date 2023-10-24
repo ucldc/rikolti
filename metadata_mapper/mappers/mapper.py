@@ -134,7 +134,6 @@ class Record(ABC, object):
         # Mapped value may be a function or lambda
         self.mapped_data = {k: v() if isinstance(v, Callable) else v for (k, v)
                             in mapped_data.items()}
-
         return self.mapped_data
 
     def UCLDC_map(self) -> dict:
@@ -494,10 +493,15 @@ class Record(ABC, object):
 
         remove = []
         for value in src_values:
-            if not isinstance(value, str):
+            if isinstance(value, dict):
+                if "name" not in value:
+                    continue
+                value = value.get("name")
+            elif not isinstance(value, str):
                 continue
             cleaned_value = re.sub(r"[\(\)\.\?]", "", value)
             cleaned_value = cleaned_value.strip()
+
             for pattern in constants.move_date_value_reg_search:
                 matches = re.compile(pattern, re.I).findall(cleaned_value)
                 if (len(matches) == 1 and
