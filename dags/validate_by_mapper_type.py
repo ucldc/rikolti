@@ -2,6 +2,7 @@ import requests
 import logging
 
 from datetime import datetime
+from urllib.parse import urlparse
 
 from airflow.decorators import dag, task
 from airflow.models.param import Param
@@ -10,7 +11,6 @@ from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import registry_endpoint
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
-from rikolti.dags.shared_tasks import s3_to_localfilesystem
 
 logger = logging.getLogger("airflow.task")
 
@@ -52,12 +52,19 @@ def validate_endpoint_task(url, params=None):
     print(f">>> Validating {limit}/{total} collections described at {url}")
 
     csv_paths = []
+    s3_paths = []
     for collection in registry_endpoint(url):
         print(f"{collection['collection_id']:<6} Validating collection")
         num_rows, file_location = create_collection_validation_csv(
             collection['collection_id'])
         csv_paths.append(file_location)
+        if file_location.startswith('s3://'):
+            s3_path = urlparse(file_location)
+            s3_paths.append(f"https://{s3_path.netloc}.s3.amazonaws.com{s3_path.path}")
         print(f"Output {num_rows} rows to {file_location}")
+
+    for s3_path in s3_paths:
+        print(s3_path)
 
     return csv_paths
 
@@ -67,7 +74,7 @@ def validate_endpoint_task(url, params=None):
     start_date=datetime(2023, 1, 1),
     catchup=False,
     params={
-        'mapper_type': Param(None, description="Rikolti mapper type to harvest and validate"),
+        'mapper_type': Param(None, description="Legacy mapper type to harvest and validate"),
         'limit': Param(None, description="Limit number of collections to validate"),
     },
     tags=["rikolti"],
@@ -80,7 +87,6 @@ def validate_by_mapper_type():
         map_endpoint_task(endpoint) >>
         validation_reports
     )
-    s3_to_localfilesystem.expand(s3_url=validation_reports)
 
 
 validate_by_mapper_type()
