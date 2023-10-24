@@ -41,8 +41,8 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
     url = f"{settings.ENDPOINT}/_alias/{alias}"
     r = requests.get(url=url, auth=settings.AUTH)
     r.raise_for_status()
-    aliases = json.loads(r.text)
-    indices_to_remove = [key for key in aliases if key.startswith(f"rikolti-{collection_id}-")]
+    indices = json.loads(r.text)
+    indices_to_remove = [key for key in indices if key.startswith(f"rikolti-{collection_id}-")]
 
     if len(indices_to_remove) > 0:
         url = f"{settings.ENDPOINT}/_aliases"
