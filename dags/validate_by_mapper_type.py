@@ -10,6 +10,7 @@ from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import registry_endpoint
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
+from rikolti.dags.shared_tasks import s3_to_localfilesystem
 
 logger = logging.getLogger("airflow.task")
 
@@ -50,9 +51,15 @@ def validate_endpoint_task(url, params=None):
 
     print(f">>> Validating {limit}/{total} collections described at {url}")
 
+    csv_paths = []
     for collection in registry_endpoint(url):
         print(f"{collection['collection_id']:<6} Validating collection")
-        create_collection_validation_csv(collection['collection_id'])
+        num_rows, file_location = create_collection_validation_csv(
+            collection['collection_id'])
+        csv_paths.append(file_location)
+        print(f"Output {num_rows} rows to {file_location}")
+
+    return csv_paths
 
 @dag(
     dag_id="validate_by_mapper_type",
@@ -66,11 +73,14 @@ def validate_endpoint_task(url, params=None):
     tags=["rikolti"],
 )
 def validate_by_mapper_type():
-    endpoint = make_mapper_type_endpoint()
+    endpoint=make_mapper_type_endpoint()
+    validation_reports = validate_endpoint_task(endpoint)
     (
-        fetch_endpoint_task(endpoint) >> 
+        fetch_endpoint_task(endpoint) >>
         map_endpoint_task(endpoint) >>
-        validate_endpoint_task(endpoint)
+        validation_reports
     )
+    s3_to_localfilesystem.expand(s3_url=validation_reports)
+
 
 validate_by_mapper_type()
