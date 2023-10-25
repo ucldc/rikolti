@@ -16,7 +16,7 @@ from rikolti.dags.shared_tasks import s3_to_localfilesystem
 logger = logging.getLogger("airflow.task")
 
 @dag(
-    dag_id="validate_by_mapper_type",
+    dag_id="dev_validate_by_mapper_type",
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
@@ -24,9 +24,9 @@ logger = logging.getLogger("airflow.task")
         'mapper_type': Param(None, description="Rikolti mapper type to harvest and validate"),
         'limit': Param(None, description="Limit number of collections to validate"),
     },
-    tags=["rikolti"],
+    tags=["dev"],
 )
-def validate_by_mapper_type():
+def dev_validate_by_mapper_type():
     endpoint=make_mapper_type_endpoint()
     validation_reports = validate_endpoint_task(endpoint)
     (
@@ -47,4 +47,4 @@ def validate_by_mapper_type():
     local_filepaths >> upload_validation_files
 
 
-validate_by_mapper_type()
+dev_validate_by_mapper_type()
