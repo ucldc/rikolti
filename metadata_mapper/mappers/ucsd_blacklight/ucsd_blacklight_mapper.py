@@ -25,14 +25,11 @@ class UcsdBlacklightMapper(Record):
             "description": self.map_description,
             "identifier": self.map_identifier,
             "format": self.map_format,
-            "is_part_of": self.map_is_part_of,
             "language": self.map_language,
             "rights": self.map_rights,
             "rightsHolder": self.source_metadata.get("rightsHolder_tesim"),
             "spatial": self.source_metadata.get("geographic_tesim"),
-            "spec_type": self.map_spec_type,
             "subject": self.map_subject,
-            "temporal": self.map_temporal,
             "title": self.map_title,
             "alternative_title": self.map_alternative_title,
             "type": self.map_type,
@@ -221,26 +218,6 @@ class UcsdBlacklightMapper(Record):
         if isinstance(resource_type, dict) and resource_type.has("type"):
             resource_type = resource_type["type"][0]
         return resource_type
-
-    # Leftover from legacy mapper
-    def map_has_view(self):
-        pass
-
-    # Leftover from legacy mapper
-    def map_object(self):
-        pass
-
-    # Leftover from legacy mapper
-    def map_temporal(self):
-        pass
-
-    # Leftover from legacy mapper
-    def map_spec_type(self):
-        pass
-
-    # Leftover from legacy mapper
-    def map_is_part_of(self):
-        pass
 
 
 subject_source_fields = ["subject_tesim", "topic_tesim", "subject_topic_tesim",
