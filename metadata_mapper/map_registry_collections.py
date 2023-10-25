@@ -35,6 +35,7 @@ def map_endpoint(url, limit=None):
 
     print(f">>> Mapping {limit}/{total} collections described at {url}")
     # print(map_report_headers)
+    map_report = []
 
     for collection in registry_endpoint(url):
         collection_id = collection['collection_id']
@@ -112,6 +113,9 @@ def map_endpoint(url, limit=None):
 
         if limit and progress >= limit:
             break
+        map_report.append(map_result)
+
+    return map_report
 
 
 

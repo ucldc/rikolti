@@ -32,12 +32,24 @@ def make_mapper_type_endpoint(params=None):
 @task()
 def fetch_endpoint_task(endpoint, params=None):
     limit = params.get('limit', None) if params else None
-    return fetch_endpoint(endpoint, limit, logger)
+    fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
+    for collection_id in fetcher_job_result.keys():
+        print(
+            "Review fetched data at: https://rikolti-data.s3.us-west-2."
+            f"amazonaws.com/index.html#{collection_id}/"
+        )
+    return fetcher_job_result
 
 @task()
 def map_endpoint_task(endpoint, params=None):
     limit = params.get('limit', None) if params else None
-    return map_endpoint(endpoint, limit)
+    mapper_job_results = map_endpoint(endpoint, limit)
+    for mapper_job in mapper_job_results:
+        print(
+            "Review mapped data at: https://rikolti-data.s3.us-west-2."
+            f"amazonaws.com/index.html#{mapper_job['collection_id']}/"
+        )
+    return mapper_job_results
 
 @task()
 def validate_endpoint_task(url, params=None):
@@ -64,7 +76,11 @@ def validate_endpoint_task(url, params=None):
         print(f"Output {num_rows} rows to {file_location}")
 
     for s3_path in s3_paths:
-        print(s3_path)
+        print(f"Download validation report at: {s3_path}")
+        print(
+            "Review collection data at: https://rikolti-data.s3.us-west-2."
+            f"amazonaws.com/index.html#{s3_path.split('/')[-3]}/"
+        )
 
     return csv_paths
 
