@@ -3,7 +3,6 @@ from datetime import datetime
 import json
 import os
 import sys
-from urllib.parse import urlparse
 
 import boto3
 import requests
@@ -75,7 +74,7 @@ def delete_old_collection_indices(collection_id:str, retain:int=1):
     """
     url = f"{settings.ENDPOINT}/rikolti-{collection_id}-*"
     params = {"ignore_unavailable": "true"}
-    r = requests.get(url=url, auth=settings.AUTH)
+    r = requests.get(url=url, params=params, auth=settings.AUTH)
     r.raise_for_status()
     indices = json.loads(r.text)
 
@@ -85,7 +84,6 @@ def delete_old_collection_indices(collection_id:str, retain:int=1):
             creation_date = indices[index]["settings"]["index"]["creation_date"]
             unaliased_indices[creation_date] = index
 
-    unaliased_indices_to_retain = 1
     counter = 0
     for date in reversed(sorted(unaliased_indices)):
         counter += 1
