@@ -24,7 +24,7 @@ def local_path(collection_id, folder):
     ])
     return local_path
 
-RIKOLTI_HOME = os.environ.get('RIKOLTI_HOME')
+RIKOLTI_HOME = os.environ.get('RIKOLTI_HOME', '/usr/local/airflow/dags/rikolti')
 RECORD_INDEX_CONFIG = os.sep.join([
         RIKOLTI_HOME,
         'record_indexer/index_templates/record_index_config.json'
