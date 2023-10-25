@@ -22,6 +22,7 @@ class UcdJsonFetcher(Fetcher):
 
     def fetch_page(self) -> int:
         """
+        UCD's harvesting endpoint gets us an XML document listing a URL for every record in a collection, but not the actual metadata records themselves. fetch_page fetches this initial XML document, while fetch_all_pages below batches the records in sets of 10 (self.per_page) and fetch_json_ld fetches individual records.
         Returns:
             int
         """
