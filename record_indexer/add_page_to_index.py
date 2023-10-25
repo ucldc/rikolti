@@ -7,16 +7,13 @@ import requests
 from . import settings
 
 
-def bulk_add(records: list, index:str):
+def bulk_add(records: list, index: str):
     data = build_bulk_request_body(records, index)
     url = f"{settings.ENDPOINT}/_bulk"
 
-    headers = {
-        "Content-Type": "application/json"
-    }
+    headers = {"Content-Type": "application/json"}
 
-    r = requests.post(
-        url, headers=headers, data=data, auth=settings.AUTH)
+    r = requests.post(url, headers=headers, data=data, auth=settings.AUTH)
     r.raise_for_status()
 
 
@@ -26,12 +23,7 @@ def build_bulk_request_body(records: list, index: str):
     for record in records:
         doc_id = record.get("calisphere-id")
 
-        action = {
-            "create": {
-                "_index": index,
-                "_id": doc_id
-            }
-        }
+        action = {"create": {"_index": index, "_id": doc_id}}
 
         body += f"{json.dumps(action)}\n{json.dumps(record)}\n"
 
@@ -39,19 +31,18 @@ def build_bulk_request_body(records: list, index: str):
 
 
 def get_json_content(collection_id: str, filename: str):
-    if settings.DATA_SRC["STORE"] == 'file':
-        local_path = settings.local_path(
-            collection_id, 'mapped_with_content')
+    if settings.DATA_SRC["STORE"] == "file":
+        local_path = settings.local_path(collection_id, "mapped_with_content")
         path = os.path.join(local_path, str(filename))
         file = open(path, "r")
         records = json.loads(file.read())
     else:
-        s3_client = boto3.client('s3')
+        s3_client = boto3.client("s3")
         file = s3_client.get_object(
             Bucket=settings.DATA_SRC["BUCKET"],
-            Key=f"{collection_id}/mapped_with_content/{filename}"
+            Key=f"{collection_id}/mapped_with_content/{filename}",
         )
-        records = json.loads(file['Body'].read())
+        records = json.loads(file["Body"].read())
 
     return records
 
@@ -69,7 +60,7 @@ def flag_and_remove_unexpected_fields(record: dict, expected_fields: list):
 
 def get_expected_fields():
     record_index_config = json.load(open(settings.RECORD_INDEX_CONFIG))
-    record_schema = record_index_config['template']['mappings']['properties']
+    record_schema = record_index_config["template"]["mappings"]["properties"]
     expected_fields = list(record_schema.keys())
 
     return expected_fields

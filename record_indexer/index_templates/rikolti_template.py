@@ -6,10 +6,10 @@ import requests
 
 from .. import settings
 
-'''
+"""
     Create OpenSearch index template for rikolti
     https://opensearch.org/docs/2.3/opensearch/index-templates/
-'''
+"""
 
 
 def main():
@@ -19,21 +19,19 @@ def main():
     # TODO add aliases, version, _meta, priority to record_index_template.json
     # TODO make sort_title a multifield of title?
     record_index_config = json.load(open(settings.RECORD_INDEX_CONFIG))
-    record_schema = record_index_config['template']['mappings']['properties']
+    record_schema = record_index_config["template"]["mappings"]["properties"]
 
     # child schema == record schema, except without the "children" field
     child_schema = copy.deepcopy(record_schema)
-    del child_schema['children']
+    del child_schema["children"]
     record_schema["children"]["properties"] = child_schema
 
     # create index template
     r = requests.put(
         f"{settings.ENDPOINT}/_index_template/rikolti_template",
-        headers={
-            "Content-Type": "application/json"
-        },
+        headers={"Content-Type": "application/json"},
         data=json.dumps(record_index_config),
-        auth=settings.AUTH
+        auth=settings.AUTH,
     )
     r.raise_for_status()
     print(r.text)
