@@ -191,9 +191,9 @@ export CONTENT_DEST=file:///rikolti_content
 
 The folder located at `CONTENT_DATA_MOUNT` is mounted to `/rikolti_data` and the folder located at `CONTENT_MOUNT` is mounted to `/rikolti_content` on the content_harvester docker container.
 
-From inside the Rikolti repo, run `docker build -t content_harvester content_harvester` to build the `content_harvester` container locally. 
+You can specify a `content_harvester_image` and `content_harvester_version` through the Airflow UI > Admin > Variables. The default value for `content_harvester_image` is `public.ecr.aws/b6c7x7s4/rikolti/content_harvester` and the default value for `content_harvester_version` is `latest`. 
 
-You can specify a `content_harvester_image` and `content_harvester_version` through the Airflow UI > Admin > Variables. The default value for `content_harvester_image` is `content_harvester` and the default value for `content_harvester_version` is `latest`.
+If you would like to run your own rikolti/content_harvester image instead of pulling the image from AWS, then from inside the Rikolti repo, run `docker build -t rikolti/content_harvester content_harvester` to build the `rikolti/content_harvester` image locally and update the `content_harvester_image` to be `rikolti/content_harvester`.
 
 Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 
