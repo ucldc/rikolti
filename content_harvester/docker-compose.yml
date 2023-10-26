@@ -3,7 +3,7 @@ services:
     build: 
       context: ./
       dockerfile: Dockerfile
-    image: content_harvester
+    image: rikolti/content_harvester
     # default entrypoint is python -m content_harvester.by_page
     # override with tail -f /dev/null to keep container running for development
     entrypoint: tail -f /dev/null

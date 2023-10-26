@@ -233,7 +233,7 @@ class ContentHarvestDockerOperator(DockerOperator):
 
         container_image = Variable.get(
             'content_harvester_image',
-            default_var='content_harvester'
+            default_var='public.ecr.aws/b6c7x7s4/rikolti/content_harvester'
         )
         container_version = Variable.get(
             'content_harvester_version',

@@ -38,7 +38,7 @@ You can bypass uploading to s3 by setting `settings.CONTENT_DEST == 'local'`. Th
 
 # Local Development
 
-docker build -t content_harvester .
+docker build -t rikolti/content_harvester .
 docker compose run --rm content_harvester https://registry.cdlib.org/api/v1/rikoltimapper/26147/?format=json
 
 --rm flag removes the container after run.
