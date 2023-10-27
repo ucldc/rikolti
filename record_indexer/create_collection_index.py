@@ -50,7 +50,7 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
             print(f"removed indices `{indices_to_remove}` from alias `{alias}`")
 
 
-def delete_old_collection_indices(collection_id: str, retain: int = 1):
+def delete_old_collection_indices(collection_id: str):
     """
     Deletes older unaliased indices, retaining a specified number
     """
@@ -69,7 +69,7 @@ def delete_old_collection_indices(collection_id: str, retain: int = 1):
     counter = 0
     for date in reversed(sorted(unaliased_indices)):
         counter += 1
-        if counter > retain:
+        if counter > int(settings.INDEX_RETENTION):
             delete_index(unaliased_indices[date])
 
 
