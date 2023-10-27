@@ -14,7 +14,9 @@ def bulk_add(records: list, index: str):
     headers = {"Content-Type": "application/json"}
 
     r = requests.post(url, headers=headers, data=data, auth=settings.AUTH)
-    r.raise_for_status()
+
+    if r.status_code != 200:
+        raise requests.HTTPError(r.status_code, r.json())
 
 
 def build_bulk_request_body(records: list, index: str):
