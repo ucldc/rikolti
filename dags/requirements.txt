@@ -1,5 +1,7 @@
 --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.5.1/constraints-3.10.txt"
+boto3
 requests
 sickle
 python-dotenv
 apache-airflow-providers-docker
+apache-airflow-providers-google
