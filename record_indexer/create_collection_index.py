@@ -107,6 +107,7 @@ def create_new_index(collection_id: str):
     datetime_string = datetime.today().strftime("%Y%m%d%H%M%S")
     index_name = f"rikolti-{collection_id}-{datetime_string}"
 
+    # OpenSearch creates the index on the fly when first written to.
     for page in page_list:
         add_page(page, collection_id, index_name)
 
