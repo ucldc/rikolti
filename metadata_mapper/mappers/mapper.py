@@ -4,11 +4,11 @@ import json
 import os
 import re
 from abc import ABC
-from datetime import date
+from datetime import date, datetime
+from datetime import timezone
 from typing import Any, Callable
 
 import boto3
-from dateutil import parser
 from markupsafe import Markup
 
 from .. import settings
@@ -1594,19 +1594,19 @@ class Record(ABC, object):
                 date_source = record.get('date', None)
                 if isinstance(date_source, dict):
                     date_source = [date_source]
+                dates_start = [make_datetime(dt.get("begin"))
+                               for dt in date_source if dt.get("begin")]
+                dates_start = sorted(filter(None, dates_start))
 
-                dates_start = [
-                    parser.parse(dt.get('begin', None)).strftime("%Y-%m-%d")
-                    for dt in date_source if isinstance(dt, dict) and dt.get("begin")]
-                dates_start = sorted(dates_start)
-                start_date = dates_start[0] if dates_start else None
+                start_date = \
+                    dates_start[0].strftime("%Y-%m-%d") if dates_start else None
 
-                dates_end = [
-                    parser.parse(dt.get('end', None)).strftime("%Y-%m-%d")
-                    for dt in date_source if isinstance(dt, dict) and dt.get("end")]
-                dates_end = sorted(dates_end)
+                dates_end = [make_datetime(dt.get("end"))
+                             for dt in date_source if dt.get("end")]
+                dates_end = sorted(filter(None, dates_end))
+
                 # TODO: should this actually be the last date?
-                end_date = dates_end[0] if dates_end else None
+                end_date = dates_end[0].strftime("%Y-%m-%d") if dates_end else None
 
                 # fill in start_date == end_date if only one exists
                 start_date = end_date if not start_date else start_date
@@ -1655,6 +1655,27 @@ class Record(ABC, object):
             keys.sort()
 
             return {i: solr_doc[i] for i in keys}
+
+        def make_datetime(date_string):
+            date_time = None
+
+            #  This matches YYYY or YYYY-MM-DD
+            match = re.match(
+                r"^(?P<year>[0-9]{4})"
+                r"(-(?P<month>[0-9]{1,2})"
+                r"-(?P<day>[0-9]{1,2}))?$", date_string)
+            if match:
+                year = int(match.group("year"))
+                month = int(match.group("month") or 1)
+                day = int(match.group("day") or 1)
+                date_time = datetime(year, month, day, tzinfo=timezone.utc)
+
+                try:
+                    date_time = datetime(year, month, day, tzinfo=timezone.utc)
+                except:
+                    pass
+
+            return date_time
 
         def check_nuxeo_media(record):
             '''Check that the media_json and jp2000 exist for a given solr doc.
