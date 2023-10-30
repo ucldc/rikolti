@@ -1,7 +1,6 @@
 import hashlib
 import itertools
 import json
-import numbers
 import os
 import re
 from abc import ABC
@@ -857,7 +856,7 @@ class Record(ABC, object):
             if isinstance(data, str):
                 try:
                     x = json.loads(data)
-                except (ValueError, TypeError) as e:
+                except (ValueError, TypeError):
                     x = data
                 return x
             if isinstance(data, list):
@@ -866,7 +865,7 @@ class Record(ABC, object):
                     try:
                         x = jsonfy_obj(v)
                         new_list.append(x)
-                    except (ValueError, TypeError) as e:
+                    except (ValueError, TypeError):
                         new_list.append(v)
                 return new_list
             if isinstance(data, dict):

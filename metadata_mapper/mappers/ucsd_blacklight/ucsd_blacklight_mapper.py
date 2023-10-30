@@ -1,5 +1,4 @@
 import json
-import re
 from ..mapper import Record, Validator, Vernacular
 from typing import Any
 
@@ -15,7 +14,6 @@ class UcsdBlacklightMapper(Record):
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
             "contributor": self.map_contributor,
-            "spacial": self.source_metadata.get("geographic_tesim"),
             "stateLocatedIn": {"name": "California"},
             "extent": self.source_metadata.get("extent_json_tesim"),
             "publisher": self.source_metadata.get("publisher_json_tesim"),
