@@ -60,7 +60,8 @@ def validate_endpoint_task(url, params=None):
     start_date=datetime(2023, 1, 1),
     catchup=False,
     params={
-        'mapper_type': Param(None, description="Rikolti mapper type to harvest and validate"),
+        'mapper_type': Param(None,
+                             description="Rikolti mapper type to harvest and validate"),
         'limit': Param(None, description="Limit number of collections to validate"),
     },
     tags=["rikolti"],
