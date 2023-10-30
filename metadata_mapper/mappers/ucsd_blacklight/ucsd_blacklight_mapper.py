@@ -338,7 +338,8 @@ class UcsdBlacklightValidator(Validator):
         self.add_validatable_field(
             field="identifier", type=Validator.list_of(str),
             validations=[
-                UcsdBlacklightValidator.identifier_content_match
+                UcsdBlacklightValidator.identifier_content_match,
+                Validator.type_match
             ]
         )
 
