@@ -3,7 +3,7 @@ from .Fetcher import Fetcher, FetchError
 import requests
 from xml.etree import ElementTree
 from bs4 import BeautifulSoup
-from metadata_fetcher import settings
+from .. import settings
 import math
 from typing import Optional
 
