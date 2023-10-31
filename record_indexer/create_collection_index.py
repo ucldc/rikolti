@@ -77,8 +77,11 @@ def delete_index(index: str):
     url = f"{settings.ENDPOINT}/{index}"
 
     r = requests.delete(url, auth=settings.AUTH)
-    r.raise_for_status()
-    print(f"deleted index `{index}`")
+    if r.status_code == 404:
+        return
+    else:
+        r.raise_for_status()
+        print(f"deleted index `{index}`")
 
 
 def get_page_list(collection_id: str):
@@ -101,11 +104,12 @@ def get_page_list(collection_id: str):
     return page_list
 
 
-def create_new_index(collection_id: str):
-    page_list = get_page_list(collection_id)
+def get_index_name(collection_id: str, version: str):
+    return f"rikolti-{collection_id}-{version}"
 
-    datetime_string = datetime.today().strftime("%Y%m%d%H%M%S")
-    index_name = f"rikolti-{collection_id}-{datetime_string}"
+
+def create_new_index(collection_id: str, index_name: str):
+    page_list = get_page_list(collection_id)
 
     # OpenSearch creates the index on the fly when first written to.
     for page in page_list:
@@ -120,5 +124,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Add collection data to OpenSearch")
     parser.add_argument("collection_id", help="Registry collection ID")
     args = parser.parse_args(sys.argv[1:])
-    create_new_index(args.collection_id)
+    # Once we start keeping dated versions of mapped metadata on S3,
+    # the version will correspond to the S3 namespace
+    version = datetime.today().strftime("%Y%m%d%H%M%S")
+    index_name = get_index_name(args.collection_id, version)
+    create_new_index(args.collection_id, index_name)
     sys.exit(0)

@@ -8,6 +8,7 @@ from docker.types import Mount
 from airflow.decorators import task
 from airflow.models import Variable
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.utils.trigger_rule import TriggerRule
 
 from urllib.parse import urlparse
 
@@ -16,7 +17,10 @@ from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.record_indexer.create_collection_index import create_new_index
+from rikolti.record_indexer.create_collection_index import get_index_name
+from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
+
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
 # the fetch_collection function to accept a rikolticollection resource.
@@ -127,13 +131,30 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
 
     return file_location
 
+
 @task()
-def create_stage_index_task(collection: dict):
+def create_stage_index_task(collection: dict, index_name: str):
     collection_id = collection.get('id')
     if not collection_id:
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
-    create_new_index(collection_id)
+    create_new_index(collection_id, index_name)
+
+
+@task()
+def get_index_name_task(collection: dict, version: str):
+    collection_id = collection.get('id')
+    if not collection_id:
+        raise ValueError(
+            f"Collection ID not found in collection metadata: {collection}")
+    return get_index_name(collection_id, version)
+
+
+# Task is triggered if at least one upstream (direct parent) task has failed
+@task(trigger_rule=TriggerRule.ONE_FAILED)
+def cleanup_failed_index_creation_task(index_name: str):
+    delete_index(index_name)
+
 
 @task()
 def move_index_to_prod_task(collection: dict):
