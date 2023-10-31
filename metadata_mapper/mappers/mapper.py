@@ -41,7 +41,7 @@ class UCLDCWriter(object):
     def write_s3_mapped_metadata(self, mapped_metadata):
         s3_client = boto3.client('s3')
         key = (
-            f"mapped_metadata/{self.collection_id}/"
+            f"{self.collection_id}/mapped_metadata/"
             f"{self.page_filename.split('/')[-1]}"
         )
         s3_client.put_object(

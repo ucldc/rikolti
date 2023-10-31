@@ -53,16 +53,36 @@ def get_files(collection_id: int, directory: str) -> list[str]:
     """
     if settings.DATA_SRC["STORE"] == "file":
         path = settings.local_path(collection_id, directory)
-        return [f for f in os.listdir(path)
-                if os.path.isfile(os.path.join(path, f))]
+        try:
+            return [f for f in os.listdir(path)
+                    if os.path.isfile(os.path.join(path, f))]
+        except Exception as e:
+            raise Exception(
+                f"{collection_id:<6}: Error listing files in {path}\n"
+                f"{collection_id:<6}: {e}"
+            )
     elif settings.DATA_SRC["STORE"] == "s3":
         s3_client = boto3.client('s3')
-        resp = s3_client.list_objects_v2(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"{collection_id}/{directory}"
-        )
-        # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
-        return [page['Key'] for page in resp['Contents']]
+        try:
+            resp = s3_client.list_objects_v2(
+                Bucket=settings.DATA_SRC["BUCKET"],
+                Prefix=f"{collection_id}/{directory}"
+            )
+            # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
+            return [page['Key'] for page in resp['Contents']]
+        except Exception as e:
+            s3_url = (
+                f"s3://{settings.DATA_SRC['BUCKET']}/{collection_id}/"
+                f"{directory}/")
+            url = (
+                f"https://{settings.DATA_SRC['BUCKET']}.s3.us-west-2.amazonaws"
+                ".com/index.html#{collection_id}/"
+            )
+            raise Exception(
+                f"{collection_id<6}: Error listing files at {s3_url}\n"
+                f"{collection_id<6}: Check that {directory} exists at {url}\n"
+                f"{collection_id<6}: {e}"
+            )
 
 def read_from_bucket(collection_id: int, directory: str,
                      file_name: Union[str, int]) -> str:
@@ -86,17 +106,33 @@ def read_from_bucket(collection_id: int, directory: str,
             settings.local_path(collection_id, directory),
             str(file_name)
         ])
-
-        with open(page_path, "r") as metadata_file:
-            return metadata_file.read()
+        try:
+            with open(page_path, "r") as metadata_file:
+                return metadata_file.read()
+        except Exception as e:
+            raise Exception(
+                f"{collection_id:<6}: Error reading {page_path}\n"
+                f"{collection_id:<6}: {e}"
+            )
     elif settings.DATA_SRC["STORE"] == 's3':
         s3_client = boto3.client('s3')
-        s3_obj_summary = s3_client.get_object(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Key={collection_id}/{directory}/file_name
-        )
-        return s3_obj_summary['Body'].read()
-
+        try:
+            s3_obj_summary = s3_client.get_object(
+                Bucket=settings.DATA_SRC["BUCKET"],
+                Key=f"{file_name}"
+            )
+            return s3_obj_summary['Body'].read()
+        except Exception as e:
+            s3_url = (f"s3://{settings.DATA_SRC['BUCKET']}/{file_name}")
+            url = (
+                f"https://{settings.DATA_SRC['BUCKET']}.s3.us-west-2.amazonaws"
+                ".com/index.html#{file_name}/"
+            )
+            raise Exception(
+                f"{collection_id<6}: Error reading file at {s3_url}\n"
+                f"{collection_id<6}: Check {url}\n"
+                f"{collection_id<6}: {e}"
+            )
 
 def read_mapped_metadata(collection_id: int, page_id: int) -> list[dict]:
     """
@@ -127,7 +163,7 @@ def read_vernacular_metadata(collection_id: int, page_id: int) -> list[dict]:
     Returns: list[dict]
         The parsed data
     """
-    return json.loads(read_from_bucket("vernacular_metadata", collection_id, page_id))
+    return json.loads(read_from_bucket(collection_id, "vernacular_metadata", page_id))
 
 
 def write_to_bucket(collection_id: int, directory: str,
