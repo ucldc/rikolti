@@ -170,7 +170,8 @@ type_map = {
     "video/mp4": "moving image",
     "video mp4 file": "moving image",
     "sound mp3 file": "sound",
-    "streaming media": "interactive resource"
+    "streaming media": "interactive resource",
+    "sound recording": "sound"
 }
 format_map = {
     "holiday card": "image",

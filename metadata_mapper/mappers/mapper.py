@@ -1,11 +1,11 @@
 import hashlib
 import itertools
 import json
-import numbers
 import os
 import re
 from abc import ABC
-from datetime import date
+from datetime import date, datetime
+from datetime import timezone
 from typing import Any, Callable
 
 import boto3
@@ -383,8 +383,8 @@ class Record(ABC, object):
                 )
         if delim not in value:
             return self
+        shredded = re.split(re.escape(delim), value)
 
-        shredded = value.split(re.escape(delim))
         shredded = [s.strip() for s in shredded if s.strip()]
         result = []
         for s in shredded:
@@ -846,12 +846,12 @@ class Record(ABC, object):
         """
 
         def jsonfy_obj(data):
-            '''Jsonfy a python dict object. For immediate sub items (not fully
-            recursive yet) if the data can be turned into a json object, do so.
-            Unpacks string json objects buried in some blacklight/solr feeds.
-            '''
-            obj_jsonfied = {}
-            if isinstance(data, numbers.Number) or isinstance(data, bool):
+            """
+            Unpack JSON data from a list or dictionary. This method
+            is recursive, and will iterate as deeply as it finds strings
+            on a list or dictionary.
+            """
+            if isinstance(data, (int, float, bool)) or data is None:
                 return data
             if isinstance(data, str):
                 try:
@@ -859,29 +859,25 @@ class Record(ABC, object):
                 except (ValueError, TypeError):
                     x = data
                 return x
-            for key, value in list(data.items()):
-                if isinstance(value, list):
-                    new_list = []
-                    for v in value:
-                        try:
-                            x = jsonfy_obj(v)
-                            new_list.append(x)
-                        except (ValueError, TypeError):
-                            new_list.append(v)
-                    obj_jsonfied[key] = new_list
-                else:  # usually singlevalue string, not json
+            if isinstance(data, list):
+                new_list = []
+                for v in data:
                     try:
-                        x = json.loads(value)
-                        # catch numbers already typed as singlevalue strings
-                        if isinstance(x, int):
-                            x = value
+                        x = jsonfy_obj(v)
+                        new_list.append(x)
                     except (ValueError, TypeError):
-                        x = value
-                    obj_jsonfied[key] = x
-            return obj_jsonfied
+                        new_list.append(v)
+                return new_list
+            if isinstance(data, dict):
+                obj_jsonfied = {}
+                for key, value in list(data.items()):
+                    obj_jsonfied[key] = jsonfy_obj(value)
+                return obj_jsonfied
 
-        obj_jsonfied = jsonfy_obj(self.mapped_data)
-        return json.dumps(obj_jsonfied)
+            return data
+
+        self.source_metadata = jsonfy_obj(self.source_metadata)
+        return self
 
     def drop_long_values(self, field=None, max_length=[150]):
         """ Look for long values in the sourceResource field specified.
@@ -1303,13 +1299,24 @@ class Record(ABC, object):
             if isinstance(data, list):
                 dejson_data = [dejson(d) for d in data]
             elif isinstance(data, dict):
+                # If there's only one item in the dictionary, we assume the
+                # value we want is the only value in the dictionary. This was done
+                # because collection 184 had data that looks like this:
+                # `{'genre': ['Oral histories--California--San Diego--1980-1989']}`
                 dejson_data = data.get(
                     'item', data.get(
                         'name', data.get(
                             'text', None)))
+                if not dejson_data:
+                    items = data.items()
+                    if len(items) == 1:
+                        dejson_data = list(items)[0][1]
+                if not dejson_data:
+                    return data
+
             else:
                 try:
-                    j = json.loads(data)
+                    j = json.loads(str(data))
                     flatdata = j.get('name', data)
                 except (ValueError, AttributeError):
                     flatdata = data
@@ -1325,8 +1332,8 @@ class Record(ABC, object):
             if not data:
                 return []
 
-            items_not_blank = []
             items = dejson(data)
+
             if isinstance(items, str) and items:
                 items_not_blank = items
             else:
@@ -1408,21 +1415,6 @@ class Record(ABC, object):
                         return match.group(0)
             return None
 
-        def ucsd_ark(doc):
-            # is this UCSD?
-            campus = None
-            ark = None
-            collection = doc['collection'][0]
-            campus_list = collection.get('campus', None)
-            if campus_list:
-                campus = campus_list[0]['@id']
-            if campus == "https://registry.cdlib.org/api/v1/campus/6/":
-                # UCSD get ark id
-                ark_frag = doc['originalRecord'].get('id', None)
-                if ark_frag:
-                    ark = 'ark:/20775/' + ark_frag
-            return ark
-
         def ucla_ark(doc):
             '''UCLA ARKs are buried in a mods field in originalRecord:
             "mods_recordInfo_recordIdentifier_mlt": "21198-zz002b1833",
@@ -1469,8 +1461,6 @@ class Record(ABC, object):
                     solr_id = couch_doc.get('calisphere-id', None)
                 else:
                     solr_id = None
-            if not solr_id:
-                solr_id = ucsd_ark(couch_doc)
             if not solr_id:
                 solr_id = ucla_ark(couch_doc)
             if not solr_id:
@@ -1604,25 +1594,19 @@ class Record(ABC, object):
                 date_source = record.get('date', None)
                 if isinstance(date_source, dict):
                     date_source = [date_source]
+                dates_start = [make_datetime(dt.get("begin"))
+                               for dt in date_source if dt.get("begin")]
+                dates_start = sorted(filter(None, dates_start))
 
-                # make_datetime is not implemented in rikolti and this should
-                # fail if executed. Amy thinks this is unused cruft, and she
-                # is very curious to know about any records that have this data
-                dates_start = [
-                    make_datetime(dt.get('begin', None))  # noqa: F821
-                    for dt in date_source if isinstance(dt, dict)]
-                dates_start = sorted(dates_start)
-                start_date = dates_start[0] if dates_start else None
+                start_date = \
+                    dates_start[0].strftime("%Y-%m-%d") if dates_start else None
 
-                # make_datetime is not implemented in rikolti and this should
-                # fail if executed. Amy thinks this is unused cruft, and she
-                # is very curious to know about any records that have this data
-                dates_end = [
-                    make_datetime(dt.get('end', None))  # noqa: F821
-                    for dt in date_source if isinstance(dt, dict)]
-                dates_end = sorted(dates_end)
+                dates_end = [make_datetime(dt.get("end"))
+                             for dt in date_source if dt.get("end")]
+                dates_end = sorted(filter(None, dates_end))
+
                 # TODO: should this actually be the last date?
-                end_date = dates_end[0] if dates_end else None
+                end_date = dates_end[0].strftime("%Y-%m-%d") if dates_end else None
 
                 # fill in start_date == end_date if only one exists
                 start_date = end_date if not start_date else start_date
@@ -1671,6 +1655,28 @@ class Record(ABC, object):
             keys.sort()
 
             return {i: solr_doc[i] for i in keys}
+
+        def make_datetime(date_string):
+            date_time = None
+
+            #  This matches YYYY or YYYY-MM-DD
+            match = re.match(
+                r"^(?P<year>[0-9]{4})"
+                r"(-(?P<month>[0-9]{1,2})"
+                r"-(?P<day>[0-9]{1,2}))?$", date_string)
+            if match:
+                year = int(match.group("year"))
+                month = int(match.group("month") or 1)
+                day = int(match.group("day") or 1)
+                date_time = datetime(year, month, day, tzinfo=timezone.utc)
+
+                try:
+                    date_time = datetime(year, month, day, tzinfo=timezone.utc)
+                except Exception as e:
+                    print(f"Error making datetime: {e}")
+                    pass
+
+            return date_time
 
         def check_nuxeo_media(record):
             '''Check that the media_json and jp2000 exist for a given solr doc.
