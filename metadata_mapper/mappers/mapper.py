@@ -1672,7 +1672,8 @@ class Record(ABC, object):
 
                 try:
                     date_time = datetime(year, month, day, tzinfo=timezone.utc)
-                except:
+                except Exception as e:
+                    print(f"Error making datetime: {e}")
                     pass
 
             return date_time
