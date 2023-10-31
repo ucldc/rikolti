@@ -47,9 +47,20 @@ default entrypoint is `by_registry_endpoint.py`
 
 requires an env.local adjacent to the docker-compose in order to run (check settings.py for hints on what needs to be defined in env.local)
 
+# Deployment
+
+Changes to content_harvester/* files pushed up to the main branch will result in an automagic Codebuild in AWS (see github.com/cdlib/pad-airflow). 
+
+To build manually: From a terminal with AWS credentials, get login password for ecr, and then use buildx to build an image for both x86_64 and ARM:
+
+```
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/b6c7x7s4
+docker buildx create --use
+docker buildx build --platform linux/arm64,linux/amd64 -t public.ecr.aws/b6c7x7s4/rikolti/content_harvester content_harvester --push
+```
+
 # TODO:
 - md5 the thumbnails
 - change folder name "mapped_with_content"
 - tune log output (this module is v. noisy currently)
 - add error handling
-- figure out AWS deployment (ECR, Fargate, ECS)
