@@ -1592,8 +1592,15 @@ class Record(ABC, object):
 
             if record.get('date'):
                 date_source = record.get('date', None)
+
+                #  Coerce a string into a dict
+                if isinstance(date_source, str):
+                    date_source = {"begin": date_source}
+
+                #  Wrap a dict in a list
                 if isinstance(date_source, dict):
                     date_source = [date_source]
+
                 dates_start = [make_datetime(dt.get("begin"))
                                for dt in date_source if dt.get("begin")]
                 dates_start = sorted(filter(None, dates_start))
