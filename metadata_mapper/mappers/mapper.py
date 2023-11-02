@@ -1592,17 +1592,19 @@ class Record(ABC, object):
 
             if record.get('date'):
                 date_source = record.get('date', None)
-                if isinstance(date_source, dict):
+                if not isinstance(date_source, list):
                     date_source = [date_source]
                 dates_start = [make_datetime(dt.get("begin"))
-                               for dt in date_source if dt.get("begin")]
+                               for dt in date_source
+                               if isinstance(dt, dict) and dt.get("begin")]
                 dates_start = sorted(filter(None, dates_start))
 
                 start_date = \
                     dates_start[0].strftime("%Y-%m-%d") if dates_start else None
 
                 dates_end = [make_datetime(dt.get("end"))
-                             for dt in date_source if dt.get("end")]
+                             for dt in date_source
+                             if isinstance(dt, dict) and dt.get("end")]
                 dates_end = sorted(filter(None, dates_end))
 
                 # TODO: should this actually be the last date?
