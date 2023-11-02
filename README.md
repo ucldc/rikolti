@@ -203,7 +203,7 @@ For more information on `mwaa-local-env`, look for instructions in the [ucldc/aw
 
 To upgrade:
 
-1. In the `ucldc/aws-mwaa-local-runner` repo, reate a new branch for the new version. The upstream source should be `aws/aws-mwaa-local-runner`. I just used the github UI to do this at [https://github.com/ucldc/aws-mwaa-local-runner/branches](https://github.com/ucldc/aws-mwaa-local-runner/branches)
+1. In the `ucldc/aws-mwaa-local-runner` repo, create a new branch for the new version. The upstream source should be `aws/aws-mwaa-local-runner`. I just used the github UI to do this at [https://github.com/ucldc/aws-mwaa-local-runner/branches](https://github.com/ucldc/aws-mwaa-local-runner/branches)
 2. On your local machine, pull down and checkout this new branch.
 3. Merge in our commits from the old version branch.
 4. In your local `rikolti` repo, update `rikolti/dags/requirements.txt` to reference the correct [--constraint url](https://docs.aws.amazon.com/mwaa/latest/userguide/working-dags-dependencies.html#working-dags-dependencies-test-create).
