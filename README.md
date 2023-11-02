@@ -213,4 +213,4 @@ To upgrade:
 8. Change default branch for `ucldc/aws-mwaa-local-runner` to be the new version's branch. (I just used the github UI to do this).
 9. Commit changes to `rikolti` repo and push to github.
 
-NOTE: Pushing to the rikolti main branch on github will trigger a build of the `rikolti-dags-deploy` project, which pushes all `.py` files in the rikolti repo to `s3:pad-airflow/dags/rikolti/`. This will NOT update the requirements.txt version for our MWAA environment on AWS. You will need to do this as part of upgrading MWAA.
+NOTE: Pushing to the rikolti main branch on github will trigger a build of the `rikolti-dags-deploy` project, which pushes all `.py` files in the rikolti repo to `s3:pad-airflow/dags/rikolti/`. This will NOT update the requirements.txt version for our MWAA environment on AWS. You will need to do this as part of upgrading MWAA. Notes on how to do this are on the [pad-airflow README](https://github.com/cdlib/pad-airflow/blob/main/README.md#upgrade-mwaa-environment).
