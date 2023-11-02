@@ -198,3 +198,19 @@ You can specify a `content_harvester_image` and `content_harvester_version` thro
 Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 
 For more information on `mwaa-local-env`, look for instructions in the [ucldc/aws-mwaa-local-runner:README](https://github.com/ucldc/aws-mwaa-local-runner/#readme) to build the docker image, run the container, and do local development.
+
+### Upgrade `aws-mwaa-local-runner`
+
+To upgrade:
+
+1. In the `ucldc/aws-mwaa-local-runner` repo, reate a new branch for the new version. The upstream source should be `aws/aws-mwaa-local-runner`. I just used the github UI to do this at [https://github.com/ucldc/aws-mwaa-local-runner/branches](https://github.com/ucldc/aws-mwaa-local-runner/branches)
+2. On your local machine, pull down and checkout this new branch.
+3. Merge in our commits from the old version branch.
+4. In your local `rikolti` repo, update `rikolti/dags/requirements.txt` to reference the correct [--constraint url](https://docs.aws.amazon.com/mwaa/latest/userguide/working-dags-dependencies.html#working-dags-dependencies-test-create).
+5. Build mwaa-local-runner and test out DAGs in v2.6.3 to make sure all is well.
+6. Update `aws-mwaa-local-runner/.github/workflows/pull_upstream.yml` and set UPSTREAM_BRANCH to new version.
+7. Commit changes to `aws-mwaa-local-runner` repo and push to github.
+8. Change default branch for `ucldc/aws-mwaa-local-runner` to be the new version's branch. (I just used the github UI to do this).
+9. Commit changes to `rikolti` repo and push to github.
+
+NOTE: Pushing to the rikolti main branch on github will trigger a build of the `rikolti-dags-deploy` project, which pushes all `.py` files in the rikolti repo to `s3:pad-airflow/dags/rikolti/`. This will NOT update the requirements.txt version for our MWAA environment on AWS. You will need to do this as part of upgrading MWAA.
