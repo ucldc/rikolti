@@ -3,11 +3,8 @@ import os
 from datetime import datetime
 
 import requests
-from docker.types import Mount
 
 from airflow.decorators import task
-from airflow.models import Variable
-from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.utils.trigger_rule import TriggerRule
 
 from urllib.parse import urlparse
@@ -213,46 +210,3 @@ def s3_to_localfilesystem(s3_url=None, params=None):
     return paths
 
 
-class ContentHarvestDockerOperator(DockerOperator):
-    def __init__(self, collection_id, page, **kwargs):
-        mounts = []
-        if os.environ.get("CONTENT_DATA_MOUNT"):
-            mounts.append(Mount(
-                source=os.environ.get("CONTENT_DATA_MOUNT"),
-                target="/rikolti_data",
-                type="bind",
-            ))
-        if os.environ.get("CONTENT_MOUNT"):
-            mounts.append(Mount(
-                source=os.environ.get("CONTENT_MOUNT"),
-                target="/rikolti_content",
-                type="bind",
-            ))
-        if not mounts:
-            mounts=None
-
-        container_image = Variable.get(
-            'content_harvester_image',
-            default_var='public.ecr.aws/b6c7x7s4/rikolti/content_harvester'
-        )
-        container_version = Variable.get(
-            'content_harvester_version',
-            default_var='latest'
-        )
-        args = {
-            "image": f"{container_image}:{container_version}",
-            "container_name": f"content_harvester_{collection_id}_{page}",
-            "command": [f"{collection_id}", f"{page}"],
-            "network_mode": "bridge",
-            "auto_remove": 'force',
-            "mounts": mounts,
-            "mount_tmp_dir": False,
-            "environment": {
-                "CONTENT_DATA_SRC": os.environ.get("CONTENT_DATA_SRC"),
-                "CONTENT_DATA_DEST": os.environ.get("CONTENT_DATA_DEST"),
-                "CONTENT_DEST": os.environ.get("CONTENT_DEST"),
-                "NUXEO": os.environ.get("NUXEO"),
-            },
-        }
-        args.update(kwargs)
-        super().__init__(**args)

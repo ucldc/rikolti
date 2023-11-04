@@ -10,7 +10,8 @@ from rikolti.dags.shared_tasks import get_collection_metadata_task
 from rikolti.dags.shared_tasks  import map_page_task
 from rikolti.dags.shared_tasks  import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
-from rikolti.dags.shared_tasks import ContentHarvestDockerOperator
+from rikolti.dags.shared_content_harvester import ContentHarvestOperator
+
 
 @task()
 def get_mapped_page_filenames_task(mapped_pages):
@@ -45,7 +46,7 @@ def harvest():
     mapped_page_filenames = get_mapped_page_filenames_task(mapped_pages)
 
     content_harvest_task = (
-        ContentHarvestDockerOperator
+        ContentHarvestOperator
             .partial(
                 task_id="content_harvest", 
                 collection_id="{{ params.collection_id }}",
