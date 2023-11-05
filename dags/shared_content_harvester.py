@@ -52,7 +52,6 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                     }
                 ]
             },
-            "network_configuration": {"awsvpcConfiguration": get_awsvpc_config()},
             "region": "us-west-2",
             "awslogs_group": "rikolti-content_harvester",
             "awslogs_region": "us-west-2",
@@ -62,6 +61,19 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
         }
         args.update(kwargs)
         super().__init__(**args)
+
+    def execute(self, context):
+        # Operators are instantiated once per scheduler cycle per airflow task
+        # using them, regardless of whether or not that airflow task actually
+        # runs. The ContentHarvestEcsOperator is used by ecs_content_harvester
+        # DAG, regardless of whether or not we have proper credentials to call
+        # get_awsvpc_config(). Adding network configuration here in execute
+        # rather than in initialization ensures that we only call
+        # get_awsvpc_config() when the operator is actually run.
+        self.network_configuration = {
+            "awsvpcConfiguration": get_awsvpc_config()
+        }
+        return super().execute(context)
 
 
 class ContentHarvestDockerOperator(DockerOperator):
