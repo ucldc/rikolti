@@ -63,7 +63,7 @@ docker buildx build --platform linux/arm64,linux/amd64 -t public.ecr.aws/b6c7x7s
 ```
 
 # TODO:
-- md5 the thumbnails
 - change folder name "mapped_with_content"
 - tune log output (this module is v. noisy currently)
 - add error handling
+- the existing md5s3stash gets mime type and dimensions (and stashes in the md5 cache), but what does the image harvest do with mime type and dimensions after that data gets returned by md5s3stash (along with the s3 url and md5)
