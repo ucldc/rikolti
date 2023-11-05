@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import shutil
@@ -7,9 +8,11 @@ import boto3
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
+from urllib.parse import urlparse
 
 from . import derivatives
 from . import settings
+from .content_types import Media, Thumbnail
 
 
 class DownloadError(Exception):
@@ -198,7 +201,6 @@ class Thumbnail(Content):
         self.dest_prefix = "thumbnails"
 
     def create_derivatives(self):
-        # TODO: the image harvest md5 thing
         self.derivative_filepath = None
         if self.src_mime_type == 'image/jpeg':
             self.derivative_filepath = self.tmp_filepath
@@ -219,7 +221,7 @@ class Thumbnail(Content):
 class ContentHarvester(object):
 
     # context = {'collection_id': '12345', 'page_filename': '1.jsonl'}
-    def __init__(self, context=None, src_auth=None):
+    def __init__(self, context={}, src_auth=None):
         self.http = requests.Session()
 
         retry_strategy = Retry(
@@ -238,10 +240,9 @@ class ContentHarvester(object):
         else:
             self.s3 = None
 
-
     # returns content = {thumbnail, media, children} where children
     # is an array of the self-same content dictionary
-    def harvest(self, record) -> dict:
+    def harvest(self, record, download_cache={}) -> dict:
         calisphere_id = record.get('calisphere-id')
         collection_id = self.harvest_context.get('collection_id')
         page_filename = self.harvest_context.get('page_filename')
@@ -259,13 +260,24 @@ class ContentHarvester(object):
             if not content:
                 continue
 
-            content = content_cls(content)            
+            content = content_cls(content)
             if not content.downloaded():
-                self._download(content.src_url, content.tmp_filepath)
+                md5 = self._download(content.src_url, content.tmp_filepath, download_cache)
+            else:
+                md5 = download_cache.get(
+                    content.src_url,
+                    hashlib.md5(open(content.tmp_filepath, 'rb').read()).hexdigest()
+                )
             if not content.processed():
                 content.create_derivatives()
+
+            if field == 'thumbnail':
+                dest_filename = md5
+            else:
+                dest_filename = os.path.basename(content.derivative_filepath)
+
             content_s3_filepath = self._upload(
-                content.dest_prefix, content.derivative_filepath)
+                content.dest_prefix, dest_filename, content.derivative_filepath)
             content.set_s3_filepath(content_s3_filepath)
 
             # print(
@@ -286,57 +298,87 @@ class ContentHarvester(object):
                 f"[{collection_id}, {page_filename}, {calisphere_id}]: "
                 f"{len(child_records)} children found."
             )
-            record['children'] = [self.harvest(c) for c in child_records]
+            record['children'] = [self.harvest(c, download_cache=download_cache) for c in child_records]
 
         return record
 
-    def _download(self, url, destination_file):
+    def _download(self, url, destination_file, cache={}):
         '''
             download source file to local disk
         '''
-        # Weird how we have to use username/pass to hit this endpoint
-        # but we have to use auth token to hit API endpoint
+        if self.src_auth and urlparse(url).scheme != 'https':
+            raise DownloadError(f"Basic auth not over https is a bad idea! {url}")
+
+        cached_data = cache.get(url, {})
+
         request = {
             "url": url,
+            "auth": self.src_auth,
             "stream": True,
             "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
         }
-        if self.src_auth:
-            request['auth'] = self.src_auth
+        if cached_data:
+            request['headers'] = {
+                'If-None-Match': cached_data.get('If-None-Match'),
+                'If-Modified-Since': cached_data.get('If-Modified-Since')
+            }
+            request['headers'] = {k:v for k,v in request['headers'].items() if v}
 
-        try:
-            response = self.http.get(**request)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            raise DownloadError(
-                f"ERROR: failed to download source file: {err}"
-            )
+        response = self.http.get(**request)
+        response.raise_for_status()
 
+        # short-circuit here
+        if response.status_code == 304: # 304 - not modified
+            return cached_data.get('md5')
+
+        hasher = hashlib.new('md5')
         with open(destination_file, 'wb') as f:
-            for block in response.iter_content(1024):
+            for block in response.iter_content(1024 * hasher.block_size):
+                hasher.update(block)
                 f.write(block)
+        md5 = hasher.hexdigest()
 
+        cache_updates = {
+            'If-None-Match': response.headers.get('ETag'),
+            'If-Modified-Since': response.headers.get('Last-Modified'),
+            'Mime-Type': response.headers.get('Content-type'),
+            'md5': md5
+        }
+        cache_updates = {k:v for k,v in cache_updates.items() if v}
+        cache['url'] = cached_data.update(cache_updates)
 
-    def _upload(self, dest_prefix, filepath) -> str:
+        return md5
+
+    def _upload(self, dest_prefix, dest_filename, filepath, cache={}) -> str:
         '''
             upload file to CONTENT_DEST
         '''
-        filename = os.path.basename(filepath)
-        dest_path = None
+        if cache.get(dest_filename, {}).get('path'):
+            return cache[dest_filename]['path']
+
+        dest_path = ''
 
         if settings.CONTENT_DEST["STORE"] == 'file':
             dest_path = os.path.join(
                 settings.CONTENT_DEST["PATH"], dest_prefix)
             if not os.path.exists(dest_path):
                 os.makedirs(dest_path)
-            dest_path = os.path.join(dest_path, filename)
+            dest_path = os.path.join(dest_path, dest_filename)
             shutil.copyfile(filepath, dest_path)
 
         if settings.CONTENT_DEST["STORE"] == 's3':
             dest_path = (
-                f"{settings.CONTENT_DEST['PATH']}/{dest_prefix}/{filename}")
+                f"{settings.CONTENT_DEST['PATH']}/{dest_prefix}/{dest_filename}")
             self.s3.upload_file(
                 filepath, settings.CONTENT_DEST["BUCKET"], dest_path)
+
+        # (mime, dimensions) = image_info(filepath)
+        cache_updates = {
+            # 'mime': mime,
+            # 'dimensions': dimensions,
+            'path': dest_path
+        }
+        cache[dest_filename] = cache_updates
 
         return dest_path
 
@@ -345,11 +387,13 @@ class ContentHarvester(object):
 def harvest_page_content(collection_id, page_filename, **kwargs):
     rikolti_mapper_type = kwargs.get('rikolti_mapper_type')
 
+    # Weird how we have to use username/pass to hit this endpoint
+    # but we have to use auth token to hit API endpoint
     auth = None
     if rikolti_mapper_type == 'nuxeo.nuxeo':
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
     harvester = ContentHarvester(context={
-        'collection_id': collection_id, 
+        'collection_id': collection_id,
         'page_filename': page_filename
     }, src_auth=auth)
 
@@ -368,7 +412,7 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
         try:
             record_with_content = harvester.harvest(record)
             # write_mapped_record(
-            #     collection_id, record_with_content, harvester.s3)
+            #    collection_id, record_with_content, harvester.s3)
             if not record_with_content.get('thumbnail'):
                 warn_level = "ERROR"
                 if 'sound' in record.get('type', []):
