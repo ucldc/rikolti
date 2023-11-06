@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 
 from . import derivatives
 from . import settings
-from .content_types import Media, Thumbnail
 
 
 class DownloadError(Exception):
