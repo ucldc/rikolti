@@ -386,6 +386,9 @@ class Validator:
 
         Builds additional default keys/values as needed.
         """
+        if validation_result is True:
+            return
+
         if isinstance(validation_result, str):
             log_dict = {
                 "description": validation_result,
