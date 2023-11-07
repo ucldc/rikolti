@@ -25,10 +25,12 @@ class RikoltiStorage():
         """
         List all objects in s3_bucket with prefix s3_prefix
         """
-        keys = self.s3.list_objects_v2(
+        s3_objects = self.s3.list_objects_v2(
             Bucket=self.data_bucket, 
             Prefix=self.data_path
         )
+        # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
+        keys = [obj['Key'] for obj in s3_objects['Contents']]
         return keys
 
     def list_file_pages(self) -> list:
@@ -43,12 +45,12 @@ class RikoltiStorage():
 
     def search_page(self, search_str: str, page: str) -> bool:
         if self.data_store == 's3':
-            return self.search_s3_contents(search_str, page)
+            return self.search_s3_page(search_str, page)
         elif self.data_store == 'file':
-            return self.search_file_contents(search_str, page)
+            return self.search_file_page(search_str, page)
         else:
             raise Exception(f"Unknown data store: {self.data_store}")
-    
+
     def search_s3_page(self, search_str: str, s3_key: str) -> bool:
         """
         Check if search_str is in the body of the object located at s3_key
@@ -60,7 +62,7 @@ class RikoltiStorage():
             return True
         else:
             return False
-    
+
     def search_file_page(self, search_str: str, file_path: str) -> bool:
         """
         Check if search_str is in the body of the file located at file_path
@@ -72,26 +74,26 @@ class RikoltiStorage():
             else:
                 return False
 
-    def get_page_content(self, page: str):
+    def get_page_content(self):
         if self.data_store == 's3':
-            return self.get_s3_contents(page)
+            return self.get_s3_contents()
         elif self.data_store == 'file':
-            return self.get_file_contents(page)
+            return self.get_file_contents()
         else:
             raise Exception(f"Unknown data store: {self.data_store}")
-    
-    def get_s3_contents(self, s3_key: str):
+
+    def get_s3_contents(self):
         """
         Get the body of the object located at s3_key
         """
-        obj = self.s3.get_object(Bucket=self.data_bucket, Key=s3_key)
+        obj = self.s3.get_object(Bucket=self.data_bucket, Key=self.data_path)
         return obj['Body'].read().decode('utf-8')
     
-    def get_file_contents(self, file_path: str):
+    def get_file_contents(self):
         """
         Get the body of the file located at file_path
         """
-        with open(file_path, 'r') as f:
+        with open(self.data_path, 'r') as f:
             return f.read()
 
     def put_page_content(self, content:str, relative_path: Optional[str]=None):

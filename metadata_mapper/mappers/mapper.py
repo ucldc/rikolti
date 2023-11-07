@@ -19,7 +19,6 @@ from . import constants
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
 
-
 class UCLDCWriter(object):
     def __init__(self, collection_id: int, page_filename: str):
         self.collection_id = collection_id
@@ -55,36 +54,6 @@ class Vernacular(ABC, object):
     def __init__(self, collection_id: int, page_filename: str) -> None:
         self.collection_id = collection_id
         self.page_filename = page_filename
-
-    def get_api_response(self) -> dict:
-        if settings.DATA_SRC["STORE"] == 'file':
-            return self.get_local_api_response()
-        else:
-            return self.get_s3_api_response()
-
-    def get_local_api_response(self) -> str:
-        local_path = settings.local_path(
-            self.collection_id, 'vernacular_metadata')
-        page_path = os.sep.join([local_path, str(self.page_filename)])
-        page = open(page_path, "r")
-        api_response = page.read()
-        return api_response
-
-    def get_s3_api_response(self) -> str:
-        s3_client = boto3.client('s3')
-        if not self.page_filename.startswith(
-            f'{self.collection_id}/vernacular_metadata'):
-            self.page_filename = (
-                f"{self.collection_id}/vernacular_metadata/"
-                f"{self.page_filename}"
-            )
-
-        page = s3_client.get_object(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Key=self.page_filename
-        )
-        api_response = page['Body'].read()
-        return api_response
 
     def get_records(self, records):
         return [
