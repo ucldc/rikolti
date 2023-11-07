@@ -4,7 +4,7 @@ from typing import Any, Union
 
 from faker import Faker
 
-class FixtureGenerator:
+class TestHelper:
   """
   Generates fake data for use in mapper unit tests.
 
@@ -34,16 +34,19 @@ class FixtureGenerator:
   ]
 
   @classmethod
-  def for_mapper(cls, mapper_name: str) -> type["FixtureGenerator"]:
+  def for_mapper(cls, mapper_name: str) -> type["TestHelper"]:
     pass
 
   def __init__(self):
     self.faker = Faker()
     self.static = []
 
-  def generate(self, schema_index: int = 0) -> dict[str, Any]:
+  def prepare_record(self, record) -> None:
+    pass
+
+  def generate_fixture(self, schema_index: int = 0) -> dict[str, Any]:
     """
-    Generates the fixture.
+    Generates a test data fixture.
     """
     schema = { **self.DEFAULT_SCHEMA, **self.SCHEMA }
 

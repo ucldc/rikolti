@@ -2,9 +2,9 @@ from datetime import datetime
 from random import randint
 from typing import Any
 
-from .oai_fixture_generator import OaiFixtureGenerator
+from ..oai_helper import OaiTestHelper
 
-class ContentdmFixtureGenerator(OaiFixtureGenerator):
+class ContentdmTestHelper(OaiTestHelper):
   
   SCHEMA = {
     "contributor": "list_of_splittable_strings",

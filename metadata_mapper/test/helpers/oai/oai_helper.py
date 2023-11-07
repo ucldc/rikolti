@@ -4,9 +4,9 @@ from typing import Any
 
 from faker import Faker
 
-from ..fixture_generator import FixtureGenerator
+from ..test_helper import TestHelper
 
-class OaiFixtureGenerator(FixtureGenerator):
+class OaiTestHelper(TestHelper):
   
   DEFAULT_SCHEMA = {
     "contributor": str,
@@ -26,3 +26,6 @@ class OaiFixtureGenerator(FixtureGenerator):
     "title": str,
     "type": str
   }
+  
+  def prepare_record(self, record) -> None:
+    record.select_id(["id"])

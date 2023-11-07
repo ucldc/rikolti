@@ -1,43 +1,75 @@
+import importlib
 import os
 import pytest
+import re
+
+from typing import Type
 
 from unittest import mock
 
-from .fixtures.fixture_generator import FixtureGenerator
+from .helpers.test_helper import TestHelper
 
-@pytest.fixture
-def test_data(generator_class = FixtureGenerator):
-    generator = generator_class()
-    data = generator.generate()
-    yield data
+class TestMapper:
 
-def test_contentdm_mapper(test_data):
-    from ..mappers.oai.content_dm.contentdm_mapper import ContentdmRecord
+   DEFAULT_TEST_METHOD_NAME = "generic_mapper"
 
-    r = ContentdmRecord(test_data.get("collection_id") or 123, test_data)
-    r.legacy_couch_db_id = "asdf--asdf"
-    r.to_UCLDC()
+   def find_mappers_to_test(self, start_path = "metadata_mapper/mappers"):
+      ret = {}
 
-# This will loop through all mappers that don't have explicit test methods and
-# run them with default data
-def xtest_other_mappers(test_data):
-  for dir in os.scandir("../mappers"):
-     if dir.is_dir():
-        for file in os.scandir(dir.path):
-           if file.name.endswith("_mapper.py"):
-              name = file.name.replace("_mapper.py", "")
-              if f"test_{name}_mapper" in list(locals().keys()):
-                 print(f"Running mapper-specific test for {name}")
-                 continue
+      for dir in os.scandir(start_path):
+         if dir.is_dir():
+            ret = { **ret, **self.find_mappers_to_test(dir.path) }
+         elif dir.is_file() and dir.name.endswith("_mapper.py"):
+            path_regex_result = re.search("([\w\/]+?_mapper).py", dir.path)
+            if path_regex_result:
+               mapper_path = path_regex_result[1].replace("/", ".").lstrip(".")
+               mapper_name = mapper_path.split(".")[-1]
 
-              package = locals().get(f"{name}_mapper")
-              breakpoint()
-              if not package:
-                print(f"Mapper package not found for {name}")
-                continue
+               if f"test_{mapper_name}" in locals().keys():
+                  ret[mapper_path] = getattr(self, f"test_{mapper_name}")
+               else:
+                  ret[mapper_path] = getattr(self, self.DEFAULT_TEST_METHOD_NAME)
 
-              camelized_name = ''.join(name.capitalize() or "_" for x in name.split("_"))
-              record_class = package.getattr(f"{camelized_name}Record")
-              r = record_class(test_data["collection_id"], test_data)
-              print(f"OMG WE DID IT {name}")
-              r.to_UCLDC()
+      return ret
+
+   def get_helper(self, mapper_path) -> type["TestHelper"]:
+      module_parts = mapper_path.replace("_mapper", "").split(".")
+      helper_path = f"./helpers/{'/'.join(module_parts)}_helper.py"
+      if os.path.exists(helper_path):
+         helper_module_name = helper_path.replace("/", ".").rstrip(".py")
+         helper_class_name = f"{self.camelize(module_parts[-1])}TestHelper"
+         helper_module = importlib.import_module(helper_module_name)
+         return getattr(helper_module, helper_class_name)
+      else:
+         return TestHelper
+
+   def get_record(self, mapper_path, module) -> type["Mapper"]:
+      mapper_name = mapper_path.replace("_mapper", "").split(".")[-1]
+      class_name = f"{self.camelize(mapper_name)}Record"
+      return getattr(module, class_name)
+
+   def camelize(self, words: str) -> str:
+      return "".join([word.title() for word in words.split("_")])
+
+   def generic_mapper(self, record_class, test_data):
+      pass
+
+   # Test methods (invoked by pytest)
+
+   # This will loop through all mappers that don't have explicit test methods and
+   # run them with default data
+   def test_mappers(self):
+      default_test_method = getattr(self, self.DEFAULT_TEST_METHOD_NAME)
+      
+      mappers = [mapper for mapper, method in self.find_mappers_to_test().items()
+                 if method == default_test_method]
+
+      for mapper in mappers:
+         module = importlib.import_module(mapper)
+         helper = self.get_helper(mapper)()
+         record_class = self.get_record(mapper, module)
+         test_data = helper.generate_fixture()
+
+         default_test_method(record_class, test_data)
+
+         
