@@ -1,4 +1,5 @@
 import json
+import sys
 from .Fetcher import Fetcher, FetchError
 import requests
 from xml.etree import ElementTree
@@ -63,10 +64,15 @@ class UcdJsonFetcher(Fetcher):
             records = list(filter(None, [self.fetch_json_ld(url.text) for url in urls]))
             content = json.dumps(records)
 
-            if settings.DATA_DEST.get("STORE") == "file":
-                self.fetchtolocal(content)
-            else:
-                self.fetchtos3(content)
+            try:
+                self.data_destination.put_page_content(
+                    content, relative_path=(
+                        f"{self.collection_id}/vernacular_metadata/{self.write_page}"
+                    )
+                )
+            except Exception as e:
+                print(f"Metadata Fetcher: {e}", file=sys.stderr)
+                raise(e)
 
             self.write_page += 1
         return len(loc_nodes)
