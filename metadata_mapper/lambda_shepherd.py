@@ -1,8 +1,6 @@
 import json
-import os
 import sys
 
-import boto3
 import requests
 
 from urllib.parse import urlparse
@@ -10,6 +8,7 @@ from urllib.parse import urlparse
 from . import settings, validate_mapping
 from .lambda_function import map_page
 from .mappers.mapper import Record
+from rikolti.utils.rikolti_storage import RikoltiStorage
 
 
 def get_collection(collection_id):
@@ -39,34 +38,19 @@ def check_for_missing_enrichments(collection):
 
 
 def get_vernacular_pages(collection_id):
-    page_list = []
+    rikolti_data = RikoltiStorage(
+        f"{settings.DATA_SRC_URL}/{collection_id}/vernacular_metadata")
 
-    if settings.DATA_SRC["STORE"] == 'file':
-        vernacular_path = settings.local_path(
-            collection_id, 'vernacular_metadata')
-        try:
-            page_list = [f for f in os.listdir(vernacular_path)
-                         if os.path.isfile(os.path.join(vernacular_path, f))]
-            children_path = os.path.join(vernacular_path, 'children')
-            if os.path.exists(children_path):
-                page_list += [os.path.join('children', f)
-                              for f in os.listdir(children_path)
-                              if os.path.isfile(os.path.join(children_path, f))]
-        except FileNotFoundError as e:
-            print(
-                f"{e} - have you fetched {collection_id}? "
-                f"looked in dir {e.filename}"
-            )
-            raise(e)
-    elif settings.DATA_SRC["STORE"] == 's3':
-        s3_client = boto3.client('s3')
-        resp = s3_client.list_objects_v2(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"{collection_id}/vernacular_metadata"
+    try:
+        page_list = rikolti_data.list_pages()
+    except FileNotFoundError as e:
+        print(
+            f"{e} - have you fetched {collection_id}? "
+            f"looked in dir {e.filename} for vernacular pages"
         )
-        # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
-        page_list = [page['Key'] for page in resp['Contents']]
-        # TODO: split page_list into pages and children
+        raise(e)
+
+    # TODO: split page_list into pages and children
     return page_list
 
 

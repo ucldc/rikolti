@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import settings
 from .mappers.mapper import Record, UCLDCWriter, Vernacular
+from rikolti.utils.rikolti_storage import RikoltiStorage
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,9 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     vernacular_reader = import_vernacular_reader(
         collection.get('rikolti_mapper_type'))
     source_vernacular = vernacular_reader(collection_id, page_filename)
-    api_resp = source_vernacular.get_api_response()
+    storage = RikoltiStorage(f"{settings.DATA_SRC_URL}/{collection_id}/vernacular_metadata/{page_filename}")
+    api_resp = storage.get_page_content()
+
     source_metadata_records = source_vernacular.parse(api_resp)
 
     source_metadata_records = run_enrichments(
