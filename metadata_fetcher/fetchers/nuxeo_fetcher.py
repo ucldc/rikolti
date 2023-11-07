@@ -79,11 +79,6 @@ class NuxeoFetcher(Fetcher):
             }
 
         if self.nuxeo['query_type'] == 'children':
-            if settings.DATA_DEST != 's3':
-                path = self.get_local_path()
-                children_path = os.path.join(path, "children")
-                if not os.path.exists(children_path):
-                    os.mkdir(children_path)
             self.write_page = (
                 "children/"
                 f"{self.nuxeo['current_path']['uid']}-"
