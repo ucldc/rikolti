@@ -25,13 +25,17 @@ class UCLDCWriter(object):
         self.page_filename = page_filename
 
     def write_local_mapped_metadata(self, mapped_metadata):
-        local_path = settings.local_path(
-            self.collection_id, 'mapped_metadata')
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-        page_path = os.sep.join([local_path, str(self.page_filename)])
+        mapped_data_path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(self.collection_id),
+            'mapped_metadata',
+        ])
+
+        if not os.path.exists(mapped_data_path):
+            os.makedirs(mapped_data_path)
+        page_path = os.sep.join([mapped_data_path, str(self.page_filename)])
         if 'children' in page_path:
-            local_children_path = os.path.join(local_path, 'children')
+            local_children_path = os.path.join(mapped_data_path, 'children')
             if not os.path.exists(local_children_path):
                 os.makedirs(local_children_path)
         page = open(page_path, "w+")
