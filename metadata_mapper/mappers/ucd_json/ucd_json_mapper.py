@@ -14,7 +14,7 @@ class UcdJsonRecord(Record):
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.BASE_URL + self.source_metadata.get("@id"),
             "isShownBy": self.BASE_URL + self.source_metadata.get("thumbnailUrl"),
-            "title": self.mapped_data,
+            "title": self.map_title,
             "date": self.source_metadata.get("datePublished"),
             "description": self.map_description,
             "subject": self.map_subject,
@@ -23,7 +23,7 @@ class UcdJsonRecord(Record):
             "identifier": self.source_metadata.get("identifier"),
             "publisher": self.map_publisher,
             "type": self.source_metadata.get("type"),
-            "rightsURI": self.source_metadata.get("license")
+            "rightsURI": self.map_rights_uri,
         }
 
     def get_legacy_couch_id(self) -> str:
@@ -34,6 +34,8 @@ class UcdJsonRecord(Record):
 
     def map_title(self) -> list:
         value = self.source_metadata.get("name", [])
+        if not value:
+            return None
 
         if isinstance(value, list):
             return value
@@ -73,6 +75,8 @@ class UcdJsonRecord(Record):
 
         return [v.get("name") for v in value if "name" in v]
 
+    def map_rights_uri(self):
+        return self.source_metadata.get("license", None)
 
 class UcdJsonVernacular(Vernacular):
     record_cls = UcdJsonRecord
