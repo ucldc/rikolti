@@ -127,9 +127,13 @@ class OaiVernacular(Vernacular):
     # lxml parser requires bytes input or XML fragments without declaration,
     # so use 'rb' mode
     def get_local_api_response(self):
-        local_path = settings.local_path(
-            self.collection_id, 'vernacular_metadata')
-        page_path = os.sep.join([local_path, str(self.page_filename)])
+        vernacular_path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(self.collection_id),
+            'vernacular_metadata',
+        ])
+
+        page_path = os.sep.join([vernacular_path, str(self.page_filename)])
         page = open(page_path, "rb")
         api_response = page.read()
         return api_response

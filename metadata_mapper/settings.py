@@ -26,10 +26,3 @@ SOLR_URL = os.environ.get('UCLDC_SOLR_URL', False)
 SOLR_API_KEY = os.environ.get('UCLDC_SOLR_API_KEY', False)
 COUCH_URL = os.environ.get('UCLDC_COUCH_URL', False)
 
-def local_path(collection_id, folder):
-    local_path = os.sep.join([
-        DATA_SRC["PATH"],
-        str(collection_id),
-        folder,
-    ])
-    return local_path

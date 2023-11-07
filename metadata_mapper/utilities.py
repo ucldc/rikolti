@@ -52,7 +52,12 @@ def get_files(collection_id: int, directory: str) -> list[str]:
     Gets a list of filenames in a given directory.
     """
     if settings.DATA_SRC["STORE"] == "file":
-        path = settings.local_path(collection_id, directory)
+        path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(collection_id),
+            directory,
+        ])
+
         try:
             return [f for f in os.listdir(path)
                     if os.path.isfile(os.path.join(path, f))]
@@ -103,7 +108,9 @@ def read_from_bucket(collection_id: int, directory: str,
     """
     if settings.DATA_SRC["STORE"] == 'file':
         page_path = os.sep.join([
-            settings.local_path(collection_id, directory),
+            settings.DATA_SRC["PATH"],
+            str(collection_id),
+            directory,
             str(file_name)
         ])
         try:
@@ -173,7 +180,11 @@ def write_to_bucket(collection_id: int, directory: str,
         content = json.dumps(content)
 
     if settings.DATA_SRC["STORE"] == 'file':
-        dir_path = settings.local_path(collection_id, directory)
+        dir_path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(collection_id),
+            directory,
+        ])
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
         page_path = os.sep.join([dir_path, str(file_name)])

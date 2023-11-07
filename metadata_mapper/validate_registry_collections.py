@@ -59,7 +59,12 @@ def validate_endpoint(url):
                 continue
             results.append(collection_validation)
 
-            validation_path = settings.local_path(collection_id, 'validation')
+            validation_path = os.sep.join([
+                settings.DATA_SRC["PATH"],
+                str(collection_id),
+                'validation',
+            ])
+
             if not os.path.exists(validation_path):
                 os.makedirs(validation_path)
             page_path = os.sep.join([
