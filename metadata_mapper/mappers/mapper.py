@@ -8,28 +8,14 @@ from datetime import date, datetime
 from datetime import timezone
 from typing import Any, Callable
 
-import boto3
 from markupsafe import Markup
 
-from .. import settings
 from ..utilities import returns_callable
 from ..validator.validation_log import ValidationLog  # noqa: F401
 from ..validator.validator import Validator
 from . import constants
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
-
-class UCLDCWriter(object):
-    def __init__(self, collection_id: int, page_filename: str):
-        self.collection_id = collection_id
-        self.page_filename = page_filename
-
-    def write_mapped_metadata(self, mapped_metadata):
-        rikolti_data = RikoltiStorage(
-            f"{settings.DATA_DEST_URL}/{self.collection_id}/"
-            f"mapped_metadata/{self.page_filename}"
-        )
-        rikolti_data.write_page_content(json.dumps(mapped_metadata))
 
 
 class Vernacular(ABC, object):
