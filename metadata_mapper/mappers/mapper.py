@@ -26,7 +26,7 @@ class UCLDCWriter(object):
 
     def write_local_mapped_metadata(self, mapped_metadata):
         mapped_data_path = os.sep.join([
-            settings.DATA_SRC["PATH"],
+            settings.DATA_DEST["PATH"],
             str(self.collection_id),
             'mapped_metadata',
         ])

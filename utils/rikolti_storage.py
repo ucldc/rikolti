@@ -18,9 +18,22 @@ class RikoltiStorage():
 
     def list_pages(self, recursive=True, relative=True) -> list:
         if self.data_store == 's3':
-            return self.list_s3_pages(recursive=recursive, relative=relative)
+            try:
+                return self.list_s3_pages(recursive=recursive, relative=relative)
+            except Exception as e:
+                url = (
+                    f"https://{self.data_bucket}.s3.us-west-2.amazonaws"
+                    ".com/index.html#{self.data_path}/"
+                )
+                raise Exception(
+                    f"Error listing files at {self.data_url}\n"
+                    f"Check that {self.data_path} exists at {url}\n{e}"
+            )
         elif self.data_store == 'file':
-            return self.list_file_pages(recursive=recursive, relative=relative)
+            try:
+                return self.list_file_pages(recursive=recursive, relative=relative)
+            except Exception as e:
+                raise Exception(f"Error listing files in {path}\n{e}")
         else:
             raise Exception(f"Unknown data store: {self.data_store}")
 
@@ -113,15 +126,28 @@ class RikoltiStorage():
         """
         Get the body of the object located at s3_key
         """
-        obj = self.s3.get_object(Bucket=self.data_bucket, Key=self.data_path)
-        return obj['Body'].read().decode('utf-8')
+        try:
+            obj = self.s3.get_object(Bucket=self.data_bucket, Key=self.data_path)
+            return obj['Body'].read().decode('utf-8')
+        except Exception as e:
+            url = (
+                f"https://{self.data_bucket}.s3.us-west-2.amazonaws.com/"
+                "index.html#{self.data_path}/"
+            )
+            raise Exception(
+                f"Error reading file at {self.data_url}\nCheck: {url}\n{e}"
+            )
     
     def get_file_contents(self):
         """
         Get the body of the file located at file_path
         """
-        with open(self.data_path, 'r') as f:
-            return f.read()
+        try:
+            with open(self.data_path, 'r') as f:
+                return f.read()
+        except Exception as e:
+            raise Exception(f"Error reading {self.data_path}\n{e}")
+
 
     def put_page_content(self, content:str, relative_path: Optional[str]=None):
         """
