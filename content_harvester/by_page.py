@@ -11,6 +11,7 @@ from requests.adapters import HTTPAdapter, Retry
 from . import derivatives
 from . import settings
 
+from rikolti.utils.rikolti_storage import RikoltiStorage
 
 class DownloadError(Exception):
     pass
@@ -20,103 +21,40 @@ class UnsupportedMimetype(Exception):
     pass
 
 
-def get_mapped_records(collection_id, page_filename, s3_client) -> list:
+def get_mapped_records(collection_id, page_filename) -> list:
     mapped_records = []
-    if settings.DATA_SRC["STORE"] == 'file':
-        local_mapped_data_path = os.sep.join([
-            settings.DATA_SRC["PATH"],
-            str(collection_id),
-            'mapped_metadata',
-        ])
-
-        page_path = os.path.join(local_mapped_data_path, str(page_filename))
-        page = open(page_path, "r")
-        mapped_records = json.loads(page.read())
-    else:
-        page = s3_client.get_object(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Key=f"{collection_id}/mapped_metadata/{page_filename}"
-        )
-        mapped_records = json.loads(page['Body'].read())
+    rikolti_data = RikoltiStorage(
+        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/{page_filename}")
+    mapped_records = json.loads(rikolti_data.get_page_content())
     return mapped_records
 
 
-def write_mapped_record(collection_id, record, s3_client):
-    if settings.DATA_DEST["STORE"] == 'file':
-        local_path = os.sep.join([
-            settings.DATA_SRC["PATH"],
-            str(collection_id),
-            'mapped_with_content',
-        ])
-
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-        
-        # some ids have slashes
-        page_path = os.path.join(
-            local_path,
-            record.get('calisphere-id').replace(os.sep, '_')
-        )
-        
-        page = open(page_path, "w")
-        page.write(json.dumps(record))
-    else:
-        upload_status = s3_client.put_object(
-            Bucket=settings.DATA_DEST["BUCKET"],
-            Key=(
-                f"{collection_id}/mapped_with_content/"
-                f"{record.get('calisphere-id')}"
-            ),
-            Body=json.dumps(record)
-        )
-        print(f"Upload status: {upload_status}")
+def write_mapped_record(collection_id, record):
+    rikolti_data = RikoltiStorage(
+        f"{settings.DATA_DEST_URL}/{collection_id}/mapped_with_content/"
+        f"{record.get('calisphere-id').replace(os.sep, '_')}"
+    )
+    rikolti_data.put_page_content(json.dumps(record))
 
 
 def write_mapped_page(collection_id, page, records):
-    if settings.DATA_DEST["STORE"] == 'file':
-        local_path = os.sep.join([
-            settings.DATA_SRC["PATH"],
-            str(collection_id),
-            'mapped_with_content',
-        ])
-
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-        page_path = os.path.join(local_path, page)
-        page = open(page_path, "w")
-        page.write(json.dumps(records))
+    rikolti_data = RikoltiStorage(
+        f"{settings.DATA_DEST_URL}/{collection_id}/mapped_with_content/{page}"
+    )
+    rikolti_data.put_page_content(json.dumps(records))
 
 
 def get_child_records(collection_id, parent_id, s3_client) -> list:
     mapped_child_records = []
-    if settings.DATA_SRC["STORE"] == 'file':
-        local_path = os.sep.join([
-            settings.DATA_SRC["PATH"],
-            str(collection_id),
-            'mapped_metadata',
-        ])
-
-        children_path = os.path.join(local_path, 'children')
-
-        if os.path.exists(children_path):
-            child_pages = [file for file in os.listdir(children_path)
-                        if file.startswith(parent_id)]
-            for child_page in child_pages:
-                child_page_path = os.path.join(children_path, child_page)
-                page = open(child_page_path, "r")
-                mapped_child_records.extend(json.loads(page.read()))
-    else:
-        child_pages = s3_client.list_objects_v2(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"{collection_id}/mapped_metadata/children/{parent_id}"
-        )
-        for child_page in child_pages['Contents']:
-            page = s3_client.get_object(
-                Bucket=settings.DATA_SRC["BUCKET"],
-                Key=child_page['Key']
-            )
-            mapped_child_records.extend(json.loads(page['Body'].read()))
-
+    rikolti_data = RikoltiStorage(
+        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/children")
+    children = rikolti_data.list_pages(recursive=False, relative=False)
+    if rikolti_data.data_store == 'file':
+        children = [page for page in children
+                    if os.path.basename(page).startswith(parent_id)]
+    for child in children:
+        child_data = RikoltiStorage(child)
+        mapped_child_records.extend(json.loads(child_data.get_page_content()))
     return mapped_child_records
 
 
@@ -373,7 +311,7 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
         'page_filename': page_filename
     }, src_auth=auth)
 
-    records = get_mapped_records(collection_id, page_filename, harvester.s3)
+    records = get_mapped_records(collection_id, page_filename)
     print(
         f"[{collection_id}, {page_filename}]: "
         f"Harvesting content for {len(records)} records"
@@ -388,7 +326,7 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
         try:
             record_with_content = harvester.harvest(record)
             # write_mapped_record(
-            #     collection_id, record_with_content, harvester.s3)
+            #     collection_id, record_with_content)
             if not record_with_content.get('thumbnail'):
                 warn_level = "ERROR"
                 if 'sound' in record.get('type', []):

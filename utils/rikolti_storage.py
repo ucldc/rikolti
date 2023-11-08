@@ -7,14 +7,15 @@ from urllib.parse import urlparse
 from typing import Optional
 
 class RikoltiStorage():
-    def __init__(self, data_url: str):
+    def __init__(self, data_url: str, **kwargs):
         self.data_url = data_url
         data_loc = urlparse(data_url)
         self.data_store = data_loc.scheme
         self.data_bucket = data_loc.netloc
         self.data_path = data_loc.path
 
-        self.s3 = boto3.client('s3')
+        if self.data_store == 's3':
+            self.s3 = boto3.client('s3', **kwargs)
 
     def list_pages(self, recursive=True, relative=True) -> list:
         if self.data_store == 's3':
