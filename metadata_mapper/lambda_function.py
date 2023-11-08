@@ -6,7 +6,7 @@ from typing import Union
 from urllib.parse import parse_qs, urlparse
 
 from . import settings
-from .mappers.mapper import Record, UCLDCWriter, Vernacular
+from .mappers.mapper import Record, Vernacular
 from rikolti.utils.rikolti_storage import RikoltiStorage
 
 logger = logging.getLogger(__name__)
@@ -94,10 +94,13 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
         record.to_UCLDC()
     mapped_records = source_metadata_records
 
-    writer = UCLDCWriter(collection_id, page_filename)
     # TODO: write interim mapped but not enriched metadata to s3?
-    #     writer.write_mapped_metadata(
-    #         [record.to_dict() for record in mapped_records])
+    # rikolti_data = RikoltiStorage(
+    #     f"{settings.DATA_DEST_URL}/{collection_id}/"
+    #     f"interim_mapped_metadata/{page_filename}"
+    # )
+    # rikolti_data.put_page_content(json.dumps(
+    #     [record.to_dict() for record in mapped_records]))
 
     mapped_records = run_enrichments(
         mapped_records, collection, 'rikolti__enrichments', page_filename)
@@ -125,7 +128,11 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    writer.write_mapped_metadata(mapped_metadata)
+    rikolti_data = RikoltiStorage(
+        f"{settings.DATA_DEST_URL}/{collection_id}/"
+        f"mapped_metadata/{page_filename}"
+    )
+    rikolti_data.put_page_content(json.dumps(mapped_metadata))
 
     return {
         'status': 'success',
