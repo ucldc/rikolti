@@ -51,7 +51,7 @@ def get_files(collection_id: int, directory: str) -> list[str]:
     """
     rikolti_data = RikoltiStorage(
         f"{settings.DATA_SRC_URL}/{collection_id}/{directory}")
-    rikolti_data.list_pages(recursive=False, relative=True)
+    return rikolti_data.list_pages(recursive=False, relative=True)
 
 
 def read_from_bucket(collection_id: int, directory: str,
@@ -113,7 +113,7 @@ def write_to_bucket(collection_id: int, directory: str,
     if isinstance(content, list) or isinstance(content, dict):
         content = json.dumps(content)
 
-    rikolti_data = RikoltiStorage(f"{settings.DATA_SRC_URL}/{collection_id}/{directory}")
+    rikolti_data = RikoltiStorage(f"{settings.DATA_SRC_URL}/{collection_id}/{directory}/")
     rikolti_data.put_page_content(content, str(file_name))
     file_location = f"{settings.DATA_SRC_URL}/{collection_id}/{directory}/{file_name}"
 

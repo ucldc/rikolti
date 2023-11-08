@@ -47,7 +47,7 @@ def write_mapped_page(collection_id, page, records):
     rikolti_data.put_page_content(json.dumps(records))
 
 
-def get_child_records(collection_id, parent_id, s3_client) -> list:
+def get_child_records(collection_id, parent_id) -> list:
     mapped_child_records = []
     rikolti_data = RikoltiStorage(
         f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/children")
@@ -249,7 +249,7 @@ class ContentHarvester(object):
 
         # Recurse through the record's children (if any)
         child_records = get_child_records(
-            self.collection_id, calisphere_id, self.s3)
+            self.collection_id, calisphere_id)
         if child_records:
             print(
                 f"[{self.collection_id}, {self.page_filename}, {calisphere_id}]: "

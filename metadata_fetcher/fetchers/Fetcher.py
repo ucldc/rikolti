@@ -26,7 +26,10 @@ class Fetcher(object):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        self.data_destination = RikoltiStorage(settings.DATA_DEST_URL)
+        self.data_destination = RikoltiStorage(
+            f"{settings.DATA_DEST_URL}/{self.collection_id}/"
+            "vernacular_metadata/"
+        )
 
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
@@ -49,9 +52,7 @@ class Fetcher(object):
             content = self.aggregate_vernacular_content(response.text)
             try:
                 self.data_destination.put_page_content(
-                    content, relative_path=(
-                        f"{self.collection_id}/vernacular_metadata/{self.write_page}"
-                    )
+                    content, relative_path=f"{self.write_page}"
                 )
             except Exception as e:
                 print(f"Metadata Fetcher: {e}")
