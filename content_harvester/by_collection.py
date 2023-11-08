@@ -1,38 +1,19 @@
 import json
-import os
-
-import boto3
 
 from . import settings
 from .by_page import harvest_page_content
-
+from rikolti.utils.rikolti_storage import RikoltiStorage
 
 def get_mapped_pages(collection_id):
     page_list = []
-    if settings.DATA_SRC['STORE'] == 'file':
-        mapped_path = os.sep.join([
-            settings.DATA_SRC["PATH"],
-            str(collection_id),
-            'mapped_metadata',
-        ])
-        try:
-            page_list = [f for f in os.listdir(mapped_path)
-                            if os.path.isfile(os.path.join(mapped_path, f))]
-        except FileNotFoundError as e:
-            print(f"{e} - have you mapped {collection_id}?")
-    else:
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            aws_session_token=settings.AWS_SESSION_TOKEN,
-            region_name=settings.AWS_REGION
-        )
-        response = s3_client.list_objects_v2(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f'{collection_id}/mapped_metadata/'
-        )
-        page_list = [obj['Key'].split('/')[-1] for obj in response['Contents']]
+    rikolti_data = RikoltiStorage(
+        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata",
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        aws_session_token=settings.AWS_SESSION_TOKEN,
+        region_name=settings.AWS_REGION
+    )
+    page_list = rikolti_data.list_pages(recursive=False, relative=True)
     return page_list
 
 
