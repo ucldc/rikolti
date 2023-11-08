@@ -26,8 +26,13 @@ class UnsupportedMimetype(Exception):
 def get_mapped_records(collection_id, page_filename, s3_client) -> list:
     mapped_records = []
     if settings.DATA_SRC["STORE"] == 'file':
-        local_path = settings.local_path(collection_id, 'mapped_metadata')
-        page_path = os.path.join(local_path, str(page_filename))
+        local_mapped_data_path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(collection_id),
+            'mapped_metadata',
+        ])
+
+        page_path = os.path.join(local_mapped_data_path, str(page_filename))
         page = open(page_path, "r")
         mapped_records = json.loads(page.read())
     else:
@@ -41,7 +46,12 @@ def get_mapped_records(collection_id, page_filename, s3_client) -> list:
 
 def write_mapped_record(collection_id, record, s3_client):
     if settings.DATA_DEST["STORE"] == 'file':
-        local_path = settings.local_path(collection_id, 'mapped_with_content')
+        local_path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(collection_id),
+            'mapped_with_content',
+        ])
+
         if not os.path.exists(local_path):
             os.makedirs(local_path)
         
@@ -67,7 +77,12 @@ def write_mapped_record(collection_id, record, s3_client):
 
 def write_mapped_page(collection_id, page, records):
     if settings.DATA_DEST["STORE"] == 'file':
-        local_path = settings.local_path(collection_id, 'mapped_with_content')
+        local_path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(collection_id),
+            'mapped_with_content',
+        ])
+
         if not os.path.exists(local_path):
             os.makedirs(local_path)
         page_path = os.path.join(local_path, page)
@@ -78,7 +93,12 @@ def write_mapped_page(collection_id, page, records):
 def get_child_records(collection_id, parent_id, s3_client) -> list:
     mapped_child_records = []
     if settings.DATA_SRC["STORE"] == 'file':
-        local_path = settings.local_path(collection_id, 'mapped_metadata')
+        local_path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(collection_id),
+            'mapped_metadata',
+        ])
+
         children_path = os.path.join(local_path, 'children')
 
         if os.path.exists(children_path):
