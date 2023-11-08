@@ -96,8 +96,7 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
 
     writer = UCLDCWriter(collection_id, page_filename)
     # TODO: write interim mapped but not enriched metadata to s3?
-    # if settings.DATA_DEST["STORE"] == 'file':
-    #     writer.write_local_mapped_metadata(
+    #     writer.write_mapped_metadata(
     #         [record.to_dict() for record in mapped_records])
 
     mapped_records = run_enrichments(
@@ -126,10 +125,7 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    if settings.DATA_DEST["STORE"] == 'file':
-        writer.write_local_mapped_metadata(mapped_metadata)
-    else:
-        writer.write_s3_mapped_metadata(mapped_metadata)
+    writer.write_mapped_metadata(mapped_metadata)
 
     return {
         'status': 'success',

@@ -24,34 +24,12 @@ class UCLDCWriter(object):
         self.collection_id = collection_id
         self.page_filename = page_filename
 
-    def write_local_mapped_metadata(self, mapped_metadata):
-        mapped_data_path = os.sep.join([
-            settings.DATA_DEST["PATH"],
-            str(self.collection_id),
-            'mapped_metadata',
-        ])
-
-        if not os.path.exists(mapped_data_path):
-            os.makedirs(mapped_data_path)
-        page_path = os.sep.join([mapped_data_path, str(self.page_filename)])
-        if 'children' in page_path:
-            local_children_path = os.path.join(mapped_data_path, 'children')
-            if not os.path.exists(local_children_path):
-                os.makedirs(local_children_path)
-        page = open(page_path, "w+")
-        page.write(json.dumps(mapped_metadata))
-
-    def write_s3_mapped_metadata(self, mapped_metadata):
-        s3_client = boto3.client('s3')
-        key = (
-            f"{self.collection_id}/mapped_metadata/"
-            f"{self.page_filename.split('/')[-1]}"
+    def write_mapped_metadata(self, mapped_metadata):
+        rikolti_data = RikoltiStorage(
+            f"{settings.DATA_DEST_URL}/{self.collection_id}/"
+            f"mapped_metadata/{self.page_filename}"
         )
-        s3_client.put_object(
-            ACL='bucket-owner-full-control',
-            Bucket=settings.DATA_DEST["BUCKET"],
-            Key=key,
-            Body=json.dumps(mapped_metadata))
+        rikolti_data.write_page_content(json.dumps(mapped_metadata))
 
 
 class Vernacular(ABC, object):
