@@ -66,9 +66,7 @@ class UcdJsonFetcher(Fetcher):
 
             try:
                 self.data_destination.put_page_content(
-                    content, relative_path=(
-                        f"{self.collection_id}/vernacular_metadata/{self.write_page}"
-                    )
+                    content, relative_path=f"{self.write_page}"
                 )
             except Exception as e:
                 print(f"Metadata Fetcher: {e}", file=sys.stderr)
