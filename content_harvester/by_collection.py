@@ -10,7 +10,11 @@ from .by_page import harvest_page_content
 def get_mapped_pages(collection_id):
     page_list = []
     if settings.DATA_SRC['STORE'] == 'file':
-        mapped_path = settings.local_path(collection_id, 'mapped_metadata')
+        mapped_path = os.sep.join([
+            settings.DATA_SRC["PATH"],
+            str(collection_id),
+            'mapped_metadata',
+        ])
         try:
             page_list = [f for f in os.listdir(mapped_path)
                             if os.path.isfile(os.path.join(mapped_path, f))]

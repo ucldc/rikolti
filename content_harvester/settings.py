@@ -41,11 +41,3 @@ CONTENT_PROCESSES = {
     'ffmpeg': '/usr/bin/ffmpeg',
     'ffprobe': '/usr/bin/ffprobe',
 }
-
-def local_path(collection_id, folder):
-    local_path = os.sep.join([
-        DATA_SRC["PATH"],
-        str(collection_id),
-        folder,
-    ])
-    return local_path
