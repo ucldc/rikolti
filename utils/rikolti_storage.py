@@ -1,5 +1,8 @@
 import os
+import re
+
 import boto3
+
 from urllib.parse import urlparse
 from typing import Optional
 
@@ -13,15 +16,15 @@ class RikoltiStorage():
 
         self.s3 = boto3.client('s3')
 
-    def list_pages(self) -> list:
+    def list_pages(self, recursive=True, relative=True) -> list:
         if self.data_store == 's3':
-            return self.list_s3_pages()
+            return self.list_s3_pages(recursive=recursive, relative=relative)
         elif self.data_store == 'file':
-            return self.list_file_pages()
+            return self.list_file_pages(recursive=recursive, relative=relative)
         else:
             raise Exception(f"Unknown data store: {self.data_store}")
 
-    def list_s3_pages(self) -> list:
+    def list_s3_pages(self, recursive=True, relative=True) -> list:
         """
         List all objects in s3_bucket with prefix s3_prefix
         """
@@ -30,17 +33,41 @@ class RikoltiStorage():
             Prefix=self.data_path
         )
         # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
-        keys = [obj['Key'] for obj in s3_objects['Contents']]
+
+        keys = [f"s3://{self.data_bucket}/{obj['Key']}" for obj in s3_objects['Contents']]
+        prefix = "s3://{self.data_bucket}/{self.data_path}"
+
+        if not recursive:
+            # prune deeper branches
+            leaf_regex = re.escape(prefix) + r"^\/?[\w!'_.*()-]+\/?$"
+            keys = [key for key in keys if re.match(leaf_regex, key)]
+
+        if relative:
+            keys = [key[len(prefix):] for key in keys]
+
         return keys
 
-    def list_file_pages(self) -> list:
+    def list_file_pages(self, recursive=True, relative=True) -> list:
         """
         List all files in file_path
         """
         file_objects = []
-        for root, dirs, files in os.walk(self.data_path):
-            for file in files:
-                file_objects.append(os.path.join(root, file))
+        if recursive:
+            for root, dirs, files in os.walk(self.data_path):
+                root_uri = "file://{root}/" if root[-1] != '/' else "file://{root}"
+                for file in files:
+                    file_objects.append(f"{root_uri}{file}")
+
+        if not recursive:
+            for file in os.listdir(self.data_path):
+                if os.path.isfile(os.path.join(self.data_path, file)):
+                    root_uri = "file://{self.data_path}/" if self.data_path[-1] != '/' else "file://{self.data_path}"
+                    file_objects.append(f"{root_uri}{file}")
+
+        if relative:
+            prefix = "file://{self.data_path}/"
+            file_objects = [file[len(prefix):] for file in file_objects]
+
         return file_objects
 
     def search_page(self, search_str: str, page: str) -> bool:

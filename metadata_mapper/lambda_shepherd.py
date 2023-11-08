@@ -42,7 +42,7 @@ def get_vernacular_pages(collection_id):
         f"{settings.DATA_SRC_URL}/{collection_id}/vernacular_metadata")
 
     try:
-        page_list = rikolti_data.list_pages()
+        page_list = rikolti_data.list_pages(relative=True)
     except FileNotFoundError as e:
         print(
             f"{e} - have you fetched {collection_id}? "
