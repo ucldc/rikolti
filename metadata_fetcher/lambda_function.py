@@ -28,10 +28,11 @@ def fetch_collection(payload, vernacular_version, context):
     logger.debug(f"fetch_collection payload: {payload}")
 
     fetcher_class = import_fetcher(payload.get('harvest_type'))
+    payload.update({'vernacular_version': vernacular_version})
 
     fetch_status = []
     try:
-        fetcher = fetcher_class(payload, vernacular_version)
+        fetcher = fetcher_class(payload)
         fetch_status.append(fetcher.fetch_page())
     except InvalidHarvestEndpoint as e:
         logger.error(e)

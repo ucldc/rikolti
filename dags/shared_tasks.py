@@ -43,8 +43,7 @@ def get_collection_fetchdata_task(params=None):
 
 @task()
 def create_vernacular_version_task(collection):
-    vernacular_version = create_vernacular_version(collection.get('id'))
-    return vernacular_version
+    return create_vernacular_version(collection.get('collection_id'))
 
 
 @task()
