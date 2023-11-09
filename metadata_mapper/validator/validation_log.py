@@ -2,7 +2,8 @@ from datetime import datetime
 from enum import Enum
 from typing import IO, Any
 
-from .. import utilities
+from .. import settings
+from rikolti.utils.rikolti_storage import put_page_content
 
 
 class ValidationLogLevel(Enum):
@@ -110,7 +111,7 @@ class ValidationLog:
             f.write(self._csv_content_string(include_fields, append))
 
     def output_csv_to_bucket(self, collection_id: int, filename: str = None,
-                             include_fields: list[str] = None) -> None:
+                             include_fields: list[str] = None) -> str:
         """
         Writes a CSV to the env-appropriate bucket (local or S3).
 
@@ -126,11 +127,15 @@ class ValidationLog:
         if not filename:
             filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
 
-        file_location = utilities.write_to_bucket(
-            collection_id, "validation", filename,
-            self._csv_content_string(include_fields))
+        content = self._csv_content_string(include_fields)
+        if isinstance(content, list) or isinstance(content, dict):
+            content = json.dumps(content)
+
+        file_location = f"{settings.DATA_SRC_URL}/{collection_id}/validation/{filename}"
+        put_page_content(content, file_location)
         
         return file_location
+
 
     def _csv_content(self, include_fields: list[str] = None,
                      include_headers: bool = True) -> list[list[str]]:

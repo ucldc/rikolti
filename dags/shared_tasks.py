@@ -39,10 +39,9 @@ def get_collection_fetchdata_task(params=None):
 @task()
 def fetch_collection_task(collection: dict):
     fetch_status = fetch_collection(collection, {})
-
     success = all([page['status'] == 'success' for page in fetch_status])
     total_items = sum([page['document_count'] for page in fetch_status])
-    total_pages = fetch_status[-1]['page'] + 1
+    total_pages = len(fetch_status)
     diff_items = total_items - collection['solr_count']
     date = datetime.strptime(
         collection['solr_last_updated'],
@@ -67,9 +66,12 @@ def fetch_collection_task(collection: dict):
             f"{'more' if diff_items > 0 else 'fewer'} items."
         )
 
-    return [
-        str(page['page']) for page in fetch_status if page['status']=='success'
-    ]
+    vernacular_filepaths = [page['vernacular_filepath'] for page in fetch_status]
+    if not vernacular_filepaths or not success:
+        raise Exception(
+            'vernacular metadata not successfully fetched\n{fetch_status}')
+
+    return vernacular_filepaths
 
 
 @task()

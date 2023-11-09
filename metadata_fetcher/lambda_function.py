@@ -28,28 +28,29 @@ def fetch_collection(payload, context):
 
     fetcher_class = import_fetcher(payload.get('harvest_type'))
 
-    fetch_status = {'page': payload.get('write_page', 0), 'document_count': 0}
+    fetch_status = []
     try:
         fetcher = fetcher_class(payload)
-        fetch_status['document_count'] = fetcher.fetch_page()
+        fetch_status.append(fetcher.fetch_page())
     except InvalidHarvestEndpoint as e:
         logger.error(e)
-        fetch_status.update({
+        fetch_status.append({
             'status': 'error',
             'body': json.dumps({
                 'error': repr(e),
                 'payload': payload
             })
         })
-        return [fetch_status]
+        return fetch_status
 
     next_page = fetcher.json()
-    fetch_status.update({
-        'status': 'success',
-        'next_page': next_page
-    })
 
-    fetch_status = [fetch_status]
+    # this is a ucd json fetcher workaround
+    # TODO: could be cleaner to stash ucd's table of contents in a known
+    # location and have each iteration of the fetcher reference that location,
+    # then we could resolve this difference in return values
+    if len(fetch_status) == 1 and type(fetch_status[0]) == list:
+        fetch_status = fetch_status[0]
 
     if not json.loads(next_page).get('finished'):
         fetch_status.extend(fetch_collection(next_page, {}))

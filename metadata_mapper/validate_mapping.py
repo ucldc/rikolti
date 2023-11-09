@@ -10,6 +10,7 @@ from . import settings, utilities
 from .validator.validation_log import ValidationLogLevel
 from .validator.validation_mode import ValidationMode
 from .validator.validator import Validator
+from rikolti.utils.rikolti_storage import list_pages, get_page_content
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -49,13 +50,18 @@ def validate_collection(collection_id: int,
                                     log_level = log_level,
                                     verbose = verbose)
 
-    for page_id in utilities.get_files(collection_id, "mapped_metadata"):
-        validate_page(collection_id, page_id, validator)
+    mapped_pages = list_pages(
+        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/",
+        recursive=False
+    )
+
+    for page_path in mapped_pages:
+        validate_page(collection_id, page_path, validator)
 
     return validator
 
 
-def validate_page(collection_id: int, page_id: int,
+def validate_page(collection_id: int, page_path: str,
                   validator: Validator) -> Validator:
     """
     Validates a provided page of a provided collection of mapped data.
@@ -63,8 +69,8 @@ def validate_page(collection_id: int, page_id: int,
     Parameters:
         collection_id: int
             The collection ID
-        page_id: int
-            The page number within the collection
+        page_path: str
+            The absolute path to a page within the collection
         validator: Validator
             The validator instance to use
 
@@ -73,10 +79,10 @@ def validate_page(collection_id: int, page_id: int,
     """
     context = {
         "collection_id": collection_id,
-        "page_id": page_id
+        "page_path": page_path
     }
     mapped_metadata = validator.generate_keys(
-                        get_mapped_data(collection_id, page_id),
+                        get_mapped_data(page_path),
                         type="Rikolti",
                         context=context
                       )
@@ -117,8 +123,8 @@ def create_collection_validation_csv(collection_id: int, **options) -> tuple[int
 ## Private-ish
 
 
-def get_mapped_data(collection_id: int, page_id: int) -> dict:
-    return utilities.read_mapped_metadata(collection_id, page_id)
+def get_mapped_data(page_path: str) -> list[dict]:
+    return json.loads(get_page_content(page_path))
 
 
 def get_comparison_data(collection_id: int, harvest_ids: list[str]) -> list[dict]:

@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from . import settings, validate_mapping
 from .lambda_function import map_page
 from .mappers.mapper import Record
-from rikolti.utils.rikolti_storage import RikoltiStorage
+from rikolti.utils.rikolti_storage import list_pages
 
 
 def get_collection(collection_id):
@@ -38,11 +38,11 @@ def check_for_missing_enrichments(collection):
 
 
 def get_vernacular_pages(collection_id):
-    rikolti_data = RikoltiStorage(
-        f"{settings.DATA_SRC_URL}/{collection_id}/vernacular_metadata")
-
     try:
-        page_list = rikolti_data.list_pages(relative=True)
+        page_list = list_pages(
+            f"{settings.DATA_SRC_URL}/{collection_id}/vernacular_metadata",
+            recursive=True
+        )
     except FileNotFoundError as e:
         print(
             f"{e} - have you fetched {collection_id}? "
