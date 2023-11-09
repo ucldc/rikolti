@@ -4,6 +4,7 @@ from airflow.decorators import dag, task
 from airflow.models.param import Param
 
 
+from rikolti.dags.shared_tasks import create_vernacular_version_task
 from rikolti.dags.shared_tasks import fetch_collection_task
 from rikolti.dags.shared_tasks import get_collection_fetchdata_task
 from rikolti.dags.shared_tasks import get_collection_metadata_task
@@ -33,7 +34,9 @@ def harvest():
     fetchdata = get_collection_fetchdata_task()
     collection = get_collection_metadata_task()
 
-    fetched_pages = fetch_collection_task(collection=fetchdata)
+    vernacular_version = create_vernacular_version_task(collection=fetchdata)
+    fetched_pages = fetch_collection_task(
+        collection=fetchdata, vernacular_version=vernacular_version)
     mapped_pages = (
         map_page_task
             .partial(collection=collection)

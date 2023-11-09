@@ -3,7 +3,7 @@ import requests
 import os
 
 from requests.adapters import HTTPAdapter, Retry
-from rikolti.utils.rikolti_storage import create_vernacular_version, put_page_content
+from rikolti.utils.rikolti_storage import put_page_content
 
 
 logger = logging.getLogger(__name__)
@@ -22,11 +22,11 @@ class FetchError(Exception):
 
 
 class Fetcher(object):
-    def __init__(self, params):
+    def __init__(self, params, vernacular_data_version):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        self.data_destination = create_vernacular_version(self.collection_id)
+        self.data_destination = vernacular_data_version
 
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
