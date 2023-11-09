@@ -22,11 +22,12 @@ class FetchError(Exception):
 
 
 class Fetcher(object):
-    def __init__(self, params, vernacular_data_version):
+    def __init__(self, params):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        self.data_destination = vernacular_data_version
+        self.data_destination = params.get('vernacular_version')
+
 
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
@@ -51,7 +52,6 @@ class Fetcher(object):
             try:
                 filepath = put_page_content(
                     content, f"{self.data_destination}data/{self.write_page}")
-                print(filepath)
             except Exception as e:
                 print(f"Metadata Fetcher: {e}")
                 raise(e)
