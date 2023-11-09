@@ -1,6 +1,5 @@
 import json
 import math
-import os
 import sys
 
 from typing import Optional
@@ -11,6 +10,7 @@ from xml.etree import ElementTree
 from bs4 import BeautifulSoup
 
 from .Fetcher import Fetcher, FetchError
+from rikolti.utils.rikolti_storage import put_page_content
 
 class UcdJsonFetcher(Fetcher):
     def __init__(self, params: dict[str]):
@@ -69,8 +69,8 @@ class UcdJsonFetcher(Fetcher):
             records = [self.fetch_json_ld(url) for url in urls]
             document_count = len(records)
             try:
-                filepath = self.data_destination.save_fetched_content(
-                    json.dumps(records), self.write_page)
+                filepath = put_page_content(
+                    json.dumps(records), f"{self.data_destination}data/{self.write_page}")
                 fetch_status.append({
                     'document_count': document_count,
                     'vernacular_filepath': filepath,
