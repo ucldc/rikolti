@@ -17,6 +17,7 @@ from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.create_collection_index import get_index_name
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
+from rikolti.utils.rikolti_storage import create_mapped_version
 from rikolti.utils.rikolti_storage import create_vernacular_version
 
 
@@ -99,11 +100,11 @@ def get_collection_metadata_task(params=None):
 # max_active_tis_per_dag - setting on the task to restrict how many
 # instances can be running at the same time, *across all DAG runs*
 @task()
-def map_page_task(page: str, collection: dict):
+def map_page_task(page: str, collection: dict, mapped_data_version: str):
     collection_id = collection.get('id')
-    if not collection_id:
+    if not collection_id or not mapped_data_version:
         return False
-    mapped_page = map_page(collection_id, page, collection)
+    mapped_page = map_page(collection_id, page, mapped_data_version, collection)
     return mapped_page
 
 
@@ -111,6 +112,13 @@ def map_page_task(page: str, collection: dict):
 def get_mapping_status_task(collection: dict, mapped_pages: list):
     mapping_status = get_mapping_status(collection, mapped_pages)
     return mapping_status
+
+
+@task()
+def create_mapped_version_task(collection, vernacular_pages):
+    mapped_data_version = create_mapped_version(
+        collection.get('id'), vernacular_pages[0])
+    return mapped_data_version
 
 
 @task()

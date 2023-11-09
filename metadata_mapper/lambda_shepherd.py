@@ -5,10 +5,10 @@ import requests
 
 from urllib.parse import urlparse
 
-from . import settings, validate_mapping
+from . import validate_mapping
 from .lambda_function import map_page
 from .mappers.mapper import Record
-from rikolti.utils.rikolti_storage import list_pages
+from rikolti.utils.rikolti_storage import list_pages, create_mapped_version, get_most_recent_vernacular_version
 
 
 def get_collection(collection_id):
@@ -37,12 +37,9 @@ def check_for_missing_enrichments(collection):
     return not_yet_implemented
 
 
-def get_vernacular_pages(collection_id):
+def get_vernacular_pages(collection_id, vernacular_version):
     try:
-        page_list = list_pages(
-            f"{settings.DATA_SRC_URL}/{collection_id}/vernacular_metadata",
-            recursive=True
-        )
+        page_list = list_pages(vernacular_version, recursive=True)
     except FileNotFoundError as e:
         print(
             f"{e} - have you fetched {collection_id}? "
@@ -50,7 +47,7 @@ def get_vernacular_pages(collection_id):
         )
         raise(e)
 
-    # TODO: split page_list into pages and children
+    # TODO: split page_list into pages and children?
     return page_list
 
 
@@ -75,7 +72,7 @@ def get_mapping_status(collection, mapped_pages):
         'group_exceptions': group_exceptions
     }
 
-def map_collection(collection_id, validate=False):
+def map_collection(collection_id, vernacular_version=None, validate=False):
     # This is a functional duplicate of rikolti.d*gs.mapper_d*g.mapper_d*g
 
     # Within an airflow runtime context, we take advantage of airflow's dynamic
@@ -91,11 +88,16 @@ def map_collection(collection_id, validate=False):
 
     collection = get_collection(collection_id)
 
-    page_list = get_vernacular_pages(collection_id)
+    if not vernacular_version:
+        vernacular_version = get_most_recent_vernacular_version(collection_id)
+    page_list = get_vernacular_pages(collection_id, vernacular_version)
+
+    mapped_data_version = create_mapped_version(collection_id, page_list[0])
     mapped_pages = []
     for page in page_list:
         try:
-            mapped_page = map_page(collection_id, page, collection)
+            mapped_page = map_page(
+                collection_id, page, mapped_data_version, collection)
             mapped_pages.append(mapped_page)
         except KeyError:
             print(
@@ -126,8 +128,9 @@ if __name__ == "__main__":
     parser.add_argument('collection_id', help='collection ID from registry')
     parser.add_argument('--validate', help='validate mapping; may provide json opts',
         const=True, nargs='?')
+    parser.add_argument('vernacular_version', help='URI to a folder of vernacular pages to map')
     args = parser.parse_args(sys.argv[1:])
-    mapped_collection = map_collection(args.collection_id, args.validate)
+    mapped_collection = map_collection(args.collection_id, args.vernacular_version, args.validate)
     missing_enrichments = mapped_collection.get('missing_enrichments')
     if len(missing_enrichments) > 0:
         print(

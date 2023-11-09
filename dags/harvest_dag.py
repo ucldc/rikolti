@@ -8,6 +8,7 @@ from rikolti.dags.shared_tasks import create_vernacular_version_task
 from rikolti.dags.shared_tasks import fetch_collection_task
 from rikolti.dags.shared_tasks import get_collection_fetchdata_task
 from rikolti.dags.shared_tasks import get_collection_metadata_task
+from rikolti.dags.shared_tasks  import create_mapped_version_task
 from rikolti.dags.shared_tasks  import map_page_task
 from rikolti.dags.shared_tasks  import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
@@ -38,9 +39,13 @@ def harvest():
     vernacular_version = create_vernacular_version_task(collection=fetchdata)
     fetched_pages = fetch_collection_task(
         collection=fetchdata, vernacular_version=vernacular_version)
+    mapped_data_version = create_mapped_version_task(
+        collection=collection,
+        vernacular_pages=fetched_pages
+    )
     mapped_pages = (
         map_page_task
-            .partial(collection=collection)
+            .partial(collection=collection, mapped_data_version=mapped_data_version)
             .expand(page=fetched_pages)
     )
 
