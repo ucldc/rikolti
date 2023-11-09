@@ -17,6 +17,7 @@ from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.create_collection_index import get_index_name
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
+from rikolti.utils.rikolti_storage import create_vernacular_version
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
@@ -37,8 +38,14 @@ def get_collection_fetchdata_task(params=None):
 
 
 @task()
-def fetch_collection_task(collection: dict):
-    fetch_status = fetch_collection(collection, {})
+def create_vernacular_version_task(collection):
+    vernacular_version = create_vernacular_version(collection.get('id'))
+    return vernacular_version
+
+
+@task()
+def fetch_collection_task(collection: dict, vernacular_version: str):
+    fetch_status = fetch_collection(collection, vernacular_version, {})
     success = all([page['status'] == 'success' for page in fetch_status])
     total_items = sum([page['document_count'] for page in fetch_status])
     total_pages = len(fetch_status)

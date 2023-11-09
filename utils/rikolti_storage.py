@@ -18,7 +18,7 @@ def parse_data_uri(data_uri: str):
         data_uri, data_loc.scheme, data_loc.netloc, data_loc.path)
 
 
-def list_dirs(data_uri: str, **kwargs) -> list[str]:
+def list_dirs(data_uri: str, recursive=False, **kwargs) -> list[str]:
     data = parse_data_uri(data_uri)
     if data.store == 's3': 
         s3 = boto3.client('s3', **kwargs)
@@ -197,53 +197,52 @@ def put_file_content(data: DataStorage, content) -> str:
 
 def create_vernacular_version(
         collection_id: int or str,
-        vernacular_suffix: Optional[str] = None
+        version_suffix: Optional[str] = None
     ):
     fetcher_data_dest = os.environ.get(
         "FETCHER_DATA_DEST", "file:///tmp")
-    vernacular_root = (
+    collection_path = (
         f"{fetcher_data_dest.rstrip('/')}/{collection_id}/")
-    if not vernacular_suffix:
-        vernacular_suffix = (
+    if not version_suffix:
+        version_suffix = (
             datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-    vernacular_path = (
-        f"{vernacular_root}vernacular_metadata_{vernacular_suffix}/")
-    return vernacular_path
+    vernacular_version_path = (
+        f"{collection_path}vernacular_metadata_{version_suffix}/")
+    return vernacular_version_path
 
 
-class RikoltiStorage():
-    def __init__(
-            self, 
-            collection_id: int or str, 
-            vernacular_suffix: Optional[str] = None,
-            vernacular_path: Optional[str] = None,
-            mapped_data_suffix: Optional[str] = None,
-            mapped_data_path: Optional[str] = None,
-            **kwargs):
+def get_most_recent_vernacular_version(collection_id: int or str):
+    mapper_data_src = os.environ.get("MAPPED_DATA_SRC")
+    vernacular_versions = list_dirs(f"{mapper_data_src}/{collection_id}/")
+    if not vernacular_versions:
+        raise Exception(
+            "No vernacular metadata versions found for {collection_id}")
+    return sorted(vernacular_versions)[-1]
 
-        self.collection_id = collection_id
 
-        if not vernacular_path:
-            fetcher_data_dest = os.environ.get(
-                "FETCHER_DATA_DEST", "file:///tmp")
-            vernacular_root = (
-                f"{fetcher_data_dest.rstrip('/')}/{collection_id}/")
-            if not vernacular_suffix:
-                vernacular_suffix = (
-                    datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-            vernacular_path = (
-                f"{vernacular_root}vernacular_metadata_{vernacular_suffix}/")
+def create_mapped_version(
+        collection_id: int or str,
+        vernacular_path: str,
+        mapped_data_suffix: Optional[str] = None,
+):
+    mapper_data_dest = os.environ.get("MAPPED_DATA_DEST")
+    # get path of the vernacular version, not the vernacular data
+    mapped_root = vernacular_path.rsplit('data', 1)[0]
 
-        self.vernacular = vernacular_path.rstrip('/')+"/"
-
-        mapped_data_dest = os.environ.get("MAPPED_DATA_DEST", "file:///tmp")
+    if mapper_data_dest:
+        # get path relative to collection_id
+        vernacular_path = vernacular_path.split(str(collection_id))[-1]
         mapped_root = (
-            f"{mapped_data_dest.rstrip('/')}/{self.collection_id}/"
+            f"{mapper_data_dest.rstrip('/')}/{collection_id}/{vernacular_path}"
         )
-        
 
-    def save_fetched_content(self, content: str, filename: str):
-        return put_page_content(content, f"{self.vernacular}data/{filename}")
+    if not mapped_data_suffix:
+        mapped_data_suffix = (
+            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    mapped_data_path = (
+        f"{mapped_root.rstrip('/')}/mapped_metadata_{mapped_data_suffix}/")
+    return mapped_data_path
+
 
     # def list_fetched_content(self, recursive: bool=True, **kwargs) -> list:
     #     return list_pages(
@@ -252,36 +251,36 @@ class RikoltiStorage():
     #         recursive=recursive
     #     )
 
-    def search_page(self, search_str: str, page: str) -> bool:
-        if self.data_store == 's3':
-            return self.search_s3_page(search_str, page)
-        elif self.data_store == 'file':
-            return self.search_file_page(search_str, page)
-        else:
-            raise Exception(f"Unknown data store: {self.data_store}")
+    # def search_page(self, search_str: str, page: str) -> bool:
+    #     if self.data_store == 's3':
+    #         return self.search_s3_page(search_str, page)
+    #     elif self.data_store == 'file':
+    #         return self.search_file_page(search_str, page)
+    #     else:
+    #         raise Exception(f"Unknown data store: {self.data_store}")
 
-    def search_s3_page(self, search_str: str, s3_key: str) -> bool:
-        """
-        Check if search_str is in the body of the object located at s3_key
-        Returns the s3_key of the object if so, otherwise returns None
-        """
-        obj = self.s3.get_object(Bucket=self.data_bucket, Key=s3_key)
-        body = obj['Body'].read().decode('utf-8')
-        if search_str in body:
-            return True
-        else:
-            return False
+    # def search_s3_page(self, search_str: str, s3_key: str) -> bool:
+    #     """
+    #     Check if search_str is in the body of the object located at s3_key
+    #     Returns the s3_key of the object if so, otherwise returns None
+    #     """
+    #     obj = self.s3.get_object(Bucket=self.data_bucket, Key=s3_key)
+    #     body = obj['Body'].read().decode('utf-8')
+    #     if search_str in body:
+    #         return True
+    #     else:
+    #         return False
 
-    def search_file_page(self, search_str: str, file_path: str) -> bool:
-        """
-        Check if search_str is in the body of the file located at file_path
-        """
-        with open(file_path, 'r') as f:
-            body = f.read()
-            if search_str in body:
-                return True
-            else:
-                return False
+    # def search_file_page(self, search_str: str, file_path: str) -> bool:
+    #     """
+    #     Check if search_str is in the body of the file located at file_path
+    #     """
+    #     with open(file_path, 'r') as f:
+    #         body = f.read()
+    #         if search_str in body:
+    #             return True
+    #         else:
+    #             return False
 
 
 

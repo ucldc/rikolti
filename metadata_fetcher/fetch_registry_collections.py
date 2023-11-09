@@ -5,6 +5,7 @@ import sys
 import requests
 
 from . import lambda_function
+from rikolti.utils.rikolti_storage import create_vernacular_version
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,9 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
         job_logger.debug(
             f"{collection_id:<6}: call lambda with payload: {collection}")
 
-        fetch_result = lambda_function.fetch_collection(collection, None)
+        vernacular_version = create_vernacular_version(collection_id)
+        fetch_result = lambda_function.fetch_collection(
+            collection, vernacular_version, None)
         results[collection_id] = fetch_result
 
         success = all([page['status'] == 'success' for page in fetch_result])

@@ -4,6 +4,7 @@ import logging
 import sys
 
 from .fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
+from rikolti.utils.rikolti_storage import create_vernacular_version
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ def import_fetcher(harvest_type):
 
 
 # AWS Lambda entry point
-def fetch_collection(payload, context):
+def fetch_collection(payload, vernacular_version, context):
     if isinstance(payload, str):
         payload = json.loads(payload)
 
@@ -30,7 +31,7 @@ def fetch_collection(payload, context):
 
     fetch_status = []
     try:
-        fetcher = fetcher_class(payload)
+        fetcher = fetcher_class(payload, vernacular_version)
         fetch_status.append(fetcher.fetch_page())
     except InvalidHarvestEndpoint as e:
         logger.error(e)
@@ -53,7 +54,7 @@ def fetch_collection(payload, context):
         fetch_status = fetch_status[0]
 
     if not json.loads(next_page).get('finished'):
-        fetch_status.extend(fetch_collection(next_page, {}))
+        fetch_status.extend(fetch_collection(next_page, vernacular_version, {}))
 
     return fetch_status
 
@@ -71,7 +72,8 @@ if __name__ == "__main__":
         encoding='utf-8',
         level=logging.DEBUG
     )
+    vernacular_version = create_vernacular_version(payload.get('collection_id'))
     print(f"Starting to fetch collection {payload.get('collection_id')}")
-    fetch_collection(payload, {})
+    fetch_collection(payload, vernacular_version, {})
     print(f"Finished fetching collection {payload.get('collection_id')}")
     sys.exit(0)
