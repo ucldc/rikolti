@@ -1,6 +1,7 @@
 import importlib
 import json
 import logging
+import os
 import sys
 from typing import Union
 from urllib.parse import parse_qs, urlparse
@@ -72,7 +73,7 @@ def run_enrichments(records, collection, enrichment_set, page_filename):
     return records
 
 
-def map_page(collection_id: int, page_path: str, collection: Union[dict, str]):
+def map_page(collection_id: int, page_path: str, mapped_data_version: str, collection: Union[dict, str]):
     if isinstance(collection, str):
          collection = json.loads(collection)
 
@@ -90,15 +91,6 @@ def map_page(collection_id: int, page_path: str, collection: Union[dict, str]):
     for record in source_metadata_records:
         record.to_UCLDC()
     mapped_records = source_metadata_records
-
-    # TODO: write interim mapped but not enriched metadata to s3?
-    # put_page_content(
-    #   json.dumps([record.to_dict() for record in mapped_records]),
-    #   (
-    #       f"{settings.DATA_DEST_URL}/{collection_id}/"
-    #       f"interim_mapped_metadata/{page_filename}"
-    #   )
-    # )
 
     mapped_records = run_enrichments(
         mapped_records, collection, 'rikolti__enrichments', page_filename)
@@ -128,10 +120,7 @@ def map_page(collection_id: int, page_path: str, collection: Union[dict, str]):
     mapped_metadata = [record.to_dict() for record in mapped_records]
     put_page_content(
         json.dumps(mapped_metadata),
-        (
-            f"{settings.DATA_DEST_URL}/{collection_id}/"
-            f"mapped_metadata/{page_filename}"
-        )
+        f"{mapped_data_version.rstrip('/')}/data/{page_filename}.jsonl"
     )
 
     return {
@@ -147,11 +136,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
     parser.add_argument('collection_id', help='collection id')
-    parser.add_argument('page_path', help='uri file path to vernauclar metadata page filename')
+    parser.add_argument('page_path', help='uri file path to vernauclar metadata page filename; ex: file:///rikolti_data_root/3433/vernacular_data_version_1/data/1')
+    parser.add_argument('mapped_data_version', help='uri file path to mapped data version; ex: file:///rikolti_data_root/3433/vernacular_data_version_1/mapped_data_version_1/')
     parser.add_argument('collection', help='json collection metadata from registry')
 
     args = parser.parse_args(sys.argv[1:])
-    mapped_page = map_page(args.collection_id, args.page_path, args.collection)
+    mapped_page = map_page(args.collection_id, args.page_path, args.mapped_data_path, args.collection)
 
     print(f"{mapped_page.get('num_records_mapped')} records mapped")
 

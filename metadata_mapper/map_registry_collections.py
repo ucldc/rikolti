@@ -51,8 +51,7 @@ def map_endpoint(url, limit=None):
             f"{collection_id:<6}: call lambda with collection_id: {collection_id}")
 
         try:
-            map_result = lambda_shepherd.map_collection(
-                collection_id)
+            map_result = lambda_shepherd.map_collection(collection_id)
         except FileNotFoundError:
             print(f"{collection_id:<6}: not fetched yet", file=sys.stderr)
             continue

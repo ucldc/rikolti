@@ -1,22 +1,27 @@
 from datetime import datetime
+from typing import Optional
 
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks import get_collection_metadata_task
+from rikolti.dags.shared_tasks import create_mapped_version_task
 from rikolti.dags.shared_tasks import map_page_task
 from rikolti.dags.shared_tasks import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
 from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages
+from rikolti.utils.rikolti_storage import get_most_recent_vernacular_version
 
 
 @task()
-def get_vernacular_pages_task(collection: dict):
+def get_vernacular_pages_task(collection: dict, vernacular_version: Optional[str] = None):
     collection_id = collection.get('id')
+    if not vernacular_version:
+        vernacular_version = get_most_recent_vernacular_version(collection_id)
     if not collection_id:
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
-    pages = get_vernacular_pages(collection_id)
+    pages = get_vernacular_pages(collection_id, vernacular_version)
     return pages
 
 # This is a functional duplicate of 
@@ -48,9 +53,13 @@ def get_vernacular_pages_task(collection: dict):
 def mapper_dag():
     collection = get_collection_metadata_task()
     page_list = get_vernacular_pages_task(collection=collection)
+    mapped_data_version = create_mapped_version_task(
+        collection=collection,
+        vernacular_pages=page_list
+    )
     mapped_pages = (
         map_page_task
-            .partial(collection=collection)
+            .partial(collection=collection, mapped_data_version=mapped_data_version)
             .expand(page=page_list)
     )
 
