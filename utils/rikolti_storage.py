@@ -194,33 +194,52 @@ def put_file_content(data: DataStorage, content) -> str:
         f.write(content)
     return data.uri
 
+
+def create_vernacular_version(
+        collection_id: int or str,
+        vernacular_suffix: Optional[str] = None
+    ):
+    fetcher_data_dest = os.environ.get(
+        "FETCHER_DATA_DEST", "file:///tmp")
+    vernacular_root = (
+        f"{fetcher_data_dest.rstrip('/')}/{collection_id}/")
+    if not vernacular_suffix:
+        vernacular_suffix = (
+            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    vernacular_path = (
+        f"{vernacular_root}vernacular_metadata_{vernacular_suffix}/")
+    return vernacular_path
+
+
 class RikoltiStorage():
     def __init__(
             self, 
             collection_id: int or str, 
             vernacular_suffix: Optional[str] = None,
             vernacular_path: Optional[str] = None,
+            mapped_data_suffix: Optional[str] = None,
+            mapped_data_path: Optional[str] = None,
             **kwargs):
 
         self.collection_id = collection_id
 
-        fetcher_data_dest = os.environ.get("FETCHER_DATA_DEST", "file:///tmp")
-        vernacular_root = (
-            f"{fetcher_data_dest.rstrip('/')}/{collection_id}/"
-        )
         if not vernacular_path:
+            fetcher_data_dest = os.environ.get(
+                "FETCHER_DATA_DEST", "file:///tmp")
+            vernacular_root = (
+                f"{fetcher_data_dest.rstrip('/')}/{collection_id}/")
             if not vernacular_suffix:
-                vernacular_suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+                vernacular_suffix = (
+                    datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
             vernacular_path = (
-                f"vernacular_metadata_{vernacular_suffix}/"
-            )
+                f"{vernacular_root}vernacular_metadata_{vernacular_suffix}/")
 
-        self.vernacular = f"{vernacular_root}{vernacular_path.rstrip('/')}/"
+        self.vernacular = vernacular_path.rstrip('/')+"/"
 
-        # mapped_data_src = os.environ.get("MAPPED_DATA_SRC", fetcher_data_dest)
-        # mapped_root = (
-        #     f"{mapped_data_src.rstrip('/')}/{self.collection_id}/"
-        # )
+        mapped_data_dest = os.environ.get("MAPPED_DATA_DEST", "file:///tmp")
+        mapped_root = (
+            f"{mapped_data_dest.rstrip('/')}/{self.collection_id}/"
+        )
         
 
     def save_fetched_content(self, content: str, filename: str):
