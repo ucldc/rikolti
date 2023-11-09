@@ -2,18 +2,18 @@ import json
 
 from . import settings
 from .by_page import harvest_page_content
-from rikolti.utils.rikolti_storage import RikoltiStorage
+from rikolti.utils.rikolti_storage import list_pages
 
 def get_mapped_pages(collection_id):
     page_list = []
-    rikolti_data = RikoltiStorage(
+    page_list = list_pages(
         f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata",
+        recursive=False,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         aws_session_token=settings.AWS_SESSION_TOKEN,
         region_name=settings.AWS_REGION
     )
-    page_list = rikolti_data.list_pages(recursive=False, relative=True)
     return page_list
 
 
@@ -32,8 +32,8 @@ def harvest_collection(collection):
 
     print(f"[{collection_id}]: Harvesting content for {len(page_list)} pages")
     collection_stats = {}
-    for page in page_list:
-        collection.update({'page_filename': page})
+    for page_path in page_list:
+        collection.update({'page_path': page_path})
         page_stats = harvest_page_content(**collection)
 
         # in some cases, value is int and in some cases, value is Counter

@@ -1,7 +1,7 @@
 import logging
 import requests
+import os
 
-from .. import settings
 from requests.adapters import HTTPAdapter, Retry
 from rikolti.utils.rikolti_storage import RikoltiStorage
 
@@ -26,10 +26,7 @@ class Fetcher(object):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        self.data_destination = RikoltiStorage(
-            f"{settings.DATA_DEST_URL}/{self.collection_id}/"
-            "vernacular_metadata/"
-        )
+        self.data_destination = RikoltiStorage(self.collection_id)
 
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
@@ -48,19 +45,24 @@ class Fetcher(object):
                 f"[{self.collection_id}]: unable to fetch page {page}")
 
         record_count = self.check_page(response)
+        filepath = None
         if record_count:
             content = self.aggregate_vernacular_content(response.text)
             try:
-                self.data_destination.put_page_content(
-                    content, relative_path=f"{self.write_page}"
-                )
+                filepath = self.data_destination.save_fetched_content(
+                    content, self.write_page)
+                print(filepath)
             except Exception as e:
                 print(f"Metadata Fetcher: {e}")
                 raise(e)
 
         self.increment(response)
 
-        return record_count
+        return {
+            'document_count': record_count,
+            'vernacular_filepath': filepath,
+            'status': 'success'
+        }
 
     def aggregate_vernacular_content(self, response):
         return response

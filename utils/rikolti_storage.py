@@ -2,87 +2,236 @@ import os
 import re
 
 import boto3
+from datetime import datetime
 
 from urllib.parse import urlparse
 from typing import Optional
+from collections import namedtuple
+
+DataStorage = namedtuple(
+    "DateStorage", "uri, store, bucket, path"
+)
+
+def parse_data_uri(data_uri: str):
+    data_loc = urlparse(data_uri)
+    return DataStorage(
+        data_uri, data_loc.scheme, data_loc.netloc, data_loc.path)
+
+
+def list_dirs(data_uri: str, **kwargs) -> list[str]:
+    data = parse_data_uri(data_uri)
+    if data.store == 's3': 
+        s3 = boto3.client('s3', **kwargs)
+        s3_objects = s3.list_objects_v2(
+            Bucket=data.bucket, 
+            Prefix=data.path,
+            Delimiter='/'
+        )
+        keys = [
+            obj['Prefix'][len(data.path):-1] 
+            for obj in s3_objects['CommonPrefixes']
+        ]
+        return keys
+    elif data.store == 'file':
+        dir_contents = os.listdir(data.path)
+        dirs = [
+            file for file in dir_contents
+            if os.path.isdir(os.path.join(data.path, file))
+        ]
+        return dirs
+    else:
+        raise Exception(f"Unknown data store: {data.store}")
+
+
+def list_pages(data_uri: str, recursive: bool=True, **kwargs) -> list:
+    data = parse_data_uri(data_uri)
+
+    if data.store == 's3':
+        try:
+            return list_s3_pages(data, recursive=recursive, **kwargs)
+        except Exception as e:
+            url = (
+                f"https://{data.bucket}.s3.us-west-2.amazonaws"
+                ".com/index.html#{data.path}/"
+            )
+            raise Exception(
+                f"Error listing files at {data.uri}\n"
+                f"Check that {data.path} exists at {url}\n{e}"
+        )
+    elif data.store == 'file':
+        try:
+            return list_file_pages(data, recursive=recursive)
+        except Exception as e:
+            raise Exception(f"Error listing files in {data.path}\n{e}")
+    else:
+        raise Exception(f"Unknown data store: {data.store}")
+
+
+def list_s3_pages(data: DataStorage, recursive: bool=True, **kwargs) -> list:
+    """
+    List all objects in s3_bucket with prefix s3_prefix
+    """
+    s3 = boto3.client('s3', **kwargs)
+
+    s3_objects = s3.list_objects_v2(
+        Bucket=data.bucket, 
+        Prefix=data.path
+    )
+    # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
+
+    keys = [f"s3://{data.bucket}/{obj['Key']}" for obj in s3_objects['Contents']]
+    prefix = f"s3://{data.bucket}/{data.path}"
+
+    if not recursive:
+        # prune deeper branches
+        leaf_regex = re.escape(prefix) + r"^\/?[\w!'_.*()-]+\/?$"
+        keys = [key for key in keys if re.match(leaf_regex, key)]
+
+    return keys
+
+
+def list_file_pages(data: DataStorage, recursive: bool=True) -> list:
+    """
+    List all files in file_path
+    """
+    file_objects = []
+    if recursive:
+        for root, dirs, files in os.walk(data.path):
+            root_uri = "file://{root}/" if root[-1] != '/' else "file://{root}"
+            for file in files:
+                file_objects.append(f"{root_uri}{file}")
+
+    if not recursive:
+        for file in os.listdir(data.path):
+            if os.path.isfile(os.path.join(data.path, file)):
+                root_uri = "file://{data.path}/" if data.path[-1] != '/' else "file://{data.path}"
+                file_objects.append(f"{root_uri}{file}")
+
+    return file_objects
+
+
+def get_page_content(data_uri: str, **kwargs):
+    data = parse_data_uri(data_uri)
+    if data.store == 's3':
+        return get_s3_contents(data)
+    elif data.store == 'file':
+        return get_file_contents(data)
+    else:
+        raise Exception(f"Unknown data store: {data.store}")
+
+
+def get_s3_contents(data: DataStorage, **kwargs):
+    """
+    Get the body of the object located at data.path
+    """
+    s3 = boto3.client('s3', **kwargs)
+
+    try:
+        obj = s3.get_object(Bucket=data.bucket, Key=data.path)
+        return obj['Body'].read().decode('utf-8')
+    except Exception as e:
+        url = (
+            f"https://{data.bucket}.s3.us-west-2.amazonaws.com/"
+            f"index.html#{data.path}/"
+        )
+        raise Exception(
+            f"Error reading file at {data.uri}\nCheck: {url}\n{e}"
+        )
+
+
+def get_file_contents(data: DataStorage):
+    """
+    Get the body of the file located at file_path
+    """
+    try:
+        with open(data.path, 'r') as f:
+            return f.read()
+    except Exception as e:
+        raise Exception(f"Error reading {data.path}\n{e}")
+
+
+def put_page_content(content:str, data_uri: str, **kwargs) -> str:
+    """
+    Write content to a file at relative_path (relative to data_path).
+    relative_path is a list of strings, each string is a directory name 
+    representing a directory tree.
+    handle s3 or file storage, use '/' as separator for s3 key and os.sep
+    as separtors for file storage
+    """
+    data = parse_data_uri(data_uri)
+
+    if data.store == 's3':
+        return put_s3_content(data, content, **kwargs)
+    elif data.store == 'file':
+        return put_file_content(data, content)
+    else:
+        raise Exception(f"Unknown data store: {data.store}")
+
+
+def put_s3_content(data: DataStorage, content, **kwargs) -> str:
+    """
+    Write content to an object named data.path
+    """
+    s3 = boto3.client('s3', **kwargs)
+    s3.put_object(
+        ACL='bucket-owner-full-control',
+        Bucket=data.bucket,
+        Key=data.path,
+        Body=content
+    )
+    return data.uri
+
+def put_file_content(data: DataStorage, content) -> str:
+    """
+    Write content to a file at data.path
+    """
+    file_path = os.sep.join(data.path.split('/'))
+    directory_path = os.path.dirname(file_path)
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+
+    with open(file_path, 'w') as f:
+        f.write(content)
+    return data.uri
 
 class RikoltiStorage():
-    def __init__(self, data_url: str, **kwargs):
-        self.data_url = data_url
-        data_loc = urlparse(data_url)
-        self.data_store = data_loc.scheme
-        self.data_bucket = data_loc.netloc
-        self.data_path = data_loc.path
+    def __init__(
+            self, 
+            collection_id: int or str, 
+            vernacular_suffix: Optional[str] = None,
+            vernacular_path: Optional[str] = None,
+            **kwargs):
 
-        if self.data_store == 's3':
-            self.s3 = boto3.client('s3', **kwargs)
+        self.collection_id = collection_id
 
-    def list_pages(self, recursive=True, relative=True) -> list:
-        if self.data_store == 's3':
-            try:
-                return self.list_s3_pages(recursive=recursive, relative=relative)
-            except Exception as e:
-                url = (
-                    f"https://{self.data_bucket}.s3.us-west-2.amazonaws"
-                    ".com/index.html#{self.data_path}/"
-                )
-                raise Exception(
-                    f"Error listing files at {self.data_url}\n"
-                    f"Check that {self.data_path} exists at {url}\n{e}"
-            )
-        elif self.data_store == 'file':
-            try:
-                return self.list_file_pages(recursive=recursive, relative=relative)
-            except Exception as e:
-                raise Exception(f"Error listing files in {path}\n{e}")
-        else:
-            raise Exception(f"Unknown data store: {self.data_store}")
-
-    def list_s3_pages(self, recursive=True, relative=True) -> list:
-        """
-        List all objects in s3_bucket with prefix s3_prefix
-        """
-        s3_objects = self.s3.list_objects_v2(
-            Bucket=self.data_bucket, 
-            Prefix=self.data_path
+        fetcher_data_dest = os.environ.get("FETCHER_DATA_DEST", "file:///tmp")
+        vernacular_root = (
+            f"{fetcher_data_dest.rstrip('/')}/{collection_id}/"
         )
-        # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
+        if not vernacular_path:
+            if not vernacular_suffix:
+                vernacular_suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            vernacular_path = (
+                f"vernacular_metadata_{vernacular_suffix}/"
+            )
 
-        keys = [f"s3://{self.data_bucket}/{obj['Key']}" for obj in s3_objects['Contents']]
-        prefix = "s3://{self.data_bucket}/{self.data_path}"
+        self.vernacular = f"{vernacular_root}{vernacular_path.rstrip('/')}/"
 
-        if not recursive:
-            # prune deeper branches
-            leaf_regex = re.escape(prefix) + r"^\/?[\w!'_.*()-]+\/?$"
-            keys = [key for key in keys if re.match(leaf_regex, key)]
+        # mapped_data_src = os.environ.get("MAPPED_DATA_SRC", fetcher_data_dest)
+        # mapped_root = (
+        #     f"{mapped_data_src.rstrip('/')}/{self.collection_id}/"
+        # )
+        
 
-        if relative:
-            keys = [key[len(prefix):] for key in keys]
+    def save_fetched_content(self, content: str, filename: str):
+        return put_page_content(content, f"{self.vernacular}data/{filename}")
 
-        return keys
-
-    def list_file_pages(self, recursive=True, relative=True) -> list:
-        """
-        List all files in file_path
-        """
-        file_objects = []
-        if recursive:
-            for root, dirs, files in os.walk(self.data_path):
-                root_uri = "file://{root}/" if root[-1] != '/' else "file://{root}"
-                for file in files:
-                    file_objects.append(f"{root_uri}{file}")
-
-        if not recursive:
-            for file in os.listdir(self.data_path):
-                if os.path.isfile(os.path.join(self.data_path, file)):
-                    root_uri = "file://{self.data_path}/" if self.data_path[-1] != '/' else "file://{self.data_path}"
-                    file_objects.append(f"{root_uri}{file}")
-
-        if relative:
-            prefix = "file://{self.data_path}/"
-            file_objects = [file[len(prefix):] for file in file_objects]
-
-        return file_objects
+    # def list_fetched_content(self, recursive: bool=True, **kwargs) -> list:
+    #     return list_pages(
+    #         f"{self.vernacular_data}/{self.collection_id}/"
+    #         f"vernacular_metadata{self.suffix}/",
+    #         recursive=recursive
+    #     )
 
     def search_page(self, search_str: str, page: str) -> bool:
         if self.data_store == 's3':
@@ -115,80 +264,6 @@ class RikoltiStorage():
             else:
                 return False
 
-    def get_page_content(self):
-        if self.data_store == 's3':
-            return self.get_s3_contents()
-        elif self.data_store == 'file':
-            return self.get_file_contents()
-        else:
-            raise Exception(f"Unknown data store: {self.data_store}")
-
-    def get_s3_contents(self):
-        """
-        Get the body of the object located at s3_key
-        """
-        try:
-            obj = self.s3.get_object(Bucket=self.data_bucket, Key=self.data_path)
-            return obj['Body'].read().decode('utf-8')
-        except Exception as e:
-            url = (
-                f"https://{self.data_bucket}.s3.us-west-2.amazonaws.com/"
-                "index.html#{self.data_path}/"
-            )
-            raise Exception(
-                f"Error reading file at {self.data_url}\nCheck: {url}\n{e}"
-            )
-    
-    def get_file_contents(self):
-        """
-        Get the body of the file located at file_path
-        """
-        try:
-            with open(self.data_path, 'r') as f:
-                return f.read()
-        except Exception as e:
-            raise Exception(f"Error reading {self.data_path}\n{e}")
 
 
-    def put_page_content(self, content:str, relative_path: Optional[str]=None):
-        """
-        Write content to a file at relative_path (relative to data_path).
-        relative_path is a list of strings, each string is a directory name 
-        representing a directory tree.
-        handle s3 or file storage, use '/' as separator for s3 key and os.sep
-        as separtors for file storage
-        """
-        path = self.data_path
-        if relative_path:
-            path += relative_path
-
-        if self.data_store == 's3':
-            return self.put_s3_content(path, content)
-        elif self.data_store == 'file':
-            return self.put_file_content(path, content)
-        else:
-            raise Exception(f"Unknown data store: {self.data_store}")
-
-    def put_file_content(self, file_path, content):
-        """
-        Write content to a file at file_path
-        """
-        file_path = os.sep.join(file_path.split('/'))
-        directory_path = os.path.dirname(file_path)
-        if not os.path.exists(directory_path):
-            os.makedirs(directory_path)
-
-        with open(file_path, 'w') as f:
-            f.write(content)
-    
-    def put_s3_content(self, s3_key, content):
-        """
-        Write content to an object named s3_key
-        """
-        self.s3.put_object(
-            ACL='bucket-owner-full-control',
-            Bucket=self.data_bucket,
-            Key=s3_key,
-            Body=content
-        )
 

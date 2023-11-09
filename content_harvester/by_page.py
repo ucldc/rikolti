@@ -11,7 +11,7 @@ from requests.adapters import HTTPAdapter, Retry
 from . import derivatives
 from . import settings
 
-from rikolti.utils.rikolti_storage import RikoltiStorage
+from rikolti.utils.rikolti_storage import list_pages, get_page_content, put_page_content
 
 class DownloadError(Exception):
     pass
@@ -21,40 +21,40 @@ class UnsupportedMimetype(Exception):
     pass
 
 
-def get_mapped_records(collection_id, page_filename) -> list:
+def get_mapped_records(page_path) -> list:
     mapped_records = []
-    rikolti_data = RikoltiStorage(
-        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/{page_filename}")
-    mapped_records = json.loads(rikolti_data.get_page_content())
+    mapped_records = json.loads(get_page_content(page_path))
     return mapped_records
 
 
 def write_mapped_record(collection_id, record):
-    rikolti_data = RikoltiStorage(
-        f"{settings.DATA_DEST_URL}/{collection_id}/mapped_with_content/"
-        f"{record.get('calisphere-id').replace(os.sep, '_')}"
-    )
-    rikolti_data.put_page_content(json.dumps(record))
+    put_page_content(
+        json.dumps(record), 
+        (
+            f"{settings.DATA_DEST_URL}/{collection_id}/mapped_with_content/"
+            f"{record.get('calisphere-id').replace(os.sep, '_')}"
+        )
+)
 
 
 def write_mapped_page(collection_id, page, records):
-    rikolti_data = RikoltiStorage(
+    put_page_content(
+        json.dumps(records),
         f"{settings.DATA_DEST_URL}/{collection_id}/mapped_with_content/{page}"
     )
-    rikolti_data.put_page_content(json.dumps(records))
 
 
 def get_child_records(collection_id, parent_id) -> list:
     mapped_child_records = []
-    rikolti_data = RikoltiStorage(
-        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/children")
-    children = rikolti_data.list_pages(recursive=False, relative=False)
+    children = list_pages(
+        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/children",
+        recursive=False
+    )
     if rikolti_data.data_store == 'file':
         children = [page for page in children
                     if os.path.basename(page).startswith(parent_id)]
     for child in children:
-        child_data = RikoltiStorage(child)
-        mapped_child_records.extend(json.loads(child_data.get_page_content()))
+        mapped_child_records.extend(json.loads(get_page_content(child)))
     return mapped_child_records
 
 
@@ -299,9 +299,10 @@ class ContentHarvester(object):
         return dest_path
 
 
-# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "r-0"}
-def harvest_page_content(collection_id, page_filename, **kwargs):
+# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "file:///rikolti_data/r-0"}
+def harvest_page_content(collection_id, page_path, **kwargs):
     rikolti_mapper_type = kwargs.get('rikolti_mapper_type')
+    page_filename = os.path.basename(page_path)
 
     auth = None
     if rikolti_mapper_type == 'nuxeo.nuxeo':
@@ -311,7 +312,7 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
         'page_filename': page_filename
     }, src_auth=auth)
 
-    records = get_mapped_records(collection_id, page_filename)
+    records = get_mapped_records(page_path)
     print(
         f"[{collection_id}, {page_filename}]: "
         f"Harvesting content for {len(records)} records"
@@ -404,12 +405,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Harvest content using a page of mapped metadata")
     parser.add_argument('collection_id', help="Collection ID")
-    parser.add_argument('page_filename', help="Page Filename")
+    parser.add_argument('page_path', help="URI-formatted path to a mapped metadata page")
     parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
     args = parser.parse_args()
     arguments = {
         'collection_id': args.collection_id,
-        'page_filename': args.page_filename,
+        'page_filename': args.page_path,
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'

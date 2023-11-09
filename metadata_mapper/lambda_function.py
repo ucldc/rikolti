@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import settings
 from .mappers.mapper import Record, Vernacular
-from rikolti.utils.rikolti_storage import RikoltiStorage
+from rikolti.utils.rikolti_storage import get_page_content, put_page_content
 
 logger = logging.getLogger(__name__)
 
@@ -72,17 +72,14 @@ def run_enrichments(records, collection, enrichment_set, page_filename):
     return records
 
 
-def map_page(collection_id: int, page_filename: str, collection: Union[dict, str]):
+def map_page(collection_id: int, page_path: str, collection: Union[dict, str]):
     if isinstance(collection, str):
          collection = json.loads(collection)
 
     vernacular_reader = import_vernacular_reader(
         collection.get('rikolti_mapper_type'))
-    storage = RikoltiStorage(
-        f"{settings.DATA_SRC_URL}/{collection_id}/"
-        f"vernacular_metadata/{page_filename}"
-    )
-    api_resp = storage.get_page_content()
+    page_filename = os.path.basename(page_path)
+    api_resp = get_page_content(page_path)
 
     source_vernacular = vernacular_reader(collection_id, page_filename)
     source_metadata_records = source_vernacular.parse(api_resp)
@@ -95,12 +92,13 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     mapped_records = source_metadata_records
 
     # TODO: write interim mapped but not enriched metadata to s3?
-    # rikolti_data = RikoltiStorage(
-    #     f"{settings.DATA_DEST_URL}/{collection_id}/"
-    #     f"interim_mapped_metadata/{page_filename}"
+    # put_page_content(
+    #   json.dumps([record.to_dict() for record in mapped_records]),
+    #   (
+    #       f"{settings.DATA_DEST_URL}/{collection_id}/"
+    #       f"interim_mapped_metadata/{page_filename}"
+    #   )
     # )
-    # rikolti_data.put_page_content(json.dumps(
-    #     [record.to_dict() for record in mapped_records]))
 
     mapped_records = run_enrichments(
         mapped_records, collection, 'rikolti__enrichments', page_filename)
@@ -128,11 +126,13 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    rikolti_data = RikoltiStorage(
-        f"{settings.DATA_DEST_URL}/{collection_id}/"
-        f"mapped_metadata/{page_filename}"
+    put_page_content(
+        json.dumps(mapped_metadata),
+        (
+            f"{settings.DATA_DEST_URL}/{collection_id}/"
+            f"mapped_metadata/{page_filename}"
+        )
     )
-    rikolti_data.put_page_content(json.dumps(mapped_metadata))
 
     return {
         'status': 'success',
@@ -147,11 +147,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
     parser.add_argument('collection_id', help='collection id')
-    parser.add_argument('page_filename', help='vernauclar metadata page filename')
+    parser.add_argument('page_path', help='uri file path to vernauclar metadata page filename')
     parser.add_argument('collection', help='json collection metadata from registry')
 
     args = parser.parse_args(sys.argv[1:])
-    mapped_page = map_page(args.collection_id, args.page_filename, args.collection)
+    mapped_page = map_page(args.collection_id, args.page_path, args.collection)
 
     print(f"{mapped_page.get('num_records_mapped')} records mapped")
 
