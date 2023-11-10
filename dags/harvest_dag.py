@@ -12,6 +12,7 @@ from rikolti.dags.shared_tasks  import create_mapped_version_task
 from rikolti.dags.shared_tasks  import map_page_task
 from rikolti.dags.shared_tasks  import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
+from rikolti.dags.shared_tasks import create_content_data_version_task
 from rikolti.dags.shared_content_harvester import ContentHarvestOperator
 
 
@@ -53,11 +54,13 @@ def harvest():
     validate_collection_task(mapping_status)
     mapped_page_paths = get_mapped_page_filenames_task(mapped_pages)
 
+    content_data_version = create_content_data_version_task(collection, mapped_pages)
     content_harvest_task = (
         ContentHarvestOperator
             .partial(
                 task_id="content_harvest", 
                 collection_id="{{ params.collection_id }}",
+                content_data_version=content_data_version,
             )
             .expand(
                 page=mapped_page_paths

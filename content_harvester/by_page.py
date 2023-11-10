@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from . import derivatives
 from . import settings
 
-from rikolti.utils.rikolti_storage import list_pages, get_page_content, put_page_content, create_content_data_version
+from .rikolti_storage import list_pages, get_page_content, put_page_content, create_content_data_version
 
 class DownloadError(Exception):
     pass
@@ -51,10 +51,13 @@ def write_mapped_page(content_data_version, page, records):
 
 def get_child_records(mapped_page_path, parent_id) -> list:
     mapped_child_records = []
-    children = list_pages(
-        f"{mapped_page_path.rsplit('/', 1)[0]}/children/",
-        recursive=False
-    )
+    try:
+        children = list_pages(
+            f"{mapped_page_path.rsplit('/', 1)[0]}/children/",
+            recursive=False
+        )
+    except FileNotFoundError:
+        return mapped_child_records
     children = [page for page in children
                 if (page.rsplit('/')[-1]).startswith(parent_id)]
     for child in children:
@@ -196,10 +199,6 @@ class ContentHarvester(object):
         self.collection_id = collection_id
         self.page_filename = page_filename
 
-        if settings.CONTENT_DEST["STORE"] == 's3':
-            self.s3 = boto3.client('s3')
-        else:
-            self.s3 = None
 
     # returns content = {thumbnail, media, children} where children
     # is an array of the self-same content dictionary
@@ -332,9 +331,10 @@ class ContentHarvester(object):
             shutil.copyfile(filepath, dest_path)
 
         if settings.CONTENT_DEST["STORE"] == 's3':
+            s3 = boto3.client('s3')
             dest_path = (
                 f"{settings.CONTENT_DEST['PATH']}/{dest_prefix}/{dest_filename}")
-            self.s3.upload_file(
+            s3.upload_file(
                 filepath, settings.CONTENT_DEST["BUCKET"], dest_path)
 
         # (mime, dimensions) = image_info(filepath)
@@ -398,6 +398,7 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
             )
             print(f"Exiting after harvesting {i} of {len(records)} items "
                   f"in page {page_filename} of collection {collection_id}")
+            raise(e)
 
     write_mapped_page(content_data_version, page_filename, records)
 
@@ -444,9 +445,9 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
     child_contents = [len(record.get('children', [])) for record in records]
 
     return {
-        'thumb_source': Counter(thumb_src_mimetypes),
+        'thumb_source_mimetypes': Counter(thumb_src_mimetypes),
         'thumb_mimetypes': Counter(thumb_mimetypes),
-        'media_source': Counter(media_src_mimetypes),
+        'media_source_mimetypes': Counter(media_src_mimetypes),
         'media_mimetypes': Counter(media_mimetypes),
         'children': sum(child_contents),
         'records': len(records)
@@ -459,13 +460,13 @@ if __name__ == "__main__":
         description="Harvest content using a page of mapped metadata")
     parser.add_argument('collection_id', help="Collection ID")
     parser.add_argument('mapped_page_path', help="URI-formatted path to a mapped metadata page")
+    parser.add_argument('content_data_version', help="URI-formatted path to a content data version")
     parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
     args = parser.parse_args()
     arguments = {
         'collection_id': args.collection_id,
         'mapped_page_path': args.mapped_page_path,
-        'content_data_version': create_content_data_version(
-            args.collection_id, args.mapped_page_path.rsplit('data', 1)[0])
+        'content_data_version': args.content_data_version
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'

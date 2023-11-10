@@ -2,7 +2,7 @@ import json
 
 from . import settings
 from .by_page import harvest_page_content
-from rikolti.utils.rikolti_storage import list_pages, create_content_data_version
+from .rikolti_storage import list_pages, create_content_data_version
 
 def get_mapped_pages(mapped_data_version:str):
     page_list = []
@@ -38,7 +38,7 @@ def harvest_collection(collection, mapped_data_version: str):
     })
 
     for page_path in page_list:
-        collection.update({'page_path': page_path})
+        collection.update({'mapped_page_path': page_path})
         page_stats = harvest_page_content(**collection)
 
         # in some cases, value is int and in some cases, value is Counter

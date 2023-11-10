@@ -19,6 +19,7 @@ from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 from rikolti.utils.rikolti_storage import create_mapped_version
 from rikolti.utils.rikolti_storage import create_vernacular_version
+from rikolti.utils.rikolti_storage import create_content_data_version
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
@@ -144,6 +145,13 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
         )
 
     return file_location
+
+
+@task()
+def create_content_data_version_task(collection: dict, mapped_pages: list[dict]):
+    content_data_version = create_content_data_version(
+        collection['id'], mapped_pages[0]['mapped_page_path'])
+    return content_data_version
 
 
 @task()

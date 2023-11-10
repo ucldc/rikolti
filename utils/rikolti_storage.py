@@ -54,15 +54,17 @@ def list_pages(data_uri: str, recursive: bool=True, **kwargs) -> list:
                 f"https://{data.bucket}.s3.us-west-2.amazonaws"
                 ".com/index.html#{data.path}/"
             )
-            raise Exception(
+            print(
                 f"Error listing files at {data.uri}\n"
                 f"Check that {data.path} exists at {url}\n{e}"
-        )
+            )
+            raise e
     elif data.store == 'file':
         try:
             return list_file_pages(data, recursive=recursive)
         except Exception as e:
-            raise Exception(f"Error listing files in {data.path}\n{e}")
+            print(f"Error listing files in {data.path}\n{e}")
+            raise e
     else:
         raise Exception(f"Unknown data store: {data.store}")
 
@@ -97,14 +99,14 @@ def list_file_pages(data: DataStorage, recursive: bool=True) -> list:
     file_objects = []
     if recursive:
         for root, dirs, files in os.walk(data.path):
-            root_uri = "file://{root}/" if root[-1] != '/' else "file://{root}"
+            root_uri = f"file://{root}/" if root[-1] != '/' else f"file://{root}"
             for file in files:
                 file_objects.append(f"{root_uri}{file}")
 
     if not recursive:
         for file in os.listdir(data.path):
             if os.path.isfile(os.path.join(data.path, file)):
-                root_uri = "file://{data.path}/" if data.path[-1] != '/' else "file://{data.path}"
+                root_uri = f"file://{data.path}/" if data.path[-1] != '/' else f"file://{data.path}"
                 file_objects.append(f"{root_uri}{file}")
 
     return file_objects
@@ -289,7 +291,6 @@ def create_content_data_version(
             datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
     content_data_path = (
         f"{content_data_root.rstrip('/')}/content_data_{content_data_suffix}/")
-    )
     return content_data_path
 
 
