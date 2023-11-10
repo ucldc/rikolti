@@ -27,4 +27,5 @@ jobs:
         - name: Test with Pytest
           run: |
             pip install pytest 
+            export CONTAINER_EXECUTION_ENVIRONMENT="docker"
             pytest dags_tests.py -v
