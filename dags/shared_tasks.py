@@ -134,7 +134,8 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
     if collection_status.get('status') != 'success':
         raise Exception(f"Collection {collection_id} not successfully mapped")
 
-    num_rows, file_location = create_collection_validation_csv(collection_id)
+    num_rows, file_location = create_collection_validation_csv(
+        collection_id, collection_status['mapped_page_paths'])
     print(f"Output {num_rows} rows to {file_location}")
 
     # create a link to the file in the logs

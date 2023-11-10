@@ -69,7 +69,8 @@ def get_mapping_status(collection, mapped_pages):
         'missing_enrichments': check_for_missing_enrichments(collection),
         'count': count,
         'page_count': page_count,
-        'group_exceptions': group_exceptions
+        'group_exceptions': group_exceptions,
+        'mapped_page_paths': [page['mapped_page_path'] for page in mapped_pages],
     }
 
 def map_collection(collection_id, vernacular_version=None, validate=False):
@@ -107,12 +108,14 @@ def map_collection(collection_id, vernacular_version=None, validate=False):
             continue
 
     collection_stats = get_mapping_status(collection, mapped_pages)
+    mapped_page_paths = [page['mapped_page_path'] for page in mapped_pages]
 
     if validate:
         opts = validate if isinstance(validate, dict) else {}
         num_rows, file_location = (
             validate_mapping.create_collection_validation_csv(
                 collection_id,
+                mapped_page_paths,
                 **opts
             )
         )

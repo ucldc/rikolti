@@ -3,7 +3,7 @@ from enum import Enum
 from typing import IO, Any
 
 from .. import settings
-from rikolti.utils.rikolti_storage import put_page_content
+from rikolti.utils.rikolti_storage import put_page_content, create_validation_version
 
 
 class ValidationLogLevel(Enum):
@@ -110,7 +110,7 @@ class ValidationLog:
         with open(file, "a" if append else "w") as f:
             f.write(self._csv_content_string(include_fields, append))
 
-    def output_csv_to_bucket(self, collection_id: int, filename: str = None,
+    def output_csv_to_bucket(self, collection_id: int, mapped_data_path: str = None,
                              include_fields: list[str] = None) -> str:
         """
         Writes a CSV to the env-appropriate bucket (local or S3).
@@ -124,14 +124,11 @@ class ValidationLog:
             include_fields: list[str] (default: None)
                 A list of fields to include in the CSV. Defaults to all.
         """
-        if not filename:
-            filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
-
         content = self._csv_content_string(include_fields)
         if isinstance(content, list) or isinstance(content, dict):
             content = json.dumps(content)
 
-        file_location = f"{settings.DATA_SRC_URL}/{collection_id}/validation/{filename}"
+        file_location = create_validation_version(collection_id, mapped_data_path)
         put_page_content(content, file_location)
         
         return file_location

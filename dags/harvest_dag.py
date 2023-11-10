@@ -16,7 +16,7 @@ from rikolti.dags.shared_tasks import ContentHarvestDockerOperator
 
 @task()
 def get_mapped_page_filenames_task(mapped_pages):
-    return [mapped['page_filename'] for mapped in mapped_pages]
+    return [mapped['mapped_page_path'] for mapped in mapped_pages]
 
 @dag(
     dag_id="harvest_collection",
@@ -50,7 +50,7 @@ def harvest():
 
     mapping_status = get_mapping_status_task(collection, mapped_pages)
     validate_collection_task(mapping_status)
-    mapped_page_filenames = get_mapped_page_filenames_task(mapped_pages)
+    mapped_page_paths = get_mapped_page_filenames_task(mapped_pages)
 
     content_harvest_task = (
         ContentHarvestDockerOperator
@@ -59,7 +59,7 @@ def harvest():
                 collection_id="{{ params.collection_id }}",
             )
             .expand(
-                page=mapped_page_filenames
+                page=mapped_page_paths
             )
     )
     content_harvest_task
