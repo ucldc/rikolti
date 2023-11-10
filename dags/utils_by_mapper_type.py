@@ -66,7 +66,7 @@ def validate_endpoint_task(url, params=None):
     for collection in registry_endpoint(url):
         print(f"{collection['collection_id']:<6} Validating collection")
         num_rows, file_location = create_collection_validation_csv(
-            collection['collection_id'])
+            collection['collection_id'], mapped_page_paths)
         csv_paths.append(file_location)
         if file_location.startswith('s3://'):
             s3_path = urlparse(file_location)

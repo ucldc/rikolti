@@ -73,14 +73,14 @@ def run_enrichments(records, collection, enrichment_set, page_filename):
     return records
 
 
-def map_page(collection_id: int, page_path: str, mapped_data_version: str, collection: Union[dict, str]):
+def map_page(collection_id: int, vernacular_page_path: str, mapped_data_version: str, collection: Union[dict, str]):
     if isinstance(collection, str):
          collection = json.loads(collection)
 
     vernacular_reader = import_vernacular_reader(
         collection.get('rikolti_mapper_type'))
-    page_filename = os.path.basename(page_path)
-    api_resp = get_page_content(page_path)
+    page_filename = os.path.basename(vernacular_page_path)
+    api_resp = get_page_content(vernacular_page_path)
 
     source_vernacular = vernacular_reader(collection_id, page_filename)
     source_metadata_records = source_vernacular.parse(api_resp)
@@ -118,7 +118,7 @@ def map_page(collection_id: int, page_path: str, mapped_data_version: str, colle
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    put_page_content(
+    mapped_page_path = put_page_content(
         json.dumps(mapped_metadata),
         f"{mapped_data_version.rstrip('/')}/data/{page_filename}.jsonl"
     )
@@ -127,7 +127,7 @@ def map_page(collection_id: int, page_path: str, mapped_data_version: str, colle
         'status': 'success',
         'num_records_mapped': len(mapped_records),
         'page_exceptions': group_page_exceptions,
-        'page_filename': page_filename,
+        'mapped_page_path': mapped_page_path,
     }
 
 
@@ -144,6 +144,7 @@ if __name__ == "__main__":
     mapped_page = map_page(args.collection_id, args.page_path, args.mapped_data_path, args.collection)
 
     print(f"{mapped_page.get('num_records_mapped')} records mapped")
+    print(f"mapped page at {mapped_page.get('mapped_page_path')}")
 
     for report, couch_ids in mapped_page.get('exceptions', {}).items():
         print(f"{len(couch_ids)} records report enrichments errors: {report}")

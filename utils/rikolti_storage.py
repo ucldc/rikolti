@@ -283,5 +283,38 @@ def create_mapped_version(
     #             return False
 
 
+def create_validation_version(
+        collection_id: int or str,
+        mapped_data_path: str,
+        validation_suffix: Optional[str] = None
+):
+    validation_data_dest = os.environ.get("VALIDATION_DATA_DEST")
+    # get path of the mapped data version, not the mapped data
+    validation_root = mapped_data_path.rsplit('data', 1)[0]
+
+    if validation_data_dest:
+        # get path relative to collection_id
+        mapped_data_path = mapped_data_path.split(str(collection_id))[-1]
+        validation_root = (
+            f"{validation_data_dest.rstrip('/')}/{collection_id}/{mapped_data_path}"
+        )
+
+    if not validation_suffix:
+        validation_suffix = (
+            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    validation_data_path = (
+        f"{validation_root.rstrip('/')}/validation_{validation_suffix}.csv")
+    return validation_data_path
+
+    validation_data_dest = os.environ.get(
+        "VALIDATION_DATA_DEST", "file:///tmp")
+    collection_path = (
+        f"{validation_data_dest.rstrip('/')}/{collection_id}/")
+    if not validation_suffix:
+        validation_suffix = (
+            datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    validation_version_path = (
+        f"{collection_path}validation_{validation_suffix}/")
+    return validation_version_path
 
 

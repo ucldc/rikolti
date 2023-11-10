@@ -10,12 +10,13 @@ from . import settings, utilities
 from .validator.validation_log import ValidationLogLevel
 from .validator.validation_mode import ValidationMode
 from .validator.validator import Validator
-from rikolti.utils.rikolti_storage import list_pages, get_page_content
+from rikolti.utils.rikolti_storage import get_page_content
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def validate_collection(collection_id: int,
+                        mapped_page_paths: list[str],
                         validator_class: Type[Validator] = None,
                         validator: Validator = None,
                         validation_mode = ValidationMode.STRICT,
@@ -50,12 +51,7 @@ def validate_collection(collection_id: int,
                                     log_level = log_level,
                                     verbose = verbose)
 
-    mapped_pages = list_pages(
-        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/",
-        recursive=False
-    )
-
-    for page_path in mapped_pages:
+    for page_path in mapped_page_paths:
         validate_page(collection_id, page_path, validator)
 
     return validator
@@ -115,9 +111,11 @@ def validate_page(collection_id: int, page_path: str,
     return validator
 
 
-def create_collection_validation_csv(collection_id: int, **options) -> tuple[int, str]:
-    result = validate_collection(collection_id, **options)
-    filename = result.log.output_csv_to_bucket(collection_id)
+def create_collection_validation_csv(
+        collection_id: int, mapped_page_paths: list[str], **options) -> tuple[int, str]:
+    result = validate_collection(collection_id, mapped_page_paths, **options)
+
+    filename = result.log.output_csv_to_bucket(collection_id, mapped_page_paths[0])
     return len(result.log.log), filename
 
 ## Private-ish
@@ -276,5 +274,5 @@ if __name__ == "__main__":
     print(kwargs)
 
     num_rows, file_location = create_collection_validation_csv(
-        args.collection_id, **kwargs)
+        args.collection_id, mapped_page_paths, **kwargs)
     print(f"Output {num_rows} rows to {file_location}")
