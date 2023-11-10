@@ -1,9 +1,8 @@
 import logging
 import requests
-import os
 
 from requests.adapters import HTTPAdapter, Retry
-from rikolti.utils.rikolti_storage import put_page_content
+from rikolti.utils.rikolti_storage import put_vernacular_content
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,7 @@ class Fetcher(object):
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        self.data_destination = params.get('vernacular_version')
+        self.vernacular_version = params.get('vernacular_version')
 
 
         if not self.collection_id:
@@ -50,8 +49,8 @@ class Fetcher(object):
         if record_count:
             content = self.aggregate_vernacular_content(response.text)
             try:
-                filepath = put_page_content(
-                    content, f"{self.data_destination}data/{self.write_page}")
+                filepath = put_vernacular_content(
+                    content, self.write_page, self.vernacular_version)
             except Exception as e:
                 print(f"Metadata Fetcher: {e}")
                 raise(e)

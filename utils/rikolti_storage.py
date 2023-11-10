@@ -183,6 +183,7 @@ def put_s3_content(data: DataStorage, content, **kwargs) -> str:
     )
     return data.uri
 
+
 def put_file_content(data: DataStorage, content) -> str:
     """
     Write content to a file at data.path
@@ -197,20 +198,40 @@ def put_file_content(data: DataStorage, content) -> str:
     return data.uri
 
 
+def get_version(collection_id, uri):
+    """
+    From an arbitrary path, try to get the version string
+    """
+    uri = uri.rstrip('/')
+    if collection_id not in uri or uri.endswith(collection_id):
+        return None
+    rikolti_data_root, relative_path = uri.split(f"/{collection_id}/")
+    path_list = relative_path.split('/')
+    if 'data' in path_list:
+        path_list = path_list[:path_list.index('data')]
+    path_list.insert(0, collection_id)
+    version = "/".join(path_list)
+    return version
+
+
 def create_vernacular_version(
         collection_id: int or str,
         version_suffix: Optional[str] = None
     ):
-    fetcher_data_dest = os.environ.get(
-        "FETCHER_DATA_DEST", "file:///tmp")
-    collection_path = (
-        f"{fetcher_data_dest.rstrip('/')}/{collection_id}/")
     if not version_suffix:
         version_suffix = (
             datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
     vernacular_version_path = (
-        f"{collection_path}vernacular_metadata_{version_suffix}/")
+        f"{collection_id}/vernacular_metadata_{version_suffix}/")
     return vernacular_version_path
+
+
+def put_vernacular_content(content: str, page_name: int or str, version: str):
+    fetcher_data_dest = os.environ.get(
+        "FETCHER_DATA_DEST", "file:///tmp")
+    path = f"{fetcher_data_dest.rstrip('/')}/{version}/data/{page_name}"
+    put_page_content(content, path)
+    return f"{version}/data/{page_name}"
 
 
 def get_most_recent_vernacular_version(collection_id: int or str):
@@ -219,12 +240,28 @@ def get_most_recent_vernacular_version(collection_id: int or str):
     if not vernacular_versions:
         raise Exception(
             "No vernacular metadata versions found for {collection_id}")
-    return sorted(vernacular_versions)[-1]
+    return get_version(collection_id, sorted(vernacular_versions)[-1])
+
+
+def get_vernacular_pages(collection_id, vernacular_version):
+    mapper_data_src = os.environ.get("MAPPED_DATA_SRC", "file:///tmp").rstrip('/')
+    vernacular_path = f"{mapper_data_src}/{vernacular_version}/data/"
+    try:
+        page_list = list_pages(vernacular_path, recursive=True)
+    except FileNotFoundError as e:
+        print(
+            f"{e} - have you fetched {collection_id}? "
+            f"looked in dir {e.filename} for vernacular pages"
+        )
+        raise(e)
+
+    # TODO: split page_list into pages and children?
+    return page_list
 
 
 def create_mapped_version(
         collection_id: int or str,
-        vernacular_path: str,
+        vernacular_version: str,
         mapped_data_suffix: Optional[str] = None,
 ):
     mapper_data_dest = os.environ.get("MAPPED_DATA_DEST")
@@ -244,6 +281,12 @@ def create_mapped_version(
     mapped_data_path = (
         f"{mapped_root.rstrip('/')}/mapped_metadata_{mapped_data_suffix}/")
     return mapped_data_path
+
+
+def get_mapped_page(relative_vernacular_path):
+    mapper_data_src = os.environ.get("MAPPER_DATA_SRC", "file:///tmp").rstrip('/')
+    relative_vernacular_path = relative_vernacular_path.lstrip('/')
+    return get_page_content(f"{mapper_data_src}/{relative_vernacular_path}")
 
 
 def create_validation_version(

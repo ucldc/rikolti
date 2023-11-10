@@ -19,6 +19,7 @@ from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 from rikolti.utils.rikolti_storage import create_mapped_version
 from rikolti.utils.rikolti_storage import create_vernacular_version
+from rikolti.utils.rikolti_storage import get_version
 from rikolti.utils.rikolti_storage import create_content_data_version
 
 
@@ -46,6 +47,13 @@ def create_vernacular_version_task(collection):
 
 @task()
 def fetch_collection_task(collection: dict, vernacular_version: str):
+    """
+    returns a list of the filepaths of the vernacular metadata relative to the
+    collection id, ex: [
+        '3433/vernacular_metadata_2023-01-01T00:00:00/data/1',
+        '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
+    ]
+    """
     fetch_status = fetch_collection(collection, vernacular_version, {})
     success = all([page['status'] == 'success' for page in fetch_status])
     total_items = sum([page['document_count'] for page in fetch_status])
@@ -116,8 +124,19 @@ def get_mapping_status_task(collection: dict, mapped_pages: list):
 
 @task()
 def create_mapped_version_task(collection, vernacular_pages):
+    """
+    vernacular pages is a list of the filepaths of the vernacular metadata
+    relative to the collection id, ex: [
+        '3433/vernacular_metadata_2023-01-01T00:00:00/data/1',
+        '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
+    ]
+    """
+    vernacular_version = get_version(collection.get('id'), vernacular_pages[0])
+    if not vernacular_version:
+        raise ValueError(
+            f"Vernacular version not found in {vernacular_pages[0]}")
     mapped_data_version = create_mapped_version(
-        collection.get('id'), vernacular_pages[0])
+        collection.get('id'), vernacular_version)
     return mapped_data_version
 
 

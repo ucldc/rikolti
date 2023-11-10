@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from . import validate_mapping
 from .lambda_function import map_page
 from .mappers.mapper import Record
-from rikolti.utils.rikolti_storage import list_pages, create_mapped_version, get_most_recent_vernacular_version
+from rikolti.utils.rikolti_storage import get_vernacular_pages, create_mapped_version, get_most_recent_vernacular_version
 
 
 def get_collection(collection_id):
@@ -36,19 +36,6 @@ def check_for_missing_enrichments(collection):
 
     return not_yet_implemented
 
-
-def get_vernacular_pages(collection_id, vernacular_version):
-    try:
-        page_list = list_pages(vernacular_version, recursive=True)
-    except FileNotFoundError as e:
-        print(
-            f"{e} - have you fetched {collection_id}? "
-            f"looked in dir {e.filename} for vernacular pages"
-        )
-        raise(e)
-
-    # TODO: split page_list into pages and children?
-    return page_list
 
 
 def get_mapping_status(collection, mapped_pages):
@@ -131,7 +118,7 @@ if __name__ == "__main__":
     parser.add_argument('collection_id', help='collection ID from registry')
     parser.add_argument('--validate', help='validate mapping; may provide json opts',
         const=True, nargs='?')
-    parser.add_argument('vernacular_version', help='URI to a folder of vernacular pages to map')
+    parser.add_argument('vernacular_version', help='relative path describing a vernacular version, ex: 3433/vernacular_data_version_1/')
     args = parser.parse_args(sys.argv[1:])
     mapped_collection = map_collection(args.collection_id, args.vernacular_version, args.validate)
     missing_enrichments = mapped_collection.get('missing_enrichments')

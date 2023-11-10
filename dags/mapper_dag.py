@@ -9,18 +9,15 @@ from rikolti.dags.shared_tasks import create_mapped_version_task
 from rikolti.dags.shared_tasks import map_page_task
 from rikolti.dags.shared_tasks import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
-from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages
+from rikolti.utils.rikolti_storage import get_vernacular_pages
 from rikolti.utils.rikolti_storage import get_most_recent_vernacular_version
 
 
 @task()
 def get_vernacular_pages_task(collection: dict, vernacular_version: Optional[str] = None):
-    collection_id = collection.get('id')
+    collection_id = collection['id']
     if not vernacular_version:
         vernacular_version = get_most_recent_vernacular_version(collection_id)
-    if not collection_id:
-        raise ValueError(
-            f"Collection ID not found in collection metadata: {collection}")
     pages = get_vernacular_pages(collection_id, vernacular_version)
     return pages
 

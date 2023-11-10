@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import settings
 from .mappers.mapper import Record, Vernacular
-from rikolti.utils.rikolti_storage import get_page_content, put_page_content
+from rikolti.utils.rikolti_storage import get_mapped_page, put_page_content
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def map_page(collection_id: int, vernacular_page_path: str, mapped_data_version:
     vernacular_reader = import_vernacular_reader(
         collection.get('rikolti_mapper_type'))
     page_filename = os.path.basename(vernacular_page_path)
-    api_resp = get_page_content(vernacular_page_path)
+    api_resp = get_mapped_page(vernacular_page_path)
 
     source_vernacular = vernacular_reader(collection_id, page_filename)
     source_metadata_records = source_vernacular.parse(api_resp)
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
     parser.add_argument('collection_id', help='collection id')
-    parser.add_argument('page_path', help='uri file path to vernauclar metadata page filename; ex: file:///rikolti_data_root/3433/vernacular_data_version_1/data/1')
+    parser.add_argument('page_path', help='relative file path to vernauclar metadata page filename; ex: 3433/vernacular_data_version_1/data/1')
     parser.add_argument('mapped_data_version', help='uri file path to mapped data version; ex: file:///rikolti_data_root/3433/vernacular_data_version_1/mapped_data_version_1/')
     parser.add_argument('collection', help='json collection metadata from registry')
 
