@@ -4,9 +4,9 @@ from typing import Any
 
 from faker import Faker
 
-from ..test_helper import TestHelper
+from ..base_helper import BaseTestHelper
 
-class OaiTestHelper(TestHelper):
+class OaiTestHelper(BaseTestHelper):
   
   DEFAULT_SCHEMA = {
     "contributor": str,

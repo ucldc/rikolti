@@ -4,7 +4,7 @@ from typing import Any, Union
 
 from faker import Faker
 
-class TestHelper:
+class BaseTestHelper:
   """
   Generates fake data for use in mapper unit tests.
 
@@ -34,15 +34,20 @@ class TestHelper:
   ]
 
   @classmethod
-  def for_mapper(cls, mapper_name: str) -> type["TestHelper"]:
+  def for_mapper(cls, mapper_name: str) -> type["BaseTestHelper"]:
     pass
 
   def __init__(self):
     self.faker = Faker()
     self.static = []
 
+  def instantiate_record(self, record_class) -> type["Record"]:
+    instance = record_class(self.faker.pyint, self.generate_fixture())
+    self.prepare_record(instance)
+    return instance
+
   def prepare_record(self, record) -> None:
-    pass
+    record.legacy_couch_db_id = "asdf--123123"
 
   def generate_fixture(self, schema_index: int = 0) -> dict[str, Any]:
     """

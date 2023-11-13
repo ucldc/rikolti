@@ -6,3 +6,4 @@ MarkupSafe
 python-dotenv
 faker
 pytest
+pytest-assume
