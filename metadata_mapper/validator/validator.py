@@ -512,7 +512,7 @@ default_validatable_fields: list[dict[str, Any]] = [
     },
     {
         "field": "rights_uri",
-        "type": Validator.list_of(str),
+        "type": str,
         "validations": [
                         Validator.content_match,
                         Validator.type_match,
