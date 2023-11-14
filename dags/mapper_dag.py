@@ -14,8 +14,9 @@ from rikolti.utils.versions import get_vernacular_pages
 
 
 @task()
-def get_vernacular_pages_task(collection: dict, vernacular_version: Optional[str] = None):
+def get_vernacular_pages_task(collection: dict, params: Optional[dict]=None):
     collection_id = collection['id']
+    vernacular_version = params.get('vernacular_version') if params else None
     if not vernacular_version:
         vernacular_version = get_most_recent_vernacular_version(collection_id)
     pages = get_vernacular_pages(vernacular_version)
@@ -45,6 +46,7 @@ def get_vernacular_pages_task(collection: dict, vernacular_version: Optional[str
     params={
         'collection_id': Param(None, description="Collection ID to map"),
         'validate': Param(True, description="Validate mapping?"),
+        'vernacular_version': Param(None, description="Vernacular version to map, ex: 3433/vernacular_metadata_v1/")
     },
     tags=["rikolti"],
 )

@@ -65,14 +65,14 @@ def create_content_data_version(
         mapped_version: str, suffix: Optional[str] = None) -> str:
     return create_version(mapped_version, 'content_data', suffix)
 
-
 def get_most_recent_vernacular_version(collection_id: Union[int, str]):
-    mapper_data_src = os.environ.get("VERNACULAR_DATA")
-    vernacular_versions = storage.list_dirs(f"{mapper_data_src}/{collection_id}/")
-    if not vernacular_versions:
+    data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
+    versions = storage.list_dirs(f"{data_root.rstrip('/')}/{collection_id}/")
+    if not versions:
         raise Exception(
             "No vernacular metadata versions found for {collection_id}")
-    return get_version(collection_id, sorted(vernacular_versions)[-1])
+    recent_version = sorted(versions)[-1]
+    return f"{collection_id}/{recent_version}/"
 
 def get_vernacular_pages(version):
     data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
