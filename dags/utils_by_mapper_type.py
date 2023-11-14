@@ -10,6 +10,7 @@ from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import registry_endpoint
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
+from rikolti.utils.versions import get_version, get_mapped_pages
 
 logger = logging.getLogger("airflow.task")
 
@@ -31,8 +32,6 @@ def make_mapper_type_endpoint(params=None):
 @task()
 def fetch_endpoint_task(endpoint, params=None):
     """
-    TODO: map the output of this job to the input of the map_endpoint_task
-    re: versioning
     3433: [
             {
                 document_count: int
@@ -44,26 +43,41 @@ def fetch_endpoint_task(endpoint, params=None):
     """
     limit = params.get('limit', None) if params else None
     fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
+    fetched_versions = {}
     for collection_id in fetcher_job_result.keys():
+        version = get_version(
+            collection_id,
+            fetcher_job_result[collection_id][0]['vernacular_filepath']
+        )
         print(
             "Review fetched data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{collection_id}/"
+            f"amazonaws.com/index.html#{version}"
         )
-    return fetcher_job_result
+        fetched_versions[collection_id] = version
+    return fetched_versions
 
 @task()
-def map_endpoint_task(endpoint, params=None):
+def map_endpoint_task(endpoint, fetched_versions, params=None):
     limit = params.get('limit', None) if params else None
-    mapper_job_results = map_endpoint(endpoint, limit)
+    mapper_job_results = map_endpoint(endpoint, fetched_versions, limit)
     for mapper_job in mapper_job_results:
         print(
             "Review mapped data at: https://rikolti-data.s3.us-west-2."
             f"amazonaws.com/index.html#{mapper_job['collection_id']}/"
         )
-    return mapper_job_results
+    mapped_versions = {}
+    for mapper_job_result in mapper_job_results:
+        print(mapper_job_result.keys())
+        mapped_version = get_version(
+            mapper_job_result['collection_id'],
+            mapper_job_result['mapped_page_paths'][0]
+        )
+        mapped_versions[mapper_job_result['collection_id']] = mapped_version
+
+    return mapped_versions
 
 @task()
-def validate_endpoint_task(url, params=None):
+def validate_endpoint_task(url, mapped_versions, params=None):
     limit = params.get('limit', None) if params else None
 
     response = requests.get(url=url)
@@ -78,8 +92,11 @@ def validate_endpoint_task(url, params=None):
     s3_paths = []
     for collection in registry_endpoint(url):
         print(f"{collection['collection_id']:<6} Validating collection")
+        collection_id = collection['collection_id']
+        mapped_version = mapped_versions.get(str(collection_id))
+        mapped_pages = get_mapped_pages(mapped_version)
         num_rows, file_location = create_collection_validation_csv(
-            collection['collection_id'], mapped_page_paths)
+            collection_id, mapped_pages)
         csv_paths.append(file_location)
         validation_data_dest = os.environ.get("MAPPED_DATA", "file:///tmp")
         if validation_data_dest.startswith("s3"):

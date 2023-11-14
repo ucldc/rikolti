@@ -27,11 +27,8 @@ logger = logging.getLogger("airflow.task")
 )
 def validate_by_mapper_type():
     endpoint=make_mapper_type_endpoint()
-    validation_reports = validate_endpoint_task(endpoint)
-    (
-        fetch_endpoint_task(endpoint) >>
-        map_endpoint_task(endpoint) >>
-        validation_reports
-    )
+    fetched_versions = fetch_endpoint_task(endpoint)
+    mapped_versions = map_endpoint_task(endpoint, fetched_versions)
+    validation_reports = validate_endpoint_task(endpoint, mapped_versions)
 
 validate_by_mapper_type()

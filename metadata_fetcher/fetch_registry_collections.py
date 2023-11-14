@@ -71,7 +71,7 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
 
         success = all([page['status'] == 'success' for page in fetch_result])
         total_items = sum([page['document_count'] for page in fetch_result])
-        total_pages = fetch_result[-1]['page'] + 1
+        total_pages = len(fetch_result)
         diff_items = total_items - collection['solr_count']
         diff_items_label = ""
         if diff_items > 0:

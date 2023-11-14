@@ -23,7 +23,7 @@ def registry_endpoint(url):
             yield collection
 
 
-def map_endpoint(url, limit=None):
+def map_endpoint(url, fetched_versions, limit=None):
     response = requests.get(url=url)
     response.raise_for_status()
     total = response.json().get('meta', {}).get('total_count', 1)
@@ -51,7 +51,9 @@ def map_endpoint(url, limit=None):
             f"{collection_id:<6}: call lambda with collection_id: {collection_id}")
 
         try:
-            map_result = lambda_shepherd.map_collection(collection_id)
+            vernacular_version = fetched_versions[str(collection_id)]
+            map_result = lambda_shepherd.map_collection(
+                collection_id, vernacular_version)
         except FileNotFoundError:
             print(f"{collection_id:<6}: not fetched yet", file=sys.stderr)
             continue
@@ -112,10 +114,10 @@ def map_endpoint(url, limit=None):
             f"solr count last updated: {collection['solr_last_updated']}"
         )
         print(map_report_row)
+        map_report.append(map_result)
 
         if limit and progress >= limit:
             break
-        map_report.append(map_result)
 
     return map_report
 
