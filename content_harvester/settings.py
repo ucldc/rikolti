@@ -1,17 +1,8 @@
 import os
 
-from urllib.parse import urlparse
-
 from dotenv import load_dotenv
 
 load_dotenv()
-
-CONTENT_ROOT_URL = os.environ.get("CONTENT_ROOT", 'file:///tmp')
-CONTENT_ROOT = {
-    "STORE": urlparse(CONTENT_ROOT_URL).scheme,
-    "BUCKET": urlparse(CONTENT_ROOT_URL).netloc,
-    "PATH": urlparse(CONTENT_ROOT_URL).path,
-}
 
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', False)
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', False)

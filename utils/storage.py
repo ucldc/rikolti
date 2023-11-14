@@ -2,7 +2,7 @@ import os
 import re
 
 import boto3
-from datetime import datetime
+import shutil
 
 from urllib.parse import urlparse
 from typing import Optional, Union
@@ -198,3 +198,33 @@ def put_file_content(data: DataStorage, content) -> str:
     return data.uri
 
 
+def upload_file(filepath:str, data_uri: str, **kwargs):
+    data = parse_data_uri(data_uri)
+
+    if data.store == 's3':
+        return upload_s3_file(data, filepath, **kwargs)
+    elif data.store == 'file':
+        return move_file(data, filepath)
+    else:
+        raise Exception(f"Unknown data store: {data.store}")
+
+def upload_s3_file(data: DataStorage, filepath, **kwargs):
+    """
+    Upload a file to s3 at data.path
+    """
+    s3 = boto3.client('s3', **kwargs)
+    s3.upload_file(
+        filepath,
+        data.bucket,
+        data.path
+    )
+    return data.uri
+
+def move_file(data: DataStorage, filepath):
+    destination_path = os.sep.join(data.path.split('/'))
+    directory_path = os.path.dirname(destination_path)
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
+
+    shutil.copyfile(filepath, destination_path)
+    return data.uri

@@ -1,11 +1,9 @@
 import hashlib
 import json
 import os
-import shutil
 from collections import Counter
 from typing import Optional
 
-import boto3
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
@@ -13,6 +11,7 @@ from urllib.parse import urlparse
 
 from . import derivatives
 from . import settings
+from .storage import upload_file
 
 from .versions import (
     get_mapped_page, get_child_directories, get_child_pages, get_child_page,
@@ -206,8 +205,9 @@ class ContentHarvester(object):
             else:
                 dest_filename = os.path.basename(content.derivative_filepath)
 
-            content_s3_filepath = self._upload(
-                f"{content.dest_prefix}/{collection_id}", dest_filename, content.derivative_filepath)
+            dest_path = f"{content.dest_prefix}/{collection_id}/{dest_filename}"
+            content_s3_filepath = self._upload(dest_path, content.derivative_filepath)
+            
             content.set_s3_filepath(content_s3_filepath)
 
             # print(
@@ -287,42 +287,30 @@ class ContentHarvester(object):
 
         return md5
 
-    def _upload(self, dest_prefix, dest_filename, filepath, cache: Optional[dict] = None) -> str:
+    def _upload(self, dest_filepath, src_filepath, cache: Optional[dict] = None) -> str:
         '''
             upload file to CONTENT_ROOT
         '''
         if not cache:
             cache = {}
 
-        if cache.get(dest_filename, {}).get('path'):
-            return cache[dest_filename]['path']
+        filename = os.path.basename(dest_filepath)
+        if cache.get(filename, {}).get('path'):
+            return cache[filename]['path']
 
-        dest_path = ''
-
-        if settings.CONTENT_ROOT["STORE"] == 'file':
-            dest_path = os.path.join(
-                settings.CONTENT_ROOT["PATH"], dest_prefix)
-            if not os.path.exists(dest_path):
-                os.makedirs(dest_path)
-            dest_path = os.path.join(dest_path, dest_filename)
-            shutil.copyfile(filepath, dest_path)
-
-        if settings.CONTENT_ROOT["STORE"] == 's3':
-            s3 = boto3.client('s3')
-            dest_path = (
-                f"{settings.CONTENT_ROOT['PATH']}/{dest_prefix}/{dest_filename}")
-            s3.upload_file(
-                filepath, settings.CONTENT_ROOT["BUCKET"], dest_path)
+        content_root = os.environ.get("CONTENT_ROOT", 'file:///tmp')
+        content_path = f"{content_root.rstrip('/')}/{dest_filepath}"
+        upload_file(src_filepath, content_path)
 
         # (mime, dimensions) = image_info(filepath)
         cache_updates = {
             # 'mime': mime,
             # 'dimensions': dimensions,
-            'path': dest_path
+            'path': content_path
         }
-        cache[dest_filename] = cache_updates
+        cache[filename] = cache_updates
 
-        return dest_path
+        return content_path
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "file:///rikolti_data/r-0"}
