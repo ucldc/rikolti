@@ -6,13 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATA_SRC_URL = os.environ.get('CONTENT_DATA_SRC', 'file:///tmp')
-DATA_DEST_URL = os.environ.get('CONTENT_DATA_DEST', 'file:///tmp')
-CONTENT_DEST_URL = os.environ.get("CONTENT_DEST", 'file:///tmp')
-CONTENT_DEST = {
-    "STORE": urlparse(CONTENT_DEST_URL).scheme,
-    "BUCKET": urlparse(CONTENT_DEST_URL).netloc,
-    "PATH": urlparse(CONTENT_DEST_URL).path,
+CONTENT_ROOT_URL = os.environ.get("CONTENT_ROOT", 'file:///tmp')
+CONTENT_ROOT = {
+    "STORE": urlparse(CONTENT_ROOT_URL).scheme,
+    "BUCKET": urlparse(CONTENT_ROOT_URL).netloc,
+    "PATH": urlparse(CONTENT_ROOT_URL).path,
 }
 
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', False)

@@ -10,7 +10,7 @@ from .sample_data.nuxeo_harvests import (nuxeo_complex_object_harvests,
                                         nuxeo_nested_complex_object_harvests)
 from .sample_data.oac_harvests import oac_harvests
 from .sample_data.oai_harvests import oai_harvests
-from rikolti.utils.rikolti_storage import create_vernacular_version
+from rikolti.utils.versions import create_vernacular_version
 
 
 def main():

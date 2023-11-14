@@ -5,7 +5,7 @@ import sys
 import requests
 
 from . import lambda_function
-from rikolti.utils.rikolti_storage import create_vernacular_version
+from rikolti.utils.versions import create_vernacular_version
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,18 @@ def registry_endpoint(url):
 
 
 def fetch_endpoint(url, limit=None, job_logger=logger):
+    """
+    returns a dictionary of collection ids and fetch results, where
+    fetch results are a list of of dictionaries with the following keys:
+    ex: 3433: [
+            {
+                document_count: int
+                vernacular_filepath: path relative to collection id
+                    ex: "3433/vernacular_version_1/data/1"
+                status: 'success' or 'error'
+            }
+        ]
+    """
     response = requests.get(url=url)
     response.raise_for_status()
     total = response.json().get('meta', {}).get('total_count', 1)

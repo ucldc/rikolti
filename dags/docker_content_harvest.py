@@ -22,6 +22,7 @@ def docker_content_harvest():
     harvest_content_for_page_task = ContentHarvestDockerOperator(
         task_id="page_content_harvester_on_local_docker",
         collection_id="{{ params.collection_id }}",
+        content_data_version="{{ params.content_data_version }}",
         page="{{ params.page_filename }}",
     )
     harvest_content_for_page_task
@@ -31,6 +32,7 @@ def docker_content_harvest():
         entrypoint="python3 -m content_harvester.by_collection",
         command=["{{ params.collection_id }}"],
         collection_id="{{ params.collection_id }}",
+        content_data_version="{{ params.content_data_version }}",
         page="all",
     )
     harvest_content_for_collection_task

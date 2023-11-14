@@ -17,8 +17,8 @@ services:
       - ../rikolti_content:/rikolti_content
       - ./:/content_harvester
     environment:
-      - CONTENT_DATA_SRC=file:///rikolti_data
-      - CONTENT_DATA_DEST=file:///rikolti_data
-      - CONTENT_DEST=file:///rikolti_content
+      - MAPPED_DATA=file:///rikolti_data
+      - CONTENT_DATA=file:///rikolti_data
+      - CONTENT_ROOT=file:///rikolti_content
       - NUXEO_USER=${NUXEO_USER}
       - NUXEO_PASS=${NUXEO_PASS}

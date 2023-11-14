@@ -17,10 +17,10 @@ from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.create_collection_index import get_index_name
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
-from rikolti.utils.rikolti_storage import create_mapped_version
-from rikolti.utils.rikolti_storage import create_vernacular_version
-from rikolti.utils.rikolti_storage import get_version
-from rikolti.utils.rikolti_storage import create_content_data_version
+from rikolti.utils.versions import create_vernacular_version
+from rikolti.utils.versions import get_version
+from rikolti.utils.versions import create_mapped_version
+from rikolti.utils.versions import create_content_data_version
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
@@ -41,7 +41,8 @@ def get_collection_fetchdata_task(params=None):
 
 
 @task()
-def create_vernacular_version_task(collection):
+def create_vernacular_version_task(collection) -> str:
+    # returns: '3433/vernacular_metadata_v1/'
     return create_vernacular_version(collection.get('collection_id'))
 
 
@@ -108,16 +109,43 @@ def get_collection_metadata_task(params=None):
 # max_active_tis_per_dag - setting on the task to restrict how many
 # instances can be running at the same time, *across all DAG runs*
 @task()
-def map_page_task(page: str, collection: dict, mapped_data_version: str):
+def map_page_task(vernacular_page: str, collection: dict, mapped_data_version: str):
+    """
+    vernacular_page is a filepath relative to the collection id, ex:
+        3433/vernacular_metadata_2023-01-01T00:00:00/data/1
+    mapped_data_version is a path relative to the collection id, ex:
+        3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/
+    returns a dictionary with the following keys:
+        status: success
+        num_records_mapped: int
+        page_exceptions: TODO
+        mapped_page_path: str, ex: 
+            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl
+    """
     collection_id = collection.get('id')
     if not collection_id or not mapped_data_version:
         return False
-    mapped_page = map_page(collection_id, page, mapped_data_version, collection)
+    mapped_page = map_page(
+        collection_id, vernacular_page, mapped_data_version, collection)
     return mapped_page
 
 
 @task()
 def get_mapping_status_task(collection: dict, mapped_pages: list):
+    """
+    mapped_pages is a list of dicts with the following keys:
+        status: success
+        num_records_mapped: int
+        page_exceptions: TODO
+        mapped_page_path: str, ex: 
+            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl
+    returns a dict with the following keys:
+        mapped_page_paths: ex: [
+            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl,
+            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/2.jsonl,
+            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/3.jsonl
+        ]
+    """
     mapping_status = get_mapping_status(collection, mapped_pages)
     return mapping_status
 
@@ -130,18 +158,27 @@ def create_mapped_version_task(collection, vernacular_pages):
         '3433/vernacular_metadata_2023-01-01T00:00:00/data/1',
         '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
     ]
+    returns the path to a new mapped version, ex:
+        "3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/"
     """
     vernacular_version = get_version(collection.get('id'), vernacular_pages[0])
     if not vernacular_version:
         raise ValueError(
             f"Vernacular version not found in {vernacular_pages[0]}")
-    mapped_data_version = create_mapped_version(
-        collection.get('id'), vernacular_version)
+    mapped_data_version = create_mapped_version(vernacular_version)
     return mapped_data_version
 
 
 @task()
 def validate_collection_task(collection_status: dict, params=None) -> str:
+    """
+    collection_status is a dict containing the following keys:
+        mapped_page_paths: ex: [
+            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl,
+            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/2.jsonl,
+            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/3.jsonl
+        ]
+    """
     if not params or not params.get('validate'):
         raise ValueError("Validate flag not found in params")
 
@@ -156,8 +193,10 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
     print(f"Output {num_rows} rows to {file_location}")
 
     # create a link to the file in the logs
-    if file_location.startswith('s3://'):
-        parsed_loc = urlparse(file_location)
+    mapper_data_dest = os.environ.get("MAPPED_DATA", "file:///tmp")
+    if mapper_data_dest.startswith("s3"):
+        parsed_loc = urlparse(
+            f"{mapper_data_dest.rstrip('/')}/{file_location}")
         file_location = (
             f"https://{parsed_loc.netloc}.s3.us-west-2."
             f"amazonaws.com{parsed_loc.path}"
@@ -168,9 +207,9 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
 
 @task()
 def create_content_data_version_task(collection: dict, mapped_pages: list[dict]):
-    content_data_version = create_content_data_version(
+    mapped_version = get_version(
         collection['id'], mapped_pages[0]['mapped_page_path'])
-    return content_data_version
+    return create_content_data_version(mapped_version)
 
 
 @task()

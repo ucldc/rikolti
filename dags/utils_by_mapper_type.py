@@ -1,5 +1,6 @@
 import requests
 import logging
+import os
 
 from urllib.parse import urlparse
 
@@ -29,6 +30,18 @@ def make_mapper_type_endpoint(params=None):
 
 @task()
 def fetch_endpoint_task(endpoint, params=None):
+    """
+    TODO: map the output of this job to the input of the map_endpoint_task
+    re: versioning
+    3433: [
+            {
+                document_count: int
+                vernacular_filepath: path relative to collection id
+                    ex: "3433/vernacular_version_1/data/1"
+                status: 'success' or 'error'
+            }
+        ]
+    """
     limit = params.get('limit', None) if params else None
     fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
     for collection_id in fetcher_job_result.keys():
@@ -68,8 +81,9 @@ def validate_endpoint_task(url, params=None):
         num_rows, file_location = create_collection_validation_csv(
             collection['collection_id'], mapped_page_paths)
         csv_paths.append(file_location)
-        if file_location.startswith('s3://'):
-            s3_path = urlparse(file_location)
+        validation_data_dest = os.environ.get("MAPPED_DATA", "file:///tmp")
+        if validation_data_dest.startswith("s3"):
+            s3_path = urlparse(f"{validation_data_dest.rstrip('/')}/{file_location}")
             s3_paths.append(f"https://{s3_path.netloc}.s3.amazonaws.com{s3_path.path}")
         print(f"Output {num_rows} rows to {file_location}")
 

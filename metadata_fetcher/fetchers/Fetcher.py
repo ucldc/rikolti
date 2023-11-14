@@ -2,7 +2,7 @@ import logging
 import requests
 
 from requests.adapters import HTTPAdapter, Retry
-from rikolti.utils.rikolti_storage import put_vernacular_content
+from rikolti.utils.versions import put_vernacular_page
 
 
 logger = logging.getLogger(__name__)
@@ -21,17 +21,32 @@ class FetchError(Exception):
 
 
 class Fetcher(object):
-    def __init__(self, params):
+    def __init__(self, params: dict):
+        """
+        params: dict
+            harvest_type: str
+            collection_id: str or int
+            write_page: str or int filename of the page to write to
+            vernacular_version: path relative to collection id
+                ex: "3433/vernacular_version_1"
+        """
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        self.vernacular_version = params.get('vernacular_version')
+        self.vernacular_version = params['vernacular_version']
 
 
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
 
     def fetch_page(self):
+        """
+        returns a dict with the following keys:
+            document_count: int
+            vernacular_filepath: path relative to collection id
+                ex: "3433/vernacular_version_1/data/1"
+            status: 'success' or 'error'
+        """
         page = self.build_fetch_request()
         logger.debug(
             f"[{self.collection_id}]: fetching page {self.write_page} "
@@ -49,7 +64,7 @@ class Fetcher(object):
         if record_count:
             content = self.aggregate_vernacular_content(response.text)
             try:
-                filepath = put_vernacular_content(
+                filepath = put_vernacular_page(
                     content, self.write_page, self.vernacular_version)
             except Exception as e:
                 print(f"Metadata Fetcher: {e}")

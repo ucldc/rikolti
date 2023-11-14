@@ -1,20 +1,7 @@
 import json
 
-from . import settings
 from .by_page import harvest_page_content
-from .rikolti_storage import list_pages, create_content_data_version
-
-def get_mapped_pages(mapped_data_version:str):
-    page_list = []
-    page_list = list_pages(
-        f"{mapped_data_version.rstrip('/')}/data/",
-        recursive=False,
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        aws_session_token=settings.AWS_SESSION_TOKEN,
-        region_name=settings.AWS_REGION
-    )
-    return page_list
+from .versions import get_mapped_pages, create_content_data_version
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo"}
@@ -28,13 +15,19 @@ def harvest_collection(collection, mapped_data_version: str):
         print("ERROR ERROR ERROR\ncollection_id and mapped_data_version required")
         exit()
 
-    page_list = get_mapped_pages(mapped_data_version)
+    page_list = get_mapped_pages(
+        mapped_data_version,
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        aws_session_token=settings.AWS_SESSION_TOKEN,
+        region_name=settings.AWS_REGION
+    )
 
     print(f"[{collection_id}]: Harvesting content for {len(page_list)} pages")
     collection_stats = {}
+
     collection.update({
-        'content_data_version': create_content_data_version(
-            collection_id, mapped_data_version)
+        'content_data_version': create_content_data_version(mapped_data_version)
     })
 
     for page_path in page_list:

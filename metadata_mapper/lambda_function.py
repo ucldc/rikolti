@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import settings
 from .mappers.mapper import Record, Vernacular
-from rikolti.utils.rikolti_storage import get_mapped_page, put_page_content
+from rikolti.utils.versions import get_vernacular_page, put_mapped_page
 
 logger = logging.getLogger(__name__)
 
@@ -73,14 +73,32 @@ def run_enrichments(records, collection, enrichment_set, page_filename):
     return records
 
 
-def map_page(collection_id: int, vernacular_page_path: str, mapped_data_version: str, collection: Union[dict, str]):
+def map_page(
+        collection_id: int,
+        vernacular_page_path: str,
+        mapped_data_version: str,
+        collection: Union[dict, str]
+    ):
+    """
+    vernacular_page_path is a filepath relative to the collection id, ex:
+        3433/vernacular_metadata_v1/data/1
+    mapped_data_version is a version path relative to the collection id, ex:
+        3433/vernacular_metadata_v1/mapped_metadata_v1/
+
+    returns a dict with the following keys:
+        status: success
+        num_records_mapped: int
+        page_exceptions: TODO
+        mapped_page_path: str, ex:
+            3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
+    """
     if isinstance(collection, str):
          collection = json.loads(collection)
 
     vernacular_reader = import_vernacular_reader(
         collection.get('rikolti_mapper_type'))
     page_filename = os.path.basename(vernacular_page_path)
-    api_resp = get_mapped_page(vernacular_page_path)
+    api_resp = get_vernacular_page(vernacular_page_path)
 
     source_vernacular = vernacular_reader(collection_id, page_filename)
     source_metadata_records = source_vernacular.parse(api_resp)
@@ -118,10 +136,8 @@ def map_page(collection_id: int, vernacular_page_path: str, mapped_data_version:
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    mapped_page_path = put_page_content(
-        json.dumps(mapped_metadata),
-        f"{mapped_data_version.rstrip('/')}/data/{page_filename}.jsonl"
-    )
+    mapped_page_path = put_mapped_page(
+        json.dumps(mapped_metadata), page_filename, mapped_data_version)
 
     return {
         'status': 'success',
@@ -144,7 +160,7 @@ if __name__ == "__main__":
     mapped_page = map_page(args.collection_id, args.page_path, args.mapped_data_path, args.collection)
 
     print(f"{mapped_page.get('num_records_mapped')} records mapped")
-    print(f"mapped page at {mapped_page.get('mapped_page_path')}")
+    print(f"mapped page at {os.environ.get('MAPPED_DATA')}/{mapped_page.get('mapped_page_path')}")
 
     for report, couch_ids in mapped_page.get('exceptions', {}).items():
         print(f"{len(couch_ids)} records report enrichments errors: {report}")

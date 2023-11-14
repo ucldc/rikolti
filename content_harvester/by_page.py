@@ -14,7 +14,10 @@ from urllib.parse import urlparse
 from . import derivatives
 from . import settings
 
-from .rikolti_storage import list_pages, get_page_content, put_page_content, create_content_data_version
+from .versions import (
+    get_mapped_page, get_child_directories, get_child_pages, get_child_page,
+    get_version, put_content_data_page
+)
 
 class DownloadError(Exception):
     pass
@@ -24,44 +27,13 @@ class UnsupportedMimetype(Exception):
     pass
 
 
-def get_mapped_records(page_path) -> list:
-    mapped_records = []
-    mapped_records = json.loads(get_page_content(page_path))
-    return mapped_records
-
-
-def write_mapped_record(content_data_version, record):
-    filename = put_page_content(
-        json.dumps(record), 
-        (
-            f"{content_data_version.rstrip('/')}/data/"
-            f"{record.get('calisphere-id').replace(os.sep, '_')}.json"
-        )
-    )
-    return filename
-
-
-def write_mapped_page(content_data_version, page, records):
-    filename = put_page_content(
-        json.dumps(records),
-        f"{content_data_version.rstrip('/')}/data/{page}"
-    )
-    return filename
-
-
 def get_child_records(mapped_page_path, parent_id) -> list:
     mapped_child_records = []
-    try:
-        children = list_pages(
-            f"{mapped_page_path.rsplit('/', 1)[0]}/children/",
-            recursive=False
-        )
-    except FileNotFoundError:
-        return mapped_child_records
+    children = get_child_pages(mapped_page_path)
     children = [page for page in children
                 if (page.rsplit('/')[-1]).startswith(parent_id)]
     for child in children:
-        mapped_child_records.extend(json.loads(get_page_content(child)))
+        mapped_child_records.extend(get_child_page(child))
     return mapped_child_records
 
 
@@ -235,7 +207,7 @@ class ContentHarvester(object):
                 dest_filename = os.path.basename(content.derivative_filepath)
 
             content_s3_filepath = self._upload(
-                content.dest_prefix, dest_filename, content.derivative_filepath)
+                f"{content.dest_prefix}/{collection_id}", dest_filename, content.derivative_filepath)
             content.set_s3_filepath(content_s3_filepath)
 
             # print(
@@ -249,14 +221,19 @@ class ContentHarvester(object):
             }
 
         # Recurse through the record's children (if any)
-        child_records = get_child_records(
-            self.mapped_page_path, calisphere_id)
-        if child_records:
-            print(
-                f"[{self.collection_id}, {self.page_filename}, {calisphere_id}]: "
-                f"{len(child_records)} children found."
-            )
-            record['children'] = [self.harvest(c, download_cache=download_cache) for c in child_records]
+        mapped_version = get_version(
+            self.collection_id, self.mapped_page_path)
+        child_directories = get_child_directories(mapped_version)
+        print(f"CHILD DIRECTORIES: {child_directories}")
+        if child_directories:
+            child_records = get_child_records(
+                self.mapped_page_path, calisphere_id)
+            if child_records:
+                print(
+                    f"[{self.collection_id}, {self.page_filename}, {calisphere_id}]: "
+                    f"{len(child_records)} children found."
+                )
+                record['children'] = [self.harvest(c, download_cache=download_cache) for c in child_records]
 
         return record
 
@@ -312,7 +289,7 @@ class ContentHarvester(object):
 
     def _upload(self, dest_prefix, dest_filename, filepath, cache: Optional[dict] = None) -> str:
         '''
-            upload file to CONTENT_DEST
+            upload file to CONTENT_ROOT
         '''
         if not cache:
             cache = {}
@@ -322,20 +299,20 @@ class ContentHarvester(object):
 
         dest_path = ''
 
-        if settings.CONTENT_DEST["STORE"] == 'file':
+        if settings.CONTENT_ROOT["STORE"] == 'file':
             dest_path = os.path.join(
-                settings.CONTENT_DEST["PATH"], dest_prefix)
+                settings.CONTENT_ROOT["PATH"], dest_prefix)
             if not os.path.exists(dest_path):
                 os.makedirs(dest_path)
             dest_path = os.path.join(dest_path, dest_filename)
             shutil.copyfile(filepath, dest_path)
 
-        if settings.CONTENT_DEST["STORE"] == 's3':
+        if settings.CONTENT_ROOT["STORE"] == 's3':
             s3 = boto3.client('s3')
             dest_path = (
-                f"{settings.CONTENT_DEST['PATH']}/{dest_prefix}/{dest_filename}")
+                f"{settings.CONTENT_ROOT['PATH']}/{dest_prefix}/{dest_filename}")
             s3.upload_file(
-                filepath, settings.CONTENT_DEST["BUCKET"], dest_path)
+                filepath, settings.CONTENT_ROOT["BUCKET"], dest_path)
 
         # (mime, dimensions) = image_info(filepath)
         cache_updates = {
@@ -365,7 +342,7 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
         src_auth=auth
     )
 
-    records = get_mapped_records(mapped_page_path)
+    records = json.loads(get_mapped_page(mapped_page_path))
     print(
         f"[{collection_id}, {page_filename}]: "
         f"Harvesting content for {len(records)} records"
@@ -379,8 +356,11 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
         # spit out progress so far if an error has been encountered
         try:
             record_with_content = harvester.harvest(record)
-            # write_mapped_record(
-            #     content_data_version, record_with_content)
+            # put_content_data_page(
+            #     json.dumps(record_with_content), 
+            #     record_with_content.get('calisphere-id').replace(os.sep, '_') + ".json",
+            #     content_data_version
+            # )
             if not record_with_content.get('thumbnail'):
                 warn_level = "ERROR"
                 if 'sound' in record.get('type', []):
@@ -400,7 +380,8 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
                   f"in page {page_filename} of collection {collection_id}")
             raise(e)
 
-    write_mapped_page(content_data_version, page_filename, records)
+    put_content_data_page(
+        json.dumps(records), page_filename, content_data_version)
 
     media_source = [r for r in records if r.get('media_source')]
     media_harvested = [r for r in records if r.get('media')]

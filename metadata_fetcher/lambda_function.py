@@ -4,7 +4,7 @@ import logging
 import sys
 
 from .fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
-from rikolti.utils.rikolti_storage import create_vernacular_version
+from rikolti.utils.versions import create_vernacular_version
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,14 @@ def import_fetcher(harvest_type):
 
 
 # AWS Lambda entry point
-def fetch_collection(payload, vernacular_version, context):
+def fetch_collection(payload, vernacular_version, context) -> list[dict]:
+    """
+    returns a list of dicts with the following keys:
+        document_count: int
+        vernacular_version: path relative to collection id
+            ex: "3433/vernacular_version_1/data/1"
+        status: 'success' or 'error'
+    """
     if isinstance(payload, str):
         payload = json.loads(payload)
 

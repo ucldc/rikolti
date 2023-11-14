@@ -1,5 +1,5 @@
 from datetime import datetime
-
+import os
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
@@ -47,7 +47,7 @@ def harvest():
     mapped_pages = (
         map_page_task
             .partial(collection=collection, mapped_data_version=mapped_data_version)
-            .expand(page=fetched_pages)
+            .expand(vernacular_page=fetched_pages)
     )
 
     mapping_status = get_mapping_status_task(collection, mapped_pages)
@@ -55,12 +55,13 @@ def harvest():
     mapped_page_paths = get_mapped_page_filenames_task(mapped_pages)
 
     content_data_version = create_content_data_version_task(collection, mapped_pages)
+
     content_harvest_task = (
         ContentHarvestOperator
             .partial(
                 task_id="content_harvest", 
                 collection_id="{{ params.collection_id }}",
-                content_data_version=content_data_version,
+                content_data_version=content_data_version
             )
             .expand(
                 page=mapped_page_paths

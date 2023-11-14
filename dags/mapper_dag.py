@@ -9,8 +9,8 @@ from rikolti.dags.shared_tasks import create_mapped_version_task
 from rikolti.dags.shared_tasks import map_page_task
 from rikolti.dags.shared_tasks import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
-from rikolti.utils.rikolti_storage import get_vernacular_pages
-from rikolti.utils.rikolti_storage import get_most_recent_vernacular_version
+from rikolti.utils.versions import get_most_recent_vernacular_version
+from rikolti.utils.versions import get_vernacular_pages
 
 
 @task()
@@ -18,7 +18,8 @@ def get_vernacular_pages_task(collection: dict, vernacular_version: Optional[str
     collection_id = collection['id']
     if not vernacular_version:
         vernacular_version = get_most_recent_vernacular_version(collection_id)
-    pages = get_vernacular_pages(collection_id, vernacular_version)
+    pages = get_vernacular_pages(vernacular_version)
+    # TODO: split page_list into pages and children?
     return pages
 
 # This is a functional duplicate of 
@@ -57,7 +58,7 @@ def mapper_dag():
     mapped_pages = (
         map_page_task
             .partial(collection=collection, mapped_data_version=mapped_data_version)
-            .expand(page=page_list)
+            .expand(vernacular_page=page_list)
     )
 
     mapping_status = get_mapping_status_task(collection, mapped_pages)

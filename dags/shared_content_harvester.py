@@ -61,9 +61,9 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                         ],
                         "environment": [
                             {
-                                "CONTENT_DATA_SRC": os.environ.get("CONTENT_DATA_SRC"),
-                                "CONTENT_DATA_DEST": os.environ.get("CONTENT_DATA_DEST"),
-                                "CONTENT_DEST": os.environ.get("CONTENT_DEST"),
+                                "MAPPED_DATA": os.environ.get("CONTENT_DATA"),
+                                "CONTENT_DATA": os.environ.get("CONTENT_DATA"),
+                                "CONTENT_ROOT": os.environ.get("CONTENT_ROOT"),
                                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                                 "NUXEO_PASS": os.environ.get("NUXEO_PASS")
                             }
@@ -132,9 +132,9 @@ class ContentHarvestDockerOperator(DockerOperator):
             "mounts": mounts,
             "mount_tmp_dir": False,
             "environment": {
-                "CONTENT_DATA_SRC": os.environ.get("CONTENT_DATA_SRC"),
-                "CONTENT_DATA_DEST": os.environ.get("CONTENT_DATA_DEST"),
-                "CONTENT_DEST": os.environ.get("CONTENT_DEST"),
+                "MAPPED_DATA": os.environ.get("CONTENT_DATA"),
+                "CONTENT_DATA": os.environ.get("CONTENT_DATA"),
+                "CONTENT_ROOT": os.environ.get("CONTENT_ROOT"),
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                 "NUXEO_PASS": os.environ.get("NUXEO_PASS")
             },
