@@ -220,7 +220,7 @@ class Thumbnail(Content):
 class ContentHarvester(object):
 
     # context = {'collection_id': '12345', 'page_filename': '1.jsonl'}
-    def __init__(self, context={}, src_auth=None):
+    def __init__(self, collection_id, page_filename, src_auth=None):
         self.http = requests.Session()
 
         retry_strategy = Retry(
@@ -232,7 +232,8 @@ class ContentHarvester(object):
         self.http.mount("http://", adapter)
 
         self.src_auth = src_auth
-        self.harvest_context = context
+        self.collection_id = collection_id
+        self.page_filename = page_filename
 
         if settings.CONTENT_DEST["STORE"] == 's3':
             self.s3 = boto3.client('s3')
@@ -243,8 +244,6 @@ class ContentHarvester(object):
     # is an array of the self-same content dictionary
     def harvest(self, record, download_cache={}) -> dict:
         calisphere_id = record.get('calisphere-id')
-        collection_id = self.harvest_context.get('collection_id')
-        page_filename = self.harvest_context.get('page_filename')
 
         # maintain backwards compatibility to 'is_shown_by' field
         thumbnail_src = record.get(
@@ -280,7 +279,7 @@ class ContentHarvester(object):
             content.set_s3_filepath(content_s3_filepath)
 
             # print(
-            #     f"[{collection_id}, {page_filename}, {calisphere_id}] "
+            #     f"[{self.collection_id}, {self.page_filename}, {calisphere_id}] "
             #     f"{type(content).__name__} Path: {content.s3_filepath}"
             # )
             
@@ -291,10 +290,10 @@ class ContentHarvester(object):
 
         # Recurse through the record's children (if any)
         child_records = get_child_records(
-            collection_id, calisphere_id, self.s3)
+            self.collection_id, calisphere_id, self.s3)
         if child_records:
             print(
-                f"[{collection_id}, {page_filename}, {calisphere_id}]: "
+                f"[{self.collection_id}, {self.page_filename}, {calisphere_id}]: "
                 f"{len(child_records)} children found."
             )
             record['children'] = [self.harvest(c, download_cache=download_cache) for c in child_records]
@@ -391,10 +390,11 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
     auth = None
     if rikolti_mapper_type == 'nuxeo.nuxeo':
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
-    harvester = ContentHarvester(context={
-        'collection_id': collection_id,
-        'page_filename': page_filename
-    }, src_auth=auth)
+    harvester = ContentHarvester(
+        collection_id=collection_id,
+        page_filename=page_filename,
+        src_auth=auth
+    )
 
     records = get_mapped_records(collection_id, page_filename, harvester.s3)
     print(
