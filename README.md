@@ -193,6 +193,9 @@ The folder located at `CONTENT_DATA_MOUNT` is mounted to `/rikolti_data` and the
 
 You can specify a `CONTENT_HARVEST_IMAGE` and `CONTENT_HARVEST_VERSION` through environment variables as well. The default value for `CONTENT_HARVEST_IMAGE` is `public.ecr.aws/b6c7x7s4/rikolti/content_harvester` and the default value for `CONTENT_HARVEST_VERSION` is `latest`.
 
+If you would like to run the content harvester on AWS infrastructure using the ECS operator, or if you are deploying Rikolti to MWAA, you can specify `CONTAINER_EXECUTION_ENVIRONMENT='ecs'` (you'll need some AWS credentials as well). The `CONTAINER_EXECUTION_ENVIRONMENT` is, by default, a docker execution environment.
+
+> A note about Docker vs. ECS: Since we do not actively maintain our own Docker daemon, and since MWAA workers do not come with a Docker daemon installed, we cannot use a docker execution environment in deployed MWAA and instead use ECS to run our content harvester containers on Fargate infrastructure. The EcsRunTaskOperator allows us to run a pre-defined ECS Task Definition. The EcsRegisterTaskDefinitionOperator allows us to define an ECS Task Definition which we could then run. At this time, we are defining the Task Definition in our [cloudformation templates](https://github.com/cdlib/pad-airflow), rather than using the EcsRegisterTaskDefinitionOperator, but this does mean that we cannot modify the container's image or version using the EcsRunTaskOperator.
 
 If you would like to run your own rikolti/content_harvester image instead of pulling the image from AWS, then from inside the Rikolti repo, run `docker build -t rikolti/content_harvester content_harvester` to build the `rikolti/content_harvester` image locally and update the `content_harvester_image` to be `rikolti/content_harvester`.
 
