@@ -16,7 +16,7 @@ from rikolti.dags.shared_content_harvester import ContentHarvestEcsOperator
         'page_filename':
         Param(None, description="Page filename to harvest_content")
     },
-    tags=["rikolti"],
+    tags=["dev"],
 )
 def ecs_content_harvest():
     harvest_content_for_page = ContentHarvestEcsOperator(
