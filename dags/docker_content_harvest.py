@@ -16,7 +16,7 @@ from rikolti.dags.shared_content_harvester import ContentHarvestDockerOperator
         'page_filename':
         Param(None, description="Page filename to harvet_content")
     },
-    tags=["rikolti"],
+    tags=["dev"],
 )
 def docker_content_harvest():
     harvest_content_for_page_task = ContentHarvestDockerOperator(
