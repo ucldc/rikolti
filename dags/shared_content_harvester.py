@@ -49,6 +49,15 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                     {
                         "name": "rikolti-content_harvester",
                         "command": [f"{collection_id}", f"{page}"],
+                        "environment": [
+                            {
+                                "CONTENT_DATA_SRC": os.environ.get("CONTENT_DATA_SRC"),
+                                "CONTENT_DATA_DEST": os.environ.get("CONTENT_DATA_DEST"),
+                                "CONTENT_DEST": os.environ.get("CONTENT_DEST"),
+                                "NUXEO_USER": os.environ.get("NUXEO_USER"),
+                                "NUXEO_PASS": os.environ.get("NUXEO_PASS")
+                            }
+                        ]
                     }
                 ]
             },
@@ -113,7 +122,8 @@ class ContentHarvestDockerOperator(DockerOperator):
                 "CONTENT_DATA_SRC": os.environ.get("CONTENT_DATA_SRC"),
                 "CONTENT_DATA_DEST": os.environ.get("CONTENT_DATA_DEST"),
                 "CONTENT_DEST": os.environ.get("CONTENT_DEST"),
-                "NUXEO": os.environ.get("NUXEO"),
+                "NUXEO_USER": os.environ.get("NUXEO_USER"),
+                "NUXEO_PASS": os.environ.get("NUXEO_PASS")
             },
         }
         args.update(kwargs)
