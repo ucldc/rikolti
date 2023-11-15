@@ -122,7 +122,5 @@ class ContentHarvestDockerOperator(DockerOperator):
 
 if CONTAINER_EXECUTION_ENVIRONMENT == 'ecs':
     ContentHarvestOperator = ContentHarvestEcsOperator
-elif CONTAINER_EXECUTION_ENVIRONMENT == 'docker':
-    ContentHarvestOperator = ContentHarvestDockerOperator
 else:
-    raise ValueError("Please set CONTAINER_EXECUTION_ENVIRONMENT env var")
+    ContentHarvestOperator = ContentHarvestDockerOperator
