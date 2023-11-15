@@ -244,45 +244,6 @@ def create_mapped_version(
     return mapped_data_path
 
 
-    # def list_fetched_content(self, recursive: bool=True, **kwargs) -> list:
-    #     return list_pages(
-    #         f"{self.vernacular_data}/{self.collection_id}/"
-    #         f"vernacular_metadata{self.suffix}/",
-    #         recursive=recursive
-    #     )
-
-    # def search_page(self, search_str: str, page: str) -> bool:
-    #     if self.data_store == 's3':
-    #         return self.search_s3_page(search_str, page)
-    #     elif self.data_store == 'file':
-    #         return self.search_file_page(search_str, page)
-    #     else:
-    #         raise Exception(f"Unknown data store: {self.data_store}")
-
-    # def search_s3_page(self, search_str: str, s3_key: str) -> bool:
-    #     """
-    #     Check if search_str is in the body of the object located at s3_key
-    #     Returns the s3_key of the object if so, otherwise returns None
-    #     """
-    #     obj = self.s3.get_object(Bucket=self.data_bucket, Key=s3_key)
-    #     body = obj['Body'].read().decode('utf-8')
-    #     if search_str in body:
-    #         return True
-    #     else:
-    #         return False
-
-    # def search_file_page(self, search_str: str, file_path: str) -> bool:
-    #     """
-    #     Check if search_str is in the body of the file located at file_path
-    #     """
-    #     with open(file_path, 'r') as f:
-    #         body = f.read()
-    #         if search_str in body:
-    #             return True
-    #         else:
-    #             return False
-
-
 def create_validation_version(
         collection_id: int or str,
         mapped_data_path: str,
@@ -306,15 +267,29 @@ def create_validation_version(
         f"{validation_root.rstrip('/')}/validation_{validation_suffix}.csv")
     return validation_data_path
 
-    validation_data_dest = os.environ.get(
-        "VALIDATION_DATA_DEST", "file:///tmp")
-    collection_path = (
-        f"{validation_data_dest.rstrip('/')}/{collection_id}/")
-    if not validation_suffix:
-        validation_suffix = (
+
+def create_content_data_version(
+        collection_id: int or str, 
+        mapped_data_version: str,
+        content_data_suffix: Optional[str] = None
+)-> str:
+    mapped_with_content_dest = os.environ.get('CONTENT_DATA_DEST')
+    # get path of the mapped data version, not the mapped data
+    content_data_root = mapped_data_version
+
+    if mapped_with_content_dest:
+        # get path relative to collection_id
+        mapped_data_path = mapped_data_version.split(str(collection_id))[-1]
+        content_data_root = (
+            f"{mapped_with_content_dest.rstrip('/')}/{collection_id}/{mapped_data_path}"
+        )
+    
+    if not content_data_suffix:
+        content_data_suffix = (
             datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-    validation_version_path = (
-        f"{collection_path}validation_{validation_suffix}/")
-    return validation_version_path
+    content_data_path = (
+        f"{content_data_root.rstrip('/')}/content_data_{content_data_suffix}/")
+    )
+    return content_data_path
 
 

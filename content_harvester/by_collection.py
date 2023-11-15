@@ -2,12 +2,12 @@ import json
 
 from . import settings
 from .by_page import harvest_page_content
-from rikolti.utils.rikolti_storage import list_pages
+from rikolti.utils.rikolti_storage import list_pages, create_content_data_version
 
-def get_mapped_pages(collection_id):
+def get_mapped_pages(mapped_data_version:str):
     page_list = []
     page_list = list_pages(
-        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata",
+        f"{mapped_data_version.rstrip('/')}/data/",
         recursive=False,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
@@ -18,20 +18,25 @@ def get_mapped_pages(collection_id):
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo"}
-def harvest_collection(collection):
+def harvest_collection(collection, mapped_data_version: str):
     if isinstance(collection, str):
         collection = json.loads(collection)
 
     collection_id = collection.get('collection_id')
 
-    if not collection_id:
-        print("ERROR ERROR ERROR\ncollection_id required")
+    if not collection_id or not mapped_data_version:
+        print("ERROR ERROR ERROR\ncollection_id and mapped_data_version required")
         exit()
 
-    page_list = get_mapped_pages(collection_id)
+    page_list = get_mapped_pages(mapped_data_version)
 
     print(f"[{collection_id}]: Harvesting content for {len(page_list)} pages")
     collection_stats = {}
+    collection.update({
+        'content_data_version': create_content_data_version(
+            collection_id, mapped_data_version)
+    })
+
     for page_path in page_list:
         collection.update({'page_path': page_path})
         page_stats = harvest_page_content(**collection)
@@ -56,6 +61,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Harvest content by collection using mapped metadata")
     parser.add_argument('collection_id', help="Collection ID")
+    parser.add_argument('mapped_data_version', help="URI to mapped data version: ex: s3://rikolti-data-root/3433/vernacular_data_version_1/mapped_data_version_2/")
     parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
     args = parser.parse_args()
     arguments = {
@@ -63,4 +69,4 @@ if __name__ == "__main__":
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
-    print(harvest_collection(arguments))
+    print(harvest_collection(arguments, args.mapped_data_version))

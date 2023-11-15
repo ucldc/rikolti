@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from . import derivatives
 from . import settings
 
-from rikolti.utils.rikolti_storage import list_pages, get_page_content, put_page_content
+from rikolti.utils.rikolti_storage import list_pages, get_page_content, put_page_content, create_content_data_version
 
 class DownloadError(Exception):
     pass
@@ -30,32 +30,33 @@ def get_mapped_records(page_path) -> list:
     return mapped_records
 
 
-def write_mapped_record(collection_id, record):
-    put_page_content(
+def write_mapped_record(content_data_version, record):
+    filename = put_page_content(
         json.dumps(record), 
         (
-            f"{settings.DATA_DEST_URL}/{collection_id}/mapped_with_content/"
-            f"{record.get('calisphere-id').replace(os.sep, '_')}"
+            f"{content_data_version.rstrip('/')}/data/"
+            f"{record.get('calisphere-id').replace(os.sep, '_')}.json"
         )
-)
-
-
-def write_mapped_page(collection_id, page, records):
-    put_page_content(
-        json.dumps(records),
-        f"{settings.DATA_DEST_URL}/{collection_id}/mapped_with_content/{page}"
     )
+    return filename
 
 
-def get_child_records(collection_id, parent_id) -> list:
+def write_mapped_page(content_data_version, page, records):
+    filename = put_page_content(
+        json.dumps(records),
+        f"{content_data_version.rstrip('/')}/data/{page}"
+    )
+    return filename
+
+
+def get_child_records(mapped_page_path, parent_id) -> list:
     mapped_child_records = []
     children = list_pages(
-        f"{settings.DATA_SRC_URL}/{collection_id}/mapped_metadata/children",
+        f"{mapped_page_path.rsplit('/', 1)[0]}/children/",
         recursive=False
     )
-    if rikolti_data.data_store == 'file':
-        children = [page for page in children
-                    if os.path.basename(page).startswith(parent_id)]
+    children = [page for page in children
+                if (page.rsplit('/')[-1]).startswith(parent_id)]
     for child in children:
         mapped_child_records.extend(json.loads(get_page_content(child)))
     return mapped_child_records
@@ -179,7 +180,8 @@ class Thumbnail(Content):
 class ContentHarvester(object):
 
     # context = {'collection_id': '12345', 'page_filename': '1.jsonl'}
-    def __init__(self, collection_id, page_filename, src_auth=None):
+    def __init__(self, mapped_page_path, collection_id, page_filename, src_auth=None):
+        self.mapped_page_path = mapped_page_path
         self.http = requests.Session()
 
         retry_strategy = Retry(
@@ -249,7 +251,7 @@ class ContentHarvester(object):
 
         # Recurse through the record's children (if any)
         child_records = get_child_records(
-            self.collection_id, calisphere_id)
+            self.mapped_page_path, calisphere_id)
         if child_records:
             print(
                 f"[{self.collection_id}, {self.page_filename}, {calisphere_id}]: "
@@ -347,9 +349,9 @@ class ContentHarvester(object):
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "file:///rikolti_data/r-0"}
-def harvest_page_content(collection_id, page_path, **kwargs):
+def harvest_page_content(collection_id, mapped_page_path, content_data_version, **kwargs):
     rikolti_mapper_type = kwargs.get('rikolti_mapper_type')
-    page_filename = os.path.basename(page_path)
+    page_filename = os.path.basename(mapped_page_path)
 
     # Weird how we have to use username/pass to hit this endpoint
     # but we have to use auth token to hit API endpoint
@@ -357,12 +359,13 @@ def harvest_page_content(collection_id, page_path, **kwargs):
     if rikolti_mapper_type == 'nuxeo.nuxeo':
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
     harvester = ContentHarvester(
+        mapped_page_path,
         collection_id=collection_id,
         page_filename=page_filename,
         src_auth=auth
     )
 
-    records = get_mapped_records(page_path)
+    records = get_mapped_records(mapped_page_path)
     print(
         f"[{collection_id}, {page_filename}]: "
         f"Harvesting content for {len(records)} records"
@@ -377,7 +380,7 @@ def harvest_page_content(collection_id, page_path, **kwargs):
         try:
             record_with_content = harvester.harvest(record)
             # write_mapped_record(
-            #     collection_id, record_with_content)
+            #     content_data_version, record_with_content)
             if not record_with_content.get('thumbnail'):
                 warn_level = "ERROR"
                 if 'sound' in record.get('type', []):
@@ -396,7 +399,7 @@ def harvest_page_content(collection_id, page_path, **kwargs):
             print(f"Exiting after harvesting {i} of {len(records)} items "
                   f"in page {page_filename} of collection {collection_id}")
 
-    write_mapped_page(collection_id, page_filename, records)
+    write_mapped_page(content_data_version, page_filename, records)
 
     media_source = [r for r in records if r.get('media_source')]
     media_harvested = [r for r in records if r.get('media')]
@@ -455,12 +458,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Harvest content using a page of mapped metadata")
     parser.add_argument('collection_id', help="Collection ID")
-    parser.add_argument('page_path', help="URI-formatted path to a mapped metadata page")
+    parser.add_argument('mapped_page_path', help="URI-formatted path to a mapped metadata page")
     parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
     args = parser.parse_args()
     arguments = {
         'collection_id': args.collection_id,
-        'page_filename': args.page_path,
+        'mapped_page_path': args.mapped_page_path,
+        'content_data_version': create_content_data_version(
+            args.collection_id, args.mapped_page_path.rsplit('data', 1)[0])
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
