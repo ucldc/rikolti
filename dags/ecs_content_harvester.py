@@ -12,9 +12,9 @@ from rikolti.dags.shared_content_harvester import ContentHarvestEcsOperator
     catchup=False,
     params={
         'collection_id': 
-        Param(None, description="Collection ID to harvet_content"),
+        Param(None, description="Collection ID to harvest_content"),
         'page_filename':
-        Param(None, description="Page filename to harvet_content")
+        Param(None, description="Page filename to harvest_content")
     },
     tags=["rikolti"],
 )
