@@ -32,8 +32,8 @@ AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', False)
 AWS_SESSION_TOKEN = os.environ.get('AWS_SESSION_TOKEN', False)
 AWS_REGION = os.environ.get('AWS_REGION', False)
 
-NUXEO_USER = os.environ.get('NUXEO_BASIC_USER', False)
-NUXEO_PASS = os.environ.get('NUXEO_BASIC_PASS', False)
+NUXEO_USER = os.environ.get('NUXEO_USER', False)
+NUXEO_PASS = os.environ.get('NUXEO_PASS', False)
 
 CONTENT_PROCESSES = {
     'magick': '/usr/bin/convert',

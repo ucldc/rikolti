@@ -20,4 +20,5 @@ services:
       - CONTENT_DATA_SRC=file:///rikolti_data
       - CONTENT_DATA_DEST=file:///rikolti_data
       - CONTENT_DEST=file:///rikolti_content
-      - NUXEO=${NUXEO}
+      - NUXEO_USER=${NUXEO_USER}
+      - NUXEO_PASS=${NUXEO_PASS}
