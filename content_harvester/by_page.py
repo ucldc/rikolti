@@ -9,7 +9,7 @@ from requests.adapters import HTTPAdapter, Retry
 
 from urllib.parse import urlparse
 
-from . import derivatives
+from .content_types import Media, Thumbnail
 from . import settings
 
 from rikolti.utils.storage import upload_file
@@ -19,10 +19,6 @@ from rikolti.utils.versions import (
 )
 
 class DownloadError(Exception):
-    pass
-
-
-class UnsupportedMimetype(Exception):
     pass
 
 
@@ -36,281 +32,189 @@ def get_child_records(mapped_page_path, parent_id) -> list:
     return mapped_child_records
 
 
-class Content(object):
-    def __init__(self, content_src):
-        self.missing = True if not content_src else False
-        self.src_url = content_src.get('url')
-        self.src_filename = content_src.get(
-            'filename',
-            list(
-                filter(
-                    lambda x: bool(x), content_src.get('url', '').split('/')
-                )
-            )[-1]
+def configure_http_session() -> requests.Session:
+    http = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        status_forcelist=[413, 429, 500, 502, 503, 504],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    http.mount("https://", adapter)
+    http.mount("http://", adapter)
+    return http
+
+
+def harvest_content(content, collection_id, http, src_auth, download_cache):
+    if not content.downloaded():
+        md5 = download_content(
+            content.src_url, 
+            content.tmp_filepath, 
+            http, 
+            src_auth, 
+            download_cache
         )
-        self.src_mime_type = content_src.get('mimetype')
-        self.tmp_filepath = os.path.join('/tmp', self.src_filename)
-        self.derivative_filepath = None
-        self.s3_filepath = None
-
-    def downloaded(self):
-        return os.path.exists(self.tmp_filepath)
-
-    def processed(self):
-        return (
-            self.derivative_filepath and 
-            os.path.exists(self.derivative_filepath)
+    elif download_cache:
+        md5 = download_cache.get(
+            content.src_url,
+            hashlib.md5(open(content.tmp_filepath, 'rb').read()).hexdigest()
         )
+    if not content.processed():
+        content.create_derivatives()
 
-    def set_s3_filepath(self, s3_filepath):
-        self.s3_filepath = s3_filepath
+    if type(content).__name__ == 'Thumbnail':
+        dest_filename = md5
+    else:
+        dest_filename = os.path.basename(content.derivative_filepath)
 
-    def __bool__(self):
-        return not self.missing
+    dest_path = f"{content.dest_prefix}/{collection_id}/{dest_filename}"
+    content_s3_filepath = upload_content(content.derivative_filepath, dest_path)
+    
+    content.set_s3_filepath(content_s3_filepath)
+    # print(
+    #     f"[{collection_id}, {page_filename}, {calisphere_id}] "
+    #     f"{type(content).__name__} Path: {content.s3_filepath}"
+    # )
 
-    def __del__(self):
-        if self.downloaded() and self.tmp_filepath != self.s3_filepath:
-            os.remove(self.tmp_filepath)
-        if self.processed() and self.derivative_filepath != self.s3_filepath:
-            os.remove(self.derivative_filepath)
+    return {
+        'mimetype': content.dest_mime_type,
+        'path': content.s3_filepath
+    }
 
 
-class Media(Content):
-    def __init__(self, content_src):
-        super().__init__(content_src)
-        self.src_nuxeo_type = content_src.get('nuxeo_type')
-        if self.src_nuxeo_type == 'SampleCustomPicture':
-            self.dest_mime_type = 'image/jp2'
-            self.dest_prefix = "jp2"
-        else:
-            self.dest_mime_type = self.src_mime_type
-            self.dest_prefix = "media"
+# returns content = {thumbnail, media, children} where children
+# is an array of the self-same content dictionary
+def harvest_record(record: dict,
+            collection_id,
+            page_filename,
+            mapped_page_path,
+            http: requests.Session,
+            src_auth: Optional[tuple[str,str]] = None,
+            download_cache: Optional[dict] = None,
+            ) -> dict:
+    calisphere_id = record.get('calisphere-id')
 
-    def create_derivatives(self):
-        self.derivative_filepath = self.tmp_filepath
-        if self.src_nuxeo_type == 'SampleCustomPicture':
-            try:
-                self.check_mimetype(self.src_mime_type)
-                self.derivative_filepath = derivatives.make_jp2(
-                    self.tmp_filepath)
-            except UnsupportedMimetype as e:
-                print(
-                    "ERROR: nuxeo type is SampleCustomPicture, "
-                    "but mimetype is not supported"
-                )
-                raise(e)
+    # maintain backwards compatibility to 'is_shown_by' field
+    thumbnail_src = record.get(
+        'thumbnail_source', record.get('is_shown_by'))
+    if isinstance(thumbnail_src, str):
+        record['thumbnail_source'] = {'url': thumbnail_src}
 
-    def check_mimetype(self, mimetype):
-        ''' do a basic pre-check on the object to see if we think it's
-        something know how to deal with '''
-        valid_types = [
-            'image/jpeg', 'image/gif', 'image/tiff', 'image/png',
-            'image/jp2', 'image/jpx', 'image/jpm'
-        ]
+    # get media first, sometimes media is used for thumbnail
+    media = record.get('media_source')
+    if media:
+        record['media'] = harvest_content(
+            Media(media), collection_id, http, src_auth, download_cache)
+    thumbnail = record.get('thumbnail_source')
+    if thumbnail:
+        record['thumbnail'] = harvest_content(
+            Thumbnail(thumbnail), collection_id, http, src_auth, download_cache)
 
-        # see if we recognize this mime type
-        if mimetype in valid_types:
+    # Recurse through the record's children (if any)
+    mapped_version = get_version(
+        collection_id, mapped_page_path)
+    child_directories = get_child_directories(mapped_version)
+    print(f"CHILD DIRECTORIES: {child_directories}")
+    if child_directories:
+        child_records = get_child_records(
+            mapped_page_path, calisphere_id)
+        if child_records:
             print(
-                f"Mime-type '{mimetype}' was pre-checked and recognized as "
-                "something we can try to convert."
+                f"[{collection_id}, {page_filename}, {calisphere_id}]: "
+                f"{len(child_records)} children found."
             )
-        elif mimetype in ['application/pdf']:
-            raise UnsupportedMimetype(
-                f"Mime-type '{mimetype}' was pre-checked and recognized as "
-                "something we don't want to convert."
-            )
-        else:
-            raise UnsupportedMimetype(
-                f"Mime-type '{mimetype}' was unrecognized. We don't know how "
-                "to deal with this"
-            )
-
-
-class Thumbnail(Content):
-    def __init__(self, content_src):
-        super().__init__(content_src)
-        self.src_mime_type = content_src.get('mimetype', 'image/jpeg')
-        self.dest_mime_type = 'image/jpeg' # do we need this? 
-        self.dest_prefix = "thumbnails"
-
-    def create_derivatives(self):
-        self.derivative_filepath = None
-        if self.src_mime_type == 'image/jpeg':
-            self.derivative_filepath = self.tmp_filepath
-        elif self.src_mime_type == 'application/pdf':
-            self.derivative_filepath = derivatives.pdf_to_thumb(
-                self.tmp_filepath)
-        elif self.src_mime_type == 'video/mp4':
-            self.derivative_filepath = derivatives.video_to_thumb(
-                self.tmp_filepath)
-        else:
-            raise UnsupportedMimetype(f"thumbnail: {self.src_mime_type}")
-
-    def check_mimetype(self, mimetype):
-        if mimetype not in ['image/jpeg', 'application/pdf', 'video/mp4']:
-            raise UnsupportedMimetype(f"thumbnail: {mimetype}")
-
-
-class ContentHarvester(object):
-
-    # context = {'collection_id': '12345', 'page_filename': '1.jsonl'}
-    def __init__(self, mapped_page_path, collection_id, page_filename, src_auth=None):
-        self.mapped_page_path = mapped_page_path
-        self.http = requests.Session()
-
-        retry_strategy = Retry(
-            total=3,
-            status_forcelist=[413, 429, 500, 502, 503, 504],
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self.http.mount("https://", adapter)
-        self.http.mount("http://", adapter)
-
-        self.src_auth = src_auth
-        self.collection_id = collection_id
-        self.page_filename = page_filename
-
-
-    # returns content = {thumbnail, media, children} where children
-    # is an array of the self-same content dictionary
-    def harvest(self, record: dict, download_cache: Optional[dict] = None) -> dict:
-        calisphere_id = record.get('calisphere-id')
-
-        # maintain backwards compatibility to 'is_shown_by' field
-        thumbnail_src = record.get(
-            'thumbnail_source', record.get('is_shown_by'))
-        if isinstance(thumbnail_src, str):
-            record['thumbnail_source'] = {'url': thumbnail_src}
-
-        # get media first, sometimes media is used for thumbnail
-        content_types = [(Media, 'media'), (Thumbnail, 'thumbnail')]
-        for content_cls, field in content_types:
-            content = record.get(f"{field}_source")
-            if not content:
-                continue
-
-            content = content_cls(content)
-            if not content.downloaded():
-                md5 = self._download(content.src_url, content.tmp_filepath, download_cache)
-            elif download_cache:
-                md5 = download_cache.get(
-                    content.src_url,
-                    hashlib.md5(open(content.tmp_filepath, 'rb').read()).hexdigest()
+            record['children'] = [
+                harvest_record(
+                    child_record, 
+                    collection_id, 
+                    page_filename, 
+                    mapped_page_path, 
+                    http, 
+                    src_auth, 
+                    download_cache=download_cache
                 )
-            if not content.processed():
-                content.create_derivatives()
+                for child_record in child_records
+            ]
 
-            if field == 'thumbnail':
-                dest_filename = md5
-            else:
-                dest_filename = os.path.basename(content.derivative_filepath)
+    return record
 
-            dest_path = f"{content.dest_prefix}/{collection_id}/{dest_filename}"
-            content_s3_filepath = self._upload(dest_path, content.derivative_filepath)
-            
-            content.set_s3_filepath(content_s3_filepath)
 
-            # print(
-            #     f"[{self.collection_id}, {self.page_filename}, {calisphere_id}] "
-            #     f"{type(content).__name__} Path: {content.s3_filepath}"
-            # )
-            
-            record[field] = {
-                'mimetype': content.dest_mime_type,
-                'path': content.s3_filepath
-            }
+def download_content(url: str, 
+                destination_file: str, 
+                http: requests.Session, 
+                src_auth: Optional[tuple[str, str]] = None, 
+                cache: Optional[dict] = None
+            ):
+    '''
+        download source file to local disk
+    '''
+    if src_auth and urlparse(url).scheme != 'https':
+        raise DownloadError(f"Basic auth not over https is a bad idea! {url}")
 
-        # Recurse through the record's children (if any)
-        mapped_version = get_version(
-            self.collection_id, self.mapped_page_path)
-        child_directories = get_child_directories(mapped_version)
-        print(f"CHILD DIRECTORIES: {child_directories}")
-        if child_directories:
-            child_records = get_child_records(
-                self.mapped_page_path, calisphere_id)
-            if child_records:
-                print(
-                    f"[{self.collection_id}, {self.page_filename}, {calisphere_id}]: "
-                    f"{len(child_records)} children found."
-                )
-                record['children'] = [self.harvest(c, download_cache=download_cache) for c in child_records]
+    if not cache:
+        cache = {}
+    cached_data = cache.get(url, {})
 
-        return record
-
-    def _download(self, url: str, destination_file: str, cache: Optional[dict] = None):
-        '''
-            download source file to local disk
-        '''
-        if self.src_auth and urlparse(url).scheme != 'https':
-            raise DownloadError(f"Basic auth not over https is a bad idea! {url}")
-
-        if not cache:
-            cache = {}
-
-        cached_data = cache.get(url, {})
-
-        request = {
-            "url": url,
-            "auth": self.src_auth,
-            "stream": True,
-            "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
+    request = {
+        "url": url,
+        "auth": src_auth,
+        "stream": True,
+        "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
+    }
+    if cached_data:
+        request['headers'] = {
+            'If-None-Match': cached_data.get('If-None-Match'),
+            'If-Modified-Since': cached_data.get('If-Modified-Since')
         }
-        if cached_data:
-            request['headers'] = {
-                'If-None-Match': cached_data.get('If-None-Match'),
-                'If-Modified-Since': cached_data.get('If-Modified-Since')
-            }
-            request['headers'] = {k:v for k,v in request['headers'].items() if v}
+        request['headers'] = {k:v for k,v in request['headers'].items() if v}
 
-        response = self.http.get(**request)
-        response.raise_for_status()
+    response = http.get(**request)
+    response.raise_for_status()
 
-        # short-circuit here
-        if response.status_code == 304: # 304 - not modified
-            return cached_data.get('md5')
+    # short-circuit here
+    if response.status_code == 304: # 304 - not modified
+        return cached_data.get('md5')
 
-        hasher = hashlib.new('md5')
-        with open(destination_file, 'wb') as f:
-            for block in response.iter_content(1024 * hasher.block_size):
-                hasher.update(block)
-                f.write(block)
-        md5 = hasher.hexdigest()
+    hasher = hashlib.new('md5')
+    with open(destination_file, 'wb') as f:
+        for block in response.iter_content(1024 * hasher.block_size):
+            hasher.update(block)
+            f.write(block)
+    md5 = hasher.hexdigest()
 
-        cache_updates = {
-            'If-None-Match': response.headers.get('ETag'),
-            'If-Modified-Since': response.headers.get('Last-Modified'),
-            'Mime-Type': response.headers.get('Content-type'),
-            'md5': md5
-        }
-        cache_updates = {k:v for k,v in cache_updates.items() if v}
-        cache['url'] = cached_data.update(cache_updates)
+    cache_updates = {
+        'If-None-Match': response.headers.get('ETag'),
+        'If-Modified-Since': response.headers.get('Last-Modified'),
+        'Mime-Type': response.headers.get('Content-type'),
+        'md5': md5
+    }
+    cache_updates = {k:v for k,v in cache_updates.items() if v}
+    cache['url'] = cached_data.update(cache_updates)
 
-        return md5
+    return md5
 
-    def _upload(self, dest_filepath, src_filepath, cache: Optional[dict] = None) -> str:
-        '''
-            upload file to CONTENT_ROOT
-        '''
-        if not cache:
-            cache = {}
 
-        filename = os.path.basename(dest_filepath)
-        if cache.get(filename, {}).get('path'):
-            return cache[filename]['path']
+def upload_content(filepath: str, destination: str, cache: Optional[dict] = None) -> str:
+    '''
+        upload file to CONTENT_ROOT
+    '''
+    if not cache:
+        cache = {}
 
-        content_root = os.environ.get("CONTENT_ROOT", 'file:///tmp')
-        content_path = f"{content_root.rstrip('/')}/{dest_filepath}"
-        upload_file(src_filepath, content_path)
+    filename = os.path.basename(destination)
+    if cache.get(filename, {}).get('path'):
+        return cache[filename]['path']
 
-        # (mime, dimensions) = image_info(filepath)
-        cache_updates = {
-            # 'mime': mime,
-            # 'dimensions': dimensions,
-            'path': content_path
-        }
-        cache[filename] = cache_updates
+    content_root = os.environ.get("CONTENT_ROOT", 'file:///tmp')
+    content_path = f"{content_root.rstrip('/')}/{destination}"
+    upload_file(filepath, content_path)
 
-        return content_path
+    # (mime, dimensions) = image_info(filepath)
+    cache[filename] = {
+        # 'mime': mime,
+        # 'dimensions': dimensions,
+        'path': content_path
+    }
+    return content_path
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "file:///rikolti_data/r-0"}
@@ -323,12 +227,7 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
     auth = None
     if rikolti_mapper_type == 'nuxeo.nuxeo':
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
-    harvester = ContentHarvester(
-        mapped_page_path,
-        collection_id=collection_id,
-        page_filename=page_filename,
-        src_auth=auth
-    )
+    http_session = configure_http_session()
 
     records = json.loads(get_mapped_page(mapped_page_path))
     print(
@@ -343,7 +242,14 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
         # )
         # spit out progress so far if an error has been encountered
         try:
-            record_with_content = harvester.harvest(record)
+            record_with_content = harvest_record(
+                record, 
+                collection_id, 
+                page_filename, 
+                mapped_page_path, 
+                http_session, 
+                auth
+            )
             # put_content_data_page(
             #     json.dumps(record_with_content), 
             #     record_with_content.get('calisphere-id').replace(os.sep, '_') + ".json",
