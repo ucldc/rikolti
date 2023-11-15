@@ -38,8 +38,10 @@ You can bypass uploading to s3 by setting `settings.CONTENT_DATA = "file://<loca
 
 # Local Development
 
+From inside the rikolti folder:
 ```
-docker build -t rikolti/content_harvester .
+docker build -f Dockerfile.content_harvester -t rikolti/content_harvester .
+cd content_harvester
 docker compose run --entrypoint "python3 -m content_harvester.by_registry_endpoint" --rm content_harvester https://registry.cdlib.org/api/v1/rikoltimapper/26147/?format=json
 ```
 
@@ -59,7 +61,7 @@ To build manually: From a terminal with AWS credentials, get login password for 
 ```
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/b6c7x7s4
 docker buildx create --use
-docker buildx build --platform linux/arm64,linux/amd64 -t public.ecr.aws/b6c7x7s4/rikolti/content_harvester content_harvester --push
+docker buildx build -f Dockerfile.content_harvester --platform linux/arm64,linux/amd64 -t public.ecr.aws/b6c7x7s4/rikolti/content_harvester . --push
 ```
 
 # TODO:

@@ -11,9 +11,9 @@ from urllib.parse import urlparse
 
 from . import derivatives
 from . import settings
-from .storage import upload_file
 
-from .versions import (
+from rikolti.utils.storage import upload_file
+from rikolti.utils.versions import (
     get_mapped_page, get_child_directories, get_child_pages, get_child_page,
     get_version, put_content_data_page
 )

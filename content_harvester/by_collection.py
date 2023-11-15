@@ -1,7 +1,8 @@
 import json
 
 from .by_page import harvest_page_content
-from .versions import get_mapped_pages, create_content_data_version
+from . import settings
+from rikolti.utils.versions import get_mapped_pages, create_content_data_version
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo"}
