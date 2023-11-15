@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 from collections import Counter
+from typing import Optional
 
 import boto3
 import requests
@@ -242,7 +243,7 @@ class ContentHarvester(object):
 
     # returns content = {thumbnail, media, children} where children
     # is an array of the self-same content dictionary
-    def harvest(self, record, download_cache={}) -> dict:
+    def harvest(self, record: dict, download_cache: Optional[dict] = None) -> dict:
         calisphere_id = record.get('calisphere-id')
 
         # maintain backwards compatibility to 'is_shown_by' field
@@ -261,7 +262,7 @@ class ContentHarvester(object):
             content = content_cls(content)
             if not content.downloaded():
                 md5 = self._download(content.src_url, content.tmp_filepath, download_cache)
-            else:
+            elif download_cache:
                 md5 = download_cache.get(
                     content.src_url,
                     hashlib.md5(open(content.tmp_filepath, 'rb').read()).hexdigest()
@@ -300,12 +301,15 @@ class ContentHarvester(object):
 
         return record
 
-    def _download(self, url, destination_file, cache={}):
+    def _download(self, url: str, destination_file: str, cache: Optional[dict] = None):
         '''
             download source file to local disk
         '''
         if self.src_auth and urlparse(url).scheme != 'https':
             raise DownloadError(f"Basic auth not over https is a bad idea! {url}")
+
+        if not cache:
+            cache = {}
 
         cached_data = cache.get(url, {})
 
@@ -347,10 +351,13 @@ class ContentHarvester(object):
 
         return md5
 
-    def _upload(self, dest_prefix, dest_filename, filepath, cache={}) -> str:
+    def _upload(self, dest_prefix, dest_filename, filepath, cache: Optional[dict] = None) -> str:
         '''
             upload file to CONTENT_DEST
         '''
+        if not cache:
+            cache = {}
+
         if cache.get(dest_filename, {}).get('path'):
             return cache[dest_filename]['path']
 
