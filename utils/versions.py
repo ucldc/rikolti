@@ -75,29 +75,29 @@ def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     recent_version = sorted(versions)[-1]
     return f"{collection_id}/{recent_version}/"
 
-def get_vernacular_pages(version):
-    data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
-    data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
-    try:
-        page_list = storage.list_pages(data_path, recursive=True)
-    except FileNotFoundError as e:
-        print(
-            f"\n\nNo vernacular pages found in {e.filename}\n\n"
-        )
-        raise(e)
-    return [path[len(data_root)+1:] for path in page_list]
+def get_pages(version: str, pipeline_step: str, **kwargs):
+    if pipeline_step == 'vernacular': 
+        data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
+    elif pipeline_step == 'mapped':
+        data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    else:
+        raise Exception("Invalid pipeline step")
 
-def get_mapped_pages(version, **kwargs):
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     try:
         page_list = storage.list_pages(data_path, recursive=True, **kwargs)
     except FileNotFoundError as e:
         print(
-            f"\n\nNo mapped pages found in {e.filename}\n\n"
+            f"\n\nNo {pipeline_step} pages found in {e.filename}\n\n"
         )
         raise(e)
     return [path[len(data_root)+1:] for path in page_list]
+
+def get_vernacular_pages(version, **kwargs):
+    return get_pages(version, 'vernacular_metadata', **kwargs)
+
+def get_mapped_pages(version, **kwargs):
+    return get_pages(version, 'mapped_metadata', **kwargs)
 
 def get_child_directories(version, **kwargs):
     data_root = os.environ.get('MAPPED_DATA', "file:///tmp")
@@ -127,30 +127,30 @@ def get_mapped_page(version_page):
     content = storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
     return json.loads(content)
 
-def put_vernacular_page(content: str, page_name: Union[int, str], version: str):
-    data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
+def put_page(content: str, page_name: Union[int, str], version: str, pipeline_step: str):
+    if pipeline_step == "vernacular":
+        data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
+    elif pipeline_step == "mapped":
+        data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    elif pipeline_step == "content_data":
+        data_root = os.environ.get("CONTENT_DATA", "file:///tmp")
+    else:
+        raise Exception("Invalid pipeline step")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}"
 
+def put_vernacular_page(content: str, page_name: Union[int, str], version: str):
+    return put_page(content, page_name, version, "vernacular")
+
 def put_mapped_page(content, page_name, version):
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
-    path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}.jsonl"
-    storage.put_page_content(content, path)
-    return f"{version.rstrip('/')}/data/{page_name}.jsonl"
+    return put_page(content, f"{page_name}.jsonl", version, "mapped")
+
+def put_content_data_page(content, page_name, version):
+    return put_page(content, f"{page_name}", version, "content_data")
 
 def put_validation_report(content, version_page):
     data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version_page}"
     storage.put_page_content(content, path)
     return version_page
-
-def put_content_data_page(content, page_name, version):
-    data_root = os.environ.get("CONTENT_DATA", "file:///tmp")
-    path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
-    storage.put_page_content(content, path)
-    return f"{version.rstrip('/')}/data/{page_name}"
-
-
-
-
