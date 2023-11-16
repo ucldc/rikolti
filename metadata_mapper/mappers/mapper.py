@@ -820,7 +820,7 @@ class Record(ABC, object):
         self.mapped_data[prop] = value
         return self
 
-    def unset_prop(self, prop, value):
+    def unset_prop(self, prop):
         """
         unset_prop is called with a prop, condition, and condition_prop. We
         don't ever use condition or condition_prop so I've not implemented
