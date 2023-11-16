@@ -1,8 +1,5 @@
 import importlib
-import json
-from typing import Callable, Union
-
-from . import settings
+from typing import Callable
 
 
 def returns_callable(func: Callable) -> Callable:

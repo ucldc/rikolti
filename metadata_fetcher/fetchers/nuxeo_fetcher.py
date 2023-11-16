@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import subprocess
 from urllib.parse import quote as urllib_quote
 

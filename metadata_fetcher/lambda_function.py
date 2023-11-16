@@ -58,7 +58,7 @@ def fetch_collection(payload, vernacular_version, context) -> list[dict]:
     # TODO: could be cleaner to stash ucd's table of contents in a known
     # location and have each iteration of the fetcher reference that location,
     # then we could resolve this difference in return values
-    if len(fetch_status) == 1 and type(fetch_status[0]) == list:
+    if len(fetch_status) == 1 and isinstance(fetch_status[0], list):
         fetch_status = fetch_status[0]
 
     if not json.loads(next_page).get('finished'):

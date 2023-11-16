@@ -5,7 +5,6 @@ import boto3
 import shutil
 
 from urllib.parse import urlparse
-from typing import Optional, Union
 from collections import namedtuple
 
 DataStorage = namedtuple(
