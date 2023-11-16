@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from typing import Union, Optional
@@ -121,12 +122,7 @@ def get_vernacular_page(version_page):
     data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp").rstrip('/')
     return storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
 
-# TODO: check if this is always json.loads
 def get_mapped_page(version_page):
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp").rstrip('/')
-    return storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
-
-def get_child_page(version_page):
     data_root = os.environ.get("MAPPED_DATA", "file:///tmp").rstrip('/')
     content = storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
     return json.loads(content)

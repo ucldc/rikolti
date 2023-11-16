@@ -87,7 +87,7 @@ def validate_page(collection_id: int, page_path: str,
         "page_path": page_path
     }
     mapped_metadata = validator.generate_keys(
-                        json.loads(get_mapped_page(page_path)),
+                        get_mapped_page(page_path),
                         type="Rikolti",
                         context=context
                       )

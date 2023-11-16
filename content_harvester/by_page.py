@@ -14,7 +14,7 @@ from . import settings
 
 from rikolti.utils.storage import upload_file
 from rikolti.utils.versions import (
-    get_mapped_page, get_child_directories, get_child_pages, get_child_page,
+    get_mapped_page, get_child_directories, get_child_pages,
     get_version, put_content_data_page
 )
 
@@ -28,7 +28,7 @@ def get_child_records(mapped_page_path, parent_id) -> list:
     children = [page for page in children
                 if (page.rsplit('/')[-1]).startswith(parent_id)]
     for child in children:
-        mapped_child_records.extend(get_child_page(child))
+        mapped_child_records.extend(get_mapped_page(child))
     return mapped_child_records
 
 
@@ -229,7 +229,7 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
     http_session = configure_http_session()
 
-    records = json.loads(get_mapped_page(mapped_page_path))
+    records = get_mapped_page(mapped_page_path)
     print(
         f"[{collection_id}, {page_filename}]: "
         f"Harvesting content for {len(records)} records"
