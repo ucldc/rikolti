@@ -2,6 +2,7 @@ services:
   python:
     build:
       context: ./
-      dockerfile: ./Dockerfile
+      dockerfile: ./Dockerfile.dev
     volumes:
       - .:/home/rikolti
+      - ./utils:/home/rikolti/rikolti/utils
