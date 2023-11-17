@@ -899,7 +899,7 @@ class Record(ABC, object):
         if isinstance(fieldvalues, list):
             new_list = []
             for item in fieldvalues:
-                if len(item) <= int(max_length):
+                if item and len(item) <= int(max_length):
                     new_list.append(item)
             self.mapped_data[field] = new_list
         else:  # scalar
