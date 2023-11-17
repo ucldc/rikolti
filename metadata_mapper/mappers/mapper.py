@@ -830,7 +830,7 @@ class Record(ABC, object):
         1: prop=sourceResource/spatial
         2: prop=sourceResource/provenance
         """
-        prop = prop.split('/')[-1]  # remove sourceResource
+        prop = prop[0].split('/')[-1]  # remove sourceResource
         if prop in self.mapped_data:
             del self.mapped_data[prop]
         return self
