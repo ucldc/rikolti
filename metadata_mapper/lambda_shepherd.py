@@ -54,7 +54,7 @@ def get_vernacular_pages(collection_id):
                               if os.path.isfile(os.path.join(children_path, f))]
         except FileNotFoundError as e:
             print(
-                f"{e} - have you fetched {collection_id}? "
+                f"{collection_id<6}: {e} - have you fetched {collection_id}? "
                 f"looked in dir {e.filename}"
             )
             raise(e)
@@ -65,6 +65,11 @@ def get_vernacular_pages(collection_id):
             Prefix=f"{collection_id}/vernacular_metadata"
         )
         # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
+        if not resp.get('Contents'):
+            raise FileNotFoundError(
+                f"{collection_id:<6}: have you fetched {collection_id}? "
+                f"looked in s3 at {collection_id}/vernacular_metadata"
+            )
         page_list = [page['Key'] for page in resp['Contents']]
         # TODO: split page_list into pages and children
     return page_list
