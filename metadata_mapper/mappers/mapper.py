@@ -6,7 +6,7 @@ import re
 from abc import ABC
 from datetime import date, datetime
 from datetime import timezone
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import boto3
 from markupsafe import Markup
@@ -879,7 +879,8 @@ class Record(ABC, object):
         self.source_metadata = jsonfy_obj(self.source_metadata)
         return self
 
-    def drop_long_values(self, field=None, max_length=[150]):
+    def drop_long_values(
+            self, fields: Optional[list[str]] = None, max_length=[150]):
         """ Look for long values in the sourceResource field specified.
         If value is longer than max_length, delete
 
@@ -888,10 +889,13 @@ class Record(ABC, object):
         8 times: field=["description"], max_length=[250]
         1 time: field=["description"], max_length=[1000]
         """
-        field = field[0]
+        if not fields:
+            return self
+
+        field = fields[0]
         max_length = max_length[0]
 
-        fieldvalues = self.mapped_data.get(field)
+        fieldvalues = self.mapped_data.get(field, '')
         if isinstance(fieldvalues, list):
             new_list = []
             for item in fieldvalues:
