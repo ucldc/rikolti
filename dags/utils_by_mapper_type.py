@@ -1,5 +1,6 @@
 import requests
 import logging
+import sys
 
 from urllib.parse import urlparse
 
@@ -65,8 +66,12 @@ def validate_endpoint_task(url, params=None):
     s3_paths = []
     for collection in registry_endpoint(url):
         print(f"{collection['collection_id']:<6} Validating collection")
-        num_rows, file_location = create_collection_validation_csv(
-            collection['collection_id'])
+        try:
+            num_rows, file_location = create_collection_validation_csv(
+                collection['collection_id'])
+        except FileNotFoundError:
+            print(f"{collection['collection_id']:<6}: not mapped yet", file=sys.stderr)
+            continue
         csv_paths.append(file_location)
         if file_location.startswith('s3://'):
             s3_path = urlparse(file_location)
