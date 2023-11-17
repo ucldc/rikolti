@@ -57,7 +57,7 @@ def get_files(collection_id: int, directory: str) -> list[str]:
             return [f for f in os.listdir(path)
                     if os.path.isfile(os.path.join(path, f))]
         except Exception as e:
-            raise Exception(
+            raise FileNotFoundError(
                 f"{collection_id:<6}: Error listing files in {path}\n"
                 f"{collection_id:<6}: {e}"
             )
@@ -76,9 +76,9 @@ def get_files(collection_id: int, directory: str) -> list[str]:
                 f"{directory}/")
             url = (
                 f"https://{settings.DATA_SRC['BUCKET']}.s3.us-west-2.amazonaws"
-                ".com/index.html#{collection_id}/"
+                f".com/index.html#{collection_id}/"
             )
-            raise Exception(
+            raise FileNotFoundError(
                 f"{collection_id<6}: Error listing files at {s3_url}\n"
                 f"{collection_id<6}: Check that {directory} exists at {url}\n"
                 f"{collection_id<6}: {e}"
