@@ -880,7 +880,7 @@ class Record(ABC, object):
         return self
 
     def drop_long_values(
-            self, fields: Optional[list[str]] = None, max_length=[150]):
+            self, field: Optional[list[str]] = None, max_length=[150]):
         """ Look for long values in the sourceResource field specified.
         If value is longer than max_length, delete
 
@@ -889,22 +889,22 @@ class Record(ABC, object):
         8 times: field=["description"], max_length=[250]
         1 time: field=["description"], max_length=[1000]
         """
-        if not fields:
+        if not field:
             return self
 
-        field = fields[0]
+        field_name = field[0]
         max_length = max_length[0]
 
-        fieldvalues = self.mapped_data.get(field, '')
+        fieldvalues = self.mapped_data.get(field_name, '')
         if isinstance(fieldvalues, list):
             new_list = []
             for item in fieldvalues:
                 if item and len(item) <= int(max_length):
                     new_list.append(item)
-            self.mapped_data[field] = new_list
+            self.mapped_data[field_name] = new_list
         else:  # scalar
             if len(fieldvalues) > int(max_length):
-                del self.mapped_data[field]
+                del self.mapped_data[field_name]
 
         return self
 
