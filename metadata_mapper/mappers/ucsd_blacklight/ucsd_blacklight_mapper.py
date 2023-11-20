@@ -3,7 +3,7 @@ from ..mapper import Record, Validator, Vernacular
 from typing import Any
 
 
-class UcsdBlacklightMapper(Record):
+class UcsdBlacklightRecord(Record):
     BASE_URL = "https://library.ucsd.edu/dc/object/"
 
     BASE_ARK = "ark:/20775/"
@@ -357,7 +357,7 @@ class UcsdBlacklightValidator(Validator):
 
 
 class UcsdBlacklightVernacular(Vernacular):
-    record_cls = UcsdBlacklightMapper
+    record_cls = UcsdBlacklightRecord
     validator = UcsdBlacklightValidator
 
     def parse(self, api_response) -> list:
