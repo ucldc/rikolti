@@ -372,8 +372,11 @@ class ContentHarvester(object):
             shutil.copyfile(filepath, dest_path)
 
         if settings.CONTENT_DEST["STORE"] == 's3':
-            dest_path = (
-                f"{settings.CONTENT_DEST['PATH']}/{dest_prefix}/{dest_filename}")
+            if settings.CONTENT_DEST['PATH']:
+                dest_path = (
+                    f"{settings.CONTENT_DEST['PATH']}/{dest_prefix}/{dest_filename}")
+            else:
+                dest_path = f"{dest_prefix}/{dest_filename}"
             self.s3.upload_file(
                 filepath, settings.CONTENT_DEST["BUCKET"], dest_path)
 
