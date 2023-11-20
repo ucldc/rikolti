@@ -33,8 +33,9 @@ class TestMapper:
       return ret
 
    def get_helper(self, module_parts) -> BaseTestHelper:
+      return BaseTestHelper.for_mapper(module_parts)
+   
       helper_path = f"metadata_mapper/test/helpers/{'/'.join(module_parts).replace('_mapper', '')}_helper.py"
-      print(helper_path)
       if os.path.exists(helper_path):
          helper_module_parts = [p.replace('_mapper', '_helper') for p in module_parts]
          helper_class_name = f"{self.camelize(module_parts[-1].replace('_mapper', ''))}TestHelper"
