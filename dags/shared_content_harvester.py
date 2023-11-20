@@ -51,11 +51,24 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                         "command": [f"{collection_id}", f"{page}"],
                         "environment": [
                             {
-                                "CONTENT_DATA_SRC": os.environ.get("CONTENT_DATA_SRC"),
-                                "CONTENT_DATA_DEST": os.environ.get("CONTENT_DATA_DEST"),
-                                "CONTENT_DEST": os.environ.get("CONTENT_DEST"),
-                                "NUXEO_USER": os.environ.get("NUXEO_USER"),
-                                "NUXEO_PASS": os.environ.get("NUXEO_PASS")
+                                "name": "CONTENT_DATA_SRC",
+                                "value": os.environ.get("CONTENT_DATA_SRC")
+                            },
+                            {
+                                "name": "CONTENT_DATA_DEST",
+                                "value": os.environ.get("CONTENT_DATA_DEST")
+                            },
+                            {
+                                "name": "CONTENT_DEST",
+                                "value": os.environ.get("CONTENT_DEST")
+                            },
+                            {
+                                "name": "NUXEO_USER",
+                                "value": os.environ.get("NUXEO_USER")
+                            },
+                            {
+                                "name": "NUXEO_PASS",
+                                "value": os.environ.get("NUXEO_PASS")
                             }
                         ]
                     }
