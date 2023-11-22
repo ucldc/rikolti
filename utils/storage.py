@@ -153,11 +153,7 @@ def get_file_contents(data: DataStorage):
 
 def put_page_content(content:str, data_uri: str, **kwargs) -> str:
     """
-    Write content to a file at relative_path (relative to data_path).
-    relative_path is a list of strings, each string is a directory name 
-    representing a directory tree.
-    handle s3 or file storage, use '/' as separator for s3 key and os.sep
-    as separtors for file storage
+    Write content to a file at data_uri
     """
     data = parse_data_uri(data_uri)
 
