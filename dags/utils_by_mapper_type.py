@@ -1,6 +1,7 @@
 import requests
 import logging
 import os
+import sys
 
 from urllib.parse import urlparse
 
@@ -94,7 +95,12 @@ def validate_endpoint_task(url, mapped_versions, params=None):
         print(f"{collection['collection_id']:<6} Validating collection")
         collection_id = collection['collection_id']
         mapped_version = mapped_versions.get(str(collection_id))
-        mapped_pages = get_mapped_pages(mapped_version)
+        try:
+            mapped_pages = get_mapped_pages(mapped_version)
+        except FileNotFoundError:
+            print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
+            continue
+
         num_rows, file_location = create_collection_validation_csv(
             collection_id, mapped_pages)
         csv_paths.append(file_location)

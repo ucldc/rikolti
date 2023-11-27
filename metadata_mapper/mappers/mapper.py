@@ -6,7 +6,7 @@ import re
 from abc import ABC
 from datetime import date, datetime
 from datetime import timezone
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from markupsafe import Markup
 
@@ -757,7 +757,7 @@ class Record(ABC, object):
         self.mapped_data[prop] = value
         return self
 
-    def unset_prop(self, prop, value):
+    def unset_prop(self, prop):
         """
         unset_prop is called with a prop, condition, and condition_prop. We
         don't ever use condition or condition_prop so I've not implemented
@@ -767,7 +767,7 @@ class Record(ABC, object):
         1: prop=sourceResource/spatial
         2: prop=sourceResource/provenance
         """
-        prop = prop.split('/')[-1]  # remove sourceResource
+        prop = prop[0].split('/')[-1]  # remove sourceResource
         if prop in self.mapped_data:
             del self.mapped_data[prop]
         return self
@@ -816,7 +816,8 @@ class Record(ABC, object):
         self.source_metadata = jsonfy_obj(self.source_metadata)
         return self
 
-    def drop_long_values(self, field=None, max_length=[150]):
+    def drop_long_values(
+            self, field: Optional[list[str]] = None, max_length=[150]):
         """ Look for long values in the sourceResource field specified.
         If value is longer than max_length, delete
 
@@ -825,19 +826,22 @@ class Record(ABC, object):
         8 times: field=["description"], max_length=[250]
         1 time: field=["description"], max_length=[1000]
         """
-        field = field[0]
+        if not field:
+            return self
+
+        field_name = field[0]
         max_length = max_length[0]
 
-        fieldvalues = self.mapped_data.get(field)
+        fieldvalues = self.mapped_data.get(field_name, '')
         if isinstance(fieldvalues, list):
             new_list = []
             for item in fieldvalues:
-                if len(item) <= int(max_length):
+                if item and len(item) <= int(max_length):
                     new_list.append(item)
-            self.mapped_data[field] = new_list
+            self.mapped_data[field_name] = new_list
         else:  # scalar
             if len(fieldvalues) > int(max_length):
-                del self.mapped_data[field]
+                del self.mapped_data[field_name]
 
         return self
 

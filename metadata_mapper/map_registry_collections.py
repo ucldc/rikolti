@@ -44,7 +44,7 @@ def map_endpoint(url, fetched_versions, limit=None):
 
         progress = progress + 1
         progress_bar = f"{progress}/{limit}"
-        logger.debug(
+        print(
             f"{collection_id:<6}: start mapping {progress_bar:<9}")
 
         logger.debug(

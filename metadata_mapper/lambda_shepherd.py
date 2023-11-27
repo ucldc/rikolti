@@ -40,7 +40,6 @@ def check_for_missing_enrichments(collection):
     return not_yet_implemented
 
 
-
 def get_mapping_status(collection, mapped_pages):
     """
     mapped_pages is a list of dicts with the following keys:

@@ -61,11 +61,24 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                         ],
                         "environment": [
                             {
-                                "MAPPED_DATA": os.environ.get("CONTENT_DATA"),
-                                "CONTENT_DATA": os.environ.get("CONTENT_DATA"),
-                                "CONTENT_ROOT": os.environ.get("CONTENT_ROOT"),
-                                "NUXEO_USER": os.environ.get("NUXEO_USER"),
-                                "NUXEO_PASS": os.environ.get("NUXEO_PASS")
+                                "name": "MAPPED_DATA",
+                                "value": os.environ.get("CONTENT_DATA")
+                            },
+                            {
+                                "name": "CONTENT_DATA",
+                                "value": os.environ.get("CONTENT_DATA")
+                            },
+                            {
+                                "name": "CONTENT_ROOT",
+                                "value": os.environ.get("CONTENT_ROOT")
+                            },
+                            {
+                                "name": "NUXEO_USER",
+                                "value": os.environ.get("NUXEO_USER")
+                            },
+                            {
+                                "name": "NUXEO_PASS",
+                                "value": os.environ.get("NUXEO_PASS")
                             }
                         ]
                     }

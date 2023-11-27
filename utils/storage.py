@@ -82,13 +82,13 @@ def list_pages(data_uri: str, recursive: bool=True, **kwargs) -> list:
                 f"Error listing files at {data.uri}\n"
                 f"Check that {data.path} exists at {url}\n{e}"
             )
-            raise e
+            raise FileNotFoundError
     elif data.store == 'file':
         try:
             return list_file_pages(data, recursive=recursive)
         except Exception as e:
             print(f"Error listing files in {data.path}\n{e}")
-            raise e
+            raise FileNotFoundError
     else:
         raise Exception(f"Unknown data store: {data.store}")
 
@@ -163,7 +163,7 @@ def get_s3_contents(data: DataStorage, **kwargs):
             f"https://{data.bucket}.s3.us-west-2.amazonaws.com/"
             f"index.html#{data.path}/"
         )
-        raise Exception(
+        raise FileNotFoundError(
             f"Error reading file at {data.uri}\nCheck: {url}\n{e}"
         )
 
@@ -176,7 +176,7 @@ def get_file_contents(data: DataStorage):
         with open(data.path, 'r') as f:
             return f.read()
     except Exception as e:
-        raise Exception(f"Error reading {data.path}\n{e}")
+        raise FileNotFoundError(f"Error reading {data.path}\n{e}")
 
 
 def put_page_content(content:str, data_uri: str, **kwargs) -> str:
