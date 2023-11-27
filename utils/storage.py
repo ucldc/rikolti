@@ -186,7 +186,7 @@ def put_file_content(data: DataStorage, content) -> str:
     file_path = os.sep.join(data.path.split('/'))
     directory_path = os.path.dirname(file_path)
     if not os.path.exists(directory_path):
-        os.makedirs(directory_path)
+        os.makedirs(directory_path, exist_ok=True)
 
     with open(file_path, 'w') as f:
         f.write(content)
@@ -219,7 +219,7 @@ def move_file(data: DataStorage, filepath):
     destination_path = os.sep.join(data.path.split('/'))
     directory_path = os.path.dirname(destination_path)
     if not os.path.exists(directory_path):
-        os.makedirs(directory_path)
+        os.makedirs(directory_path, exist_ok=True)
 
     shutil.copyfile(filepath, destination_path)
     return data.uri

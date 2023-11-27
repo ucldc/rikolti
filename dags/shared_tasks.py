@@ -283,7 +283,7 @@ def s3_to_localfilesystem(s3_url=None, params=None):
         path.insert(0, 'tmp')
         path = os.path.sep + os.path.sep.join(path)
         if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
+            os.makedirs(os.path.dirname(path), exist_ok=True)
 
         # write contents of s3 file to local filesystem
         with open(path, 'wb') as sync_file:
