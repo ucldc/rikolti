@@ -52,7 +52,7 @@ class UcdJsonFetcher(Fetcher):
             response: requests.Response
 
         Returns:
-            int
+            list
         """
         ns = {"ns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         xml = ElementTree.fromstring(response.text)
