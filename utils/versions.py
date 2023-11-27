@@ -61,7 +61,7 @@ def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     recent_version = sorted(versions)[-1]
     return f"{collection_id}/{recent_version}/"
 
-def get_vernacular_page(version, **kwargs):
+def get_vernacular_pages(version, **kwargs):
     data_root = os.environ.get('VERNACULAR_DATA', "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)
