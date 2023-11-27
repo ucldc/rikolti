@@ -7,6 +7,15 @@ import shutil
 from urllib.parse import urlparse
 from collections import namedtuple
 
+
+"""
+This module implements list, get, and put operations for s3:// or file:// URIs.
+Broadly, these functions take a data_uri, where a data_uri is always a
+URI-formatted absolute path to a storage location, and kwargs, which are always
+passed along to the underlying boto3 call and can be used for AWS credentials
+"""
+
+
 DataStorage = namedtuple(
     "DateStorage", "uri, store, bucket, path"
 )
@@ -18,6 +27,15 @@ def parse_data_uri(data_uri: str):
 
 
 def list_dirs(data_uri: str, recursive=False, **kwargs) -> list[str]:
+    """
+    Returns a list of all directories that are the immediate child of data_uri
+
+    Returns relative paths - it's the only function in this module that does
+    not return absolute paths, and it might be worth changing it for
+    consistency, even though it's usage does not require absolute paths.
+
+    There is no recursive implementation at this time.
+    """
     data = parse_data_uri(data_uri)
     if data.store == 's3': 
         s3 = boto3.client('s3', **kwargs)
@@ -43,6 +61,13 @@ def list_dirs(data_uri: str, recursive=False, **kwargs) -> list[str]:
 
 
 def list_pages(data_uri: str, recursive: bool=True, **kwargs) -> list:
+    """
+    Returns a list of all files that are the child of data_uri as URI-formatted
+    absolute paths.
+
+    Recursively traverses a directory tree by default, pass recursive=False to
+    return only direct children.
+    """
     data = parse_data_uri(data_uri)
 
     if data.store == 's3':
@@ -112,6 +137,9 @@ def list_file_pages(data: DataStorage, recursive: bool=True) -> list:
 
 
 def get_page_content(data_uri: str, **kwargs):
+    """
+    Returns the contents of the file stored at data_uri.
+    """
     data = parse_data_uri(data_uri)
     if data.store == 's3':
         return get_s3_contents(data)
@@ -153,7 +181,8 @@ def get_file_contents(data: DataStorage):
 
 def put_page_content(content:str, data_uri: str, **kwargs) -> str:
     """
-    Write content to a file at data_uri
+    Writes content to a file located at data_uri and returns data_uri.
+    Creates any subdirectories required to successfully write to data_uri.
     """
     data = parse_data_uri(data_uri)
 
@@ -194,6 +223,10 @@ def put_file_content(data: DataStorage, content) -> str:
 
 
 def upload_file(filepath:str, data_uri: str, **kwargs):
+    """
+    Moves the file located at filepath to data_uri, returns data_uri.
+    Creates any subdirectories required to successfully write to data_uri.
+    """
     data = parse_data_uri(data_uri)
 
     if data.store == 's3':
