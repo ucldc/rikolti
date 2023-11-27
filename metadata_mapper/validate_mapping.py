@@ -75,8 +75,13 @@ def validate_page(collection_id: int, page_id: int,
         "collection_id": collection_id,
         "page_id": page_id
     }
+    collection = get_mapped_data(collection_id, page_id)
+    if len(collection) == 0:
+        print(f"No mapped metadata found for {collection_id} page {page_id}. Aborting.")
+        return
+
     mapped_metadata = validator.generate_keys(
-                        get_mapped_data(collection_id, page_id),
+                        collection,
                         type="Rikolti",
                         context=context
                       )
