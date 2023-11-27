@@ -1035,7 +1035,7 @@ class Record(ABC, object):
 
         2333 times: no parameters
         """
-        for key, value in self.mapped_data.items():
+        for key, value in self.mapped_data.copy().items():
             if not value:
                 del self.mapped_data[key]
             if value == [u'none'] or value == [u'[none]']:
