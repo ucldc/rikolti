@@ -20,51 +20,37 @@ def get_version(collection_id: Union[int, str], uri: str) -> str:
     version = "/".join(path_list)
     return version
 
-def create_version(
-    base_version: str, 
-    pipeline_step: str,
-    suffix: Optional[str] = None
-):
-    """
-    Given a path to a version, ex: 3433/vernacular_metadata_v1/, 
-    compose a new version path, ex: 3433/vernacular_metadata_v1/mapped_metadata_v1/
-
-    base_version: str
-        a version path
-    pipeline_step: str
-        a name for the branch indicating metadata state, ex: mapped_metadata
-    branch_suffix: str
-        a uniquely identifying suffix for this branch
-    """
-    if not suffix:
-        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    base_version = base_version.rstrip('/')
-    branch_version = (
-        f"{base_version}/{pipeline_step}_{suffix}/"
-    )
-    return branch_version
-
 def create_vernacular_version(
         collection_id: Union[int, str],
         suffix: Optional[str] = None
     ) -> str:
-    version_path = f"{collection_id}/"
-    return create_version(version_path, 'vernacular_metadata', suffix)
+    version_path = f"{collection_id}"
+    if not suffix:
+        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    return f"{version_path}/vernacular_metadata_{suffix}/"
 
 def create_mapped_version(
         vernacular_version: str, suffix: Optional[str] = None) -> str:
-    return create_version(vernacular_version, 'mapped_metadata', suffix)
+    vernacular_version = vernacular_version.rstrip('/')
+    if not suffix:
+        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    return f"{vernacular_version}/mapped_metadata_{suffix}/"
 
 def create_validation_version(
         mapped_version: str,
         suffix: Optional[str] = None
 ):
-    validation_version = create_version(mapped_version, 'validation', suffix)
-    return validation_version.rstrip('/') + ".csv"
+    mapped_version = mapped_version.rstrip('/')
+    if not suffix:
+        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    return f"{mapped_version}/validation_{suffix}.csv"
 
 def create_content_data_version(
         mapped_version: str, suffix: Optional[str] = None) -> str:
-    return create_version(mapped_version, 'content_data', suffix)
+    mapped_version = mapped_version.rstrip('/')
+    if not suffix:
+        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    return f"{mapped_version}/content_data_{suffix}/"
 
 def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
@@ -75,29 +61,17 @@ def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     recent_version = sorted(versions)[-1]
     return f"{collection_id}/{recent_version}/"
 
-def get_pages(version: str, pipeline_step: str, **kwargs):
-    if pipeline_step == 'vernacular': 
-        data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
-    elif pipeline_step == 'mapped':
-        data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
-    else:
-        raise Exception("Invalid pipeline step")
-
+def get_vernacular_pages(version, **kwargs):
+    data_root = os.environ.get('VERNACULAR_DATA', "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
-    try:
-        page_list = storage.list_pages(data_path, recursive=True, **kwargs)
-    except FileNotFoundError as e:
-        print(
-            f"\n\nNo {pipeline_step} pages found in {e.filename}\n\n"
-        )
-        raise(e)
+    page_list = storage.list_pages(data_path, recursive=True, **kwargs)
     return [path[len(data_root)+1:] for path in page_list]
 
-def get_vernacular_pages(version, **kwargs):
-    return get_pages(version, 'vernacular_metadata', **kwargs)
-
 def get_mapped_pages(version, **kwargs):
-    return get_pages(version, 'mapped_metadata', **kwargs)
+    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
+    page_list = storage.list_pages(data_path, recursive=True, **kwargs)
+    return [path[len(data_root)+1:] for path in page_list]
 
 def get_child_directories(version, **kwargs):
     data_root = os.environ.get('MAPPED_DATA', "file:///tmp")
@@ -127,27 +101,23 @@ def get_mapped_page(version_page):
     content = storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
     return json.loads(content)
 
-def put_page(content: str, page_name: Union[int, str], version: str, pipeline_step: str):
-    if pipeline_step == "vernacular":
-        data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
-    elif pipeline_step == "mapped":
-        data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
-    elif pipeline_step == "content_data":
-        data_root = os.environ.get("CONTENT_DATA", "file:///tmp")
-    else:
-        raise Exception("Invalid pipeline step")
+def put_vernacular_page(content: str, page_name: Union[int, str], version: str):
+    data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}"
 
-def put_vernacular_page(content: str, page_name: Union[int, str], version: str):
-    return put_page(content, page_name, version, "vernacular")
-
 def put_mapped_page(content, page_name, version):
-    return put_page(content, f"{page_name}.jsonl", version, "mapped")
+    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}.jsonl"
+    storage.put_page_content(content, path)
+    return f"{version.rstrip('/')}/data/{page_name}.jsonl"
 
 def put_content_data_page(content, page_name, version):
-    return put_page(content, f"{page_name}", version, "content_data")
+    data_root = os.environ.get("CONTENT_DATA", "file:///tmp")
+    path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
+    storage.put_page_content(content, path)
+    return f"{version.rstrip('/')}/data/{page_name}"
 
 def put_validation_report(content, version_page):
     data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
