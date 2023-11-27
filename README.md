@@ -193,7 +193,11 @@ If you would like to run the content harvester on AWS infrastructure using the E
 
 > A note about Docker vs. ECS: Since we do not actively maintain our own Docker daemon, and since MWAA workers do not come with a Docker daemon installed, we cannot use a docker execution environment in deployed MWAA and instead use ECS to run our content harvester containers on Fargate infrastructure. The EcsRunTaskOperator allows us to run a pre-defined ECS Task Definition. The EcsRegisterTaskDefinitionOperator allows us to define an ECS Task Definition which we could then run. At this time, we are defining the Task Definition in our [cloudformation templates](https://github.com/cdlib/pad-airflow), rather than using the EcsRegisterTaskDefinitionOperator, but this does mean that we cannot modify the container's image or version using the EcsRunTaskOperator.
 
-If you would like to run your own rikolti/content_harvester image instead of pulling the image from AWS, then from inside the Rikolti repo, run `docker build -f Dockerfile.content_harvester -t rikolti/content_harvester .` to build the `rikolti/content_harvester` image locally and update the `content_harvester_image` to be `rikolti/content_harvester`.
+If you would like to run your own rikolti/content_harvester image instead of pulling the image from AWS, then from inside the Rikolti repo, run `docker build -f Dockerfile.content_harvester -t rikolti/content_harvester .` to build the `rikolti/content_harvester` image locally and add the following line to `dags/startup.sh` to update `CONTENT_HARVEST_IMAGE` to be `rikolt/content_harvester`:
+
+```
+export CONTENT_HARVEST_IMAGE=rikolti/content_harvester
+```
 
 Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 
