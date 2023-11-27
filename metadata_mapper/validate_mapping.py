@@ -11,7 +11,7 @@ from .validator.validation_log import ValidationLogLevel
 from .validator.validation_mode import ValidationMode
 from .validator.validator import Validator
 from rikolti.utils.versions import (
-    get_mapped_page, get_version, get_mapped_pages)
+    get_mapped_page_content, get_version, get_mapped_pages)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -87,7 +87,7 @@ def validate_page(collection_id: int, page_path: str,
         "page_path": page_path
     }
     mapped_metadata = validator.generate_keys(
-                        get_mapped_page(page_path),
+                        get_mapped_page_content(page_path),
                         type="Rikolti",
                         context=context
                       )

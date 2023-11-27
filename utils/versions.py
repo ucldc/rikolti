@@ -61,7 +61,7 @@ def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     recent_version = sorted(versions)[-1]
     return f"{collection_id}/{recent_version}/"
 
-def get_vernacular_pages(version, **kwargs):
+def get_vernacular_page(version, **kwargs):
     data_root = os.environ.get('VERNACULAR_DATA', "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)
@@ -92,11 +92,11 @@ def get_child_pages(version, **kwargs):
         return []
     return [path[len(data_root)+1:] for path in page_list]
 
-def get_vernacular_page(version_page):
+def get_vernacular_page_content(version_page):
     data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp").rstrip('/')
     return storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
 
-def get_mapped_page(version_page):
+def get_mapped_page_content(version_page):
     data_root = os.environ.get("MAPPED_DATA", "file:///tmp").rstrip('/')
     content = storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
     return json.loads(content)
