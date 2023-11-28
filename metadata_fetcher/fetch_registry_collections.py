@@ -5,6 +5,7 @@ import sys
 import requests
 
 from . import lambda_function
+from rikolti.utils.versions import create_vernacular_version
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,18 @@ def registry_endpoint(url):
 
 
 def fetch_endpoint(url, limit=None, job_logger=logger):
+    """
+    returns a dictionary of collection ids and fetch results, where
+    fetch results are a list of of dictionaries with the following keys:
+    ex: 3433: [
+            {
+                document_count: int
+                vernacular_filepath: path relative to collection id
+                    ex: "3433/vernacular_version_1/data/1"
+                status: 'success' or 'error'
+            }
+        ]
+    """
     response = requests.get(url=url)
     response.raise_for_status()
     total = response.json().get('meta', {}).get('total_count', 1)
@@ -51,12 +64,14 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
         job_logger.debug(
             f"{collection_id:<6}: call lambda with payload: {collection}")
 
-        fetch_result = lambda_function.fetch_collection(collection, None)
+        vernacular_version = create_vernacular_version(collection_id)
+        fetch_result = lambda_function.fetch_collection(
+            collection, vernacular_version, None)
         results[collection_id] = fetch_result
 
         success = all([page['status'] == 'success' for page in fetch_result])
         total_items = sum([page['document_count'] for page in fetch_result])
-        total_pages = fetch_result[-1]['page'] + 1
+        total_pages = len(fetch_result)
         diff_items = total_items - collection['solr_count']
         diff_items_label = ""
         if diff_items > 0:

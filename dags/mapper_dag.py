@@ -1,22 +1,26 @@
 from datetime import datetime
+from typing import Optional
 
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks import get_collection_metadata_task
+from rikolti.dags.shared_tasks import create_mapped_version_task
 from rikolti.dags.shared_tasks import map_page_task
 from rikolti.dags.shared_tasks import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
-from rikolti.metadata_mapper.lambda_shepherd import get_vernacular_pages
+from rikolti.utils.versions import get_most_recent_vernacular_version
+from rikolti.utils.versions import get_vernacular_pages
 
 
 @task()
-def get_vernacular_pages_task(collection: dict):
-    collection_id = collection.get('id')
-    if not collection_id:
-        raise ValueError(
-            f"Collection ID not found in collection metadata: {collection}")
-    pages = get_vernacular_pages(collection_id)
+def get_vernacular_pages_task(collection: dict, params: Optional[dict]=None):
+    collection_id = collection['id']
+    vernacular_version = params.get('vernacular_version') if params else None
+    if not vernacular_version:
+        vernacular_version = get_most_recent_vernacular_version(collection_id)
+    pages = get_vernacular_pages(vernacular_version)
+    # TODO: split page_list into pages and children?
     return pages
 
 # This is a functional duplicate of 
@@ -42,16 +46,21 @@ def get_vernacular_pages_task(collection: dict):
     params={
         'collection_id': Param(None, description="Collection ID to map"),
         'validate': Param(True, description="Validate mapping?"),
+        'vernacular_version': Param(None, description="Vernacular version to map, ex: 3433/vernacular_metadata_v1/")
     },
     tags=["rikolti"],
 )
 def mapper_dag():
     collection = get_collection_metadata_task()
     page_list = get_vernacular_pages_task(collection=collection)
+    mapped_data_version = create_mapped_version_task(
+        collection=collection,
+        vernacular_pages=page_list
+    )
     mapped_pages = (
         map_page_task
-            .partial(collection=collection)
-            .expand(page=page_list)
+            .partial(collection=collection, mapped_data_version=mapped_data_version)
+            .expand(vernacular_page=page_list)
     )
 
     mapping_status = get_mapping_status_task(collection, mapped_pages)

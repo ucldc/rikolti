@@ -1,412 +1,235 @@
 import hashlib
 import json
 import os
-import shutil
 from collections import Counter
 from typing import Optional
 
-import boto3
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
 from urllib.parse import urlparse
 
-from . import derivatives
+from .content_types import Media, Thumbnail
 from . import settings
 
+from rikolti.utils.storage import upload_file
+from rikolti.utils.versions import (
+    get_mapped_page_content, get_child_directories, get_child_pages,
+    get_version, put_content_data_page
+)
 
 class DownloadError(Exception):
     pass
 
 
-class UnsupportedMimetype(Exception):
-    pass
-
-
-def get_mapped_records(collection_id, page_filename, s3_client) -> list:
-    mapped_records = []
-    if settings.DATA_SRC["STORE"] == 'file':
-        local_path = settings.local_path(collection_id, 'mapped_metadata')
-        page_path = os.path.join(local_path, str(page_filename))
-        page = open(page_path, "r")
-        mapped_records = json.loads(page.read())
-    else:
-        page = s3_client.get_object(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Key=f"{collection_id}/mapped_metadata/{page_filename}"
-        )
-        mapped_records = json.loads(page['Body'].read())
-    return mapped_records
-
-
-def write_mapped_record(collection_id, record, s3_client):
-    if settings.DATA_DEST["STORE"] == 'file':
-        local_path = settings.local_path(collection_id, 'mapped_with_content')
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-        
-        # some ids have slashes
-        page_path = os.path.join(
-            local_path,
-            record.get('calisphere-id').replace(os.sep, '_')
-        )
-        
-        page = open(page_path, "w")
-        page.write(json.dumps(record))
-    else:
-        upload_status = s3_client.put_object(
-            Bucket=settings.DATA_DEST["BUCKET"],
-            Key=(
-                f"{collection_id}/mapped_with_content/"
-                f"{record.get('calisphere-id')}"
-            ),
-            Body=json.dumps(record)
-        )
-        print(f"Upload status: {upload_status}")
-
-
-def write_mapped_page(collection_id, page, records):
-    if settings.DATA_DEST["STORE"] == 'file':
-        local_path = settings.local_path(collection_id, 'mapped_with_content')
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-        page_path = os.path.join(local_path, page)
-        page = open(page_path, "w")
-        page.write(json.dumps(records))
-
-
-def get_child_records(collection_id, parent_id, s3_client) -> list:
+def get_child_records(mapped_page_path, parent_id) -> list:
     mapped_child_records = []
-    if settings.DATA_SRC["STORE"] == 'file':
-        local_path = settings.local_path(collection_id, 'mapped_metadata')
-        children_path = os.path.join(local_path, 'children')
-
-        if os.path.exists(children_path):
-            child_pages = [file for file in os.listdir(children_path)
-                        if file.startswith(parent_id)]
-            for child_page in child_pages:
-                child_page_path = os.path.join(children_path, child_page)
-                page = open(child_page_path, "r")
-                mapped_child_records.extend(json.loads(page.read()))
-    else:
-        child_pages = s3_client.list_objects_v2(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"{collection_id}/mapped_metadata/children/{parent_id}"
-        )
-        for child_page in child_pages['Contents']:
-            page = s3_client.get_object(
-                Bucket=settings.DATA_SRC["BUCKET"],
-                Key=child_page['Key']
-            )
-            mapped_child_records.extend(json.loads(page['Body'].read()))
-
+    children = get_child_pages(mapped_page_path)
+    children = [page for page in children
+                if (page.rsplit('/')[-1]).startswith(parent_id)]
+    for child in children:
+        mapped_child_records.extend(get_mapped_page_content(child))
     return mapped_child_records
 
 
-class Content(object):
-    def __init__(self, content_src):
-        self.missing = True if not content_src else False
-        self.src_url = content_src.get('url')
-        self.src_filename = content_src.get(
-            'filename',
-            list(
-                filter(
-                    lambda x: bool(x), content_src.get('url', '').split('/')
-                )
-            )[-1]
+def configure_http_session() -> requests.Session:
+    http = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        status_forcelist=[413, 429, 500, 502, 503, 504],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    http.mount("https://", adapter)
+    http.mount("http://", adapter)
+    return http
+
+
+def harvest_content(content, collection_id, http, src_auth, download_cache):
+    if not content.downloaded():
+        md5 = download_content(
+            content.src_url, 
+            content.tmp_filepath, 
+            http, 
+            src_auth, 
+            download_cache
         )
-        self.src_mime_type = content_src.get('mimetype')
-        self.tmp_filepath = os.path.join('/tmp', self.src_filename)
-        self.derivative_filepath = None
-        self.s3_filepath = None
-
-    def downloaded(self):
-        return os.path.exists(self.tmp_filepath)
-
-    def processed(self):
-        return (
-            self.derivative_filepath and 
-            os.path.exists(self.derivative_filepath)
+    elif download_cache:
+        md5 = download_cache.get(
+            content.src_url,
+            hashlib.md5(open(content.tmp_filepath, 'rb').read()).hexdigest()
         )
+    if not content.processed():
+        content.create_derivatives()
 
-    def set_s3_filepath(self, s3_filepath):
-        self.s3_filepath = s3_filepath
+    if type(content).__name__ == 'Thumbnail':
+        dest_filename = md5
+    else:
+        dest_filename = os.path.basename(content.derivative_filepath)
 
-    def __bool__(self):
-        return not self.missing
+    dest_path = f"{content.dest_prefix}/{collection_id}/{dest_filename}"
+    content_s3_filepath = upload_content(content.derivative_filepath, dest_path)
+    
+    content.set_s3_filepath(content_s3_filepath)
+    # print(
+    #     f"[{collection_id}, {page_filename}, {calisphere_id}] "
+    #     f"{type(content).__name__} Path: {content.s3_filepath}"
+    # )
 
-    def __del__(self):
-        if self.downloaded() and self.tmp_filepath != self.s3_filepath:
-            os.remove(self.tmp_filepath)
-        if self.processed() and self.derivative_filepath != self.s3_filepath:
-            os.remove(self.derivative_filepath)
-
-
-class Media(Content):
-    def __init__(self, content_src):
-        super().__init__(content_src)
-        self.src_nuxeo_type = content_src.get('nuxeo_type')
-        if self.src_nuxeo_type == 'SampleCustomPicture':
-            self.dest_mime_type = 'image/jp2'
-            self.dest_prefix = "jp2"
-        else:
-            self.dest_mime_type = self.src_mime_type
-            self.dest_prefix = "media"
-
-    def create_derivatives(self):
-        self.derivative_filepath = self.tmp_filepath
-        if self.src_nuxeo_type == 'SampleCustomPicture':
-            try:
-                self.check_mimetype(self.src_mime_type)
-                self.derivative_filepath = derivatives.make_jp2(
-                    self.tmp_filepath)
-            except UnsupportedMimetype as e:
-                print(
-                    "ERROR: nuxeo type is SampleCustomPicture, "
-                    "but mimetype is not supported"
-                )
-                raise(e)
-
-    def check_mimetype(self, mimetype):
-        ''' do a basic pre-check on the object to see if we think it's
-        something know how to deal with '''
-        valid_types = [
-            'image/jpeg', 'image/gif', 'image/tiff', 'image/png',
-            'image/jp2', 'image/jpx', 'image/jpm'
-        ]
-
-        # see if we recognize this mime type
-        if mimetype in valid_types:
-            print(
-                f"Mime-type '{mimetype}' was pre-checked and recognized as "
-                "something we can try to convert."
-            )
-        elif mimetype in ['application/pdf']:
-            raise UnsupportedMimetype(
-                f"Mime-type '{mimetype}' was pre-checked and recognized as "
-                "something we don't want to convert."
-            )
-        else:
-            raise UnsupportedMimetype(
-                f"Mime-type '{mimetype}' was unrecognized. We don't know how "
-                "to deal with this"
-            )
+    return {
+        'mimetype': content.dest_mime_type,
+        'path': content.s3_filepath
+    }
 
 
-class Thumbnail(Content):
-    def __init__(self, content_src):
-        super().__init__(content_src)
-        self.src_mime_type = content_src.get('mimetype', 'image/jpeg')
-        self.dest_mime_type = 'image/jpeg' # do we need this? 
-        self.dest_prefix = "thumbnails"
+# returns content = {thumbnail, media, children} where children
+# is an array of the self-same content dictionary
+def harvest_record(record: dict,
+            collection_id,
+            page_filename,
+            mapped_page_path,
+            http: requests.Session,
+            src_auth: Optional[tuple[str,str]] = None,
+            download_cache: Optional[dict] = None,
+            ) -> dict:
+    calisphere_id = record.get('calisphere-id')
 
-    def create_derivatives(self):
-        self.derivative_filepath = None
-        if self.src_mime_type == 'image/jpeg':
-            self.derivative_filepath = self.tmp_filepath
-        elif self.src_mime_type == 'application/pdf':
-            self.derivative_filepath = derivatives.pdf_to_thumb(
-                self.tmp_filepath)
-        elif self.src_mime_type == 'video/mp4':
-            self.derivative_filepath = derivatives.video_to_thumb(
-                self.tmp_filepath)
-        else:
-            raise UnsupportedMimetype(f"thumbnail: {self.src_mime_type}")
+    # maintain backwards compatibility to 'is_shown_by' field
+    thumbnail_src = record.get(
+        'thumbnail_source', record.get('is_shown_by'))
+    if isinstance(thumbnail_src, str):
+        record['thumbnail_source'] = {'url': thumbnail_src}
 
-    def check_mimetype(self, mimetype):
-        if mimetype not in ['image/jpeg', 'application/pdf', 'video/mp4']:
-            raise UnsupportedMimetype(f"thumbnail: {mimetype}")
+    # get media first, sometimes media is used for thumbnail
+    media = record.get('media_source')
+    if media:
+        record['media'] = harvest_content(
+            Media(media), collection_id, http, src_auth, download_cache)
+    thumbnail = record.get('thumbnail_source')
+    if thumbnail:
+        record['thumbnail'] = harvest_content(
+            Thumbnail(thumbnail), collection_id, http, src_auth, download_cache)
 
-
-class ContentHarvester(object):
-
-    # context = {'collection_id': '12345', 'page_filename': '1.jsonl'}
-    def __init__(self, collection_id, page_filename, src_auth=None):
-        self.http = requests.Session()
-
-        retry_strategy = Retry(
-            total=3,
-            status_forcelist=[413, 429, 500, 502, 503, 504],
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self.http.mount("https://", adapter)
-        self.http.mount("http://", adapter)
-
-        self.src_auth = src_auth
-        self.collection_id = collection_id
-        self.page_filename = page_filename
-
-        if settings.CONTENT_DEST["STORE"] == 's3':
-            self.s3 = boto3.client('s3')
-        else:
-            self.s3 = None
-
-    # returns content = {thumbnail, media, children} where children
-    # is an array of the self-same content dictionary
-    def harvest(self, record: dict, download_cache: Optional[dict] = None) -> dict:
-        calisphere_id = record.get('calisphere-id')
-
-        # maintain backwards compatibility to 'is_shown_by' field
-        thumbnail_src = record.get(
-            'thumbnail_source', record.get('is_shown_by'))
-        if isinstance(thumbnail_src, str):
-            record['thumbnail_source'] = {'url': thumbnail_src}
-
-        # get media first, sometimes media is used for thumbnail
-        content_types = [(Media, 'media'), (Thumbnail, 'thumbnail')]
-        for content_cls, field in content_types:
-            content = record.get(f"{field}_source")
-            if not content:
-                continue
-
-            content = content_cls(content)
-            if not content.downloaded():
-                md5 = self._download(content.src_url, content.tmp_filepath, download_cache)
-            elif download_cache:
-                md5 = download_cache.get(
-                    content.src_url,
-                    hashlib.md5(open(content.tmp_filepath, 'rb').read()).hexdigest()
-                )
-            if not content.processed():
-                content.create_derivatives()
-
-            if field == 'thumbnail':
-                dest_filename = md5
-            else:
-                dest_filename = os.path.basename(content.derivative_filepath)
-
-            content_s3_filepath = self._upload(
-                content.dest_prefix, dest_filename, content.derivative_filepath)
-            content.set_s3_filepath(content_s3_filepath)
-
-            # print(
-            #     f"[{self.collection_id}, {self.page_filename}, {calisphere_id}] "
-            #     f"{type(content).__name__} Path: {content.s3_filepath}"
-            # )
-            
-            record[field] = {
-                'mimetype': content.dest_mime_type,
-                'path': content.s3_filepath
-            }
-
-        # Recurse through the record's children (if any)
+    # Recurse through the record's children (if any)
+    mapped_version = get_version(
+        collection_id, mapped_page_path)
+    child_directories = get_child_directories(mapped_version)
+    print(f"CHILD DIRECTORIES: {child_directories}")
+    if child_directories:
         child_records = get_child_records(
-            self.collection_id, calisphere_id, self.s3)
+            mapped_page_path, calisphere_id)
         if child_records:
             print(
-                f"[{self.collection_id}, {self.page_filename}, {calisphere_id}]: "
+                f"[{collection_id}, {page_filename}, {calisphere_id}]: "
                 f"{len(child_records)} children found."
             )
-            record['children'] = [self.harvest(c, download_cache=download_cache) for c in child_records]
+            record['children'] = [
+                harvest_record(
+                    child_record, 
+                    collection_id, 
+                    page_filename, 
+                    mapped_page_path, 
+                    http, 
+                    src_auth, 
+                    download_cache=download_cache
+                )
+                for child_record in child_records
+            ]
 
-        return record
+    return record
 
-    def _download(self, url: str, destination_file: str, cache: Optional[dict] = None):
-        '''
-            download source file to local disk
-        '''
-        if self.src_auth and urlparse(url).scheme != 'https':
-            raise DownloadError(f"Basic auth not over https is a bad idea! {url}")
 
-        if not cache:
-            cache = {}
+def download_content(url: str, 
+                destination_file: str, 
+                http: requests.Session, 
+                src_auth: Optional[tuple[str, str]] = None, 
+                cache: Optional[dict] = None
+            ):
+    '''
+        download source file to local disk
+    '''
+    if src_auth and urlparse(url).scheme != 'https':
+        raise DownloadError(f"Basic auth not over https is a bad idea! {url}")
 
-        cached_data = cache.get(url, {})
+    if not cache:
+        cache = {}
+    cached_data = cache.get(url, {})
 
-        request = {
-            "url": url,
-            "auth": self.src_auth,
-            "stream": True,
-            "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
+    request = {
+        "url": url,
+        "auth": src_auth,
+        "stream": True,
+        "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
+    }
+    if cached_data:
+        request['headers'] = {
+            'If-None-Match': cached_data.get('If-None-Match'),
+            'If-Modified-Since': cached_data.get('If-Modified-Since')
         }
-        if cached_data:
-            request['headers'] = {
-                'If-None-Match': cached_data.get('If-None-Match'),
-                'If-Modified-Since': cached_data.get('If-Modified-Since')
-            }
-            request['headers'] = {k:v for k,v in request['headers'].items() if v}
+        request['headers'] = {k:v for k,v in request['headers'].items() if v}
 
-        response = self.http.get(**request)
-        response.raise_for_status()
+    response = http.get(**request)
+    response.raise_for_status()
 
-        # short-circuit here
-        if response.status_code == 304: # 304 - not modified
-            return cached_data.get('md5')
+    # short-circuit here
+    if response.status_code == 304: # 304 - not modified
+        return cached_data.get('md5')
 
-        hasher = hashlib.new('md5')
-        with open(destination_file, 'wb') as f:
-            for block in response.iter_content(1024 * hasher.block_size):
-                hasher.update(block)
-                f.write(block)
-        md5 = hasher.hexdigest()
+    hasher = hashlib.new('md5')
+    with open(destination_file, 'wb') as f:
+        for block in response.iter_content(1024 * hasher.block_size):
+            hasher.update(block)
+            f.write(block)
+    md5 = hasher.hexdigest()
 
-        cache_updates = {
-            'If-None-Match': response.headers.get('ETag'),
-            'If-Modified-Since': response.headers.get('Last-Modified'),
-            'Mime-Type': response.headers.get('Content-type'),
-            'md5': md5
-        }
-        cache_updates = {k:v for k,v in cache_updates.items() if v}
-        cache['url'] = cached_data.update(cache_updates)
+    cache_updates = {
+        'If-None-Match': response.headers.get('ETag'),
+        'If-Modified-Since': response.headers.get('Last-Modified'),
+        'Mime-Type': response.headers.get('Content-type'),
+        'md5': md5
+    }
+    cache_updates = {k:v for k,v in cache_updates.items() if v}
+    cache['url'] = cached_data.update(cache_updates)
 
-        return md5
-
-    def _upload(self, dest_prefix, dest_filename, filepath, cache: Optional[dict] = None) -> str:
-        '''
-            upload file to CONTENT_DEST
-        '''
-        if not cache:
-            cache = {}
-
-        if cache.get(dest_filename, {}).get('path'):
-            return cache[dest_filename]['path']
-
-        dest_path = ''
-
-        if settings.CONTENT_DEST["STORE"] == 'file':
-            dest_path = os.path.join(
-                settings.CONTENT_DEST["PATH"], dest_prefix)
-            if not os.path.exists(dest_path):
-                os.makedirs(dest_path)
-            dest_path = os.path.join(dest_path, dest_filename)
-            shutil.copyfile(filepath, dest_path)
-
-        if settings.CONTENT_DEST["STORE"] == 's3':
-            if settings.CONTENT_DEST['PATH']:
-                dest_path = (
-                    f"{settings.CONTENT_DEST['PATH']}/{dest_prefix}/{dest_filename}")
-            else:
-                dest_path = f"{dest_prefix}/{dest_filename}"
-            self.s3.upload_file(
-                filepath, settings.CONTENT_DEST["BUCKET"], dest_path)
-
-        # (mime, dimensions) = image_info(filepath)
-        cache_updates = {
-            # 'mime': mime,
-            # 'dimensions': dimensions,
-            'path': dest_path
-        }
-        cache[dest_filename] = cache_updates
-
-        return dest_path
+    return md5
 
 
-# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "r-0"}
-def harvest_page_content(collection_id, page_filename, **kwargs):
+def upload_content(filepath: str, destination: str, cache: Optional[dict] = None) -> str:
+    '''
+        upload file to CONTENT_ROOT
+    '''
+    if not cache:
+        cache = {}
+
+    filename = os.path.basename(destination)
+    if cache.get(filename, {}).get('path'):
+        return cache[filename]['path']
+
+    content_root = os.environ.get("CONTENT_ROOT", 'file:///tmp')
+    content_path = f"{content_root.rstrip('/')}/{destination}"
+    upload_file(filepath, content_path)
+
+    # (mime, dimensions) = image_info(filepath)
+    cache[filename] = {
+        # 'mime': mime,
+        # 'dimensions': dimensions,
+        'path': content_path
+    }
+    return content_path
+
+
+# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "file:///rikolti_data/r-0"}
+def harvest_page_content(collection_id, mapped_page_path, content_data_version, **kwargs):
     rikolti_mapper_type = kwargs.get('rikolti_mapper_type')
+    page_filename = os.path.basename(mapped_page_path)
 
     # Weird how we have to use username/pass to hit this endpoint
     # but we have to use auth token to hit API endpoint
     auth = None
     if rikolti_mapper_type == 'nuxeo.nuxeo':
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
-    harvester = ContentHarvester(
-        collection_id=collection_id,
-        page_filename=page_filename,
-        src_auth=auth
-    )
+    http_session = configure_http_session()
 
-    records = get_mapped_records(collection_id, page_filename, harvester.s3)
+    records = get_mapped_page_content(mapped_page_path)
     print(
         f"[{collection_id}, {page_filename}]: "
         f"Harvesting content for {len(records)} records"
@@ -419,9 +242,19 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
         # )
         # spit out progress so far if an error has been encountered
         try:
-            record_with_content = harvester.harvest(record)
-            # write_mapped_record(
-            #    collection_id, record_with_content, harvester.s3)
+            record_with_content = harvest_record(
+                record, 
+                collection_id, 
+                page_filename, 
+                mapped_page_path, 
+                http_session, 
+                auth
+            )
+            # put_content_data_page(
+            #     json.dumps(record_with_content), 
+            #     record_with_content.get('calisphere-id').replace(os.sep, '_') + ".json",
+            #     content_data_version
+            # )
             if not record_with_content.get('thumbnail'):
                 warn_level = "ERROR"
                 if 'sound' in record.get('type', []):
@@ -439,8 +272,10 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
             )
             print(f"Exiting after harvesting {i} of {len(records)} items "
                   f"in page {page_filename} of collection {collection_id}")
+            raise(e)
 
-    write_mapped_page(collection_id, page_filename, records)
+    put_content_data_page(
+        json.dumps(records), page_filename, content_data_version)
 
     media_source = [r for r in records if r.get('media_source')]
     media_harvested = [r for r in records if r.get('media')]
@@ -485,9 +320,9 @@ def harvest_page_content(collection_id, page_filename, **kwargs):
     child_contents = [len(record.get('children', [])) for record in records]
 
     return {
-        'thumb_source': Counter(thumb_src_mimetypes),
+        'thumb_source_mimetypes': Counter(thumb_src_mimetypes),
         'thumb_mimetypes': Counter(thumb_mimetypes),
-        'media_source': Counter(media_src_mimetypes),
+        'media_source_mimetypes': Counter(media_src_mimetypes),
         'media_mimetypes': Counter(media_mimetypes),
         'children': sum(child_contents),
         'records': len(records)
@@ -499,12 +334,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Harvest content using a page of mapped metadata")
     parser.add_argument('collection_id', help="Collection ID")
-    parser.add_argument('page_filename', help="Page Filename")
+    parser.add_argument('mapped_page_path', help="URI-formatted path to a mapped metadata page")
+    parser.add_argument('content_data_version', help="URI-formatted path to a content data version")
     parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
     args = parser.parse_args()
     arguments = {
         'collection_id': args.collection_id,
-        'page_filename': args.page_filename,
+        'mapped_page_path': args.mapped_page_path,
+        'content_data_version': args.content_data_version
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'

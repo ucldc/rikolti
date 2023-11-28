@@ -10,11 +10,14 @@ from . import settings, utilities
 from .validator.validation_log import ValidationLogLevel
 from .validator.validation_mode import ValidationMode
 from .validator.validator import Validator
+from rikolti.utils.versions import (
+    get_mapped_page_content, get_version, get_mapped_pages)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def validate_collection(collection_id: int,
+                        mapped_page_paths: list[str],
                         validator_class: Type[Validator] = None,
                         validator: Validator = None,
                         validation_mode = ValidationMode.STRICT,
@@ -27,6 +30,13 @@ def validate_collection(collection_id: int,
     Parameters:
         collection_id: int
             The collection ID
+        mapped_page_paths: list[str]
+            A list of the relative paths to pages of vernacular metadata, ex:
+            [
+                3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl,
+                3433/vernacular_metadata_v1/mapped_metadata_v1/data/2.jsonl,
+                3433/vernacular_metadata_v1/mapped_metadata_v1/data/3.jsonl
+            ]
         validator_class: Type[Validator] (default: None)
             The validator class to use. Can be derived if not provided.
         validator: Validator (default: None)
@@ -49,13 +59,13 @@ def validate_collection(collection_id: int,
                                     log_level = log_level,
                                     verbose = verbose)
 
-    for page_id in utilities.get_files(collection_id, "mapped_metadata"):
-        validate_page(collection_id, page_id, validator)
+    for page_path in mapped_page_paths:
+        validate_page(collection_id, page_path, validator)
 
     return validator
 
 
-def validate_page(collection_id: int, page_id: int,
+def validate_page(collection_id: int, page_path: str,
                   validator: Validator) -> Validator:
     """
     Validates a provided page of a provided collection of mapped data.
@@ -63,8 +73,9 @@ def validate_page(collection_id: int, page_id: int,
     Parameters:
         collection_id: int
             The collection ID
-        page_id: int
-            The page number within the collection
+        page_path: str
+            The relative path to a specific page of mapped metadata, ex:
+                3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
         validator: Validator
             The validator instance to use
 
@@ -73,10 +84,10 @@ def validate_page(collection_id: int, page_id: int,
     """
     context = {
         "collection_id": collection_id,
-        "page_id": page_id
+        "page_path": page_path
     }
     mapped_metadata = validator.generate_keys(
-                        get_mapped_data(collection_id, page_id),
+                        get_mapped_page_content(page_path),
                         type="Rikolti",
                         context=context
                       )
@@ -109,16 +120,15 @@ def validate_page(collection_id: int, page_id: int,
     return validator
 
 
-def create_collection_validation_csv(collection_id: int, **options) -> tuple[int, str]:
-    result = validate_collection(collection_id, **options)
-    filename = result.log.output_csv_to_bucket(collection_id)
+def create_collection_validation_csv(
+        collection_id: int, mapped_page_paths: list[str], **options) -> tuple[int, str]:
+    result = validate_collection(collection_id, mapped_page_paths, **options)
+
+    mapped_version = get_version(collection_id, mapped_page_paths[0])
+    filename = result.log.output_csv_to_bucket(collection_id, mapped_version)
     return len(result.log.log), filename
 
 ## Private-ish
-
-
-def get_mapped_data(collection_id: int, page_id: int) -> dict:
-    return utilities.read_mapped_metadata(collection_id, page_id)
 
 
 def get_comparison_data(collection_id: int, harvest_ids: list[str]) -> list[dict]:
@@ -251,6 +261,7 @@ if __name__ == "__main__":
         description="Validate mapped metadata against SOLR")
     
     parser.add_argument('collection_id', help='Collection ID')
+    parser.add_argument('mapped_data_version', help="Mapped data version, ex: 3433/vernacular_data_1/mapped_data_1")
     parser.add_argument("--log-level", dest="log_level",
                         help="Log level - can be ERROR, WARNING, INFO, or DEBUG")
     parser.add_argument('-v', '--verbose', action="store_true", help="Verbose mode")
@@ -269,6 +280,8 @@ if __name__ == "__main__":
     print(f"Generating validations for collection {args.collection_id} with options:")
     print(kwargs)
 
+    mapped_page_paths = get_mapped_pages(args.mapped_data_version)
+
     num_rows, file_location = create_collection_validation_csv(
-        args.collection_id, **kwargs)
+        args.collection_id, mapped_page_paths, **kwargs)
     print(f"Output {num_rows} rows to {file_location}")

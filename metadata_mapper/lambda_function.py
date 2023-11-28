@@ -1,12 +1,14 @@
 import importlib
 import json
 import logging
+import os
 import sys
 from typing import Union
 from urllib.parse import parse_qs, urlparse
 
 from . import settings
-from .mappers.mapper import Record, UCLDCWriter, Vernacular
+from .mappers.mapper import Record, Vernacular
+from rikolti.utils.versions import get_vernacular_page_content, put_mapped_page
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +73,34 @@ def run_enrichments(records, collection, enrichment_set, page_filename):
     return records
 
 
-def map_page(collection_id: int, page_filename: str, collection: Union[dict, str]):
+def map_page(
+        collection_id: int,
+        vernacular_page_path: str,
+        mapped_data_version: str,
+        collection: Union[dict, str]
+    ):
+    """
+    vernacular_page_path is a filepath relative to the collection id, ex:
+        3433/vernacular_metadata_v1/data/1
+    mapped_data_version is a version path relative to the collection id, ex:
+        3433/vernacular_metadata_v1/mapped_metadata_v1/
+
+    returns a dict with the following keys:
+        status: success
+        num_records_mapped: int
+        page_exceptions: TODO
+        mapped_page_path: str, ex:
+            3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
+    """
     if isinstance(collection, str):
          collection = json.loads(collection)
 
     vernacular_reader = import_vernacular_reader(
         collection.get('rikolti_mapper_type'))
+    page_filename = os.path.basename(vernacular_page_path)
+    api_resp = get_vernacular_page_content(vernacular_page_path)
+
     source_vernacular = vernacular_reader(collection_id, page_filename)
-    api_resp = source_vernacular.get_api_response()
     source_metadata_records = source_vernacular.parse(api_resp)
 
     source_metadata_records = run_enrichments(
@@ -87,12 +109,6 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     for record in source_metadata_records:
         record.to_UCLDC()
     mapped_records = source_metadata_records
-
-    writer = UCLDCWriter(collection_id, page_filename)
-    # TODO: write interim mapped but not enriched metadata to s3?
-    # if settings.DATA_DEST["STORE"] == 'file':
-    #     writer.write_local_mapped_metadata(
-    #         [record.to_dict() for record in mapped_records])
 
     mapped_records = run_enrichments(
         mapped_records, collection, 'rikolti__enrichments', page_filename)
@@ -120,16 +136,14 @@ def map_page(collection_id: int, page_filename: str, collection: Union[dict, str
     #                   for record in mapped_records]
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
-    if settings.DATA_DEST["STORE"] == 'file':
-        writer.write_local_mapped_metadata(mapped_metadata)
-    else:
-        writer.write_s3_mapped_metadata(mapped_metadata)
+    mapped_page_path = put_mapped_page(
+        json.dumps(mapped_metadata), page_filename, mapped_data_version)
 
     return {
         'status': 'success',
         'num_records_mapped': len(mapped_records),
         'page_exceptions': group_page_exceptions,
-        'page_filename': page_filename,
+        'mapped_page_path': mapped_page_path,
     }
 
 
@@ -138,13 +152,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
     parser.add_argument('collection_id', help='collection id')
-    parser.add_argument('page_filename', help='vernauclar metadata page filename')
+    parser.add_argument('page_path', help='relative file path to vernauclar metadata page filename; ex: 3433/vernacular_data_version_1/data/1')
+    parser.add_argument('mapped_data_version', help='uri file path to mapped data version; ex: file:///rikolti_data_root/3433/vernacular_data_version_1/mapped_data_version_1/')
     parser.add_argument('collection', help='json collection metadata from registry')
 
     args = parser.parse_args(sys.argv[1:])
-    mapped_page = map_page(args.collection_id, args.page_filename, args.collection)
+    mapped_page = map_page(args.collection_id, args.page_path, args.mapped_data_path, args.collection)
 
     print(f"{mapped_page.get('num_records_mapped')} records mapped")
+    print(f"mapped page at {os.environ.get('MAPPED_DATA')}/{mapped_page.get('mapped_page_path')}")
 
     for report, couch_ids in mapped_page.get('exceptions', {}).items():
         print(f"{len(couch_ids)} records report enrichments errors: {report}")
