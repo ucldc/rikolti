@@ -8,7 +8,7 @@ class CsudhRecord(ContentdmRecord):
         }
 
     def map_identifier(self):
-        identifier = self.collate_fields(['bibliographicCitation', 'identifier'])
+        identifier = self.collate_fields(['bibliographicCitation', 'identifier'])()
 
         value = self.source_metadata.get("title", [])
 
