@@ -52,7 +52,7 @@ def fetch_endpoint_task(endpoint, params=None):
         )
         print(
             "Review fetched data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{version}"
+            f"amazonaws.com/index.html#{version.rstrip('/')}/data/"
         )
         fetched_versions[collection_id] = version
     return fetched_versions
@@ -61,17 +61,15 @@ def fetch_endpoint_task(endpoint, params=None):
 def map_endpoint_task(endpoint, fetched_versions, params=None):
     limit = params.get('limit', None) if params else None
     mapper_job_results = map_endpoint(endpoint, fetched_versions, limit)
-    for mapper_job in mapper_job_results:
-        print(
-            "Review mapped data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{mapper_job['collection_id']}/"
-        )
     mapped_versions = {}
     for mapper_job_result in mapper_job_results:
-        print(mapper_job_result.keys())
         mapped_version = get_version(
             mapper_job_result['collection_id'],
             mapper_job_result['mapped_page_paths'][0]
+        )
+        print(
+            "Review mapped data at: https://rikolti-data.s3.us-west-2."
+            f"amazonaws.com/index.html#{mapped_version.rstrip('/')}/data/"
         )
         mapped_versions[mapper_job_result['collection_id']] = mapped_version
 
@@ -89,11 +87,13 @@ def validate_endpoint_task(url, mapped_versions, params=None):
 
     print(f">>> Validating {limit}/{total} collections described at {url}")
 
-    csv_paths = []
-    s3_paths = []
+    collections = {}
+    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+
     for collection in registry_endpoint(url):
-        print(f"{collection['collection_id']:<6} Validating collection")
         collection_id = collection['collection_id']
+        print(f"{collection_id:<6} Validating collection")
+
         mapped_version = mapped_versions.get(str(collection_id))
         try:
             mapped_pages = get_mapped_pages(mapped_version)
@@ -101,21 +101,29 @@ def validate_endpoint_task(url, mapped_versions, params=None):
             print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
             continue
 
-        num_rows, file_location = create_collection_validation_csv(
+        num_rows, version_page = create_collection_validation_csv(
             collection_id, mapped_pages)
-        csv_paths.append(file_location)
-        validation_data_dest = os.environ.get("MAPPED_DATA", "file:///tmp")
-        if validation_data_dest.startswith("s3"):
-            s3_path = urlparse(f"{validation_data_dest.rstrip('/')}/{file_location}")
-            s3_paths.append(f"https://{s3_path.netloc}.s3.amazonaws.com{s3_path.path}")
-        print(f"Output {num_rows} rows to {file_location}")
 
-    for s3_path in s3_paths:
-        print(f"Download validation report at: {s3_path}")
-        print(
-            "Review collection data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{s3_path.split('/')[-3]}/"
-        )
+        collections[collection_id] = {
+            'csv': version_page,
+            'mapped_version': mapped_version,
+            'data_uri': f"{data_root.rstrip('/')}/{version_page}"
+        }
+        print(f"Output {num_rows} rows to {version_page}")
 
-    return csv_paths
+    if data_root.startswith('s3'):
+        for collection in collections:
+            s3_path = urlparse(collection['data_uri'])
+            bucket = s3_path.netloc
+            print(
+                "Download validation report at: "
+                f"https://{bucket}.s3.amazonaws.com{s3_path.path}"
+            )
+            print(
+                f"Review collection data at: "
+                "https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
+                f"#{collection['mapped_version'].rstrip('/')}/data/"
+            )
+
+    return [collection['csv'] for collection in collections]
 
