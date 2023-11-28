@@ -41,7 +41,7 @@ def list_dirs(data_uri: str, recursive=False, **kwargs) -> list[str]:
         s3 = boto3.client('s3', **kwargs)
         s3_objects = s3.list_objects_v2(
             Bucket=data.bucket, 
-            Prefix=data.path,
+            Prefix=data.path.lstrip('/'),
             Delimiter='/'
         )
         keys = [
@@ -98,10 +98,9 @@ def list_s3_pages(data: DataStorage, recursive: bool=True, **kwargs) -> list:
     List all objects in s3_bucket with prefix s3_prefix
     """
     s3 = boto3.client('s3', **kwargs)
-
     s3_objects = s3.list_objects_v2(
         Bucket=data.bucket, 
-        Prefix=data.path
+        Prefix=data.path.lstrip('/')
     )
     # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
 
@@ -142,7 +141,7 @@ def get_page_content(data_uri: str, **kwargs):
     """
     data = parse_data_uri(data_uri)
     if data.store == 's3':
-        return get_s3_contents(data)
+        return get_s3_contents(data, **kwargs)
     elif data.store == 'file':
         return get_file_contents(data)
     else:
@@ -156,7 +155,7 @@ def get_s3_contents(data: DataStorage, **kwargs):
     s3 = boto3.client('s3', **kwargs)
 
     try:
-        obj = s3.get_object(Bucket=data.bucket, Key=data.path)
+        obj = s3.get_object(Bucket=data.bucket, Key=data.path.lstrip('/'))
         return obj['Body'].read().decode('utf-8')
     except Exception as e:
         url = (
@@ -202,7 +201,7 @@ def put_s3_content(data: DataStorage, content, **kwargs) -> str:
     s3.put_object(
         ACL='bucket-owner-full-control',
         Bucket=data.bucket,
-        Key=data.path,
+        Key=data.path.lstrip('/'),
         Body=content
     )
     return data.uri
@@ -244,7 +243,7 @@ def upload_s3_file(data: DataStorage, filepath, **kwargs):
     s3.upload_file(
         filepath,
         data.bucket,
-        data.path
+        data.path.lstrip('/')
     )
     return data.uri
 
