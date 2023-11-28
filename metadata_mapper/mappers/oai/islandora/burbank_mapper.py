@@ -26,7 +26,7 @@ class BurbankRecord(IslandoraRecord):
             'issued',
             'modified',
             'valid'
-        ])
+        ])()
 
         return [d for d in dates if self.date_regex.search(d) is None]
 
