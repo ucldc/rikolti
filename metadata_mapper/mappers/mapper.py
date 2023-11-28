@@ -8,10 +8,8 @@ from datetime import date, datetime
 from datetime import timezone
 from typing import Any, Callable, Optional
 
-import boto3
 from markupsafe import Markup
 
-from .. import settings
 from ..utilities import returns_callable
 from ..validator.validation_log import ValidationLog  # noqa: F401
 from ..validator.validator import Validator
@@ -20,71 +18,10 @@ from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
 
 
-class UCLDCWriter(object):
-    def __init__(self, collection_id: int, page_filename: str):
-        self.collection_id = collection_id
-        self.page_filename = page_filename
-
-    def write_local_mapped_metadata(self, mapped_metadata):
-        local_path = settings.local_path(
-            self.collection_id, 'mapped_metadata')
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-        page_path = os.sep.join([local_path, str(self.page_filename)])
-        if 'children' in page_path:
-            local_children_path = os.path.join(local_path, 'children')
-            if not os.path.exists(local_children_path):
-                os.makedirs(local_children_path)
-        page = open(page_path, "w+")
-        page.write(json.dumps(mapped_metadata))
-
-    def write_s3_mapped_metadata(self, mapped_metadata):
-        s3_client = boto3.client('s3')
-        key = (
-            f"{self.collection_id}/mapped_metadata/"
-            f"{self.page_filename.split('/')[-1]}"
-        )
-        s3_client.put_object(
-            ACL='bucket-owner-full-control',
-            Bucket=settings.DATA_DEST["BUCKET"],
-            Key=key,
-            Body=json.dumps(mapped_metadata))
-
-
 class Vernacular(ABC, object):
     def __init__(self, collection_id: int, page_filename: str) -> None:
         self.collection_id = collection_id
         self.page_filename = page_filename
-
-    def get_api_response(self) -> dict:
-        if settings.DATA_SRC["STORE"] == 'file':
-            return self.get_local_api_response()
-        else:
-            return self.get_s3_api_response()
-
-    def get_local_api_response(self) -> str:
-        local_path = settings.local_path(
-            self.collection_id, 'vernacular_metadata')
-        page_path = os.sep.join([local_path, str(self.page_filename)])
-        page = open(page_path, "r")
-        api_response = page.read()
-        return api_response
-
-    def get_s3_api_response(self) -> str:
-        s3_client = boto3.client('s3')
-        if not self.page_filename.startswith(
-            f'{self.collection_id}/vernacular_metadata'):
-            self.page_filename = (
-                f"{self.collection_id}/vernacular_metadata/"
-                f"{self.page_filename}"
-            )
-
-        page = s3_client.get_object(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Key=self.page_filename
-        )
-        api_response = page['Body'].read()
-        return api_response
 
     def get_records(self, records):
         return [

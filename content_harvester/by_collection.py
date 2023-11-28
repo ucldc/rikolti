@@ -1,54 +1,38 @@
 import json
-import os
 
-import boto3
-
-from . import settings
 from .by_page import harvest_page_content
-
-
-def get_mapped_pages(collection_id):
-    page_list = []
-    if settings.DATA_SRC['STORE'] == 'file':
-        mapped_path = settings.local_path(collection_id, 'mapped_metadata')
-        try:
-            page_list = [f for f in os.listdir(mapped_path)
-                            if os.path.isfile(os.path.join(mapped_path, f))]
-        except FileNotFoundError as e:
-            print(f"{e} - have you mapped {collection_id}?")
-    else:
-        s3_client = boto3.client(
-            's3',
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            aws_session_token=settings.AWS_SESSION_TOKEN,
-            region_name=settings.AWS_REGION
-        )
-        response = s3_client.list_objects_v2(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f'{collection_id}/mapped_metadata/'
-        )
-        page_list = [obj['Key'].split('/')[-1] for obj in response['Contents']]
-    return page_list
+from . import settings
+from rikolti.utils.versions import get_mapped_pages, create_content_data_version
 
 
 # {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo"}
-def harvest_collection(collection):
+def harvest_collection(collection, mapped_data_version: str):
     if isinstance(collection, str):
         collection = json.loads(collection)
 
     collection_id = collection.get('collection_id')
 
-    if not collection_id:
-        print("ERROR ERROR ERROR\ncollection_id required")
+    if not collection_id or not mapped_data_version:
+        print("ERROR ERROR ERROR\ncollection_id and mapped_data_version required")
         exit()
 
-    page_list = get_mapped_pages(collection_id)
+    page_list = get_mapped_pages(
+        mapped_data_version,
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        aws_session_token=settings.AWS_SESSION_TOKEN,
+        region_name=settings.AWS_REGION
+    )
 
     print(f"[{collection_id}]: Harvesting content for {len(page_list)} pages")
     collection_stats = {}
-    for page in page_list:
-        collection.update({'page_filename': page})
+
+    collection.update({
+        'content_data_version': create_content_data_version(mapped_data_version)
+    })
+
+    for page_path in page_list:
+        collection.update({'mapped_page_path': page_path})
         page_stats = harvest_page_content(**collection)
 
         # in some cases, value is int and in some cases, value is Counter
@@ -71,6 +55,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Harvest content by collection using mapped metadata")
     parser.add_argument('collection_id', help="Collection ID")
+    parser.add_argument('mapped_data_version', help="URI to mapped data version: ex: s3://rikolti-data-root/3433/vernacular_data_version_1/mapped_data_version_2/")
     parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
     args = parser.parse_args()
     arguments = {
@@ -78,4 +63,4 @@ if __name__ == "__main__":
     }
     if args.nuxeo:
         arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
-    print(harvest_collection(arguments))
+    print(harvest_collection(arguments, args.mapped_data_version))

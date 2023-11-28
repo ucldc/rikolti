@@ -1,5 +1,6 @@
 import requests
 import logging
+import os
 import sys
 
 from urllib.parse import urlparse
@@ -10,6 +11,7 @@ from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import registry_endpoint
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
+from rikolti.utils.versions import get_version, get_mapped_pages
 
 logger = logging.getLogger("airflow.task")
 
@@ -30,28 +32,53 @@ def make_mapper_type_endpoint(params=None):
 
 @task()
 def fetch_endpoint_task(endpoint, params=None):
+    """
+    3433: [
+            {
+                document_count: int
+                vernacular_filepath: path relative to collection id
+                    ex: "3433/vernacular_version_1/data/1"
+                status: 'success' or 'error'
+            }
+        ]
+    """
     limit = params.get('limit', None) if params else None
     fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
+    fetched_versions = {}
     for collection_id in fetcher_job_result.keys():
+        version = get_version(
+            collection_id,
+            fetcher_job_result[collection_id][0]['vernacular_filepath']
+        )
         print(
             "Review fetched data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{collection_id}/"
+            f"amazonaws.com/index.html#{version}"
         )
-    return fetcher_job_result
+        fetched_versions[collection_id] = version
+    return fetched_versions
 
 @task()
-def map_endpoint_task(endpoint, params=None):
+def map_endpoint_task(endpoint, fetched_versions, params=None):
     limit = params.get('limit', None) if params else None
-    mapper_job_results = map_endpoint(endpoint, limit)
+    mapper_job_results = map_endpoint(endpoint, fetched_versions, limit)
     for mapper_job in mapper_job_results:
         print(
             "Review mapped data at: https://rikolti-data.s3.us-west-2."
             f"amazonaws.com/index.html#{mapper_job['collection_id']}/"
         )
-    return mapper_job_results
+    mapped_versions = {}
+    for mapper_job_result in mapper_job_results:
+        print(mapper_job_result.keys())
+        mapped_version = get_version(
+            mapper_job_result['collection_id'],
+            mapper_job_result['mapped_page_paths'][0]
+        )
+        mapped_versions[mapper_job_result['collection_id']] = mapped_version
+
+    return mapped_versions
 
 @task()
-def validate_endpoint_task(url, params=None):
+def validate_endpoint_task(url, mapped_versions, params=None):
     limit = params.get('limit', None) if params else None
 
     response = requests.get(url=url)
@@ -66,15 +93,20 @@ def validate_endpoint_task(url, params=None):
     s3_paths = []
     for collection in registry_endpoint(url):
         print(f"{collection['collection_id']:<6} Validating collection")
+        collection_id = collection['collection_id']
+        mapped_version = mapped_versions.get(str(collection_id))
         try:
-            num_rows, file_location = create_collection_validation_csv(
-                collection['collection_id'])
+            mapped_pages = get_mapped_pages(mapped_version)
         except FileNotFoundError:
-            print(f"{collection['collection_id']:<6}: not mapped yet", file=sys.stderr)
+            print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
             continue
+
+        num_rows, file_location = create_collection_validation_csv(
+            collection_id, mapped_pages)
         csv_paths.append(file_location)
-        if file_location.startswith('s3://'):
-            s3_path = urlparse(file_location)
+        validation_data_dest = os.environ.get("MAPPED_DATA", "file:///tmp")
+        if validation_data_dest.startswith("s3"):
+            s3_path = urlparse(f"{validation_data_dest.rstrip('/')}/{file_location}")
             s3_paths.append(f"https://{s3_path.netloc}.s3.amazonaws.com{s3_path.path}")
         print(f"Output {num_rows} rows to {file_location}")
 
