@@ -112,7 +112,7 @@ def validate_endpoint_task(url, mapped_versions, params=None):
         print(f"Output {num_rows} rows to {version_page}")
 
     if data_root.startswith('s3'):
-        for collection in collections:
+        for collection in collections.values():
             s3_path = urlparse(collection['data_uri'])
             bucket = s3_path.netloc
             print(
@@ -125,5 +125,5 @@ def validate_endpoint_task(url, mapped_versions, params=None):
                 f"#{collection['mapped_version'].rstrip('/')}/data/"
             )
 
-    return [collection['csv'] for collection in collections]
+    return [collection['csv'] for collection in collections.values()]
 
