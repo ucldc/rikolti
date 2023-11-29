@@ -125,5 +125,5 @@ def validate_endpoint_task(url, mapped_versions, params=None):
                 f"#{collection['mapped_version'].rstrip('/')}/data/"
             )
 
-    return [collection['csv'] for collection in collections]
+    return [collection['csv'] for collection in collections.values()]
 
