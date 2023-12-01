@@ -80,7 +80,7 @@ class SpplFlickrValidator(FlickrValidator):
     def __init__(self, **options):
         super().__init__(**options)
         self.add_validatable_field(
-            field="description", type=str,
+            field="description",
             validations=[
                 SpplFlickrValidator.content_match,
             ],
