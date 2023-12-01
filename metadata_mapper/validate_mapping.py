@@ -194,11 +194,16 @@ def couch_db_request(collection_id: int, field_name: str) -> list[dict[str, str]
         "couchdb/ucldc/_design/all_provider_docs/" \
         "_list/has_field_value/by_provider_name_wdoc" \
         f"?key=\"{collection_id}\"&field={field_name}&limit=100000"
-    response = requests.get(url, verify=False)
-    # TODO: add a timeout to this request & if it times out, signal to the user
-    # that the request timed out and validation is continuing without data from
-    # Couch DB - a message to std.out should suffice
-    return json.loads(response.content)
+    
+    try:
+        response = requests.get(url, verify=False, timeout=settings.COUCH_TIMEOUT)
+        return json.loads(response.content)
+    except requests.exceptions.Timeout as e:
+        print(e)
+        print(f"Request to Couchdb has timed out after {settings.COUCH_TIMEOUT} \
+              seconds. Continuing without isShownAt and isShownBy values, \
+              which may result in increased/inaccurate validation errors.")
+        return []
 
 
 def get_couch_db_data(collection_id: int,
