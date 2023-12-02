@@ -37,6 +37,12 @@ class ValidationMode(Enum):
         pass
 
 
+    class ListOrderInsensitiveMode(Mode):
+        @staticmethod
+        def list_compare(one: list, two: list) -> bool:
+            return sorted(one) == sorted(two)
+
+
     class LaxMode(Mode):
         """
         Lax validation mode generally permits case- and order-insensitive comparisons.
@@ -55,3 +61,4 @@ class ValidationMode(Enum):
 
     STRICT = StrictMode()
     LAX = LaxMode()
+    ORDER_INSENSITIVE_IF_LIST = ListOrderInsensitiveMode()
