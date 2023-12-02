@@ -336,10 +336,10 @@ contributor_role_list = ["Contributor", "Abridger", "Actor", "Adapter",
 class UcsdBlacklightValidator(Validator):
     def setup(self, **options):
         self.add_validatable_field(
-            field="identifier", type=Validator.list_of(str),
+            field="identifier",
             validations=[
                 UcsdBlacklightValidator.identifier_content_match,
-                Validator.type_match
+                Validator.verify_type(Validator.list_of(str))
             ]
         )
 

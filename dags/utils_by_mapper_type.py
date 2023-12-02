@@ -1,5 +1,7 @@
 import requests
 import logging
+import os
+import sys
 
 from urllib.parse import urlparse
 
@@ -9,6 +11,7 @@ from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import registry_endpoint
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
+from rikolti.utils.versions import get_version, get_mapped_pages
 
 logger = logging.getLogger("airflow.task")
 
@@ -29,28 +32,51 @@ def make_mapper_type_endpoint(params=None):
 
 @task()
 def fetch_endpoint_task(endpoint, params=None):
+    """
+    3433: [
+            {
+                document_count: int
+                vernacular_filepath: path relative to collection id
+                    ex: "3433/vernacular_version_1/data/1"
+                status: 'success' or 'error'
+            }
+        ]
+    """
     limit = params.get('limit', None) if params else None
     fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
+    fetched_versions = {}
     for collection_id in fetcher_job_result.keys():
+        version = get_version(
+            collection_id,
+            fetcher_job_result[collection_id][0]['vernacular_filepath']
+        )
         print(
             "Review fetched data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{collection_id}/"
+            f"amazonaws.com/index.html#{version.rstrip('/')}/data/"
         )
-    return fetcher_job_result
+        fetched_versions[collection_id] = version
+    return fetched_versions
 
 @task()
-def map_endpoint_task(endpoint, params=None):
+def map_endpoint_task(endpoint, fetched_versions, params=None):
     limit = params.get('limit', None) if params else None
-    mapper_job_results = map_endpoint(endpoint, limit)
-    for mapper_job in mapper_job_results:
+    mapper_job_results = map_endpoint(endpoint, fetched_versions, limit)
+    mapped_versions = {}
+    for mapper_job_result in mapper_job_results:
+        mapped_version = get_version(
+            mapper_job_result['collection_id'],
+            mapper_job_result['mapped_page_paths'][0]
+        )
         print(
             "Review mapped data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{mapper_job['collection_id']}/"
+            f"amazonaws.com/index.html#{mapped_version.rstrip('/')}/data/"
         )
-    return mapper_job_results
+        mapped_versions[mapper_job_result['collection_id']] = mapped_version
+
+    return mapped_versions
 
 @task()
-def validate_endpoint_task(url, params=None):
+def validate_endpoint_task(url, mapped_versions, params=None):
     limit = params.get('limit', None) if params else None
 
     response = requests.get(url=url)
@@ -61,24 +87,43 @@ def validate_endpoint_task(url, params=None):
 
     print(f">>> Validating {limit}/{total} collections described at {url}")
 
-    csv_paths = []
-    s3_paths = []
+    collections = {}
+    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+
     for collection in registry_endpoint(url):
-        print(f"{collection['collection_id']:<6} Validating collection")
-        num_rows, file_location = create_collection_validation_csv(
-            collection['collection_id'])
-        csv_paths.append(file_location)
-        if file_location.startswith('s3://'):
-            s3_path = urlparse(file_location)
-            s3_paths.append(f"https://{s3_path.netloc}.s3.amazonaws.com{s3_path.path}")
-        print(f"Output {num_rows} rows to {file_location}")
+        collection_id = collection['collection_id']
+        print(f"{collection_id:<6} Validating collection")
 
-    for s3_path in s3_paths:
-        print(f"Download validation report at: {s3_path}")
-        print(
-            "Review collection data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{s3_path.split('/')[-3]}/"
-        )
+        mapped_version = mapped_versions.get(str(collection_id))
+        try:
+            mapped_pages = get_mapped_pages(mapped_version)
+        except FileNotFoundError:
+            print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
+            continue
 
-    return csv_paths
+        num_rows, version_page = create_collection_validation_csv(
+            collection_id, mapped_pages)
+
+        collections[collection_id] = {
+            'csv': version_page,
+            'mapped_version': mapped_version,
+            'data_uri': f"{data_root.rstrip('/')}/{version_page}"
+        }
+        print(f"Output {num_rows} rows to {version_page}")
+
+    if data_root.startswith('s3'):
+        for collection in collections.values():
+            s3_path = urlparse(collection['data_uri'])
+            bucket = s3_path.netloc
+            print(
+                "Download validation report at: "
+                f"https://{bucket}.s3.amazonaws.com{s3_path.path}"
+            )
+            print(
+                f"Review collection data at: "
+                "https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
+                f"#{collection['mapped_version'].rstrip('/')}/data/"
+            )
+
+    return [collection['csv'] for collection in collections.values()]
 

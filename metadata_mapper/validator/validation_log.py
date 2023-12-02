@@ -1,9 +1,8 @@
-from datetime import datetime
 from enum import Enum
+import json
 from typing import IO, Any
-
-from .. import utilities
-
+from rikolti.utils.versions import (
+    create_validation_version, put_validation_report)
 
 class ValidationLogLevel(Enum):
     DEBUG = "DEBUG"
@@ -109,28 +108,32 @@ class ValidationLog:
         with open(file, "a" if append else "w") as f:
             f.write(self._csv_content_string(include_fields, append))
 
-    def output_csv_to_bucket(self, collection_id: int, filename: str = None,
-                             include_fields: list[str] = None) -> None:
+    def output_csv_to_bucket(self, collection_id: int, mapped_version: str = None,
+                             include_fields: list[str] = None) -> str:
         """
         Writes a CSV to the env-appropriate bucket (local or S3).
 
         Parameters:
             collection_id: int
                 The collection ID (for finding appropriate folder)
-            filename: str (default: None)
-                The name of the created file. If not provided, defaults to
-                timestamp
+            mapped_version: str (default: None)
+                the mapped_data version, ex:
+                    3433/vernacular_metadata_v1/mapped_metadata_v1/
             include_fields: list[str] (default: None)
                 A list of fields to include in the CSV. Defaults to all.
-        """
-        if not filename:
-            filename = f"{datetime.now().strftime('%m-%d-%YT%H:%M:%S')}.csv"
 
-        file_location = utilities.write_to_bucket(
-            collection_id, "validation", filename,
-            self._csv_content_string(include_fields))
-        
+        Returns: str
+            the relative path to the created file, ex:
+                3433/vernacular_metadata_v1/mapped_metadata_v1/validation_v1.csv
+        """
+        content = self._csv_content_string(include_fields)
+        if isinstance(content, list) or isinstance(content, dict):
+            content = json.dumps(content)
+
+        file_location = create_validation_version(mapped_version)
+        put_validation_report(content, file_location)
         return file_location
+
 
     def _csv_content(self, include_fields: list[str] = None,
                      include_headers: bool = True) -> list[list[str]]:

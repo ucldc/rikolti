@@ -76,12 +76,12 @@ class Validator:
                 A list of dicts containing validation definitions.
                 See default_validatable_fields for examples.
 
-        Returns list[dict]
+        Returns: list[dict]
         """
         self.validatable_fields = fields
         return self.validatable_fields
     
-    def add_validatable_field(self, field: str, type: Any,
+    def add_validatable_field(self, field: str,
                               validations: Union[Callable,
                                                  list[Callable],
                                                  dict[Callable, ValidationLogLevel]
@@ -91,7 +91,23 @@ class Validator:
                               replace: bool = True
                               ) -> bool:
         """
-        Adds a single validatable field.
+        Adds a single field to this validator's validatable_fields list.
+
+        Parameters:
+            field: str
+                The unique field name
+            validations: list[Callable, list[Callable], dict[Callable, ValidationLogLevel]]
+                The validation(s) to run on this field. If a dict, you can define a
+                ValidationLogLevel per validation to log on failure.
+            level: ValidationLogLevel
+                The log level for failure. Can be overridden on individual validations.
+            validation_mode: ValidationMode
+                The ValidationMode to use for these validations
+            replace: bool
+                If a validation definition already exists for this field, should this
+                definition replace it?
+
+        Returns: bool
         """
         existing = [f for f in self.validatable_fields if f["field"] == field]
         if len(existing) > 0:
@@ -110,6 +126,51 @@ class Validator:
 
         self.validatable_fields.append({k: v for k, v in validation_def.items() if v})
         return True
+
+    def add_validatable_fields(self, *fields: list[dict[str, Any]]) -> dict[str, bool]:
+        """
+        Adds a list of validatable fields.
+
+        Parameters:
+            fields: list[dict[str, Any]]
+                A list of validatable fields to add, following the pattern
+                described in #add_validatable_field
+        
+        Returns: dict[str, bool]
+        """
+        return {
+            field["field"]: self.add_validatable_field(field)
+            for field in fields
+        }
+
+    def modify_validatable_field(self, field: str, **changes) -> bool:
+        """
+        Merges options into an existing validatable field definition.
+
+        Parameters:
+            field: str
+                The validatable field definition to modify
+            changes: dict[str, Any]
+                The changes to merge into the validatable field
+
+        Returns: bool
+        """
+        existing = [f for f in self.validatable_fields if f["field"] == field]
+        if len(existing != 1):
+            return False
+        else:
+            new_field_def = { **existing[0], **changes }
+            self.remove_validatable_field(field)
+            self.add_validatable_field(new_field_def)
+
+    def modify_validatable_fields(self, *fields: list[str],
+                                  **changes) -> dict[str, bool]:
+        """
+        Merges a single set of options into multiple validatable field definitions.
+        """
+        return { field: self.modify_validatable_field(field, **changes)
+                for field in fields
+                }
 
     def remove_validatable_field(self, field: str) -> bool:
         orig_len = len(self.validatable_fields)
@@ -192,24 +253,26 @@ class Validator:
             return "ID is not an 'ark:/'"
 
     @staticmethod
+    def verify_type(expected: Union[type, Callable, list[type]]) -> Callable:
+        def inner(validation_def: dict, rikolti_value: Any, _: Any) -> Union[str, None]:
+            if not Validator.compare_type(expected, rikolti_value):
+                return {
+                    "description": "Type mismatch",
+                    "actual": type(rikolti_value).__name__,
+                    "expected": expected.__name__
+                }
+
+        return inner
+
+    @staticmethod
     def type_match(validation_def: dict, rikolti_value: Any,
-                   _: Any) -> Union[str, None]:
+                   comparison_value: Any) -> Union[str, None]:
         """
-        Validates that the value is of the expected type.
-        Most fields are optional, so None is always acceptable.
-        If a field is required, use #required_field.
+        Validates that the rikolti value is of the same type
+        as the comparison type.
         """
-        if rikolti_value is None:
-            return
-
-        expected_type = validation_def["type"]
-
-        if isinstance(expected_type, Callable):
-            result = expected_type(rikolti_value)
-        elif isinstance(expected_type, type):
-            result = isinstance(rikolti_value, expected_type)
-        elif isinstance(expected_type, list):
-            result = any(isinstance(rikolti_value, type) for type in expected_type)
+        expected_type = Validator.derive_type(comparison_value)
+        result = Validator.compare_type(expected_type, rikolti_value)
 
         if not result:
             actual_type = type(rikolti_value)
@@ -255,6 +318,62 @@ class Validator:
             return "Required field is null"
 
     # Type helpers
+
+    @staticmethod
+    def derive_type(value: Any) -> Union[type, Callable]:
+        """
+        Attempts to derive the type of a value for comparison.
+
+        Does not currently handle nested lists well.
+
+        Parameters:
+            value: Any
+                The value of which to derive the type
+
+        Returns: Union[type, Callable]
+        """
+        if isinstance(value, list):
+            inner_types = set([Validator.derive_type(item) for item in value])
+            return Validator.list_of(*inner_types)
+        elif isinstance(value, dict):
+            inner_types = set([Validator.derive_type(item)
+                               for k, item
+                               in value.items()])
+            return Validator.dict_of(*inner_types)
+        else:
+            return type(value)
+
+    @staticmethod
+    def compare_type(expected_type: Union[type, Callable, list[Union[type, Callable]]], 
+                     value: Any) -> Any:
+        """
+        Compares a value with a its expected type.
+
+        `expected_type` can be a type (checked with instanceof), a Callable
+        (that is invoked) and expected to return a boolean result),
+        or a list of types and/or Callables.
+
+        This method will typically be invoked from a higher-order function.
+
+        Parameters:
+            expected_value: Union[type, Callable, list[Union[type, Callable]]]
+                The expected type, a Callable that performs a type check, or
+                list of expected types or Callables. If a list, only one must eval
+                true in order to pass.
+            value: Any
+                The value to check.
+
+        Returns: boolean
+        """
+        if value is None:
+            return
+        
+        if isinstance(expected_type, Callable):
+            return expected_type(value)
+        elif isinstance(expected_type, type):
+            return isinstance(value, expected_type)
+        elif isinstance(expected_type, list):
+            return any(Validator.compare_type(t, value) for t in expected_type)
 
     @staticmethod
     def nested_value(iterable_type: type,
@@ -386,9 +505,6 @@ class Validator:
 
         Builds additional default keys/values as needed.
         """
-        if validation_result is True:
-            return
-
         if isinstance(validation_result, str):
             log_dict = {
                 "description": validation_result,
@@ -469,205 +585,175 @@ default_validatable_fields: list[dict[str, Any]] = [
     # Full type and content matches required
     {
         "field": "id",
-        "type": str,
         "validations": [
                         Validator.content_match,
-                        Validator.type_match,
+                        Validator.verify_type(str),
                         Validator.ark_type
         ]
     },
     {
         "field": "identifier",
-        "type": Validator.list_of(str),
         "validations": [
                         Validator.content_match,
-                        Validator.type_match
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "title",
-        "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
                         Validator.content_match,
-                        Validator.type_match
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "type",
-        "type": Validator.list_of(str),
         "validations": [
                         Validator.required_field,
                         Validator.content_match,
-                        Validator.type_match
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "rights",
-        "type": Validator.list_of(str),
         "validations": [
                         Validator.content_match,
-                        Validator.type_match
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "rights_uri",
-        "type": str,
         "validations": [
                         Validator.content_match,
-                        Validator.type_match,
+                        Validator.verify_type(str),
                         lambda d, r, c: isinstance(r, list) and len(r) == 1
                         ]
     },
     {
         "field": "is_shown_at",
-        "type": str,
         "validations": [
                         Validator.required_field,
                         Validator.content_match,
-                        Validator.type_match
+                        Validator.verify_type(str)
                         ]
     },
     {
         "field": "is_shown_by",
-        "type": str,
         "validations": [
                         Validator.required_field,
                         Validator.content_match,
-                        Validator.type_match
+                        Validator.verify_type(str)
                         ]
     },
     # Partial fidelity fields
     # Content match required; nulls okay
     {
         "field": "alternative_title",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "contributor",
-        "type": Validator.list_of(str),
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "coverage",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "creator",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "date",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "description",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "extent",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "format",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "genre",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "language",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "location",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "provenance",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "publisher",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "relation",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "rights_holder",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "rights_note",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "rights_date",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "source",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "spatial",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "subject",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "temporal",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "transcription",
-        "type": str,
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     }

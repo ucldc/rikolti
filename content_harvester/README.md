@@ -34,22 +34,38 @@ The above media and thumbnail fetching processes are enacted upon child metadata
 
 # Settings
 
-You can bypass uploading to s3 by setting `settings.CONTENT_DEST == 'local'`. This is useful for local development and testing. This will set the metadata records' `media['media_filepath']` and `thumbnail['thumbnail_filepath']` to a local filepath. 
+You can bypass uploading to s3 by setting `settings.CONTENT_DATA = "file://<local path>"` and `settings.CONTENT_ROOT = "file://<local_path>"`. This is useful for local development and testing. This will, however, set the metadata records' `media['media_filepath']` and `thumbnail['thumbnail_filepath']` to a local filepath. 
 
 # Local Development
 
-docker build -t content_harvester .
-docker compose run --rm content_harvester https://registry.cdlib.org/api/v1/rikoltimapper/26147/?format=json
+From inside the rikolti folder:
+```
+docker build -f Dockerfile.content_harvester -t rikolti/content_harvester .
+cd content_harvester
+docker compose run --entrypoint "python3 -m content_harvester.by_registry_endpoint" --rm content_harvester https://registry.cdlib.org/api/v1/rikoltimapper/26147/?format=json
+```
 
---rm flag removes the container after run.
+`--entrypoint "python3 -m content_harvester.by_registry_endpoint"` overwrites the default `content_harvester.by_page` entrypoint.
+`--rm` flag removes the container after run.
 
-default entrypoint is `by_registry_endpoint.py` 
+default entrypoint is `content_harvester.by_page` 
 
 requires an env.local adjacent to the docker-compose in order to run (check settings.py for hints on what needs to be defined in env.local)
 
+# Deployment
+
+Changes to content_harvester/* files pushed up to the main branch will result in an automagic Codebuild in AWS (see github.com/cdlib/pad-airflow). 
+
+To build manually: From a terminal with AWS credentials, get login password for ecr, and then use buildx to build an image for both x86_64 and ARM:
+
+```
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/b6c7x7s4
+docker buildx create --use
+docker buildx build -f Dockerfile.content_harvester --platform linux/arm64,linux/amd64 -t public.ecr.aws/b6c7x7s4/rikolti/content_harvester . --push
+```
+
 # TODO:
-- md5 the thumbnails
 - change folder name "mapped_with_content"
 - tune log output (this module is v. noisy currently)
 - add error handling
-- figure out AWS deployment (ECR, Fargate, ECS)
+- the existing md5s3stash gets mime type and dimensions (and stashes in the md5 cache), but what does the image harvest do with mime type and dimensions after that data gets returned by md5s3stash (along with the s3 url and md5)

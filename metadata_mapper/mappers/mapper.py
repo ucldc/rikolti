@@ -6,12 +6,10 @@ import re
 from abc import ABC
 from datetime import date, datetime
 from datetime import timezone
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
-import boto3
 from markupsafe import Markup
 
-from .. import settings
 from ..utilities import returns_callable
 from ..validator.validation_log import ValidationLog  # noqa: F401
 from ..validator.validator import Validator
@@ -20,71 +18,10 @@ from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
 
 
-class UCLDCWriter(object):
-    def __init__(self, collection_id: int, page_filename: str):
-        self.collection_id = collection_id
-        self.page_filename = page_filename
-
-    def write_local_mapped_metadata(self, mapped_metadata):
-        local_path = settings.local_path(
-            self.collection_id, 'mapped_metadata')
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-        page_path = os.sep.join([local_path, str(self.page_filename)])
-        if 'children' in page_path:
-            local_children_path = os.path.join(local_path, 'children')
-            if not os.path.exists(local_children_path):
-                os.makedirs(local_children_path)
-        page = open(page_path, "w+")
-        page.write(json.dumps(mapped_metadata))
-
-    def write_s3_mapped_metadata(self, mapped_metadata):
-        s3_client = boto3.client('s3')
-        key = (
-            f"{self.collection_id}/mapped_metadata/"
-            f"{self.page_filename.split('/')[-1]}"
-        )
-        s3_client.put_object(
-            ACL='bucket-owner-full-control',
-            Bucket=settings.DATA_DEST["BUCKET"],
-            Key=key,
-            Body=json.dumps(mapped_metadata))
-
-
 class Vernacular(ABC, object):
     def __init__(self, collection_id: int, page_filename: str) -> None:
         self.collection_id = collection_id
         self.page_filename = page_filename
-
-    def get_api_response(self) -> dict:
-        if settings.DATA_SRC["STORE"] == 'file':
-            return self.get_local_api_response()
-        else:
-            return self.get_s3_api_response()
-
-    def get_local_api_response(self) -> str:
-        local_path = settings.local_path(
-            self.collection_id, 'vernacular_metadata')
-        page_path = os.sep.join([local_path, str(self.page_filename)])
-        page = open(page_path, "r")
-        api_response = page.read()
-        return api_response
-
-    def get_s3_api_response(self) -> str:
-        s3_client = boto3.client('s3')
-        if not self.page_filename.startswith(
-            f'{self.collection_id}/vernacular_metadata'):
-            self.page_filename = (
-                f"{self.collection_id}/vernacular_metadata/"
-                f"{self.page_filename}"
-            )
-
-        page = s3_client.get_object(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Key=self.page_filename
-        )
-        api_response = page['Body'].read()
-        return api_response
 
     def get_records(self, records):
         return [
@@ -820,7 +757,7 @@ class Record(ABC, object):
         self.mapped_data[prop] = value
         return self
 
-    def unset_prop(self, prop, value):
+    def unset_prop(self, prop):
         """
         unset_prop is called with a prop, condition, and condition_prop. We
         don't ever use condition or condition_prop so I've not implemented
@@ -830,7 +767,7 @@ class Record(ABC, object):
         1: prop=sourceResource/spatial
         2: prop=sourceResource/provenance
         """
-        prop = prop.split('/')[-1]  # remove sourceResource
+        prop = prop[0].split('/')[-1]  # remove sourceResource
         if prop in self.mapped_data:
             del self.mapped_data[prop]
         return self
@@ -879,7 +816,8 @@ class Record(ABC, object):
         self.source_metadata = jsonfy_obj(self.source_metadata)
         return self
 
-    def drop_long_values(self, field=None, max_length=[150]):
+    def drop_long_values(
+            self, field: Optional[list[str]] = None, max_length=[150]):
         """ Look for long values in the sourceResource field specified.
         If value is longer than max_length, delete
 
@@ -888,19 +826,22 @@ class Record(ABC, object):
         8 times: field=["description"], max_length=[250]
         1 time: field=["description"], max_length=[1000]
         """
-        field = field[0]
+        if not field:
+            return self
+
+        field_name = field[0]
         max_length = max_length[0]
 
-        fieldvalues = self.mapped_data.get(field)
+        fieldvalues = self.mapped_data.get(field_name, '')
         if isinstance(fieldvalues, list):
             new_list = []
             for item in fieldvalues:
-                if len(item) <= int(max_length):
+                if item and len(item) <= int(max_length):
                     new_list.append(item)
-            self.mapped_data[field] = new_list
+            self.mapped_data[field_name] = new_list
         else:  # scalar
             if len(fieldvalues) > int(max_length):
-                del self.mapped_data[field]
+                del self.mapped_data[field_name]
 
         return self
 
@@ -1031,7 +972,7 @@ class Record(ABC, object):
 
         2333 times: no parameters
         """
-        for key, value in self.mapped_data.items():
+        for key, value in self.mapped_data.copy().items():
             if not value:
                 del self.mapped_data[key]
             if value == [u'none'] or value == [u'[none]']:

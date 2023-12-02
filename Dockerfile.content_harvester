@@ -9,11 +9,12 @@ RUN sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<!--<policy
 
 WORKDIR /
 
-COPY requirements.txt ./
+COPY content_harvester/requirements.txt ./
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-COPY ./ /content_harvester
+COPY content_harvester/ /content_harvester
+COPY utils/ /rikolti/utils
 
 RUN chmod +x /content_harvester/by_collection.py
 

@@ -1,12 +1,16 @@
 import json
-from .Fetcher import Fetcher, FetchError
-import requests
-from xml.etree import ElementTree
-from bs4 import BeautifulSoup
-from .. import settings
 import math
+import sys
+
 from typing import Optional
 
+import requests
+
+from xml.etree import ElementTree
+from bs4 import BeautifulSoup
+
+from .Fetcher import Fetcher, FetchError
+from rikolti.utils.versions import put_vernacular_page
 
 class UcdJsonFetcher(Fetcher):
     def __init__(self, params: dict[str]):
@@ -20,7 +24,7 @@ class UcdJsonFetcher(Fetcher):
         self.url = params.get("harvest_data").get("url")
         self.per_page = 10
 
-    def fetch_page(self) -> int:
+    def fetch_page(self) -> dict[str, int or str]:
         """
         UCD's harvesting endpoint gets us an XML document listing a URL for every record
         in a collection, but not the actual metadata records themselves. fetch_page
@@ -42,34 +46,41 @@ class UcdJsonFetcher(Fetcher):
 
         return self.fetch_all_pages(response)
 
-    def fetch_all_pages(self, response: requests.Response) -> int:
+    def fetch_all_pages(self, response: requests.Response) -> list:
         """
         Parameters:
             response: requests.Response
 
         Returns:
-            int
+            list
         """
         ns = {"ns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         xml = ElementTree.fromstring(response.text)
         loc_nodes = xml.findall(".//ns:loc", ns)
         pages = math.ceil(len(loc_nodes) / self.per_page)
 
+        fetch_status = []
         for page in range(pages):
             print(f"[{self.collection_id}]: Fetching URLs for page {page + 1} "
                   f"({page + 1}/{pages})")
-            skip = self.write_page * self.per_page
-            urls = loc_nodes[skip:(skip + self.per_page)]
-            records = list(filter(None, [self.fetch_json_ld(url.text) for url in urls]))
-            content = json.dumps(records)
-
-            if settings.DATA_DEST.get("STORE") == "file":
-                self.fetchtolocal(content)
-            else:
-                self.fetchtos3(content)
-
+            offset = self.write_page * self.per_page
+            urls = loc_nodes[offset:(offset + self.per_page)]
+            urls = list(filter(None, [url.text for url in urls]))
+            records = [self.fetch_json_ld(url) for url in urls]
+            document_count = len(records)
+            try:
+                filepath = put_vernacular_page(
+                    json.dumps(records), self.write_page, self.vernacular_version)
+                fetch_status.append({
+                    'document_count': document_count,
+                    'vernacular_filepath': filepath,
+                    'status': 'success'
+                })
+            except Exception as e:
+                print(f"Metadata Fetcher: {e}", file=sys.stderr)
+                raise(e)
             self.write_page += 1
-        return len(loc_nodes)
+        return fetch_status
 
     def fetch_json_ld(self, url: str) -> Optional[dict]:
         """

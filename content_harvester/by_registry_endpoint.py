@@ -4,50 +4,41 @@ import requests
 
 from .by_collection import harvest_collection
 
-
-def harvest_endpoint(url):
-    registry_page = url
-    results = []
-
-    while registry_page:
-        try:
-            response = requests.get(url=registry_page)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            print(
-                f"[{registry_page}]: {err}"
-            )
-            registry_page = None
-            break
-
-        total_collections = response.json().get(
-            'meta', {}).get('total_count', 1)
-        print(
-            f">>> Harvesting content for {total_collections} collections "
-            f"described at {registry_page}"
-        )
+def registry_endpoint(url):
+    page = url
+    while page:
+        response = requests.get(url=page)
+        response.raise_for_status()
+        page = response.json().get('meta', {}).get('next', None)
+        if page:
+            page = f"https://registry.cdlib.org{page}"
 
         collections = response.json().get('objects', [response.json()])
         for collection in collections:
-            print(
-                f"> Harvesting content from collection "
-                f"{collection['collection_id']} - {collection['solr_count']} "
-                f"items in solr as of {collection['solr_last_updated']}"
-            )
+            yield collection
 
-            # TODO: what is return val? 
-            collection_stats = harvest_collection(collection)
 
-            collection_stats.update({'solr_count': collection['solr_count']})
+def harvest_endpoint(url, limit=None):
+    response = requests.get(url=url)
+    response.raise_for_status()
+    total = response.json().get('meta', {}).get('total_count', 1)
+    if not limit:
+        limit = total
+    print(
+        f">>> Content harvest for {limit/total} collections described at {url}"
+    )
+    results = []
 
-            results.append(collection_stats)
+    for collection in registry_endpoint(url):
+        print(
+            f"{collection['id']:<6}: {collection['solr_count']} items in solr "
+            f"as of {collection['solr_last_updated']}"
+        )
 
-        print(f">>> Harvested {len(results)} collections")
-
-        registry_page = response.json().get('meta', {}).get('next')
-        if registry_page:
-            registry_page = f"https://registry.cdlib.org{registry_page}"
-        print(f">>> Next page: {registry_page}")
+        # TODO: what is return val? 
+        collection_stats = harvest_collection(collection)
+        collection_stats.update({'solr_count': collection['solr_count']})
+        results.append(collection_stats)
 
     return results
 

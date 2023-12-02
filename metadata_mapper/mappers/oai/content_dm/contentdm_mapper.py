@@ -126,7 +126,7 @@ class ContentdmRecord(OaiRecord):
         get the last one
         """
         identifiers = [i for i in self.source_metadata.get("identifier", [])
-                       if self.identifier_match in i]
+                       if i and self.identifier_match in i]
         if not identifiers:
             return
 

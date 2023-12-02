@@ -1,15 +1,17 @@
 import json
-import os
 import sys
 
-import boto3
 import requests
 
 from urllib.parse import urlparse
 
-from . import settings, validate_mapping
+from . import validate_mapping
 from .lambda_function import map_page
 from .mappers.mapper import Record
+from rikolti.utils.versions import (
+    get_most_recent_vernacular_version, get_vernacular_pages,
+    get_version, create_mapped_version
+)
 
 
 def get_collection(collection_id):
@@ -38,39 +40,21 @@ def check_for_missing_enrichments(collection):
     return not_yet_implemented
 
 
-def get_vernacular_pages(collection_id):
-    page_list = []
-
-    if settings.DATA_SRC["STORE"] == 'file':
-        vernacular_path = settings.local_path(
-            collection_id, 'vernacular_metadata')
-        try:
-            page_list = [f for f in os.listdir(vernacular_path)
-                         if os.path.isfile(os.path.join(vernacular_path, f))]
-            children_path = os.path.join(vernacular_path, 'children')
-            if os.path.exists(children_path):
-                page_list += [os.path.join('children', f)
-                              for f in os.listdir(children_path)
-                              if os.path.isfile(os.path.join(children_path, f))]
-        except FileNotFoundError as e:
-            print(
-                f"{e} - have you fetched {collection_id}? "
-                f"looked in dir {e.filename}"
-            )
-            raise(e)
-    elif settings.DATA_SRC["STORE"] == 's3':
-        s3_client = boto3.client('s3')
-        resp = s3_client.list_objects_v2(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"{collection_id}/vernacular_metadata"
-        )
-        # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
-        page_list = [page['Key'] for page in resp['Contents']]
-        # TODO: split page_list into pages and children
-    return page_list
-
-
 def get_mapping_status(collection, mapped_pages):
+    """
+    mapped_pages is a list of dicts with the following keys:
+        status: success
+        num_records_mapped: int
+        page_exceptions: TODO
+        mapped_page_path: str, ex:
+            3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
+    returns a dict, one of the keys is mapped_page_paths:
+        mapped_page_paths: ex: [
+            3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl,
+            3433/vernacular_metadata_v1/mapped_metadata_v1/data/2.jsonl,
+            3433/vernacular_metadata_v1/mapped_metadata_v1/data/3.jsonl
+        ]
+    """
     count = sum([page['num_records_mapped'] for page in mapped_pages])
     page_count = len(mapped_pages)
     collection_exceptions = [page.get('page_exceptions', {}) for page in mapped_pages]
@@ -88,10 +72,11 @@ def get_mapping_status(collection, mapped_pages):
         'missing_enrichments': check_for_missing_enrichments(collection),
         'count': count,
         'page_count': page_count,
-        'group_exceptions': group_exceptions
+        'group_exceptions': group_exceptions,
+        'mapped_page_paths': [page['mapped_page_path'] for page in mapped_pages],
     }
 
-def map_collection(collection_id, validate=False):
+def map_collection(collection_id, vernacular_version=None, validate=False):
     # This is a functional duplicate of rikolti.d*gs.mapper_d*g.mapper_d*g
 
     # Within an airflow runtime context, we take advantage of airflow's dynamic
@@ -107,11 +92,18 @@ def map_collection(collection_id, validate=False):
 
     collection = get_collection(collection_id)
 
-    page_list = get_vernacular_pages(collection_id)
+    if not vernacular_version:
+        vernacular_version = get_most_recent_vernacular_version(collection_id)
+    page_list = get_vernacular_pages(vernacular_version)
+    # TODO: split page_list into pages and children?
+
+    vernacular_version = get_version(collection_id, page_list[0])
+    mapped_data_version = create_mapped_version(vernacular_version)
     mapped_pages = []
     for page in page_list:
         try:
-            mapped_page = map_page(collection_id, page, collection)
+            mapped_page = map_page(
+                collection_id, page, mapped_data_version, collection)
             mapped_pages.append(mapped_page)
         except KeyError:
             print(
@@ -127,6 +119,7 @@ def map_collection(collection_id, validate=False):
         num_rows, file_location = (
             validate_mapping.create_collection_validation_csv(
                 collection_id,
+                collection_stats['mapped_page_paths'],
                 **opts
             )
         )
@@ -142,8 +135,9 @@ if __name__ == "__main__":
     parser.add_argument('collection_id', help='collection ID from registry')
     parser.add_argument('--validate', help='validate mapping; may provide json opts',
         const=True, nargs='?')
+    parser.add_argument('vernacular_version', help='relative path describing a vernacular version, ex: 3433/vernacular_data_version_1/')
     args = parser.parse_args(sys.argv[1:])
-    mapped_collection = map_collection(args.collection_id, args.validate)
+    mapped_collection = map_collection(args.collection_id, args.vernacular_version, args.validate)
     missing_enrichments = mapped_collection.get('missing_enrichments')
     if len(missing_enrichments) > 0:
         print(

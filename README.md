@@ -48,20 +48,18 @@ vi env.local
 
 Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments.
 
-Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `FETCHER_DATA_DEST` to the URI where you would like Rikolti to store fetched data - Rikolti will create a folder (or s3 prefix) `<collection_id>/vernacular_metadata` at this location. Set `MAPPER_DATA_SRC` to the URI where Rikolti can find a `<collection_id>/vernacular_metadata` folder that contains the fetched data you're attempting to map. Set `MAPPER_DATA_DEST` to the URI where you would like Rikolti to store mapped data - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_metadata` at this location. Set `CONTENT_DATA_SRC` to the URI where Rikolti can find a `<collection_id>/mapped_metadata` folder that contains the mapped metadata describing where to find content. Set `CONTENT_DATA_DEST` to the URI where you would like Rikolti to store mapped data that has been updated with pointers to content files - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_with_content` at this location. Set `CONTENT_DEST` to the URI where you would like Rikolti to store content files.
+Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `VERNACULAR_DATA` to the URI where you would like Rikolti to store and retrieve fetched data - Rikolti will create a folder (or s3 prefix) `<collection_id>/vernacular_metadata` at this location. Set `MAPPED_DATA` to the URI where you would like Rikolti to store and retrieve mapped data - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_metadata` at this location. Set `CONTENT_DATA` to the URI where you would like Rikolti to store mapped data that has been updated with pointers to content files - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_with_content` at this location. Set `CONTENT_ROOT` to the URI where you would like Rikolti to store content files.
 
 For example, one way to configure `env.local` is:
 
 ```
-FETCHER_DATA_DEST=file:///Users/awieliczka/Projects/rikolti/rikolti_data
-MAPPER_DATA_SRC=$FETCHER_DATA_DEST
-MAPPER_DATA_DEST=$FETCHER_DATA_DEST
-CONTENT_DATA_SRC=$FETCHER_DATA_DEST
-CONTENT_DATA_DEST=$FETCHER_DATA_DEST
-CONTENT_DEST=file:///Users/awieliczka/Projects/rikolti/rikolti_content
+VERNACULAR_DATA=file:///Users/awieliczka/Projects/rikolti/rikolti_data
+MAPPED_DATA=$VERNACULAR_DATA
+CONTENT_DATA=$VERNACULAR_DATA
+CONTENT_ROOT=file:///Users/awieliczka/Projects/rikolti/rikolti_content
 ```
 
-Each of these can be different locations, however. For example, if you're attempting to re-run a mapper locally off of previously fetched data stored on s3, you might set `MAPPER_DATA_SRC=s3://rikolti_data`.
+Each of these can be different locations, however. For example, if you're attempting to re-run a mapper locally off of previously fetched data stored on s3, you might set `VERNACULAR_DATA=s3://rikolti_data`.
 
 In env.example you'll also see `CONTENT_DATA_MOUNT` and `CONTENT_MOUNT` environment variables. These are only relevant if you are running the content harvester using airflow, and want to set and of the CONTENT_ environment variables to the local filesystem. Their usage is described below in the Airflow Development section.
 
@@ -172,9 +170,8 @@ The docker socket will typically be at `/var/run/docker.sock`. On Mac OS Docker 
 Next, back in the Rikolti repository, create the `startup.sh` file by running `cp env.example dags/startup.sh`. Update the startup.sh file with Nuxeo, Flickr, and Solr keys as available, and make sure that the following environment variables are set:
 
 ```
-export FETCHER_DATA_DEST=file:///usr/local/airflow/rikolti_data
-export MAPPER_DATA_SRC=file:///usr/local/airflow/rikolti_data
-export MAPPER_DATA_DEST=file:///usr/local/airflow/rikolti_data
+export VERNACULAR_DATA=file:///usr/local/airflow/rikolti_data
+export MAPPED_DATA=file:///usr/local/airflow/rikolti_data
 ```
 
 The folder located at `RIKOLTI_DATA_HOME` (set in `aws-mwaa-local-runner/docker/.env`) is mounted to `/usr/local/airflow/rikolti_data` on the airflow docker container.
@@ -184,16 +181,23 @@ Please also make sure the following `CONTENT_*` variables are set - `CONTENT_DAT
 ```
 export CONTENT_DATA_MOUNT=/Users/awieliczka/Projects/rikolti_data
 export CONTENT_MOUNT=/Users/awieliczka/Projects/rikolti_content
-export CONTENT_DATA_SRC=file:///rikolti_data
-export CONTENT_DATA_DEST=file:///rikolti_data
-export CONTENT_DEST=file:///rikolti_content
+export CONTENT_DATA=file:///rikolti_data
+export CONTENT_ROOT=file:///rikolti_content
 ```
 
 The folder located at `CONTENT_DATA_MOUNT` is mounted to `/rikolti_data` and the folder located at `CONTENT_MOUNT` is mounted to `/rikolti_content` on the content_harvester docker container.
 
-From inside the Rikolti repo, run `docker build -t content_harvester content_harvester` to build the `content_harvester` container locally. 
+You can specify a `CONTENT_HARVEST_IMAGE` and `CONTENT_HARVEST_VERSION` through environment variables as well. The default value for `CONTENT_HARVEST_IMAGE` is `public.ecr.aws/b6c7x7s4/rikolti/content_harvester` and the default value for `CONTENT_HARVEST_VERSION` is `latest`.
 
-You can specify a `content_harvester_image` and `content_harvester_version` through the Airflow UI > Admin > Variables. The default value for `content_harvester_image` is `content_harvester` and the default value for `content_harvester_version` is `latest`.
+If you would like to run the content harvester on AWS infrastructure using the ECS operator, or if you are deploying Rikolti to MWAA, you can specify `CONTAINER_EXECUTION_ENVIRONMENT='ecs'` (you'll need some AWS credentials as well). The `CONTAINER_EXECUTION_ENVIRONMENT` is, by default, a docker execution environment.
+
+> A note about Docker vs. ECS: Since we do not actively maintain our own Docker daemon, and since MWAA workers do not come with a Docker daemon installed, we cannot use a docker execution environment in deployed MWAA and instead use ECS to run our content harvester containers on Fargate infrastructure. The EcsRunTaskOperator allows us to run a pre-defined ECS Task Definition. The EcsRegisterTaskDefinitionOperator allows us to define an ECS Task Definition which we could then run. At this time, we are defining the Task Definition in our [cloudformation templates](https://github.com/cdlib/pad-airflow), rather than using the EcsRegisterTaskDefinitionOperator, but this does mean that we cannot modify the container's image or version using the EcsRunTaskOperator.
+
+If you would like to run your own rikolti/content_harvester image instead of pulling the image from AWS, then from inside the Rikolti repo, run `docker build -f Dockerfile.content_harvester -t rikolti/content_harvester .` to build the `rikolti/content_harvester` image locally and add the following line to `dags/startup.sh` to update `CONTENT_HARVEST_IMAGE` to be `rikolt/content_harvester`:
+
+```
+export CONTENT_HARVEST_IMAGE=rikolti/content_harvester
+```
 
 Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 

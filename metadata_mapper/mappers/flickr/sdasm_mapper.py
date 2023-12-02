@@ -114,18 +114,18 @@ class SdasmValidator(FlickrValidator):
     def __init__(self, **options):
         super().__init__(**options)
         self.add_validatable_field(
-            field="identifier", type=Validator.list_of(str),
+            field="identifier",
             validations=[
                 SdasmValidator.content_match,
-                Validator.type_match
+                Validator.verify_type(Validator.list_of(str))
             ]
         )
         self.add_validatable_field(
-            field="type", type=Validator.list_of(str),
+            field="type",
             validations=[
                 Validator.required_field,
                 SdasmValidator.type_exception,
-                Validator.type_match
+                Validator.verify_type(Validator.list_of(str))
             ]
 
         )

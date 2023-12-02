@@ -4,6 +4,7 @@ import logging
 import sys
 
 from .fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
+from rikolti.utils.versions import create_vernacular_version
 
 logger = logging.getLogger(__name__)
 
@@ -20,39 +21,48 @@ def import_fetcher(harvest_type):
 
 
 # AWS Lambda entry point
-def fetch_collection(payload, context):
+def fetch_collection(payload, vernacular_version, context) -> list[dict]:
+    """
+    returns a list of dicts with the following keys:
+        document_count: int
+        vernacular_version: path relative to collection id
+            ex: "3433/vernacular_version_1/data/1"
+        status: 'success' or 'error'
+    """
     if isinstance(payload, str):
         payload = json.loads(payload)
 
     logger.debug(f"fetch_collection payload: {payload}")
 
     fetcher_class = import_fetcher(payload.get('harvest_type'))
+    payload.update({'vernacular_version': vernacular_version})
 
-    fetch_status = {'page': payload.get('write_page', 0), 'document_count': 0}
+    fetch_status = []
     try:
         fetcher = fetcher_class(payload)
-        fetch_status['document_count'] = fetcher.fetch_page()
+        fetch_status.append(fetcher.fetch_page())
     except InvalidHarvestEndpoint as e:
         logger.error(e)
-        fetch_status.update({
+        fetch_status.append({
             'status': 'error',
             'body': json.dumps({
                 'error': repr(e),
                 'payload': payload
             })
         })
-        return [fetch_status]
+        return fetch_status
 
     next_page = fetcher.json()
-    fetch_status.update({
-        'status': 'success',
-        'next_page': next_page
-    })
 
-    fetch_status = [fetch_status]
+    # this is a ucd json fetcher workaround
+    # TODO: could be cleaner to stash ucd's table of contents in a known
+    # location and have each iteration of the fetcher reference that location,
+    # then we could resolve this difference in return values
+    if len(fetch_status) == 1 and isinstance(fetch_status[0], list):
+        fetch_status = fetch_status[0]
 
     if not json.loads(next_page).get('finished'):
-        fetch_status.extend(fetch_collection(next_page, {}))
+        fetch_status.extend(fetch_collection(next_page, vernacular_version, {}))
 
     return fetch_status
 
@@ -70,7 +80,8 @@ if __name__ == "__main__":
         encoding='utf-8',
         level=logging.DEBUG
     )
+    vernacular_version = create_vernacular_version(payload.get('collection_id'))
     print(f"Starting to fetch collection {payload.get('collection_id')}")
-    fetch_collection(payload, {})
+    fetch_collection(payload, vernacular_version, {})
     print(f"Finished fetching collection {payload.get('collection_id')}")
     sys.exit(0)

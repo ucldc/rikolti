@@ -1,12 +1,8 @@
 import logging
-import os
-import sys
-
-import boto3
 import requests
 
-from .. import settings
 from requests.adapters import HTTPAdapter, Retry
+from rikolti.utils.versions import put_vernacular_page
 
 
 logger = logging.getLogger(__name__)
@@ -25,58 +21,32 @@ class FetchError(Exception):
 
 
 class Fetcher(object):
-    def __init__(self, params):
+    def __init__(self, params: dict):
+        """
+        params: dict
+            harvest_type: str
+            collection_id: str or int
+            write_page: str or int filename of the page to write to
+            vernacular_version: path relative to collection id
+                ex: "3433/vernacular_version_1"
+        """
         self.harvest_type = params.get('harvest_type')
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
-        bucket = settings.DATA_DEST["BUCKET"]
+        self.vernacular_version = params['vernacular_version']
 
-        self.s3_data = {
-            "ACL": 'bucket-owner-full-control',
-            "Bucket": bucket,
-            "Key": f"{self.collection_id}/vernacular_metadata/"
-        }
+
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
 
-    def fetchtolocal(self, page):
-        path = self.get_local_path()
-
-        filename = os.path.join(path, f"{self.write_page}")
-        f = open(filename, "w+")
-
-        f.write(page)
-
-    def get_local_path(self):
-        local_path = os.sep.join([
-            settings.DATA_DEST["PATH"],
-            str(self.collection_id),
-            'vernacular_metadata',
-        ])
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-
-        return local_path
-
-    def fetchtos3(self, page):
-        s3_client = boto3.client('s3')
-        s3_key = self.s3_data['Key']
-
-        try:
-            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.put_object
-            s3_client.put_object(
-                ACL=self.s3_data['ACL'],
-                Bucket=self.s3_data['Bucket'],
-                Key=(
-                    f"{s3_key}"
-                    f"{self.write_page}"
-                ),
-                Body=page)
-        except Exception as e:
-            print(f"Metadata Fetcher: {e}", file=sys.stderr)
-            raise(e)
-
     def fetch_page(self):
+        """
+        returns a dict with the following keys:
+            document_count: int
+            vernacular_filepath: path relative to collection id
+                ex: "3433/vernacular_version_1/data/1"
+            status: 'success' or 'error'
+        """
         page = self.build_fetch_request()
         logger.debug(
             f"[{self.collection_id}]: fetching page {self.write_page} "
@@ -90,16 +60,23 @@ class Fetcher(object):
                 f"[{self.collection_id}]: unable to fetch page {page}")
 
         record_count = self.check_page(response)
+        filepath = None
         if record_count:
             content = self.aggregate_vernacular_content(response.text)
-            if settings.DATA_DEST["STORE"] != 's3':
-                self.fetchtolocal(content)
-            else:
-                self.fetchtos3(content)
+            try:
+                filepath = put_vernacular_page(
+                    content, self.write_page, self.vernacular_version)
+            except Exception as e:
+                print(f"Metadata Fetcher: {e}")
+                raise(e)
 
         self.increment(response)
 
-        return record_count
+        return {
+            'document_count': record_count,
+            'vernacular_filepath': filepath,
+            'status': 'success'
+        }
 
     def aggregate_vernacular_content(self, response):
         return response
