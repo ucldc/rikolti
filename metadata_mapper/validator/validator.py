@@ -596,7 +596,8 @@ default_validatable_fields: list[dict[str, Any]] = [
         "validations": [
                         Validator.content_match,
                         Validator.verify_type(Validator.list_of(str))
-                        ]
+                        ],
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "title",
@@ -665,12 +666,14 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "creator",
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "date",
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "description",
@@ -685,7 +688,8 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "format",
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "genre",
@@ -745,12 +749,14 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "subject",
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "temporal",
         "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "transcription",
