@@ -32,7 +32,7 @@ class BaseTestHelper:
     # Values generated for any field name in STATIC_ATTRS is cached so that it
     # can be reused. This is especially useful for identifier fields that need
     # to be referenced multiple times throughout fixture generation.
-    STATIC_ATTRS = ["id" "identifier"]
+    STATIC_ATTRS = ["id", "identifier"]
 
     @classmethod
     def for_mapper(cls, module_parts: list[str]) -> type["BaseTestHelper"]:
@@ -65,7 +65,7 @@ class BaseTestHelper:
 
     def __init__(self):
         self.faker = Faker()
-        self.static = []
+        self.static = {}
 
     def instantiate_record(self, record_class) -> type["Record"]:
         instance = record_class(self.faker.pyint, self.generate_fixture())
@@ -94,7 +94,7 @@ class BaseTestHelper:
         if isinstance(expected_type, str):
             return getattr(self, expected_type)()
         elif not skip_static and field_name in self.STATIC_ATTRS:
-            if not self.static[field_name]:
+            if not self.static.get(field_name):
                 self.static[field_name] = self.generate_value_for(
                     field_name, expected_type, skip_static=True
                 )
