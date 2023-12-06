@@ -253,13 +253,37 @@ class Validator:
             return "ID is not an 'ark:/'"
 
     @staticmethod
-    def verify_type(expected: Union[type, Callable, list[type]]) -> Callable:
+    def verify_type(expected: Union[type, Callable, list[Union[type, Callable]]]) -> Callable:
+        """
+        Verifies the rikolti value is its expected type. Passes if the value is None.
+        If the value cannot be None, use Validator.required_field in addition
+        to Validator.verify_type.
+
+        `expected` can be a type (checked with instanceof), a Callable
+        (that is invoked and expected to return a boolean result),
+        or a list of types and/or Callables.
+
+        Parameters:
+            expected: Union[type, Callable, list[Union[type, Callable]]]
+                The expected type, a Callable that performs a type check, or
+                list of expected types or Callables. If a list, only one must
+                eval true in order to pass.
+
+        Returns: a validator Callable, that is, a function with parameters:
+        validation_definition, rikolti_value, and comparison_value that returns
+        a validation report string or None.
+        """
         def inner(validation_def: dict, rikolti_value: Any, _: Any) -> Union[str, None]:
             if not Validator.compare_type(expected, rikolti_value):
+                if isinstance(expected, list):
+                    expected_types = [t.__name__ for t in expected]
+                    expected_types = ", ".join(expected_types)
+                else:
+                    expected_types = expected.__name__
                 return {
                     "description": "Type mismatch",
                     "actual": type(rikolti_value).__name__,
-                    "expected": expected.__name__
+                    "expected": expected_types
                 }
 
         return inner
@@ -347,13 +371,14 @@ class Validator:
     def compare_type(expected_type: Union[type, Callable, list[Union[type, Callable]]], 
                      value: Any) -> Any:
         """
-        Compares a value with a its expected type.
+        Compares a value with its expected type. Passes if the value is None.
 
         `expected_type` can be a type (checked with instanceof), a Callable
         (that is invoked) and expected to return a boolean result),
         or a list of types and/or Callables.
 
         This method will typically be invoked from a higher-order function.
+        Used in both Validator.verify_type and Validator.type_match.
 
         Parameters:
             expected_value: Union[type, Callable, list[Union[type, Callable]]]
@@ -366,7 +391,7 @@ class Validator:
         Returns: boolean
         """
         if value is None:
-            return
+            return True
         
         if isinstance(expected_type, Callable):
             return expected_type(value)
@@ -435,7 +460,9 @@ class Validator:
 
         Returns: Callable
         """
-        return lambda value: Validator.nested_value(dict, list(types), value)
+        lam = lambda value: Validator.nested_value(dict, list(types), value)
+        lam.__name__ = f"Dictionary of {', '.join([t.__name__ for t in types])}"
+        return lam
 
     # Private
 
@@ -597,7 +624,7 @@ default_validatable_fields: list[dict[str, Any]] = [
                         Validator.content_match,
                         Validator.verify_type(Validator.list_of(str))
                         ],
-        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST,
     },
     {
         "field": "title",
@@ -627,7 +654,7 @@ default_validatable_fields: list[dict[str, Any]] = [
         "validations": [
                         Validator.content_match,
                         Validator.verify_type(str),
-                        lambda d, r, c: isinstance(r, list) and len(r) == 1
+                        # lambda d, r, c: isinstance(r, list) and len(r) == 1
                         ]
     },
     {
