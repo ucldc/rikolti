@@ -2,7 +2,7 @@ from typing import Union, Any
 
 from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
-from ...validator import ValidationLogLevel, ValidationMode
+from ...validator import ValidationLogLevel
 
 
 class CcaVaultRecord(OaiRecord):
@@ -59,9 +59,6 @@ class CcaVaultValidator(Validator):
                 "level": ValidationLogLevel.WARNING,
             }
         )
-
-        self.modify_validatable_fields("temporal", "date", "creator", "format",
-                                       validation_mode=ValidationMode.LAX)
 
     @staticmethod
     def str_match_ignore_url_protocol(validation_def: dict,
