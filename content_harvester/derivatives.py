@@ -40,7 +40,7 @@ def pdf_to_thumb(pdf_file_path):
         "75", f"{pdf_file_path}[0]", thumb_file_path
     ]
     subprocess.check_output(process, stderr=subprocess.STDOUT)
-    print("Used ImageMagic `convert` {pdf_file_path} to {thumb_file_path}")
+    print(f"Used ImageMagic `convert` {pdf_file_path} to {thumb_file_path}")
     return thumb_file_path
 
 

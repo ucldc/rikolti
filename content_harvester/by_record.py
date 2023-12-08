@@ -65,75 +65,70 @@ def harvest_record_content(
     # get media first, sometimes media is used for thumbnail
     if media:
         media_content = Media(media)
-        if not media_content.downloaded():
-            md5 = download_content(
-                media_content.src_url, 
-                media_content.tmp_filepath, 
+        if not os.path.exists(f"/tmp/{media_content.src_filename}"):
+            download_content(
+                media_content.src_url,
+                f"/tmp/{media_content.src_filename}",
                 src_auth, 
                 download_cache
             )
-        elif download_cache:
-            md5 = download_cache.get(
-                media_content.src_url,
-                hashlib.md5(open(media_content.tmp_filepath, 'rb').read()).hexdigest()
-            )
-        if not media_content.processed():
-            media_content.create_derivatives()
-
-        if type(media_content).__name__ == 'Thumbnail':
-            dest_filename = md5
+        if media_content.src_nuxeo_type == 'SampleCustomPicture':
+            derivative_filepath = media_content.create_derivatives()
+            dest_path = f"jp2/{collection_id}/{os.path.basename(derivative_filepath)}"
         else:
-            dest_filename = os.path.basename(media_content.derivative_filepath)
+            derivative_filepath = f"/tmp/{media_content.src_filename}"
+            dest_path = f"media/{collection_id}/{media_content.src_filename}"
 
-        dest_path = f"{media_content.dest_prefix}/{collection_id}/{dest_filename}"
-        content_s3_filepath = upload_content(media_content.derivative_filepath, dest_path)
-        
-        media_content.set_s3_filepath(content_s3_filepath)
-        # print(
-        #     f"{collection_id:<6}: page: {page_filename}, record: {calisphere_id} "
-        #     f"{type(media_content).__name__} Path: {content.s3_filepath}"
-        # )
+        content_s3_filepath = upload_content(derivative_filepath, dest_path)
 
         record['media'] = {
             'mimetype': media_content.dest_mime_type,
-            'path': media_content.s3_filepath
+            'path': content_s3_filepath
         }
 
     if thumbnail:
         thumbnail_content = Thumbnail(thumbnail)
-        if not thumbnail_content.downloaded():
+
+        md5 = None
+        if not os.path.exists(f"/tmp/{thumbnail_content.src_filename}"):
             md5 = download_content(
                 thumbnail_content.src_url, 
-                thumbnail_content.tmp_filepath, 
+                f"/tmp/{thumbnail_content.src_filename}", 
                 src_auth, 
                 download_cache
             )
         elif download_cache:
             md5 = download_cache.get(
                 thumbnail_content.src_url,
-                hashlib.md5(open(thumbnail_content.tmp_filepath, 'rb').read()).hexdigest()
+                hashlib.md5(
+                    open(
+                        f"/tmp/{thumbnail_content.src_filename}", 
+                        'rb'
+                    ).read()
+                ).hexdigest()
             )
-        if not thumbnail_content.processed():
-            thumbnail_content.create_derivatives()
 
-        if type(thumbnail_content).__name__ == 'Thumbnail':
-            dest_filename = md5
-        else:
-            dest_filename = os.path.basename(thumbnail_content.derivative_filepath)
+        content_s3_filepath = None
+        if thumbnail_content.src_mime_type == 'image/jpeg':
+            if md5:
+                content_s3_filepath = upload_content(
+                    f"/tmp/{thumbnail_content.src_filename}", 
+                    f"thumbnails/{collection_id}/{md5}"
+                )
+        # TODO: handle case when mime type is image/jpeg but no md5
+        # this whole bit is wonky and was obscured by prior implementation
+        derivative_filepath = thumbnail_content.create_derivatives()
+        if derivative_filepath:
+            content_s3_filepath = upload_content(
+                derivative_filepath,
+                f"thumbnails/{collection_id}/{os.path.basename(derivative_filepath)}"
+            )
 
-        dest_path = f"{thumbnail_content.dest_prefix}/{collection_id}/{dest_filename}"
-        content_s3_filepath = upload_content(thumbnail_content.derivative_filepath, dest_path)
-        
-        thumbnail_content.set_s3_filepath(content_s3_filepath)
-        # print(
-        #     f"{collection_id:<6}: page: {page_filename}, record: {calisphere_id} "
-        #     f"{type(thumbnail_content).__name__} Path: {content.s3_filepath}"
-        # )
-
-        record['thumbnail'] = {
-            'mimetype': thumbnail_content.dest_mime_type,
-            'path': thumbnail_content.s3_filepath
-        }
+        if content_s3_filepath:
+            record['thumbnail'] = {
+                'mimetype': thumbnail_content.dest_mime_type,
+                'path': content_s3_filepath
+            }
 
     # Recurse through the record's children (if any)
     mapped_version = get_version(collection_id, mapped_page_path)
