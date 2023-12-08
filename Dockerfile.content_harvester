@@ -1,7 +1,7 @@
 FROM python:3
 
 # Install dependencies
-RUN apt-get update -qq && apt-get install -y libtiff-tools ffmpeg
+RUN apt-get update -qq && apt-get install -y libtiff-tools ffmpeg ghostscript
 
 # By default don't have permissions to modify PDFs with ImageMagick,
 # so we need to comment out this line in the the policy
