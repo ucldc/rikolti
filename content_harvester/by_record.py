@@ -7,6 +7,7 @@ from requests.adapters import HTTPAdapter, Retry
 
 from urllib.parse import urlparse
 
+from . import settings
 from .content_types import Media, Thumbnail
 
 from rikolti.utils.storage import upload_file
@@ -81,15 +82,22 @@ def harvest_content(content, collection_id, http, src_auth, download_cache):
 
 # returns content = {thumbnail, media, children} where children
 # is an array of the self-same content dictionary
-def harvest_record(record: dict,
+def harvest_record_content(
+            record: dict,
             collection_id,
-            page_filename,
             mapped_page_path,
-            http: requests.Session,
-            src_auth: Optional[tuple[str,str]] = None,
+            rikolti_mapper_type: Optional[str] = None,
             download_cache: Optional[dict] = None,
             ) -> dict:
+
+    # Weird how we have to use username/pass to hit this endpoint
+    # but we have to use auth token to hit API endpoint
+    src_auth = None
+    if rikolti_mapper_type == 'nuxeo.nuxeo':
+        src_auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
+
     calisphere_id = record.get('calisphere-id')
+    http = configure_http_session()
 
     # maintain backwards compatibility to 'is_shown_by' field
     thumbnail_src = record.get(
@@ -122,13 +130,11 @@ def harvest_record(record: dict,
                 f"record {calisphere_id}."
             )
             record['children'] = [
-                harvest_record(
+                harvest_record_content(
                     child_record, 
                     collection_id, 
-                    page_filename, 
                     mapped_page_path, 
-                    http, 
-                    src_auth, 
+                    rikolti_mapper_type,
                     download_cache=download_cache
                 )
                 for child_record in child_records

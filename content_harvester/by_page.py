@@ -2,8 +2,7 @@ import json
 import os
 from collections import Counter
 
-from . import settings
-from .by_record import configure_http_session, harvest_record
+from .by_record import harvest_record_content
 
 from rikolti.utils.versions import (
     get_mapped_page_content, put_content_data_page
@@ -19,13 +18,6 @@ def harvest_page_content(
 
     page_filename = os.path.basename(mapped_page_path)
 
-    # Weird how we have to use username/pass to hit this endpoint
-    # but we have to use auth token to hit API endpoint
-    auth = None
-    if rikolti_mapper_type == 'nuxeo.nuxeo':
-        auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
-    http_session = configure_http_session()
-
     records = get_mapped_page_content(mapped_page_path)
     print(
         f"Harvesting content for {len(records)} records at {mapped_page_path}")
@@ -37,19 +29,12 @@ def harvest_page_content(
         # )
         # spit out progress so far if an error has been encountered
         try:
-            record_with_content = harvest_record(
+            record_with_content = harvest_record_content(
                 record, 
                 collection_id, 
-                page_filename, 
-                mapped_page_path, 
-                http_session, 
-                auth
+                mapped_page_path,
+                rikolti_mapper_type
             )
-            # put_content_data_page(
-            #     json.dumps(record_with_content), 
-            #     record_with_content.get('calisphere-id').replace(os.sep, '_') + ".json",
-            #     content_data_version
-            # )
             if not record_with_content.get('thumbnail'):
                 warn_level = "ERROR"
                 if 'sound' in record.get('type', []):
