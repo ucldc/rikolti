@@ -65,8 +65,14 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
             f"{collection_id:<6}: call lambda with payload: {collection}")
 
         vernacular_version = create_vernacular_version(collection_id)
-        fetch_result = lambda_function.fetch_collection(
-            collection, vernacular_version, None)
+
+        try:
+            fetch_result = lambda_function.fetch_collection(
+                collection, vernacular_version, None)
+        except Exception as e:
+            print(f"ERROR fetching collection { collection_id }: {e}")
+            continue
+
         results[collection_id] = fetch_result
 
         success = all([page['status'] == 'success' for page in fetch_result])
