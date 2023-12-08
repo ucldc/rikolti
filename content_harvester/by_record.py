@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from . import settings
 from .content_types import Media, Thumbnail
+from . import derivatives
 
 from rikolti.utils.storage import upload_file
 from rikolti.utils.versions import (
@@ -55,6 +56,10 @@ def harvest_record_content(
     if rikolti_mapper_type == 'nuxeo.nuxeo':
         src_auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
 
+    # download cache is a src_url: md5 hash
+    if not download_cache:
+        download_cache = {}
+
     calisphere_id = record.get('calisphere-id')
     media = record.get('media_source')
     thumbnail = record.get('thumbnail_source', record.get('is_shown_by'))
@@ -65,64 +70,58 @@ def harvest_record_content(
     # get media first, sometimes media is used for thumbnail
     if media:
         media_content = Media(media)
-        if not os.path.exists(f"/tmp/{media_content.src_filename}"):
-            download_content(
-                media_content.src_url,
-                f"/tmp/{media_content.src_filename}",
-                src_auth, 
-                download_cache
-            )
-        if media_content.src_nuxeo_type == 'SampleCustomPicture':
-            derivative_filepath = media_content.create_derivatives()
-            dest_path = f"jp2/{collection_id}/{os.path.basename(derivative_filepath)}"
-        else:
-            derivative_filepath = f"/tmp/{media_content.src_filename}"
-            dest_path = f"media/{collection_id}/{media_content.src_filename}"
+        tmp_filepath = f"/tmp/{media_content.src_filename}"
 
-        content_s3_filepath = upload_content(derivative_filepath, dest_path)
+        # this means we're taking an md5 of the source content,
+        # not the thumbnail derivative. 
+        md5 = download_content(media_content.src_url, tmp_filepath, src_auth)
+        download_cache[media_content.src_url] = md5
+
+        if media_content.src_nuxeo_type == 'SampleCustomPicture':
+            Media.check_mimetype(media_content.src_mime_type)
+            derivative_filepath = derivatives.make_jp2(tmp_filepath)
+            dest_path = f"jp2/{collection_id}/{os.path.basename(derivative_filepath)}"
+            media_s3_filepath = upload_content(derivative_filepath, dest_path)
+        else:
+            dest_path = f"media/{collection_id}/{media_content.src_filename}"
+            media_s3_filepath = upload_content(tmp_filepath, dest_path)
 
         record['media'] = {
             'mimetype': media_content.dest_mime_type,
-            'path': content_s3_filepath
+            'path': media_s3_filepath
         }
 
     if thumbnail:
         thumbnail_content = Thumbnail(thumbnail)
+        tmp_filepath = f"/tmp/{thumbnail_content.src_filename}"
 
-        md5 = None
-        if not os.path.exists(f"/tmp/{thumbnail_content.src_filename}"):
-            md5 = download_content(
-                thumbnail_content.src_url, 
-                f"/tmp/{thumbnail_content.src_filename}", 
-                src_auth, 
-                download_cache
-            )
-        elif download_cache:
-            md5 = download_cache.get(
-                thumbnail_content.src_url,
-                hashlib.md5(
-                    open(
-                        f"/tmp/{thumbnail_content.src_filename}", 
-                        'rb'
-                    ).read()
-                ).hexdigest()
-            )
+        # this means we're taking an md5 of the source content,
+        # not the thumbnail derivative. 
+        md5 = download_cache.get(thumbnail_content.src_url)
+        if not md5 and os.path.exists(tmp_filepath):
+            # this could lead to a random namespace collision if two files
+            # in the same collection/same page/same worker batch
+            # happen to have the same tmp_filepath (derived from src_filename)
+            md5 = hashlib.md5(open(tmp_filepath, 'rb').read()).hexdigest()
+        if not md5:
+            md5 = download_content(thumbnail_content.src_url, tmp_filepath, src_auth)
 
-        content_s3_filepath = None
         if thumbnail_content.src_mime_type == 'image/jpeg':
-            if md5:
-                content_s3_filepath = upload_content(
-                    f"/tmp/{thumbnail_content.src_filename}", 
-                    f"thumbnails/{collection_id}/{md5}"
-                )
-        # TODO: handle case when mime type is image/jpeg but no md5
-        # this whole bit is wonky and was obscured by prior implementation
-        derivative_filepath = thumbnail_content.create_derivatives()
-        if derivative_filepath:
             content_s3_filepath = upload_content(
-                derivative_filepath,
-                f"thumbnails/{collection_id}/{os.path.basename(derivative_filepath)}"
+                tmp_filepath, f"thumbnails/{collection_id}/{md5}"
             )
+        elif thumbnail_content.src_mime_type == 'application/pdf':
+            derivative_filepath = derivatives.pdf_to_thumb(tmp_filepath)
+            content_s3_filepath = upload_content(
+                derivative_filepath, f"thumbnails/{collection_id}/{md5}"
+            )
+        elif thumbnail_content.src_mime_type == 'video/mp4':
+            derivative_filepath = derivatives.video_to_thumb(tmp_filepath)
+            content_s3_filepath = upload_content(
+                derivative_filepath, f"thumbnails/{collection_id}/{md5}"
+            )
+        else:
+            content_s3_filepath = None
 
         if content_s3_filepath:
             record['thumbnail'] = {
