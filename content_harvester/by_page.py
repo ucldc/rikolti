@@ -71,7 +71,7 @@ def harvest_content(content, collection_id, http, src_auth, download_cache):
     
     content.set_s3_filepath(content_s3_filepath)
     # print(
-    #     f"[{collection_id}, {page_filename}, {calisphere_id}] "
+    #     f"{collection_id:<6}: page: {page_filename}, record: {calisphere_id} "
     #     f"{type(content).__name__} Path: {content.s3_filepath}"
     # )
 
@@ -113,14 +113,15 @@ def harvest_record(record: dict,
     mapped_version = get_version(
         collection_id, mapped_page_path)
     child_directories = get_child_directories(mapped_version)
-    print(f"CHILD DIRECTORIES: {child_directories}")
+    if child_directories:
+        print(f"CHILD DIRECTORIES: {child_directories}")
     if child_directories:
         child_records = get_child_records(
             mapped_page_path, calisphere_id)
         if child_records:
             print(
-                f"[{collection_id}, {page_filename}, {calisphere_id}]: "
-                f"{len(child_records)} children found."
+                f"{mapped_page_path}: {len(child_records)} children found of "
+                f"record {calisphere_id}."
             )
             record['children'] = [
                 harvest_record(
@@ -231,14 +232,12 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
 
     records = get_mapped_page_content(mapped_page_path)
     print(
-        f"[{collection_id}, {page_filename}]: "
-        f"Harvesting content for {len(records)} records"
-    )
+        f"Harvesting content for {len(records)} records at {mapped_page_path}")
 
     for i, record in enumerate(records):
         # print(
-        #     f"[{collection_id}, {page_filename}]: "
-        #     f"Harvesting record {i}, {record.get('calisphere-id')}"
+        #     f"Harvesting record {i}, {record.get('calisphere-id')}, from"
+        #     f"{mapped_page_path}"
         # )
         # spit out progress so far if an error has been encountered
         try:
@@ -260,18 +259,16 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
                 if 'sound' in record.get('type', []):
                     warn_level = "WARNING"
                 print(
-                    f"[{collection_id}, {page_filename}]: "
-                    f"{record.get('calisphere-id')}: {warn_level} - "
-                    f"NO THUMBNAIL: {record.get('type')}"
+                    f"{warn_level}: no thumbnail found for {record.get('type')}"
+                    f"record {record.get('calisphere-id')} in page {mapped_page_path}"
                 )
 
         except Exception as e:
             print(
-                f"[{collection_id}, {page_filename}, "
-                f"{record.get('calisphere-id')}]: ERROR: {e}"
+                f"Error harvesting record {record.get('calisphere-id')} from"
+                f"page {mapped_page_path}; Exiting after harvesting {i} of "
+                f"{len(records)} items.\n"
             )
-            print(f"Exiting after harvesting {i} of {len(records)} items "
-                  f"in page {page_filename} of collection {collection_id}")
             raise(e)
 
     put_content_data_page(
@@ -283,19 +280,11 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
     media_mimetypes = [r.get('media', {}).get('mimetype') for r in records]
 
     if media_source:
-        print(
-            f"[{collection_id}, {page_filename}]: Harvested "
-            f"{len(media_harvested)} media records - "
-            f"{len(media_source)}/{len(records)} described a media source"
-        )
-        print(
-            f"[{collection_id}, {page_filename}]: Source Media Mimetypes: "
-            f"{Counter(media_src_mimetypes)}"
-        )
-        print(
-            f"[{collection_id}, {page_filename}]: Destination Media "
-            f"Mimetypes: {Counter(media_mimetypes)}"
-        )
+        print(mapped_page_path)
+        print(f"Harvested {len(media_harvested)} media records")
+        print(f"{len(media_source)}/{len(records)} records described a media source")
+        print(f"Source Media Mimetypes: {Counter(media_src_mimetypes)}")
+        print(f"Destination Media Mimetypes: {Counter(media_mimetypes)}")
 
     thumb_source = [
         r for r in records if r.get('thumbnail_source', r.get('is_shown_by'))]
@@ -303,19 +292,10 @@ def harvest_page_content(collection_id, mapped_page_path, content_data_version, 
     thumb_src_mimetypes = [
         r.get('thumbnail_source', {}).get('mimetype') for r in records]
     thumb_mimetypes = [r.get('thumbnail', {}).get('mimetype') for r in records]
-    print(
-        f"[{collection_id}, {page_filename}]: Harvested "
-        f"{len(thumb_harvested)} media records - "
-        f"{len(thumb_source)}/{len(records)} described a thumbnail source"
-    )
-    print(
-        f"[{collection_id}, {page_filename}]: Source Thumbnail Mimetypes: "
-        f"{Counter(thumb_src_mimetypes)}"
-    )
-    print(
-        f"[{collection_id}, {page_filename}]: Destination Thumbnail "
-        f"Mimetypes: {Counter(thumb_mimetypes)}"
-    )
+    print(f"Harvested {len(thumb_harvested)} thumbnail records")
+    print(f"{len(thumb_source)}/{len(records)} described a thumbnail source")
+    print(f"Source Thumbnail Mimetypes: {Counter(thumb_src_mimetypes)}")
+    print(f"Destination Thumbnail Mimetypes: {Counter(thumb_mimetypes)}")
 
     child_contents = [len(record.get('children', [])) for record in records]
 

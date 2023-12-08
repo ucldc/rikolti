@@ -13,7 +13,7 @@ def harvest_collection(collection, mapped_data_version: str):
     collection_id = collection.get('collection_id')
 
     if not collection_id or not mapped_data_version:
-        print("ERROR ERROR ERROR\ncollection_id and mapped_data_version required")
+        print("Error: collection_id and mapped_data_version required")
         exit()
 
     page_list = get_mapped_pages(
@@ -24,7 +24,7 @@ def harvest_collection(collection, mapped_data_version: str):
         region_name=settings.AWS_REGION
     )
 
-    print(f"[{collection_id}]: Harvesting content for {len(page_list)} pages")
+    print(f"{collection_id:<6}: Harvesting content for {len(page_list)} pages")
     collection_stats = {}
 
     collection.update({
