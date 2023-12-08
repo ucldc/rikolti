@@ -3,7 +3,7 @@ import os
 
 from . import settings
 
-from .by_collection import harvest_collection
+from .by_collection import harvest_collection_content
 from .by_registry_endpoint import harvest_endpoint
 from .sample_data.nuxeo_harvests import nuxeo_complex_object_harvests
 
@@ -28,7 +28,9 @@ def test_static_samples():
 
     for harvest in harvests:
         print(f"tests.py: {json.dumps(harvest)}")
-        status = harvest_collection(harvest)
+        # TODO: this no longer works, but the sample collections
+        # are still valuable, aim to delete this file eventually
+        status = harvest_collection_content(harvest)
         print(f"Content status: {status}")
 
 
