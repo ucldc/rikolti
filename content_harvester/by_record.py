@@ -17,10 +17,6 @@ from rikolti.utils.versions import (
 )
 
 
-class DownloadError(Exception):
-    pass
-
-
 def get_child_records(mapped_page_path, parent_id) -> list:
     mapped_child_records = []
     children = get_child_pages(mapped_page_path)
@@ -43,12 +39,11 @@ def configure_http_session() -> requests.Session:
     return http
 
 
-def harvest_content(content, collection_id, http, src_auth, download_cache):
+def harvest_content(content, collection_id, src_auth, download_cache):
     if not content.downloaded():
         md5 = download_content(
             content.src_url, 
             content.tmp_filepath, 
-            http, 
             src_auth, 
             download_cache
         )
@@ -97,7 +92,6 @@ def harvest_record_content(
         src_auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
 
     calisphere_id = record.get('calisphere-id')
-    http = configure_http_session()
 
     # maintain backwards compatibility to 'is_shown_by' field
     thumbnail_src = record.get(
@@ -109,15 +103,14 @@ def harvest_record_content(
     media = record.get('media_source')
     if media:
         record['media'] = harvest_content(
-            Media(media), collection_id, http, src_auth, download_cache)
+            Media(media), collection_id, src_auth, download_cache)
     thumbnail = record.get('thumbnail_source')
     if thumbnail:
         record['thumbnail'] = harvest_content(
-            Thumbnail(thumbnail), collection_id, http, src_auth, download_cache)
+            Thumbnail(thumbnail), collection_id, src_auth, download_cache)
 
     # Recurse through the record's children (if any)
-    mapped_version = get_version(
-        collection_id, mapped_page_path)
+    mapped_version = get_version(collection_id, mapped_page_path)
     child_directories = get_child_directories(mapped_version)
     if child_directories:
         print(f"CHILD DIRECTORIES: {child_directories}")
@@ -145,15 +138,15 @@ def harvest_record_content(
 
 def download_content(url: str, 
                 destination_file: str, 
-                http: requests.Session, 
                 src_auth: Optional[tuple[str, str]] = None, 
                 cache: Optional[dict] = None
             ):
     '''
         download source file to local disk
     '''
+    http = configure_http_session()
     if src_auth and urlparse(url).scheme != 'https':
-        raise DownloadError(f"Basic auth not over https is a bad idea! {url}")
+        raise Exception(f"Basic auth not over https is a bad idea! {url}")
 
     if not cache:
         cache = {}
