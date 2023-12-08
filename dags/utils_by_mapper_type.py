@@ -94,10 +94,13 @@ def validate_endpoint_task(url, mapped_versions, params=None):
         collection_id = collection['collection_id']
         print(f"{collection_id:<6} Validating collection")
 
-        mapped_version = mapped_versions.get(str(collection_id))
         try:
+            mapped_version = mapped_versions[str(collection_id)]
             mapped_pages = get_mapped_pages(mapped_version)
         except FileNotFoundError:
+            print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
+            continue
+        except KeyError:
             print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
             continue
 

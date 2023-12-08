@@ -57,6 +57,9 @@ def map_endpoint(url, fetched_versions, limit=None):
         except FileNotFoundError:
             print(f"{collection_id:<6}: not fetched yet", file=sys.stderr)
             continue
+        except KeyError:
+            print(f"{ collection_id:<6}: not fetched yet", file=sys.stderr)
+            continue
 
         pre_mapping = map_result.get('pre_mapping', [])
         if len(pre_mapping) > 0:
