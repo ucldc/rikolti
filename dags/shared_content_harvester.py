@@ -38,7 +38,7 @@ def get_awsvpc_config():
 
 
 class ContentHarvestEcsOperator(EcsRunTaskOperator):
-    def __init__(self, collection_id=None, content_data_version=None, page=None, **kwargs):
+    def __init__(self, collection_id=None, content_data_version=None, page=None, mapper_type=None, **kwargs):
         container_name = "rikolti-content_harvester"
         if page:
             page_basename = page.split('/')[-1]
@@ -56,8 +56,9 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                         "name": container_name,
                         "command": [
                             f"{collection_id}",
-                            f"{page}",
-                            f"{content_data_version}"
+                            page,
+                            content_data_version,
+                            mapper_type
                         ],
                         "environment": [
                             {
@@ -109,7 +110,7 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
 
 
 class ContentHarvestDockerOperator(DockerOperator):
-    def __init__(self, collection_id, content_data_version, page, **kwargs):
+    def __init__(self, collection_id, content_data_version, page, mapper_type, **kwargs):
         mounts = []
         if os.environ.get("CONTENT_DATA_MOUNT"):
             mounts.append(Mount(
@@ -139,7 +140,12 @@ class ContentHarvestDockerOperator(DockerOperator):
         args = {
             "image": f"{container_image}:{container_version}",
             "container_name": container_name,
-            "command": [f"{collection_id}", f"{page}", f"{content_data_version}"],
+            "command": [
+                f"{collection_id}",
+                page,
+                content_data_version,
+                mapper_type
+            ],
             "network_mode": "bridge",
             "auto_remove": 'force',
             "mounts": mounts,
@@ -155,6 +161,9 @@ class ContentHarvestDockerOperator(DockerOperator):
         args.update(kwargs)
         super().__init__(**args)
 
+    def execute(self, context):
+        print(f"Running {self.command} on {self.image} image")
+        return super().execute(context)
 
 if CONTAINER_EXECUTION_ENVIRONMENT == 'ecs':
     ContentHarvestOperator = ContentHarvestEcsOperator

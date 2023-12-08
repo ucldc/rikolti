@@ -10,9 +10,13 @@ from rikolti.utils.versions import (
 )
 
 
-# {"collection_id": 26098, "rikolti_mapper_type": "nuxeo.nuxeo", "page_filename": "file:///rikolti_data/r-0"}
-def harvest_page_content(collection_id, mapped_page_path, content_data_version, **kwargs):
-    rikolti_mapper_type = kwargs.get('rikolti_mapper_type')
+def harvest_page_content(
+        collection_id,
+        rikolti_mapper_type,
+        mapped_page_path,
+        content_data_version,
+        **kwargs):
+
     page_filename = os.path.basename(mapped_page_path)
 
     # Weird how we have to use username/pass to hit this endpoint
@@ -108,13 +112,12 @@ if __name__ == "__main__":
     parser.add_argument('collection_id', help="Collection ID")
     parser.add_argument('mapped_page_path', help="URI-formatted path to a mapped metadata page")
     parser.add_argument('content_data_version', help="URI-formatted path to a content data version")
-    parser.add_argument('--nuxeo', action="store_true", help="Use Nuxeo auth")
+    parser.add_argument('mapper_type', help="If 'nuxeo.nuxeo', use Nuxeo auth")
     args = parser.parse_args()
-    arguments = {
-        'collection_id': args.collection_id,
-        'mapped_page_path': args.mapped_page_path,
-        'content_data_version': args.content_data_version
-    }
-    if args.nuxeo:
-        arguments['rikolti_mapper_type'] = 'nuxeo.nuxeo'
-    print(harvest_page_content(**arguments))
+
+    print(harvest_page_content(
+        args.collection_id,
+        args.mapper_type,
+        args.mapped_page_path,
+        args.content_data_version
+    ))

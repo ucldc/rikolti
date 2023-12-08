@@ -60,7 +60,8 @@ def harvest():
             .partial(
                 task_id="content_harvest", 
                 collection_id="{{ params.collection_id }}",
-                content_data_version=content_data_version
+                content_data_version=content_data_version,
+                mapper_type=collection['rikolti_mapper_type']
             )
             .expand(
                 page=mapped_page_paths

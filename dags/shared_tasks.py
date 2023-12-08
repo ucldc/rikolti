@@ -91,7 +91,7 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
     return vernacular_filepaths
 
 
-@task()
+@task(multiple_outputs=True)
 def get_collection_metadata_task(params=None):
     if not params or not params.get('collection_id'):
         raise ValueError("Collection ID not found in params")
