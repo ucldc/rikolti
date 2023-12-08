@@ -14,7 +14,7 @@ from rikolti.dags.shared_content_harvester import ContentHarvestDockerOperator
         'collection_id': 
         Param(None, description="Collection ID to harvet_content"),
         'page_filename':
-        Param(None, description="Page filename to harvet_content")
+        Param(None, description="Page filename to harvet_content"),
         'mapper_type':
         Param(None, description="Ignored unless 'nuxeo.nuxeo'")
     },
