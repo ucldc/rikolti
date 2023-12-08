@@ -39,42 +39,6 @@ def configure_http_session() -> requests.Session:
     return http
 
 
-def harvest_content(content, collection_id, src_auth, download_cache):
-    if not content.downloaded():
-        md5 = download_content(
-            content.src_url, 
-            content.tmp_filepath, 
-            src_auth, 
-            download_cache
-        )
-    elif download_cache:
-        md5 = download_cache.get(
-            content.src_url,
-            hashlib.md5(open(content.tmp_filepath, 'rb').read()).hexdigest()
-        )
-    if not content.processed():
-        content.create_derivatives()
-
-    if type(content).__name__ == 'Thumbnail':
-        dest_filename = md5
-    else:
-        dest_filename = os.path.basename(content.derivative_filepath)
-
-    dest_path = f"{content.dest_prefix}/{collection_id}/{dest_filename}"
-    content_s3_filepath = upload_content(content.derivative_filepath, dest_path)
-    
-    content.set_s3_filepath(content_s3_filepath)
-    # print(
-    #     f"{collection_id:<6}: page: {page_filename}, record: {calisphere_id} "
-    #     f"{type(content).__name__} Path: {content.s3_filepath}"
-    # )
-
-    return {
-        'mimetype': content.dest_mime_type,
-        'path': content.s3_filepath
-    }
-
-
 # returns content = {thumbnail, media, children} where children
 # is an array of the self-same content dictionary
 def harvest_record_content(
@@ -92,22 +56,84 @@ def harvest_record_content(
         src_auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
 
     calisphere_id = record.get('calisphere-id')
-
-    # maintain backwards compatibility to 'is_shown_by' field
-    thumbnail_src = record.get(
-        'thumbnail_source', record.get('is_shown_by'))
-    if isinstance(thumbnail_src, str):
-        record['thumbnail_source'] = {'url': thumbnail_src}
+    media = record.get('media_source')
+    thumbnail = record.get('thumbnail_source', record.get('is_shown_by'))
+    if isinstance(thumbnail, str):
+        record['thumbnail_source'] = {'url': thumbnail}
+        thumbnail = {'url': thumbnail}
 
     # get media first, sometimes media is used for thumbnail
-    media = record.get('media_source')
     if media:
-        record['media'] = harvest_content(
-            Media(media), collection_id, src_auth, download_cache)
-    thumbnail = record.get('thumbnail_source')
+        media_content = Media(media)
+        if not media_content.downloaded():
+            md5 = download_content(
+                media_content.src_url, 
+                media_content.tmp_filepath, 
+                src_auth, 
+                download_cache
+            )
+        elif download_cache:
+            md5 = download_cache.get(
+                media_content.src_url,
+                hashlib.md5(open(media_content.tmp_filepath, 'rb').read()).hexdigest()
+            )
+        if not media_content.processed():
+            media_content.create_derivatives()
+
+        if type(media_content).__name__ == 'Thumbnail':
+            dest_filename = md5
+        else:
+            dest_filename = os.path.basename(media_content.derivative_filepath)
+
+        dest_path = f"{media_content.dest_prefix}/{collection_id}/{dest_filename}"
+        content_s3_filepath = upload_content(media_content.derivative_filepath, dest_path)
+        
+        media_content.set_s3_filepath(content_s3_filepath)
+        # print(
+        #     f"{collection_id:<6}: page: {page_filename}, record: {calisphere_id} "
+        #     f"{type(media_content).__name__} Path: {content.s3_filepath}"
+        # )
+
+        record['media'] = {
+            'mimetype': media_content.dest_mime_type,
+            'path': media_content.s3_filepath
+        }
+
     if thumbnail:
-        record['thumbnail'] = harvest_content(
-            Thumbnail(thumbnail), collection_id, src_auth, download_cache)
+        thumbnail_content = Thumbnail(thumbnail)
+        if not thumbnail_content.downloaded():
+            md5 = download_content(
+                thumbnail_content.src_url, 
+                thumbnail_content.tmp_filepath, 
+                src_auth, 
+                download_cache
+            )
+        elif download_cache:
+            md5 = download_cache.get(
+                thumbnail_content.src_url,
+                hashlib.md5(open(thumbnail_content.tmp_filepath, 'rb').read()).hexdigest()
+            )
+        if not thumbnail_content.processed():
+            thumbnail_content.create_derivatives()
+
+        if type(thumbnail_content).__name__ == 'Thumbnail':
+            dest_filename = md5
+        else:
+            dest_filename = os.path.basename(thumbnail_content.derivative_filepath)
+
+        dest_path = f"{thumbnail_content.dest_prefix}/{collection_id}/{dest_filename}"
+        content_s3_filepath = upload_content(thumbnail_content.derivative_filepath, dest_path)
+        
+        thumbnail_content.set_s3_filepath(content_s3_filepath)
+        # print(
+        #     f"{collection_id:<6}: page: {page_filename}, record: {calisphere_id} "
+        #     f"{type(thumbnail_content).__name__} Path: {content.s3_filepath}"
+        # )
+
+        record['thumbnail'] = {
+            'mimetype': thumbnail_content.dest_mime_type,
+            'path': thumbnail_content.s3_filepath
+        }
 
     # Recurse through the record's children (if any)
     mapped_version = get_version(collection_id, mapped_page_path)
