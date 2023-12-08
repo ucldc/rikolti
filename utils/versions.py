@@ -113,6 +113,21 @@ def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     recent_version = sorted(versions)[-1]
     return f"{collection_id}/{recent_version}/"
 
+def get_most_recent_mapped_version(collection_id: Union[int, str]):
+    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    collection_path = f"{data_root.rstrip('/')}/{collection_id}/"
+    vernacular_versions = storage.list_dirs(collection_path)
+    if not vernacular_versions:
+        raise Exception(
+            "No vernacular metadata versions found for {collection_id}")
+    vernacular_version = sorted(vernacular_versions)[-1]
+    mapped_versions = storage.list_dirs(f"{collection_path}{vernacular_version}/")
+    if not mapped_versions:
+        raise Exception(
+            "No mapped metadata versions found for {collection_id} at {vernacular_version}")
+    recent_version = sorted(mapped_versions)[-1]
+    return f"{collection_id}/{vernacular_version}/{recent_version}/"
+
 def get_vernacular_pages(version, **kwargs):
     """
     resolves a vernacular version to a data_uri at $VERNACULAR_DATA/<version>/
