@@ -7,8 +7,10 @@ class NuxeoRecord(Record):
     def to_UCLDC(self):
         self.original_metadata = self.source_metadata
         self.source_metadata = self.source_metadata.get('properties')
+        return super().to_UCLDC()
 
-        mapped_data = {
+    def UCLDC_map(self):
+        return {
             "calisphere-id": self.original_metadata.get("uid"),
             "isShownAt": (
                 f"https://calisphere.org/item/"
@@ -20,7 +22,7 @@ class NuxeoRecord(Record):
             'location': [self.source_metadata.get(
                 'ucldc_schema:physlocation', None)],
             'rightsHolder': (
-                self.collate_subfield('ucldc_schema:rightsholder', 'name') +
+                self.collate_subfield('ucldc_schema:rightsholder', 'name')() +
                 [self.source_metadata.get('ucldc_schema:rightscontact')]
             ),
             'rightsNote': [
@@ -55,8 +57,8 @@ class NuxeoRecord(Record):
             'spatial': self.map_spatial(),
             'subject': (
                     self.collate_subfield(
-                        'ucldc_schema:subjecttopic', 'heading') +
-                    self.collate_subfield('ucldc_schema:subjectname', 'name')
+                        'ucldc_schema:subjecttopic', 'heading')() +
+                    self.collate_subfield('ucldc_schema:subjectname', 'name')()
             ),
             'temporalCoverage': list(
                 self.source_metadata.get('ucldc_schema:temporalcoverage', [])),
@@ -65,11 +67,8 @@ class NuxeoRecord(Record):
             'provenance': self.source_metadata.get('ucldc_schema:provenance', None),
             'alternativeTitle': list(
                 self.source_metadata.get('ucldc_schema:alternativetitle', [])),
-            'genre': self.collate_subfield('ucldc_schema:formgenre', 'heading')
+            'genre': self.collate_subfield('ucldc_schema:formgenre', 'heading')()
         }
-
-        self.mapped_data = mapped_data
-        return self
 
     def to_dict(self):
         return self.mapped_data
