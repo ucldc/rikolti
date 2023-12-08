@@ -21,7 +21,7 @@ def import_fetcher(harvest_type):
 
 
 # AWS Lambda entry point
-def fetch_collection(payload, vernacular_version, context) -> list[dict]:
+def fetch_collection(payload, vernacular_version) -> list[dict]:
     """
     returns a list of dicts with the following keys:
         document_count: int
@@ -62,7 +62,7 @@ def fetch_collection(payload, vernacular_version, context) -> list[dict]:
         fetch_status = fetch_status[0]
 
     if not json.loads(next_page).get('finished'):
-        fetch_status.extend(fetch_collection(next_page, vernacular_version, {}))
+        fetch_status.extend(fetch_collection(next_page, vernacular_version))
 
     return fetch_status
 
@@ -82,6 +82,6 @@ if __name__ == "__main__":
     )
     vernacular_version = create_vernacular_version(payload.get('collection_id'))
     print(f"Starting to fetch collection {payload.get('collection_id')}")
-    fetch_collection(payload, vernacular_version, {})
+    fetch_collection(payload, vernacular_version)
     print(f"Finished fetching collection {payload.get('collection_id')}")
     sys.exit(0)

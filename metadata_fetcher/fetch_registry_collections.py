@@ -66,7 +66,7 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
 
         vernacular_version = create_vernacular_version(collection_id)
         fetch_result = lambda_function.fetch_collection(
-            collection, vernacular_version, None)
+            collection, vernacular_version)
         results[collection_id] = fetch_result
 
         success = all([page['status'] == 'success' for page in fetch_result])

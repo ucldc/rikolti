@@ -55,7 +55,7 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
         '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
     ]
     """
-    fetch_status = fetch_collection(collection, vernacular_version, {})
+    fetch_status = fetch_collection(collection, vernacular_version)
     success = all([page['status'] == 'success' for page in fetch_status])
     total_items = sum([page['document_count'] for page in fetch_status])
     total_pages = len(fetch_status)
