@@ -2,6 +2,7 @@ import importlib
 import os
 import pytest
 import re
+import requests_mock
 import traceback
 
 from .helpers.base_helper import BaseTestHelper
@@ -24,9 +25,9 @@ class TestMapper:
                         path_regex_result[1].replace("/", ".").lstrip(".")
                     )
                     module_parts = [
-                        p
-                        for p in full_mapper_path.split(".")
-                        if p not in ["metadata_mapper", "mappers"]
+                        path
+                        for path in full_mapper_path.split(".")
+                        if path not in ["metadata_mapper", "mappers"]
                     ]
                     mapper_name = module_parts[-1]
                     mapper_path = ".".join(module_parts)
@@ -54,26 +55,40 @@ class TestMapper:
             except Exception as exc:
                 pytest.assume(
                     False,
-                    f"{type(instance).__name__} raised '{exc}' at mapping:\n{traceback.format_exc()}",
+                    f"{type(instance).__name__} raised '{exc}' at mapping:\n"
+                    f"{traceback.format_exc()}",
                 )
         except Exception as exc:
             pytest.assume(
                 False,
-                f"{record_class.__name__} raised '{exc}' at initialization:\n{traceback.format_exc()}",
+                f"{record_class.__name__} raised '{exc}' at initialization:\n"
+                f"{traceback.format_exc()}",
             )
 
     # Test methods (invoked by pytest)
 
     # This will loop through all mappers that don't have explicit test methods and
     # run them with default data
-    def test_mappers(self):
-        default_test_method = getattr(self, self.DEFAULT_TEST_METHOD_NAME)
+    def test_mappers(self, pytestconfig):
+        with requests_mock.Mocker() as r_mock:
+            default_test_method = getattr(self, self.DEFAULT_TEST_METHOD_NAME)
 
-        mappers = [
-            mapper
-            for mapper, method in self.find_mappers_to_test().items()
-            if method == default_test_method
-        ]
+            mapper_filter = [
+                mapper
+                for mapper in re.split(
+                    r"[,;]",
+                    pytestconfig.getoption("mappers")
+                    or pytestconfig.getoption("mapper")
+                    or "",
+                )
+                if mapper
+            ] or None
+
+            mappers = [
+                mapper
+                for mapper, method in self.find_mappers_to_test().items()
+                if method == default_test_method
+            ]
 
             for mapper in mappers:
                 module_parts = mapper.split(".")
@@ -84,3 +99,11 @@ class TestMapper:
                 ):
                     continue
 
+                module = importlib.import_module(
+                    f".mappers.{'.'.join(module_parts)}", package="rikolti.metadata_mapper"
+                )
+                helper = BaseTestHelper.for_mapper(module_parts)(r_mock)
+
+                if helper:
+                    record_class = self.get_record(module_parts, module)
+                    default_test_method(record_class, helper)

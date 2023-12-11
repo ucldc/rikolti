@@ -15,6 +15,7 @@ class OaiTestHelper(BaseTestHelper):
     "description": [str] * randint(1, 3),
     "extent": str,
     "format": [str] * randint(1, 2),
+    "id": str,
     "identifier": [str] * randint(1, 2),
     "provenance": str,
     "publisher": str,

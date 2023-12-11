@@ -2,10 +2,9 @@ import importlib
 import os
 
 from datetime import datetime
+from faker import Faker
 from random import randint
 from typing import Any, Union
-
-from faker import Faker
 
 
 class BaseTestHelper:
@@ -39,9 +38,11 @@ class BaseTestHelper:
         helper_path = None
         module_len = len(module_parts)
         while module_len and not helper_path:
-            helper_path = "metadata_mapper/test/helpers/" + \
-                          '/'.join(module_parts[:module_len]).replace('_mapper', '') + \
-                          "_helper.py"
+            helper_path = (
+                "metadata_mapper/test/helpers/"
+                + "/".join(module_parts[:module_len]).replace("_mapper", "")
+                + "_helper.py"
+            )
             if not os.path.exists(helper_path):
                 helper_path = None
                 module_len = module_len - 1
@@ -50,25 +51,36 @@ class BaseTestHelper:
             helper_module_parts = [
                 p.replace("_mapper", "_helper") for p in module_parts
             ]
-            helper_class_name = "".join(
-                [word.title()
-                 for word in module_parts[-1].replace("_mapper", "").split("_")
-                ]
-            ) + "TestHelper"
+            helper_class_name = (
+                "".join(
+                    [
+                        word.title()
+                        for word in module_parts[-1].replace("_mapper", "").split("_")
+                    ]
+                )
+                + "TestHelper"
+            )
             helper_module = importlib.import_module(
                 f".helpers.{'.'.join(helper_module_parts)}",
                 package="rikolti.metadata_mapper.test",
             )
             return getattr(helper_module, helper_class_name)
         else:
-            return BaseTestHelper
+            return None
 
-    def __init__(self):
+    def __init__(self, request_mock):
+        self.request_mock = request_mock
         self.faker = Faker()
+        self.collection_id = self.faker.pyint()
         self.static = {}
+        self.setup_mocks()
+
+    def setup_mocks(self):
+        pass
 
     def instantiate_record(self, record_class) -> type["Record"]:
-        instance = record_class(self.faker.pyint, self.generate_fixture())
+        fixture = self.generate_fixture()
+        instance = record_class(self.collection_id, fixture)
         self.prepare_record(instance)
         return instance
 
