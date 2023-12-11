@@ -75,12 +75,12 @@ class TestMapper:
             if method == default_test_method
         ]
 
-        for mapper in mappers:
-            module_parts = mapper.split(".")
-            module = importlib.import_module(
-                f".mappers.{'.'.join(module_parts)}", package="rikolti.metadata_mapper"
-            )
-            helper = self.get_helper(module_parts)()
-            if type(helper) != BaseTestHelper:
-                record_class = self.get_record(module_parts, module)
-                default_test_method(record_class, helper)
+            for mapper in mappers:
+                module_parts = mapper.split(".")
+                if (
+                    mapper_filter
+                    and module_parts[-1] not in mapper_filter
+                    and module_parts[-1].replace("_mapper", "") not in mapper_filter
+                ):
+                    continue
+
