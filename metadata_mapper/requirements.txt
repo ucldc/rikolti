@@ -7,3 +7,4 @@ python-dotenv
 faker
 pytest
 pytest-assume
+requests-mock
