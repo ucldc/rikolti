@@ -44,7 +44,7 @@ def harvest_page_content(
                 f"record {record.get('calisphere-id')} in page {mapped_page_path}"
             )
 
-    put_with_content_urls_page(
+    metadata_with_content_urls = put_with_content_urls_page(
         json.dumps(records), page_filename, with_content_urls_version)
 
     media_source = [r for r in records if r.get('media_source')]
@@ -78,7 +78,8 @@ def harvest_page_content(
         'media_source_mimetypes': Counter(media_src_mimetypes),
         'media_mimetypes': Counter(media_mimetypes),
         'children': sum(child_contents),
-        'records': len(records)
+        'records': len(records),
+        'with_content_urls_filepath': metadata_with_content_urls
     }
 
 
