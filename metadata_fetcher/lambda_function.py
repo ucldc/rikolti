@@ -3,7 +3,7 @@ import json
 import logging
 import sys
 
-from .fetchers.Fetcher import Fetcher, InvalidHarvestEndpoint
+from .fetchers.Fetcher import Fetcher
 from rikolti.utils.versions import create_vernacular_version
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def fetch_collection(payload, vernacular_version) -> list[dict]:
         page_status = fetcher.fetch_page()
         fetch_status.append(page_status)
 
-        # this is a ucd json fetcher workaround
+        # this is a nuxeo and ucd json fetcher workaround
         if len(fetch_status) == 1 and isinstance(fetch_status[0], list):
             fetch_status = fetch_status[0]
 

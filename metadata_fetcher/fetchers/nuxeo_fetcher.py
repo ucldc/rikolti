@@ -1,7 +1,7 @@
 import json
 import logging
-import subprocess
 from urllib.parse import quote as urllib_quote
+from rikolti.utils.versions import put_vernacular_page
 
 import requests
 
@@ -10,12 +10,25 @@ from .Fetcher import Fetcher, InvalidHarvestEndpoint
 
 logger = logging.getLogger(__name__)
 
+# The NuxeoFetcher overwrites the main Fetcher method "fetch_page" (used by
+# lambda_function.fetch_collection) and uses a different architecture to
+# retrieve nuxeo pages.
+#
+# Most fetchers only need to paginate through a record list of unknown length,
+# but the Nuxeo fetcher must paginate through a record list of unknown length,
+# and then for each record, paginate through a component object list of
+# unknown length, and then paginate through a folder list of unknown length
+# and for each folder, paginate through a record list (and those record's
+# component lists) - the folder structure can be arbitrarily deep.
+#
+# This implements it's own architecture due to the fact that nuxeo requires
+# both linear iteration (pagination of folder pages, record pages, and
+# component pages), fan out (for each document, for each folder) and recursion.
+#
+# fetch_page returns a list of pages, each of which includes a list of children
+# json returns {'finished': True} to prevent lambda_function.fetch_collection
+# from trying to fetch the next page (pagination is performed internally, here)
 
-# {'harvest_data': {'harvest_extra_data'}}
-# {'harvest_data': {
-#     'root_path', 'fetch_children', 'current_path', 
-#     'query_type', 'api_page', 'prefix'
-# }}
 class NuxeoFetcher(Fetcher):
     nuxeo_request_headers = {
         "Accept": "application/json",
@@ -25,35 +38,27 @@ class NuxeoFetcher(Fetcher):
         "X-Authentication-Token": settings.NUXEO_TOKEN
     }
 
-    def __init__(self, params):
+    def __init__(self, params: dict):
         super(NuxeoFetcher, self).__init__(params)
         # a root path is required for fetching from Nuxeo
-        try:
-            root_path = params['harvest_data']['root_path']
-        except KeyError:
-            root_path = params['harvest_data']['harvest_extra_data']
-            if not root_path.startswith('/'):
-                root_path = '/' + root_path
-        except Exception as e:
+        harvest_data = params.get('harvest_data', {})
+        root_path = harvest_data.get('root_path', harvest_data.get('harvest_extra_data'))
+        if not root_path:
             raise InvalidHarvestEndpoint(
-                f"[{self.collection_id}]: A path is required for fetching: "
-                f"{e}, {params}"
+                f"[{self.collection_id}]: please add a path to "
+                "the harvest_extra_data field in the collection registry"
             )
+        root_path = '/' + root_path.lstrip('/')
 
         # initialize default values for the fetcher
-        nuxeo_defaults = {
+        self.nuxeo = {
             'root_path': root_path,
             'fetch_children': True,
-            'query_type': 'documents',
-            'api_page': 0,
-            'prefix': ['r'],
         }
-        nuxeo_defaults.update(params.get('harvest_data'))
-        self.nuxeo = nuxeo_defaults
+        self.nuxeo.update(harvest_data)
 
         # initialize current path with {path, uid} of root path
         if not self.nuxeo.get('current_path'):
-            root_path = self.nuxeo['root_path']
             escaped_path = urllib_quote(root_path, safe=' /').strip('/')
             request = {
                 'url': (
@@ -66,191 +71,193 @@ class NuxeoFetcher(Fetcher):
                 response = requests.get(**request)
                 response.raise_for_status()
             except Exception as e:
-                msg = (
-                    f"[{self.collection_id}]: "
-                    f"{e}; A path UID is required for fetching - could not "
-                    f"retrieve root path uid: {request['url']}"
+                print(
+                    f"{self.collection_id:<6}: A path UID is required for "
+                    f"fetching - could not retrieve root path uid: "
+                    f"{request['url']}"
                 )
-                raise InvalidHarvestEndpoint(msg)
+                raise(e)
             self.nuxeo['current_path'] = {
-                'path': self.nuxeo['root_path'],
+                'path': root_path,
                 'uid': response.json().get('uid')
             }
 
-        if self.nuxeo['query_type'] == 'children':
-            self.write_page = (
-                "children/"
-                f"{self.nuxeo['current_path']['uid']}-"
-                f"{self.nuxeo['api_page']}"
-            )
-        else:
-            # prefix starts as ['r'] (read as "root")
-            # as we traverse the tree, we add ["fp-0", "f-0"]
-            # read as [root, folder page 0, folder 0]
-            #
-            # api_page is the current page we are on - regardless
-            # of query type, but we only actually produce an output file
-            # when the query type is a document or child document
-            # in which case, api_page corresponds to document page
-            write_page = self.nuxeo['prefix'] + [f"{self.nuxeo['api_page']}"]
-            self.write_page = '-'.join(write_page)
-
-    def build_fetch_request(self):
-        query_type = self.nuxeo.get('query_type')
-        current_path = self.nuxeo.get('current_path')
-        page = self.nuxeo.get('api_page')
-
-        if query_type == 'documents':
-            # for some reason, using `ORDER BY ecm:name` in the query avoids
-            # the bug where the API was returning duplicate records from Nuxeo
-            parent_nxql = (
-                "SELECT * FROM SampleCustomPicture, CustomFile, "
-                "CustomVideo, CustomAudio, CustomThreeD "
-                f"WHERE ecm:parentId = '{current_path['uid']}' AND "
-                "ecm:isTrashed = 0 ORDER BY ecm:name"
-            )
-            query = parent_nxql
-        if query_type == 'children':
-            recursive_object_nxql = (
-                "SELECT * FROM SampleCustomPicture, CustomFile, "
-                "CustomVideo, CustomAudio, CustomThreeD "
-                f"WHERE ecm:path STARTSWITH '{current_path['path']}' "
-                "AND ecm:isTrashed = 0 ORDER BY ecm:pos"
-            )
-            query = recursive_object_nxql
-        if query_type == 'folders':
-            recursive_folder_nxql = (
-                "SELECT * FROM Organization "
-                f"WHERE ecm:path STARTSWITH '{current_path['path']}' "
-                "AND ecm:isTrashed = 0"
-            )
-            query = recursive_folder_nxql
+    def get_page_of_components(self, record: dict, component_page_count: int):
+        recursive_object_nxql = (
+            "SELECT * FROM SampleCustomPicture, CustomFile, "
+            "CustomVideo, CustomAudio, CustomThreeD "
+            f"WHERE ecm:path STARTSWITH '{record['path']}' "
+            "AND ecm:isTrashed = 0 ORDER BY ecm:pos"
+        )
+        query = recursive_object_nxql
 
         request = {
             'url': "https://nuxeo.cdlib.org/Nuxeo/site/api/v1/path/@search",
             'headers': self.nuxeo_request_headers,
             'params': {
                 'pageSize': '100',
-                'currentPageIndex': page,
+                'currentPageIndex': component_page_count,
                 'query': query
             }
         }
-        logger.debug(
-            f"[{self.collection_id}]: Fetching page {page} of {query_type} at "
-            f"{self.nuxeo['prefix']} - {current_path['path']}"
-        )
 
-        return request
+        try:
+            response = requests.get(**request)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            print(f"{self.collection_id:<6}: unable to fetch components: {request}")
+            raise(e)
+        return response
 
-    def check_page(self, http_resp: requests.Response) -> int:
-        """Checks that the http_resp contains metadata records
-
-        Also recurses down into documents & folders, calling
-        a new fetching process to retrieve children of
-        each document and documents inside each folder.
-        Prefix is set to fp (folder page, since folders can
-        paginate) and f (folder count) - and can be read as
-        "folder page 0 - folder 1"
-
-        Returns:
-            A boolean indicating if the page contains records
+    def get_pages_of_record_components(self, record: dict):
         """
-        response = http_resp.json()
-        query_type = self.nuxeo.get('query_type')
+        Components of a complex object record are served at 100 components per page
+        Iterate through all pages of components of a single parent object, writing
+        each page to Rikolti storage at:
+            <vernacular_version>/children/<record uuid>-<page number>
 
-        documents = 0
-        if query_type in ['documents', 'children'] and response.get('entries'):
-            logger.debug(
-                f"[{self.collection_id}]: "
-                f"Fetched page {self.nuxeo.get('api_page')} of "
-                f"{query_type} at {self.nuxeo['prefix']} - "
-                f"{self.nuxeo.get('current_path')['path']} "
-                f"with {len(response.get('entries'))} records"
+        Returns a list of stats on fetching each page, for example:
+            [
+                {'document_count': 100, 'vernacular_filepath': '3433/vernacular_metadata_v1/data/children/record1-page1', 'status': 'success'}, 
+                {'document_count': 100, 'vernacular_filepath': '3433/vernacular_metadata_v1/data/children/record1-page2', 'status': 'success'},
+                {'document_count':   8, 'vernacular_filepath': '3433/vernacular_metadata_v1/data/children/record1-page3', 'status': 'success'},
+            ]
+        to indicate that there are 208 child records to record 1 of 3433 saved on 3 different pages
+        """
+        pages_of_record_components = []
+        component_page_count = 0
+        more_component_pages = True
+        while more_component_pages:
+            component_resp = self.get_page_of_components(record, component_page_count)
+            more_component_pages = component_resp.json().get('isNextPageAvailable')
+            if not component_resp.json().get('entries', []):
+                more_component_pages = False
+                continue
+
+            child_version_page = put_vernacular_page(
+                component_resp.text,
+                f"children/{record['uid']}-{component_page_count}",
+                self.vernacular_version
             )
-            if query_type == 'documents':
-                num_docs = self.nuxeo.get('doc_count', [])
-                self.nuxeo['doc_count'] = (
-                    num_docs + [len(response.get('entries'))])
-            documents = len(response.get('entries'))
+            pages_of_record_components.append({
+                'document_count': len(component_resp.json().get('entries', [])),
+                'status': 'success',
+                'vernacular_filepath': child_version_page
+            })
+            component_page_count+=1
+        return pages_of_record_components
 
-        if ((query_type == 'documents' and self.nuxeo['fetch_children'])
-                or query_type == 'folders'):
-            next_qt = 'children' if query_type == 'documents' else 'documents'
-            for i, entry in enumerate(response.get('entries')):
-                self.recurse(
-                    path={
-                        'path': entry.get('path'),
-                        'uid': entry.get('uid')
-                    },
-                    query_type=next_qt,
-                    prefix=(
-                       self.nuxeo['prefix'] +
-                       [f"fp-{self.nuxeo['api_page']}", f'f-{i}']
-                    )
-                )
+    def get_page_of_documents(self, folder: dict, record_page_count: int):
+        # for some reason, using `ORDER BY ecm:name` in the query avoids
+        # the bug where the API was returning duplicate records from Nuxeo
+        parent_nxql = (
+            "SELECT * FROM SampleCustomPicture, CustomFile, "
+            "CustomVideo, CustomAudio, CustomThreeD "
+            f"WHERE ecm:parentId = '{folder['uid']}' AND "
+            "ecm:isTrashed = 0 ORDER BY ecm:name"
+        )
+        query = parent_nxql
 
-        if not documents:
-            logger.debug(
-                f"[{self.collection_id}]: Fetched page is empty")
-
-        return documents
-
-    def increment(self, http_resp):
-        """Increment the request given an http_resp
-
-        Checks isNextPageAvailable in the http_resp and increases
-        api_page by 1
-
-        Also kicks off a new lambda function to look for folders
-        in the current folder, if we've finished fetching all the
-        documents in the current folder
-
-        Sets self.nuxeo to None if no next page available
-        """
-        resp = http_resp.json()
-        query_type = self.nuxeo.get('query_type')
-        has_next_page = resp.get('isNextPageAvailable')
-
-        if query_type == 'documents' and not has_next_page:
-            self.recurse(query_type='folders')
-
-        if has_next_page:
-            self.nuxeo['api_page'] += 1
-            self.write_page = 0
-        else:
-            self.nuxeo['finished'] = True
-
-    def json(self):
-        current_state = {
-            "harvest_type": self.harvest_type,
-            "collection_id": self.collection_id,
-            "write_page": self.write_page,
-            "harvest_data": self.nuxeo
-        }
-        if self.nuxeo.get('finished'):
-            current_state.update({"finished": True})
-
-        return json.dumps(current_state)
-
-    def recurse(self, path=None, query_type=None, prefix=None):
-        """Starts a new lambda function"""
-        lambda_query = {
-            "harvest_type": self.harvest_type,
-            "collection_id": self.collection_id,
-            "write_page": 0,
-            "harvest_data": {
-                'root_path': self.nuxeo['root_path'],
-                'fetch_children': self.nuxeo['fetch_children'],
-                'current_path': path if path else self.nuxeo['current_path'],
-                'query_type': (query_type if query_type else
-                               self.nuxeo['query_type']),
-                'api_page': 0,
-                'prefix': prefix if prefix else self.nuxeo['prefix']
+        request = {
+            'url': "https://nuxeo.cdlib.org/Nuxeo/site/api/v1/path/@search",
+            'headers': self.nuxeo_request_headers,
+            'params': {
+                'pageSize': '100',
+                'currentPageIndex': record_page_count,
+                'query': query
             }
         }
-        # TODO: AW: this shouldn't be a subprocess
-        subprocess.run([
-            'python',
-            'lambda_function.py',
-            json.dumps(lambda_query).encode('utf-8')
-        ])
+
+        try:
+            response = requests.get(**request)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            print(f"{self.collection_id:<6}: unable to fetch page {request}")
+            raise(e)
+        return response
+
+    def get_pages_of_records(self, folder: dict, page_prefix: list):
+        record_pages = []
+        record_page_count = 0
+        more_pages_of_records = True
+        while more_pages_of_records:
+            document_resp = self.get_page_of_documents(folder, record_page_count)
+            more_pages_of_records = document_resp.json().get('isNextPageAvailable')
+            if not document_resp.json().get('entries', []):
+                more_pages_of_records = False
+                continue
+
+            version_page = put_vernacular_page(
+                document_resp.text, 
+                f"{'-'.join(page_prefix)}-p{record_page_count}", 
+                self.vernacular_version
+            )
+
+            # pages of records components is a flat list of all children of all
+            # records that were found on this page of records
+            pages_of_records_components = []
+            for record in document_resp.json().get('entries', []):
+                pages_of_records_components.extend(
+                    self.get_pages_of_record_components(record))
+
+            record_pages.append({
+                'document_count': len(document_resp.json().get('entries', [])),
+                'status': 'success',
+                'vernacular_filepath': version_page,
+                'children': pages_of_records_components
+            })
+            record_page_count += 1
+        return record_pages
+
+    def get_page_of_folders(self, folder: dict, folder_page_count: int):
+        recursive_folder_nxql = (
+            "SELECT * FROM Organization "
+            f"WHERE ecm:path STARTSWITH '{folder['path']}' "
+            "AND ecm:isTrashed = 0"
+        )
+        query = recursive_folder_nxql
+
+        request = {
+            'url': "https://nuxeo.cdlib.org/Nuxeo/site/api/v1/path/@search",
+            'headers': self.nuxeo_request_headers,
+            'params': {
+                'pageSize': '100',
+                'currentPageIndex': folder_page_count,
+                'query': query
+            }
+        }
+
+        try:
+            response = requests.get(**request)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            print(f"{self.collection_id:<6}: unable to fetch page {request}")
+            raise(e)
+        return response
+
+    def folder_traversal(self, folder: dict, page_prefix: list):
+        folder_page_count = 0
+        more_pages_of_folders = True
+        pages = []
+        while more_pages_of_folders:
+            folder_resp = self.get_page_of_folders(folder, folder_page_count)
+            more_pages_of_folders = folder_resp.json().get('isNextPageAvailable')
+            page_prefix.append(f"fp{folder_page_count}")
+
+            for i, folder in enumerate(folder_resp.json().get('entries', [])):
+                page_prefix.append(f"f{i}")
+                pages.extend(self.get_pages_of_records(folder, page_prefix))
+                pages.extend(self.folder_traversal(folder, page_prefix))
+                page_prefix.pop()
+
+            page_prefix.pop()
+        return pages
+
+    def fetch_page(self):
+        page_prefix = ['r']
+        pages = self.get_pages_of_records(self.nuxeo['current_path'], page_prefix)
+        pages.extend(self.folder_traversal(self.nuxeo['current_path'], page_prefix))
+        return pages
+
+    def json(self):
+        return json.dumps({"finished": True})
