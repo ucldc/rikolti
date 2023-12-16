@@ -104,11 +104,12 @@ def get_page_list(collection_id: str):
     return page_list
 
 
-def get_index_name(collection_id: str, version: str):
-    return f"rikolti-{collection_id}-{version}"
+def create_new_index(collection_id: str):
+    # Once we start keeping dated versions of mapped metadata on S3,
+    # the version will correspond to the S3 namespace
+    version = datetime.today().strftime("%Y%m%d%H%M%S")
+    index_name = f"rikolti-{collection_id}-{version}"
 
-
-def create_new_index(collection_id: str, index_name: str):
     page_list = get_page_list(collection_id)
 
     # OpenSearch creates the index on the fly when first written to.
@@ -119,14 +120,12 @@ def create_new_index(collection_id: str, index_name: str):
 
     delete_old_collection_indices(collection_id)
 
+    return index_name
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Add collection data to OpenSearch")
     parser.add_argument("collection_id", help="Registry collection ID")
     args = parser.parse_args(sys.argv[1:])
-    # Once we start keeping dated versions of mapped metadata on S3,
-    # the version will correspond to the S3 namespace
-    version = datetime.today().strftime("%Y%m%d%H%M%S")
-    index_name = get_index_name(args.collection_id, version)
-    create_new_index(args.collection_id, index_name)
+    create_new_index(args.collection_id)
     sys.exit(0)

@@ -15,7 +15,6 @@ from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.record_indexer.create_collection_index import create_new_index
-from rikolti.record_indexer.create_collection_index import get_index_name
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 from rikolti.utils.versions import create_vernacular_version
@@ -250,15 +249,12 @@ def create_with_content_urls_version_task(collection: dict, mapped_pages: list[d
 
 @task()
 def create_stage_index_task(collection: dict):
-    # Once we start keeping dated versions of mapped metadata on S3,
-    # the version will correspond to the S3 namespace
-    datetime_string = datetime.today().strftime("%Y%m%d%H%M%S")
     collection_id = collection.get('id')
     if not collection_id:
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
-    index_name = get_index_name(collection_id, datetime_string)
-    create_new_index(collection_id, index_name)
+
+    index_name = create_new_index(collection_id)
     return index_name
 
 
