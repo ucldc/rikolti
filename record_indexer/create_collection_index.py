@@ -1,15 +1,14 @@
 import argparse
 from datetime import datetime
 import json
-import os
 import sys
 
-import boto3
 import requests
 
 from .add_page_to_index import add_page
 from . import settings
-from rikolti.utils.versions import get_merged_pages, get_with_content_urls_pages
+from rikolti.utils.versions import (
+    get_version, get_merged_pages, get_with_content_urls_pages)
 
 
 def update_alias_for_collection(alias: str, collection_id: str, index: str):
@@ -88,7 +87,8 @@ def delete_index(index: str):
 def create_new_index(collection_id: str, version_pages: list[str]):
     # Once we start keeping dated versions of mapped metadata on S3,
     # the version will correspond to the S3 namespace
-    version = datetime.today().strftime("%Y%m%d%H%M%S")
+    # version = datetime.today().strftime("%Y%m%d%H%M%S")
+    version = get_version(collection_id, version_pages[0])
     index_name = f"rikolti-{collection_id}-{version}"
 
     # OpenSearch creates the index on the fly when first written to.
