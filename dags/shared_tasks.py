@@ -15,6 +15,7 @@ from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.record_indexer.create_collection_index import create_new_index
+from rikolti.record_indexer.create_collection_index import get_page_list
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 from rikolti.utils.versions import create_vernacular_version
@@ -254,7 +255,8 @@ def create_stage_index_task(collection: dict):
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
 
-    index_name = create_new_index(collection_id)
+    page_list = get_page_list(collection_id)
+    index_name = create_new_index(collection_id, page_list)
     return index_name
 
 
