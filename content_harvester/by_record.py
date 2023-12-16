@@ -12,20 +12,6 @@ from .content_types import Media, Thumbnail
 from . import derivatives
 
 from rikolti.utils.storage import upload_file
-from rikolti.utils.versions import (
-    get_mapped_page_content, get_child_directories, get_child_pages,
-    get_version
-)
-
-
-def get_child_records(mapped_page_path, parent_id) -> list:
-    mapped_child_records = []
-    children = get_child_pages(mapped_page_path)
-    children = [page for page in children
-                if (page.rsplit('/')[-1]).startswith(parent_id)]
-    for child in children:
-        mapped_child_records.extend(get_mapped_page_content(child))
-    return mapped_child_records
 
 
 def configure_http_session() -> requests.Session:
@@ -67,56 +53,60 @@ def harvest_record_content(
         record['thumbnail_source'] = {'url': thumbnail}
         thumbnail = {'url': thumbnail}
 
+    http = configure_http_session()
+
     # get media first, sometimes media is used for thumbnail
+    tmp_media_filepath = None
     if media:
         media_content = Media(media)
-        tmp_filepath = f"/tmp/{media_content.src_filename}"
+        tmp_media_filepath = f"/tmp/{media_content.src_filename}"
 
         # this means we're taking an md5 of the source content,
         # not the thumbnail derivative. 
-        md5 = download_content(media_content.src_url, tmp_filepath, src_auth)
+        md5 = download_content(media_content.src_url, http, tmp_media_filepath, src_auth)
         download_cache[media_content.src_url] = md5
 
         if media_content.src_nuxeo_type == 'SampleCustomPicture':
             Media.check_mimetype(media_content.src_mime_type)
-            derivative_filepath = derivatives.make_jp2(tmp_filepath)
+            derivative_filepath = derivatives.make_jp2(tmp_media_filepath)
             dest_path = f"jp2/{collection_id}/{os.path.basename(derivative_filepath)}"
             media_s3_filepath = upload_content(derivative_filepath, dest_path)
         else:
             dest_path = f"media/{collection_id}/{media_content.src_filename}"
-            media_s3_filepath = upload_content(tmp_filepath, dest_path)
+            media_s3_filepath = upload_content(tmp_media_filepath, dest_path)
 
         record['media'] = {
             'mimetype': media_content.dest_mime_type,
             'path': media_s3_filepath
         }
 
+    tmp_thumb_filepath = None
     if thumbnail:
         thumbnail_content = Thumbnail(thumbnail)
-        tmp_filepath = f"/tmp/{thumbnail_content.src_filename}"
+        tmp_thumb_filepath = f"/tmp/{thumbnail_content.src_filename}"
 
         # this means we're taking an md5 of the source content,
         # not the thumbnail derivative. 
         md5 = download_cache.get(thumbnail_content.src_url)
-        if not md5 and os.path.exists(tmp_filepath):
+        if not md5 and os.path.exists(tmp_thumb_filepath):
             # this could lead to a random namespace collision if two files
             # in the same collection/same page/same worker batch
             # happen to have the same tmp_filepath (derived from src_filename)
-            md5 = hashlib.md5(open(tmp_filepath, 'rb').read()).hexdigest()
+            md5 = hashlib.md5(open(tmp_thumb_filepath, 'rb').read()).hexdigest()
         if not md5:
-            md5 = download_content(thumbnail_content.src_url, tmp_filepath, src_auth)
+            md5 = download_content(thumbnail_content.src_url, http, tmp_thumb_filepath, src_auth)
 
         if thumbnail_content.src_mime_type == 'image/jpeg':
             content_s3_filepath = upload_content(
-                tmp_filepath, f"thumbnails/{collection_id}/{md5}"
+                tmp_thumb_filepath, f"thumbnails/{collection_id}/{md5}"
             )
         elif thumbnail_content.src_mime_type == 'application/pdf':
-            derivative_filepath = derivatives.pdf_to_thumb(tmp_filepath)
+            derivative_filepath = derivatives.pdf_to_thumb(tmp_thumb_filepath)
             content_s3_filepath = upload_content(
                 derivative_filepath, f"thumbnails/{collection_id}/{md5}"
             )
         elif thumbnail_content.src_mime_type == 'video/mp4':
-            derivative_filepath = derivatives.video_to_thumb(tmp_filepath)
+            derivative_filepath = derivatives.video_to_thumb(tmp_thumb_filepath)
             content_s3_filepath = upload_content(
                 derivative_filepath, f"thumbnails/{collection_id}/{md5}"
             )
@@ -128,35 +118,16 @@ def harvest_record_content(
                 'mimetype': thumbnail_content.dest_mime_type,
                 'path': content_s3_filepath
             }
-
-    # Recurse through the record's children (if any)
-    mapped_version = get_version(collection_id, mapped_page_path)
-    child_directories = get_child_directories(mapped_version)
-    if child_directories:
-        print(f"CHILD DIRECTORIES: {child_directories}")
-    if child_directories:
-        child_records = get_child_records(
-            mapped_page_path, calisphere_id)
-        if child_records:
-            print(
-                f"{mapped_page_path}: {len(child_records)} children found of "
-                f"record {calisphere_id}."
-            )
-            record['children'] = [
-                harvest_record_content(
-                    child_record, 
-                    collection_id, 
-                    mapped_page_path, 
-                    rikolti_mapper_type,
-                    download_cache=download_cache
-                )
-                for child_record in child_records
-            ]
+    if tmp_media_filepath and os.path.exists(tmp_media_filepath):
+        os.remove(tmp_media_filepath)
+    if tmp_thumb_filepath and os.path.exists(tmp_thumb_filepath):
+        os.remove(tmp_thumb_filepath)
 
     return record
 
 
 def download_content(url: str, 
+                http,
                 destination_file: str, 
                 src_auth: Optional[tuple[str, str]] = None, 
                 cache: Optional[dict] = None
@@ -164,7 +135,6 @@ def download_content(url: str,
     '''
         download source file to local disk
     '''
-    http = configure_http_session()
     if src_auth and urlparse(url).scheme != 'https':
         raise Exception(f"Basic auth not over https is a bad idea! {url}")
 

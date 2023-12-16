@@ -28,30 +28,21 @@ def harvest_page_content(
         #     f"Harvesting record {i}, {record.get('calisphere-id')}, from"
         #     f"{mapped_page_path}"
         # )
-        # spit out progress so far if an error has been encountered
-        try:
-            record_with_content = harvest_record_content(
-                record, 
-                collection_id, 
-                mapped_page_path,
-                rikolti_mapper_type
-            )
-            if not record_with_content.get('thumbnail'):
-                warn_level = "ERROR"
-                if 'sound' in record.get('type', []):
-                    warn_level = "WARNING"
-                print(
-                    f"{warn_level}: no thumbnail found for {record.get('type')}"
-                    f"record {record.get('calisphere-id')} in page {mapped_page_path}"
-                )
 
-        except Exception as e:
+        record_with_content = harvest_record_content(
+            record,
+            collection_id,
+            mapped_page_path,
+            rikolti_mapper_type
+        )
+        if not record_with_content.get('thumbnail'):
+            warn_level = "ERROR"
+            if 'sound' in record.get('type', []):
+                warn_level = "WARNING"
             print(
-                f"Error harvesting record {record.get('calisphere-id')} from"
-                f"page {mapped_page_path}; Exiting after harvesting {i} of "
-                f"{len(records)} items.\n"
+                f"{warn_level}: no thumbnail found for {record.get('type')}"
+                f"record {record.get('calisphere-id')} in page {mapped_page_path}"
             )
-            raise(e)
 
     put_with_content_urls_page(
         json.dumps(records), page_filename, with_content_urls_version)

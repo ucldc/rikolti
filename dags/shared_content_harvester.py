@@ -124,6 +124,19 @@ class ContentHarvestDockerOperator(DockerOperator):
                 target="/rikolti_content",
                 type="bind",
             ))
+        if os.environ.get("MOUNT_CODEBASE"):
+            mounts = mounts + [
+                Mount(
+                    source=f"{os.environ.get('MOUNT_CODEBASE')}/content_harvester",
+                    target="/content_harvester",
+                    type="bind"
+                ),
+                Mount(
+                    source=f"{os.environ.get('MOUNT_CODEBASE')}/utils",
+                    target="/rikolti/utils",
+                    type="bind"
+                )
+            ]
         if not mounts:
             mounts=None
 
@@ -157,6 +170,7 @@ class ContentHarvestDockerOperator(DockerOperator):
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                 "NUXEO_PASS": os.environ.get("NUXEO_PASS")
             },
+            "max_active_tis_per_dag": 4
         }
         args.update(kwargs)
         super().__init__(**args)

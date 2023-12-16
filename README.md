@@ -199,6 +199,12 @@ If you would like to run your own rikolti/content_harvester image instead of pul
 export CONTENT_HARVEST_IMAGE=rikolti/content_harvester
 ```
 
+If you would like to mount your own codebase to the content_harvester container run via a DockerOperator in Airflow, then add the following to `dags/startup.sh`:
+
+```
+export MOUNT_CODEBASE=<path to rikolti, for example: /Users/awieliczka/Projects/rikolti>
+```
+
 Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 
 For more information on `mwaa-local-env`, look for instructions in the [ucldc/aws-mwaa-local-runner:README](https://github.com/ucldc/aws-mwaa-local-runner/#readme) to build the docker image, run the container, and do local development.

@@ -11,15 +11,16 @@ class ThumbnailError(Exception):
 # decorator function
 def subprocess_exception_handler(func):
     def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except subprocess.CalledProcessError as e:
-            print(
-                f"{func.__name__} command failed: {e.cmd}\n"
-                f"returncode was: {e.returncode}\n"
-                f"output was: {e.output}"
-            )
-            return None
+        # try:
+        return func(*args, **kwargs)
+        # except subprocess.CalledProcessError as e:
+        #     print(
+        #         f"{func.__name__} command failed: {e.cmd}\n"
+        #         f"returncode was: {e.returncode}\n"
+        #         f"output was: {e.output}"
+        #     )
+        #     raise(e)
+        #     # return None
     return wrapper
 
 
@@ -73,7 +74,7 @@ def video_to_thumb(video_path):
     ]
 
     subprocess.check_output(process, stderr=subprocess.STDOUT)
-    print("Used ffmpeg to convert {video_path} to {thumb_path}")
+    print(f"Used ffmpeg to convert {video_path} to {thumb_path}")
     return thumb_path
 
 
