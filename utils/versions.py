@@ -84,19 +84,19 @@ def create_validation_version(
         suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     return f"{mapped_version}/validation_{suffix}.csv"
 
-def create_content_data_version(
+def create_with_content_urls_version(
         mapped_version: str, suffix: Optional[str] = None) -> str:
     """
     Given a mapped version, ex: 3433/vernacular_metadata_v1/mapped_metadata_v2/
-    and a version suffix, ex: v2, creates a new content data version, ex:
-    3433/vernacular_metadata_v1/mapped_metadata_v2/content_data_v2/
+    and a version suffix, ex: v2, creates a new with content urls version, ex:
+    3433/vernacular_metadata_v1/mapped_metadata_v2/with_content_urls_v2/
 
     If no suffix is provided, uses the current datetime.
     """
     mapped_version = mapped_version.rstrip('/')
     if not suffix:
         suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    return f"{mapped_version}/content_data_{suffix}/"
+    return f"{mapped_version}/with_content_urls_{suffix}/"
 
 def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     """
@@ -217,7 +217,7 @@ def put_mapped_page(content, page_name, version):
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}.jsonl"
 
-def put_content_data_page(content, page_name, version):
+def put_with_content_urls_page(content, page_name, version):
     """
     resolves a version path to a page uri at $CONTENT_DATA/<version>/data/<page_name>
     and writes content to that data uri. returns the version page.

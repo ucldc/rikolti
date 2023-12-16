@@ -5,7 +5,7 @@ from collections import Counter
 from .by_record import harvest_record_content
 
 from rikolti.utils.versions import (
-    get_mapped_page_content, put_content_data_page
+    get_mapped_page_content, put_with_content_urls_page, get_version
 )
 
 
@@ -13,10 +13,11 @@ def harvest_page_content(
         collection_id,
         rikolti_mapper_type,
         mapped_page_path,
-        content_data_version,
+        with_content_urls_version,
         **kwargs):
 
-    page_filename = os.path.basename(mapped_page_path)
+    mapped_version = get_version(collection_id, mapped_page_path)
+    page_filename = mapped_page_path.split(mapped_version + '/data/')[-1]
 
     records = get_mapped_page_content(mapped_page_path)
     print(
@@ -52,8 +53,8 @@ def harvest_page_content(
             )
             raise(e)
 
-    put_content_data_page(
-        json.dumps(records), page_filename, content_data_version)
+    put_with_content_urls_page(
+        json.dumps(records), page_filename, with_content_urls_version)
 
     media_source = [r for r in records if r.get('media_source')]
     media_harvested = [r for r in records if r.get('media')]
@@ -96,7 +97,7 @@ if __name__ == "__main__":
         description="Harvest content using a page of mapped metadata")
     parser.add_argument('collection_id', help="Collection ID")
     parser.add_argument('mapped_page_path', help="URI-formatted path to a mapped metadata page")
-    parser.add_argument('content_data_version', help="URI-formatted path to a content data version")
+    parser.add_argument('with_content_urls_version', help="URI-formatted path to a with_content_urls version")
     parser.add_argument('mapper_type', help="If 'nuxeo.nuxeo', use Nuxeo auth")
     args = parser.parse_args()
 
@@ -104,5 +105,5 @@ if __name__ == "__main__":
         args.collection_id,
         args.mapper_type,
         args.mapped_page_path,
-        args.content_data_version
+        args.with_content_urls_version
     ))

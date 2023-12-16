@@ -1,6 +1,6 @@
 from .by_page import harvest_page_content
 from . import settings
-from rikolti.utils.versions import get_mapped_pages, create_content_data_version
+from rikolti.utils.versions import get_mapped_pages, create_with_content_urls_version
 
 
 def harvest_collection_content(collection_id, mapper_type, mapped_data_version: str):
@@ -17,10 +17,10 @@ def harvest_collection_content(collection_id, mapper_type, mapped_data_version: 
         'collection_id': collection_id
     }
 
-    content_data_version = create_content_data_version(mapped_data_version)
+    with_content_urls_version = create_with_content_urls_version(mapped_data_version)
     for page_path in page_list:
         page_stats = harvest_page_content(
-            collection_id, mapper_type, page_path, content_data_version)
+            collection_id, mapper_type, page_path, with_content_urls_version)
 
         # in some cases, value is int and in some cases, value is Counter
         # so we can't just collection_stats.get(key, 0) += value

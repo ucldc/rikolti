@@ -1,4 +1,5 @@
 import boto3
+import pprint
 import os
 from datetime import datetime
 
@@ -20,7 +21,7 @@ from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 from rikolti.utils.versions import create_vernacular_version
 from rikolti.utils.versions import get_version
 from rikolti.utils.versions import create_mapped_version
-from rikolti.utils.versions import create_content_data_version
+from rikolti.utils.versions import create_with_content_urls_version
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
@@ -206,10 +207,10 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
 
 
 @task()
-def create_content_data_version_task(collection: dict, mapped_pages: list[dict]):
+def create_with_content_urls_version_task(collection: dict, mapped_pages: list[dict]):
     mapped_version = get_version(
         collection['id'], mapped_pages[0]['mapped_page_path'])
-    return create_content_data_version(mapped_version)
+    return create_with_content_urls_version(mapped_version)
 
 
 @task()

@@ -38,7 +38,7 @@ def get_awsvpc_config():
 
 
 class ContentHarvestEcsOperator(EcsRunTaskOperator):
-    def __init__(self, collection_id=None, content_data_version=None, page=None, mapper_type=None, **kwargs):
+    def __init__(self, collection_id=None, with_content_urls_version=None, page=None, mapper_type=None, **kwargs):
         container_name = "rikolti-content_harvester"
         if page:
             page_basename = page.split('/')[-1]
@@ -57,7 +57,7 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                         "command": [
                             f"{collection_id}",
                             page,
-                            content_data_version,
+                            with_content_urls_version,
                             mapper_type
                         ],
                         "environment": [
@@ -110,7 +110,7 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
 
 
 class ContentHarvestDockerOperator(DockerOperator):
-    def __init__(self, collection_id, content_data_version, page, mapper_type, **kwargs):
+    def __init__(self, collection_id, with_content_urls_version, page, mapper_type, **kwargs):
         mounts = []
         if os.environ.get("CONTENT_DATA_MOUNT"):
             mounts.append(Mount(
@@ -143,7 +143,7 @@ class ContentHarvestDockerOperator(DockerOperator):
             "command": [
                 f"{collection_id}",
                 page,
-                content_data_version,
+                with_content_urls_version,
                 mapper_type
             ],
             "network_mode": "bridge",
