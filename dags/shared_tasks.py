@@ -56,24 +56,56 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
         '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
     ]
     """
+    def flatten_stats(stats):
+        success = all([page_stat['status'] == 'success' for page_stat in stats])
+        total_items = sum([page_stat['document_count'] for page_stat in stats])
+        total_pages = len(stats)
+        filepaths = [page_stat['vernacular_filepath'] for page_stat in stats]
+
+        children = False
+        for page_stat in stats:
+            child_pages = page_stat.get('children')
+            if child_pages:
+                flat_stats = flatten_stats(child_pages)
+                success = success and flat_stats['success']
+                total_items = total_items + flat_stats['total_items']
+                total_pages = total_pages + flat_stats['total_pages']
+                filepaths = filepaths + flat_stats['filepaths']
+                children = True
+
+        return {
+            'success': success,
+            'total_items': total_items,
+            'total_pages': total_pages,
+            'filepaths': filepaths,
+            'children': children
+        }
+
     fetch_status = fetch_collection(collection, vernacular_version)
-    success = all([page['status'] == 'success' for page in fetch_status])
-    total_items = sum([page['document_count'] for page in fetch_status])
-    total_pages = len(fetch_status)
-    diff_items = total_items - collection['solr_count']
+    stats = flatten_stats(fetch_status)
+    total_parent_items = sum([page['document_count'] for page in fetch_status])
+    diff_items = total_parent_items - collection['solr_count']
     date = datetime.strptime(
         collection['solr_last_updated'],
         "%Y-%m-%dT%H:%M:%S.%f"
     )
 
     print(
-        f"{'Successfully fetched' if success else 'Error fetching'} "
+        f"{'Successfully fetched' if stats['success'] else 'Error fetching'} "
         f"collection {collection['collection_id']}"
     )
     print(
-        f"Fetched {total_items} items across {total_pages} pages "
-        f"at a rate of ~{total_items / total_pages} items per page"
+        f"Fetched {stats['total_items']} items across {stats['total_pages']} "
+        f"pages at a rate of ~{stats['total_items'] / stats['total_pages']} "
+        "items per page"
     )
+    if stats['children']:
+        print(
+            f"Fetched {total_parent_items} parent items across "
+            f"{len(fetch_status)} pages and "
+            f"{stats['total_items']-total_parent_items} child items across "
+            f"{stats['total_pages']-len(fetch_status)} child pages"
+        )
     print(
         f"As of {datetime.strftime(date, '%B %d, %Y %H:%M:%S.%f')} "
         f"Solr has {collection['solr_count']} items"
@@ -84,12 +116,13 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
             f"{'more' if diff_items > 0 else 'fewer'} items."
         )
 
-    vernacular_filepaths = [page['vernacular_filepath'] for page in fetch_status]
-    if not vernacular_filepaths or not success:
+    if not stats['filepaths'] or not stats['success']:
         raise Exception(
-            'vernacular metadata not successfully fetched\n{fetch_status}')
+            f"vernacular metadata not successfully fetched"
+            f"\n{pprint.pprint(fetch_status)}\n{stats['success']}\n{stats['filepaths']}"
+        )
 
-    return vernacular_filepaths
+    return stats['filepaths']
 
 
 @task(multiple_outputs=True)
@@ -189,8 +222,10 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
     if collection_status.get('status') != 'success':
         raise Exception(f"Collection {collection_id} not successfully mapped")
 
+    parent_pages = [path for path in collection_status['mapped_page_paths'] if 'children' not in path]
+
     num_rows, file_location = create_collection_validation_csv(
-        collection_id, collection_status['mapped_page_paths'])
+        collection_id, parent_pages)
     print(f"Output {num_rows} rows to {file_location}")
 
     # create a link to the file in the logs
