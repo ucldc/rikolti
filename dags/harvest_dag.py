@@ -16,6 +16,59 @@ from rikolti.dags.shared_tasks  import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
 from rikolti.dags.shared_tasks import create_with_content_urls_version_task
 from rikolti.dags.shared_content_harvester import ContentHarvestOperator
+from rikolti.utils.versions import (
+    get_version, get_child_directories, get_with_content_urls_pages,
+    get_with_content_urls_page_content, get_child_pages,
+    create_merged_version, put_merged_page)
+
+
+def get_child_records(version, parent_id) -> list:
+    child_records = []
+    children = get_child_pages(version)
+    children = [page for page in children
+                if (page.rsplit('/')[-1]).startswith(parent_id)]
+    for child in children:
+        child_records.extend(get_with_content_urls_page_content(child))
+    return child_records
+
+
+@task()
+def merge_children(collection, with_content_urls_pages):
+    # Recurse through the record's children (if any)
+    version = get_version(collection.get('id'), with_content_urls_pages[0])
+    child_directories = get_child_directories(version)
+    if not child_directories:
+        return with_content_urls_pages
+
+    merged_version = create_merged_version(version)
+    parent_pages = [page for page in with_content_urls_pages if 'children' not in page]
+    merged_pages = []
+    for page_path in parent_pages:
+        parent_records = get_with_content_urls_page_content(page_path)
+        for record in parent_records:
+            calisphere_id = record['calisphere-id']
+            child_records = get_child_records(version, calisphere_id)
+            if not child_records:
+                continue
+            print(
+                f"{page_path}: {len(child_records)} children found of "
+                f"record {calisphere_id}."
+            )
+            record['children'] = child_records
+        merged_pages.append(
+            put_merged_page(
+                json.dumps(parent_records),
+                os.path.basename(page_path),
+                merged_version
+            )
+        )
+    return merged_version
+
+
+@task()
+def get_metadata_after_content_harvest(with_content_urls_version):
+    metadata_pages = get_with_content_urls_pages(with_content_urls_version)
+    return metadata_pages
 
 
 @task()
@@ -56,7 +109,8 @@ def harvest():
     validate_collection_task(mapping_status)
     mapped_page_paths = get_mapped_page_filenames_task(mapped_pages)
 
-    with_content_urls_version = create_with_content_urls_version_task(collection, mapped_pages)
+    with_content_urls_version = create_with_content_urls_version_task(
+        collection, mapped_pages)
 
     content_harvest_task = (
         ContentHarvestOperator
@@ -70,7 +124,12 @@ def harvest():
                 page=mapped_page_paths
             )
     )
-    content_harvest_task
-    
+
+    metadata_post_content_harvest = get_metadata_after_content_harvest(
+        with_content_urls_version)
+
+    content_harvest_task >> metadata_post_content_harvest
+
+    merge_children(collection, metadata_post_content_harvest)
 
 harvest()
