@@ -249,21 +249,17 @@ def create_with_content_urls_version_task(collection: dict, mapped_pages: list[d
 
 
 @task()
-def create_stage_index_task(collection: dict, index_name: str):
+def create_stage_index_task(collection: dict):
+    # Once we start keeping dated versions of mapped metadata on S3,
+    # the version will correspond to the S3 namespace
+    datetime_string = datetime.today().strftime("%Y%m%d%H%M%S")
     collection_id = collection.get('id')
     if not collection_id:
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
+    index_name = get_index_name(collection_id, datetime_string)
     create_new_index(collection_id, index_name)
-
-
-@task()
-def get_index_name_task(collection: dict, version: str):
-    collection_id = collection.get('id')
-    if not collection_id:
-        raise ValueError(
-            f"Collection ID not found in collection metadata: {collection}")
-    return get_index_name(collection_id, version)
+    return index_name
 
 
 # Task is triggered if at least one upstream (direct parent) task has failed
