@@ -20,6 +20,8 @@ from rikolti.utils.versions import (
     get_child_directories, get_with_content_urls_pages,
     get_with_content_urls_page_content, get_child_pages,
     create_merged_version, put_merged_page)
+from rikolti.dags.shared_tasks import create_stage_index_task
+from rikolti.dags.shared_tasks import cleanup_failed_index_creation_task
 
 
 def get_child_records(version, parent_id) -> list:
@@ -123,6 +125,9 @@ def harvest():
 
     merged_parent_records = merge_children(with_content_urls_version)
     content_harvest_task >> merged_parent_records
+
+    stage_index = create_stage_index_task(collection, merged_parent_records)
+    cleanup_failed_index_creation_task(stage_index)
 
 
 harvest()
