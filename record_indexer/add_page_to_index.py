@@ -1,10 +1,10 @@
 import json
-import os
 
-import boto3
 import requests
 
 from . import settings
+from rikolti.utils.versions import (
+    get_merged_page_content, get_with_content_urls_page_content)
 
 
 def bulk_add(records: list, index: str):
@@ -32,23 +32,6 @@ def build_bulk_request_body(records: list, index: str):
     return body
 
 
-def get_json_content(collection_id: str, filename: str):
-    if settings.DATA_SRC["STORE"] == "file":
-        local_path = settings.local_path(collection_id, "mapped_with_content")
-        path = os.path.join(local_path, str(filename))
-        file = open(path, "r")
-        records = json.loads(file.read())
-    else:
-        s3_client = boto3.client("s3")
-        file = s3_client.get_object(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Key=f"{collection_id}/mapped_with_content/{filename}",
-        )
-        records = json.loads(file["Body"].read())
-
-    return records
-
-
 def flag_and_remove_unexpected_fields(record: dict, expected_fields: list):
     calisphere_id = record.get("calisphere-id", None)
     for field in list(record.keys()):
@@ -68,8 +51,11 @@ def get_expected_fields():
     return expected_fields
 
 
-def add_page(page: str, collection_id: str, index: str):
-    records = get_json_content(collection_id, page)
+def add_page(version_page: str, index: str):
+    if 'merged' in version_page:
+        records = get_merged_page_content(version_page)
+    else:
+        records = get_with_content_urls_page_content(version_page)
 
     expected_fields = get_expected_fields()
     for record in records:

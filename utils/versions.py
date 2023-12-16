@@ -173,6 +173,16 @@ def get_with_content_urls_pages(version, **kwargs):
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)
     return [path[len(data_root)+1:] for path in page_list]
 
+def get_merged_pages(version, **kwargs):
+    """
+    resolves a merged version to a data_uri at $MERGED_DATA/<version>/
+    returns a list of version pages located at that data_uri.
+    """
+    data_root = os.environ.get("MERGED_DATA", "file:///tmp")
+    data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
+    page_list = storage.list_pages(data_path, recursive=False, **kwargs)
+    return [path[len(data_root)+1:] for path in page_list]
+
 def get_child_directories(version, **kwargs):
     """
     resolves a mapped version to a data_uri at $MAPPED_DATA/<version>/data/
@@ -223,6 +233,11 @@ def get_mapped_page_content(version_page):
 
 def get_with_content_urls_page_content(version_page):
     data_root = os.environ.get("WITH_CONTENT_URL_DATA", "file:///tmp").rstrip('/')
+    content = storage.get_page_content(f"{data_root}/{version_page}")
+    return json.loads(content)
+
+def get_merged_page_content(version_page):
+    data_root = os.environ.get("MERGED_DATA", "file:///tmp").rstrip('/')
     content = storage.get_page_content(f"{data_root}/{version_page}")
     return json.loads(content)
 

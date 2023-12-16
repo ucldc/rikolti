@@ -9,6 +9,7 @@ import requests
 
 from .add_page_to_index import add_page
 from . import settings
+from rikolti.utils.versions import get_merged_pages, get_with_content_urls_pages
 
 
 def update_alias_for_collection(alias: str, collection_id: str, index: str):
@@ -84,35 +85,15 @@ def delete_index(index: str):
         print(f"deleted index `{index}`")
 
 
-def get_page_list(collection_id: str):
-    if settings.DATA_SRC["STORE"] == "file":
-        path = settings.local_path(collection_id, "mapped_with_content")
-        try:
-            page_list = [
-                f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
-            ]
-        except FileNotFoundError as e:
-            print(f"{e} - have you run content fetcher for {collection_id}?")
-    else:
-        s3_client = boto3.client("s3")
-        response = s3_client.list_objects_v2(
-            Bucket=settings.DATA_SRC["BUCKET"],
-            Prefix=f"{collection_id}/mapped_with_content/",
-        )
-        page_list = [obj["Key"].split("/")[-1] for obj in response["Contents"]]
-
-    return page_list
-
-
-def create_new_index(collection_id: str, page_list: list[str]):
+def create_new_index(collection_id: str, version_pages: list[str]):
     # Once we start keeping dated versions of mapped metadata on S3,
     # the version will correspond to the S3 namespace
     version = datetime.today().strftime("%Y%m%d%H%M%S")
     index_name = f"rikolti-{collection_id}-{version}"
 
     # OpenSearch creates the index on the fly when first written to.
-    for page in page_list:
-        add_page(page, collection_id, index_name)
+    for version_page in version_pages:
+        add_page(version_page, index_name)
 
     update_alias_for_collection("rikolti-stg", collection_id, index_name)
 
@@ -124,7 +105,11 @@ def create_new_index(collection_id: str, page_list: list[str]):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Add collection data to OpenSearch")
     parser.add_argument("collection_id", help="Registry collection ID")
+    parser.add_argument("version", help="Metadata verison to index")
     args = parser.parse_args(sys.argv[1:])
-    page_list = get_page_list(args.collection_id)
+    if 'merged' in args.version:
+        page_list = get_merged_pages(args.version)
+    else:
+        page_list = get_with_content_urls_pages(args.version)
     create_new_index(args.collection_id, page_list)
     sys.exit(0)
