@@ -17,7 +17,7 @@ from rikolti.dags.shared_tasks import validate_collection_task
 from rikolti.dags.shared_tasks import create_with_content_urls_version_task
 from rikolti.dags.shared_content_harvester import ContentHarvestOperator
 from rikolti.utils.versions import (
-    get_version, get_child_directories, get_with_content_urls_pages,
+    get_child_directories, get_with_content_urls_pages,
     get_with_content_urls_page_content, get_child_pages,
     create_merged_version, put_merged_page)
 
@@ -33,9 +33,10 @@ def get_child_records(version, parent_id) -> list:
 
 
 @task()
-def merge_children(collection, with_content_urls_pages):
+def merge_children(version):
+    with_content_urls_pages = get_with_content_urls_pages(version)
+
     # Recurse through the record's children (if any)
-    version = get_version(collection.get('id'), with_content_urls_pages[0])
     child_directories = get_child_directories(version)
     if not child_directories:
         return with_content_urls_pages
@@ -62,18 +63,13 @@ def merge_children(collection, with_content_urls_pages):
                 merged_version
             )
         )
-    return merged_version
-
-
-@task()
-def get_metadata_after_content_harvest(with_content_urls_version):
-    metadata_pages = get_with_content_urls_pages(with_content_urls_version)
-    return metadata_pages
+    return merged_pages
 
 
 @task()
 def get_mapped_page_filenames_task(mapped_pages):
     return [mapped['mapped_page_path'] for mapped in mapped_pages]
+
 
 @dag(
     dag_id="harvest_collection",
@@ -125,11 +121,8 @@ def harvest():
             )
     )
 
-    metadata_post_content_harvest = get_metadata_after_content_harvest(
-        with_content_urls_version)
+    merged_parent_records = merge_children(with_content_urls_version)
+    content_harvest_task >> merged_parent_records
 
-    content_harvest_task >> metadata_post_content_harvest
-
-    merge_children(collection, metadata_post_content_harvest)
 
 harvest()
