@@ -1,8 +1,5 @@
 from datetime import datetime
 from random import randint
-from typing import Any
-
-from faker import Faker
 
 from ..base_helper import BaseTestHelper
 

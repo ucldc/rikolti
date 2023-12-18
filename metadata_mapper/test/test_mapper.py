@@ -102,8 +102,9 @@ class TestMapper:
                 module = importlib.import_module(
                     f".mappers.{'.'.join(module_parts)}", package="rikolti.metadata_mapper"
                 )
-                helper = BaseTestHelper.for_mapper(module_parts)(r_mock)
+                helper_class = BaseTestHelper.for_mapper(module_parts)
 
-                if helper:
+                if helper_class:
+                    helper = helper_class(r_mock)
                     record_class = self.get_record(module_parts, module)
                     default_test_method(record_class, helper)

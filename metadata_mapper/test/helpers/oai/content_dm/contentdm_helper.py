@@ -1,9 +1,5 @@
 import re
 
-from datetime import datetime
-from random import randint
-from typing import Any
-
 from ..oai_helper import OaiTestHelper
 from .....mappers.oai.content_dm.contentdm_mapper import ContentdmRecord
 
