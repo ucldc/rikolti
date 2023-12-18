@@ -5,7 +5,7 @@ from ..base_helper import BaseTestHelper
 
 class OaiTestHelper(BaseTestHelper):
   
-  DEFAULT_SCHEMA = {
+  SCHEMA = {
     "contributor": str,
     "creator": str,
     "date": [datetime] * randint(1, 9),

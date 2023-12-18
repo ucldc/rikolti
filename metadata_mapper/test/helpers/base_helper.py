@@ -20,11 +20,7 @@ class BaseTestHelper:
     that you want to generate the value for.
     """
 
-    # Default schema
-    # Define DEFAULT_SCHEMA to modify this in a sublcass
-    DEFAULT_SCHEMA = {}
-
-    # SCHEMA will be merged into DEFAULT_SCHEMA in order to generate
+    # SCHEMAs will be merged together in order to generate
     # the final fixture schema.
     SCHEMA = {}
 
@@ -91,7 +87,18 @@ class BaseTestHelper:
         """
         Generates a test data fixture.
         """
-        schema = {**self.DEFAULT_SCHEMA, **self.SCHEMA}
+        schema = self.SCHEMA or {}
+
+        superschemas = [
+            super(c, self).SCHEMA
+            for c in list(reversed(type(self).__mro__))
+            if hasattr(super(c, self), "SCHEMA")
+        ]
+
+
+
+        for superschema in superschemas:
+            schema = {**superschema, **schema}
 
         return {
             key: self.generate_value_for(key, type) for (key, type) in schema.items()

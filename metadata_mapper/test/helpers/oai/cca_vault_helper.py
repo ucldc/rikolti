@@ -1,4 +1,4 @@
-from ..oai_helper import OaiTestHelper
+from .oai_helper import OaiTestHelper
 
 class CcaVaultTestHelper(OaiTestHelper):
   
