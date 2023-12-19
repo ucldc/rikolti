@@ -21,13 +21,14 @@ logger = logging.getLogger(__name__)
 # and for each folder, paginate through a record list (and those record's
 # component lists) - the folder structure can be arbitrarily deep.
 #
-# This implements it's own architecture due to the fact that nuxeo requires
-# both linear iteration (pagination of folder pages, record pages, and
-# component pages), fan out (for each document, for each folder) and recursion.
+# `.fetch_page` traverses this linear iteration (pagination of folder pages,
+# record pages, and component pages), fan out (for each record, for each
+# folder) and recursion (down a folder tree) in one function call and returns
+# a list of pages, each of which includes a list of children. 
 #
-# fetch_page returns a list of pages, each of which includes a list of children
-# json returns {'finished': True} to prevent lambda_function.fetch_collection
-# from trying to fetch the next page (pagination is performed internally, here)
+# `.json` returns {'finished': True} to prevent lambda_function.fetch_collection
+# from trying to fetch the next page since pagination is already performed
+# internally, here.
 
 class NuxeoFetcher(Fetcher):
     nuxeo_request_headers = {
