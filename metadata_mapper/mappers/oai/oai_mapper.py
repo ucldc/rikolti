@@ -95,7 +95,6 @@ class OaiRecord(Record):
             value = [value]
         return [{"name": v} for v in value if v]
 
-
     def map_language(self) -> list:
         value = self.source_metadata.get("language")
 
@@ -103,7 +102,6 @@ class OaiRecord(Record):
             return value
 
         return [value]
-
 
     def map_type(self) -> list:
         """
