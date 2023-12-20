@@ -104,6 +104,7 @@ class OaiRecord(Record):
 
         return [value]
 
+
     def map_type(self) -> list:
         """
         Iterates the `type` values. If they are part of the controlled vocabulary
@@ -130,13 +131,6 @@ class OaiRecord(Record):
         #     type_list.append(mapped_type.lower())
         # return type_list
 
-    def map_language(self) -> list:
-        value = self.source_metadata.get("language")
-
-        if isinstance(value, list):
-            return value
-
-        return [value]
 
 class OaiVernacular(Vernacular):
 
