@@ -72,26 +72,26 @@ class ChapmanRecord(OaiRecord):
 class ChapmanValidator(Validator):
     def setup(self, **options):
         self.add_validatable_field(
-            field="identifier", type=Validator.list_of(str),
+            field="identifier",
             validations=[
                 ChapmanValidator.list_match_ignore_url_protocol,
-                Validator.type_match,
+                Validator.verify_type(Validator.list_of(str))
             ]
         )
         self.add_validatable_field(
-            field="is_shown_at", type=str,
+            field="is_shown_at",
             validations=[
                 Validator.required_field,
                 ChapmanValidator.str_match_ignore_url_protocol,
-                Validator.type_match,
+                Validator.verify_type(str),
             ]
         )
         self.add_validatable_field(
-            field="is_shown_by", type=str,
+            field="is_shown_by",
             validations=[
                 Validator.required_field,
                 ChapmanValidator.str_match_ignore_url_protocol,
-                Validator.type_match,
+                Validator.verify_type(str),
             ]
         )
 
