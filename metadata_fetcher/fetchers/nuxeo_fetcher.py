@@ -256,6 +256,21 @@ class NuxeoFetcher(Fetcher):
 
     def fetch_page(self):
         page_prefix = ['r']
+        # page_prefix is manipulated during tree traversal to indicate which
+        # folder page, folder, and document page we're currently at.
+        # `r` is root, `fp` is folder page, `f` is folder, and `p` is page
+
+        # page_prefix is used as the filename for each page of vernacular 
+        # metadata, so there is a trace back to the nuxeo location.
+
+        # ex:
+
+        # r-fp0-f0-p0 should be read as the first page of records inside the
+        # first folder inside the first page of folders inside the root, or
+        # root, folder page 0, folder 0, page 0
+
+        # r-p0 is the first page of records inside the root directory, or
+        # root page 0
         pages = self.get_pages_of_records(self.nuxeo['current_path'], page_prefix)
         pages.extend(self.folder_traversal(self.nuxeo['current_path'], page_prefix))
         return pages
