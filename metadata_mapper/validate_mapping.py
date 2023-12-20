@@ -169,8 +169,13 @@ def make_solr_request(**params):
     for key, value in list(params.items()):
         key = key.replace('_', '.')
         query.update({key: value})
-    res = requests.post(solr_url, headers=solr_auth, data=query, verify=False)
-    res.raise_for_status()
+    try:
+        res = requests.post(solr_url, headers=solr_auth, data=query, verify=False)
+        res.raise_for_status()
+    except Exception as e:
+        print(query)
+        print(solr_url)
+        raise(e)
     return json.loads(res.content.decode('utf-8'))
 
 
