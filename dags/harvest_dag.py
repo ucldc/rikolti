@@ -26,7 +26,6 @@ def get_mapped_page_filenames_task(mapped_pages):
     catchup=False,
     params={
         'collection_id': Param(None, description="Collection ID to harvest"),
-        'validate': Param(True, description="Validate mapping?")
     },
     tags=["rikolti"],
 )
@@ -50,7 +49,7 @@ def harvest():
     )
 
     mapping_status = get_mapping_status_task(collection, mapped_pages)
-    validate_collection_task(mapping_status)
+    validate_collection_task(collection['id'], mapping_status['mapped_page_paths'])
     mapped_page_paths = get_mapped_page_filenames_task(mapped_pages)
 
     content_data_version = create_content_data_version_task(collection, mapped_pages)
