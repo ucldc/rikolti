@@ -38,7 +38,7 @@ def harvest_endpoint(url, limit=None):
 
         # TODO: what is return val? 
         collection_stats = harvest_collection(
-            collection
+            collection,
             get_most_recent_mapped_version(collection['id'])
         )
         collection_stats.update({'solr_count': collection['solr_count']})
