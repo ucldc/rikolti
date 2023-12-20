@@ -130,7 +130,7 @@ def map_page_task(vernacular_page: str, collection: dict, mapped_data_version: s
     return mapped_page
 
 
-@task()
+@task(multiple_outputs=True)
 def get_mapping_status_task(collection: dict, mapped_pages: list):
     """
     mapped_pages is a list of dicts with the following keys:
@@ -170,7 +170,7 @@ def create_mapped_version_task(collection, vernacular_pages):
 
 
 @task()
-def validate_collection_task(collection_status: dict, params=None) -> str:
+def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) -> str:
     """
     collection_status is a dict containing the following keys:
         mapped_page_paths: ex: [
@@ -179,17 +179,10 @@ def validate_collection_task(collection_status: dict, params=None) -> str:
             3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/3.jsonl
         ]
     """
-    if not params or not params.get('validate'):
-        raise ValueError("Validate flag not found in params")
-
-    # let this throw an error if no collection_id
-    collection_id = int(collection_status['collection_id'])
-
-    if collection_status.get('status') != 'success':
-        raise Exception(f"Collection {collection_id} not successfully mapped")
+    parent_pages = [path for path in mapped_metadata_pages if 'children' not in path]
 
     num_rows, file_location = create_collection_validation_csv(
-        collection_id, collection_status['mapped_page_paths'])
+        collection_id, parent_pages)
     print(f"Output {num_rows} rows to {file_location}")
 
     # create a link to the file in the logs
