@@ -14,7 +14,7 @@ class UcdJsonRecord(Record):
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.BASE_URL + self.source_metadata.get("@id"),
             "isShownBy": self.BASE_URL + self.source_metadata.get("thumbnailUrl"),
-            "title": self.mapped_data,
+            "title": self.map_title,
             "date": self.source_metadata.get("datePublished"),
             "description": self.map_description,
             "subject": self.map_subject,
