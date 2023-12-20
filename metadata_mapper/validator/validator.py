@@ -366,7 +366,7 @@ class Validator:
         Returns: boolean
         """
         if value is None:
-            return
+            return True
         
         if isinstance(expected_type, Callable):
             return expected_type(value)
@@ -626,8 +626,7 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "rights_uri",
         "validations": [
                         Validator.content_match,
-                        Validator.verify_type(Validator.list_of(str)),
-                        lambda d, r, c: isinstance(r, list) and len(r) == 1
+                        Validator.verify_type(str),
                         ]
     },
     {
