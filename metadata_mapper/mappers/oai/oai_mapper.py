@@ -116,18 +116,19 @@ class OaiRecord(Record):
         if isinstance(types, str):
             types = [types]
 
-        type_list = []
-        for t in types:
-            mapped_type = None
-            for (type_k, type_v) in self.TYPES.items():
-                if mapped_type:
-                    break
-                if t == f"{self.TYPES_BASEURL}{type_k}":
-                    mapped_type = type_v
-            if not mapped_type:
-                mapped_type = t.replace(self.TYPES_BASEURL, "")
-            type_list.append(mapped_type.lower())
-        return type_list
+        return types
+        # type_list = []
+        # for t in types:
+        #     mapped_type = None
+        #     for (type_k, type_v) in self.TYPES.items():
+        #         if mapped_type:
+        #             break
+        #         if t == f"{self.TYPES_BASEURL}{type_k}":
+        #             mapped_type = type_v
+        #     if not mapped_type:
+        #         mapped_type = t.replace(self.TYPES_BASEURL, "")
+        #     type_list.append(mapped_type.lower())
+        # return type_list
 
 
 class OaiVernacular(Vernacular):
