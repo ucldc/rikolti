@@ -10,7 +10,9 @@ from rikolti.dags.shared_tasks import map_page_task
 from rikolti.dags.shared_tasks import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
 from rikolti.utils.versions import get_most_recent_vernacular_version
+from rikolti.utils.versions import get_most_recent_mapped_version
 from rikolti.utils.versions import get_vernacular_pages
+from rikolti.utils.versions import get_mapped_pages
 
 
 @task()
@@ -21,6 +23,17 @@ def get_vernacular_pages_task(collection: dict, params: Optional[dict]=None):
         vernacular_version = get_most_recent_vernacular_version(collection_id)
     pages = get_vernacular_pages(vernacular_version)
     # TODO: split page_list into pages and children?
+    return pages
+
+@task()
+def get_mapped_pages_task(params: Optional[dict] = None):
+    collection_id = params.get('collection_id') if params else None
+    if not collection_id:
+        raise Exception("Collection ID is required")
+    mapped_version = params.get('mapped_version') if params else None
+    if not mapped_version:
+        mapped_version = get_most_recent_mapped_version(collection_id)
+    pages = get_mapped_pages(mapped_version)
     return pages
 
 # This is a functional duplicate of 
@@ -45,7 +58,6 @@ def get_vernacular_pages_task(collection: dict, params: Optional[dict]=None):
     catchup=False,
     params={
         'collection_id': Param(None, description="Collection ID to map"),
-        'validate': Param(True, description="Validate mapping?"),
         'vernacular_version': Param(None, description="Vernacular version to map, ex: 3433/vernacular_metadata_v1/")
     },
     tags=["rikolti"],
@@ -64,6 +76,24 @@ def mapper_dag():
     )
 
     mapping_status = get_mapping_status_task(collection, mapped_pages)
-    validate_collection_task(mapping_status)
+    validate_collection_task(collection['id'], mapping_status['mapped_page_paths'])
 
 mapper_dag()
+
+@dag(
+    dag_id="validate_collection",
+    schedule=None,
+    start_date=datetime(2023,1,1),
+    catchup=False,
+    params={
+        'collection_id': Param(None, description="Collection ID to validate"),
+        "vernacular_version": Param(None, description="Vernacular version to validate")
+    },
+    tags=["rikolti"]
+)
+def validation_dag():
+    collection = get_collection_metadata_task()
+    page_list = get_mapped_pages_task()
+    validate_collection_task(collection['id'], page_list)
+
+validation_dag()

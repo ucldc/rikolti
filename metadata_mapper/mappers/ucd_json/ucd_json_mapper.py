@@ -1,5 +1,7 @@
 import json
 
+from typing import Optional
+
 from ..mapper import Vernacular, Record
 
 
@@ -14,7 +16,7 @@ class UcdJsonRecord(Record):
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.BASE_URL + self.source_metadata.get("@id"),
             "isShownBy": self.BASE_URL + self.source_metadata.get("thumbnailUrl"),
-            "title": self.mapped_data,
+            "title": self.map_title,
             "date": self.source_metadata.get("datePublished"),
             "description": self.map_description,
             "subject": self.map_subject,
@@ -32,8 +34,10 @@ class UcdJsonRecord(Record):
 
         return f"{self.collection_id}--{ark[0]}"
 
-    def map_title(self) -> list:
+    def map_title(self) -> Optional[list]:
         value = self.source_metadata.get("name", [])
+        if not value:
+            return None
 
         if isinstance(value, list):
             return value

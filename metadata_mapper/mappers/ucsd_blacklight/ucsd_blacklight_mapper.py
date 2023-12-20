@@ -17,7 +17,6 @@ class UcsdBlacklightMapper(Record):
             "stateLocatedIn": {"name": "California"},
             "extent": self.source_metadata.get("extent_json_tesim"),
             "publisher": self.source_metadata.get("publisher_json_tesim"),
-            "coverage": self.source_metadata.get("geographic_tesim"),
             "creator": self.map_creator,
             "date": self.map_date,
             "description": self.map_description,

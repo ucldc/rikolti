@@ -78,7 +78,7 @@ def map_page(
         vernacular_page_path: str,
         mapped_data_version: str,
         collection: Union[dict, str]
-    ):
+):
     """
     vernacular_page_path is a filepath relative to the collection id, ex:
         3433/vernacular_metadata_v1/data/1
@@ -93,7 +93,7 @@ def map_page(
             3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
     """
     if isinstance(collection, str):
-         collection = json.loads(collection)
+        collection = json.loads(collection)
 
     vernacular_reader = import_vernacular_reader(
         collection.get('rikolti_mapper_type'))
@@ -138,7 +138,8 @@ def map_page(
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
     mapped_page_path = put_mapped_page(
-        json.dumps(mapped_metadata), page_filename, mapped_data_version)
+        json.dumps(mapped_metadata, ensure_ascii=False),
+        page_filename, mapped_data_version)
 
     return {
         'status': 'success',
@@ -150,20 +151,28 @@ def map_page(
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(
         description="Map metadata from the institution's vernacular")
     parser.add_argument('collection_id', help='collection id')
-    parser.add_argument('page_path', help='relative file path to vernauclar metadata page filename; ex: 3433/vernacular_data_version_1/data/1')
-    parser.add_argument('mapped_data_version', help='uri file path to mapped data version; ex: file:///rikolti_data_root/3433/vernacular_data_version_1/mapped_data_version_1/')
+    parser.add_argument('page_path',
+                        help='relative file path to vernauclar metadata page '
+                             'filename; ex: 3433/vernacular_data_version_1/data/1')
+    parser.add_argument('mapped_data_version',
+                        help='uri file path to mapped data version; ex: '
+                             'file:///rikolti_data_root/3433'
+                             '/vernacular_data_version_1/mapped_data_version_1/')
     parser.add_argument('collection', help='json collection metadata from registry')
 
     args = parser.parse_args(sys.argv[1:])
-    mapped_page = map_page(args.collection_id, args.page_path, args.mapped_data_path, args.collection)
+    mapped_page = map_page(args.collection_id, args.page_path, args.mapped_data_path,
+                           args.collection)
 
     print(f"{mapped_page.get('num_records_mapped')} records mapped")
-    print(f"mapped page at {os.environ.get('MAPPED_DATA')}/{mapped_page.get('mapped_page_path')}")
+    print(
+        f"mapped page at {os.environ.get('MAPPED_DATA')}/"
+        f"{mapped_page.get('mapped_page_path')}")
 
     for report, couch_ids in mapped_page.get('exceptions', {}).items():
         print(f"{len(couch_ids)} records report enrichments errors: {report}")
         print(f"check the following ids for issues: {couch_ids}")
-
