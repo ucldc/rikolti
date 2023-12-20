@@ -46,7 +46,7 @@ def harvest_record_content(
     if not download_cache:
         download_cache = {}
 
-    calisphere_id = record.get('calisphere-id')
+    # calisphere_id = record.get('calisphere-id')
     media = record.get('media_source')
     thumbnail = record.get('thumbnail_source', record.get('is_shown_by'))
     if isinstance(thumbnail, str):

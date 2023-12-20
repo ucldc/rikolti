@@ -1,6 +1,3 @@
-import os
-from . import derivatives
-
 class UnsupportedMimetype(Exception):
     pass
 

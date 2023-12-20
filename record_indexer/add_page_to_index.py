@@ -19,7 +19,7 @@ def bulk_add(records: list, index: str):
     r.raise_for_status()
 
     bulk_resp = r.json()
-    if bulk_resp.get('errors') == True:
+    if bulk_resp.get('errors') is True:
         error_reasons = []
         errors = []
         for bulk_item in bulk_resp.get('items'):
