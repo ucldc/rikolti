@@ -1,5 +1,7 @@
 import json
 
+from typing import Optional
+
 from ..mapper import Vernacular, Record
 
 
@@ -32,8 +34,10 @@ class UcdJsonRecord(Record):
 
         return f"{self.collection_id}--{ark[0]}"
 
-    def map_title(self) -> list:
+    def map_title(self) -> Optional[list]:
         value = self.source_metadata.get("name", [])
+        if not value:
+            return None
 
         if isinstance(value, list):
             return value
