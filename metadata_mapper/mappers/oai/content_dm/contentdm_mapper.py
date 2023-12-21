@@ -97,8 +97,14 @@ class ContentdmRecord(OaiRecord):
         if not identifier:
             return image_info
 
-        response = requests.get(self.get_url_image_info()).json()['imageinfo']
-        return response if response else image_info
+        image_info_url = self.get_url_image_info()
+        if image_info_url:
+            resp = requests.get(image_info_url)
+            resp.raise_for_status()
+            if resp.json().get('imageinfo'):
+                image_info = resp.json().get('imageinfo')
+
+        return image_info
 
     def get_url_image_info(self):
         parts = self.get_identifier_parts()
