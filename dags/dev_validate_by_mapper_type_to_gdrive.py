@@ -21,8 +21,20 @@ logger = logging.getLogger("airflow.task")
     start_date=datetime(2023, 1, 1),
     catchup=False,
     params={
-        'mapper_type': Param(None, description="Rikolti mapper type to harvest and validate"),
-        'limit': Param(None, description="Limit number of collections to validate"),
+        'mapper_type': Param(
+            None, description=("Legacy mapper type to harvest and validate; "
+                               "use mapper_type, rikolti_mapper_type, OR "
+                               "endpoint")),
+        'rikolti_mapper_type': Param(
+            None, description=("Rikolti mapper type to harvest and validate; "
+                               "use mapper_type, rikolti_mapper_type, OR "
+                               "endpoint")),
+        'registry_api_queryset': Param(
+            None, description=("Registry endpoint to harvest and validate"
+                               "use mapper_type, rikolti_mapper_type, OR "
+                               "endpoint")),
+        'limit': Param(
+            None, description="Limit number of collections to validate"),
     },
     tags=["dev"],
 )
