@@ -17,13 +17,42 @@ logger = logging.getLogger("airflow.task")
 
 @task()
 def make_mapper_type_endpoint(params=None):
-    if not params or not params.get('mapper_type'):
-        raise ValueError("Mapper type not found in params")
-    mapper_type = params.get('mapper_type')
-    endpoint = (
-        "https://registry.cdlib.org/api/v1/rikoltifetcher/?format=json"
-        f"&mapper_type={mapper_type}&ready_for_publication=true"
-    )
+    if not params:
+        raise ValueError("No parameters provided")
+
+    arg_keys = ['mapper_type', 'rikolti_mapper_type', 'registry_api_queryset']
+    args = {key: params.get(key) for key in arg_keys if params.get(key)}
+    if not any(args.values()):
+        raise ValueError("Endpoint data not found in params, please provide "
+                         "either a mapper_type, a rikolti_mapper_type, or a "
+                         "registry_api_queryset")
+
+    which_arg = args.keys()
+    if len(arg_keys) > 1:
+        raise ValueError("Please provide only one of mapper_type, "
+                         "rikolti_mapper_type, or registry_api_queryset")
+
+    which_arg = arg_keys[0]
+    if which_arg == 'mapper_type':
+        mapper_type = params.get('mapper_type')
+        endpoint = (
+            "https://registry.cdlib.org/api/v1/rikoltifetcher/?format=json"
+            f"&mapper_type={mapper_type}&ready_for_publication=true"
+        )
+    elif which_arg == 'rikolti_mapper_type':
+        rikolti_mapper_type = params.get('rikolti_mapper_type')
+        endpoint = (
+            "https://registry.cdlib.org/api/v1/rikoltifetcher/?format=json"
+            f"&rikolti_mapper_type={rikolti_mapper_type}"
+            "&ready_for_publication=true"
+        )
+    elif which_arg == 'registry_api_queryset':
+        endpoint = params.get('registry_api_queryset')
+        # TODO: validate endpoint is a valid registry endpoint describing
+        # a queryset of collections
+    else:
+        raise ValueError(
+            "Please provide a mapper_type, rikolti_mapper_type, or endpoint")
 
     print("Fetching, mapping, and validating collections listed at: ")
     print(endpoint)
