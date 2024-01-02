@@ -45,16 +45,32 @@ def fetch_endpoint_task(endpoint, params=None):
     limit = params.get('limit', None) if params else None
     fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
     fetched_versions = {}
-    for collection_id in fetcher_job_result.keys():
+    errored_collections = {}
+    for collection_id, fetch_job in fetcher_job_result.items():
+        if isinstance(fetch_job, dict) and 'error' in fetch_job:
+            errored_collections[collection_id] = fetch_job
+            continue
+        if not isinstance(fetch_job, list):
+            errored_collections[collection_id] = fetch_job
+            continue
+        if not fetch_job[0].get('vernacular_filepath'):
+            errored_collections[collection_id] = fetch_job
+            continue
         version = get_version(
             collection_id,
-            fetcher_job_result[collection_id][0]['vernacular_filepath']
+            fetch_job[0]['vernacular_filepath']
         )
         print(
             "Review fetched data at: https://rikolti-data.s3.us-west-2."
             f"amazonaws.com/index.html#{version.rstrip('/')}/data/"
         )
         fetched_versions[collection_id] = version
+    if errored_collections:
+        print(
+            f"{len(errored_collections)} encountered an error when "
+            f"fetching: {errored_collections.keys()}"
+        )
+        print(errored_collections)
     return fetched_versions
 
 @task()
@@ -94,13 +110,10 @@ def validate_endpoint_task(url, mapped_versions, params=None):
         collection_id = collection['collection_id']
         print(f"{collection_id:<6} Validating collection")
 
+        mapped_version = mapped_versions.get(str(collection_id))
         try:
-            mapped_version = mapped_versions[str(collection_id)]
             mapped_pages = get_mapped_pages(mapped_version)
         except FileNotFoundError:
-            print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
-            continue
-        except KeyError:
             print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
             continue
 
