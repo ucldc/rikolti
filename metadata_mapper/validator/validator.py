@@ -139,7 +139,7 @@ class Validator:
         Returns: dict[str, bool]
         """
         return {
-            field["field"]: self.add_validatable_field(field)
+            field["field"]: self.add_validatable_field(**field)
             for field in fields
         }
 
