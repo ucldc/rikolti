@@ -134,7 +134,6 @@ class FlickrValidator(Validator):
         self.add_validatable_field(
             field="is_shown_by",
             validations=[
-                Validator.required_field,
                 Validator.verify_type(str),
                 FlickrValidator.content_match_regex
             ]

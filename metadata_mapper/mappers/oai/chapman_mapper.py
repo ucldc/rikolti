@@ -89,7 +89,6 @@ class ChapmanValidator(Validator):
         self.add_validatable_field(
             field="is_shown_by",
             validations=[
-                Validator.required_field,
                 ChapmanValidator.str_match_ignore_url_protocol,
                 Validator.verify_type(str),
             ]

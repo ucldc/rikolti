@@ -666,7 +666,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "is_shown_by",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
