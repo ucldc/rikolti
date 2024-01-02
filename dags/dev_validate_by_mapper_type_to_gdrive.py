@@ -30,11 +30,12 @@ logger = logging.getLogger("airflow.task")
                                "use mapper_type, rikolti_mapper_type, OR "
                                "endpoint")),
         'registry_api_queryset': Param(
-            None, description=("Registry endpoint to harvest and validate"
+            None, description=("Registry endpoint to harvest and validate; "
                                "use mapper_type, rikolti_mapper_type, OR "
                                "endpoint")),
         'limit': Param(
             None, description="Limit number of collections to validate"),
+        'offset': Param(None, description="Position to start at")
     },
     tags=["dev"],
 )
