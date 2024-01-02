@@ -27,12 +27,12 @@ def make_mapper_type_endpoint(params=None):
                          "either a mapper_type, a rikolti_mapper_type, or a "
                          "registry_api_queryset")
 
-    which_arg = args.keys()
-    if len(arg_keys) > 1:
+    which_arg = list(args.keys())
+    if len(which_arg) > 1:
         raise ValueError("Please provide only one of mapper_type, "
                          "rikolti_mapper_type, or registry_api_queryset")
 
-    which_arg = arg_keys[0]
+    which_arg = which_arg[0]
     if which_arg == 'mapper_type':
         mapper_type = params.get('mapper_type')
         endpoint = (
@@ -53,6 +53,10 @@ def make_mapper_type_endpoint(params=None):
     else:
         raise ValueError(
             "Please provide a mapper_type, rikolti_mapper_type, or endpoint")
+
+    offset = params.get('offset')
+    if offset:
+        endpoint = endpoint + "&offset={offset}"
 
     print("Fetching, mapping, and validating collections listed at: ")
     print(endpoint)
