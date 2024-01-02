@@ -47,6 +47,8 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
 
     if not limit:
         limit = total
+    else:
+        limit = int(limit)
 
     print(f">>> Fetching {limit}/{total} collections described at {url}")
     # print(fetch_report_headers)
@@ -71,6 +73,10 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
                 collection, vernacular_version)
         except Exception as e:
             print(f"ERROR fetching collection { collection_id }: {e}")
+            results[collection_id] = {
+                'status': 'error',
+                'error_message': e
+            }
             continue
 
         results[collection_id] = fetch_result
