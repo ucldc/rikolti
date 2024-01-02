@@ -77,6 +77,22 @@ class OaiFetcher(Fetcher):
                 f"{len(xml_hits)} hits,-,-,-,-,-"
             )
         return len(xml_hits)
+    
+    def aggregate_vernacular_content(self, response: requests.Response):
+        # Sometimes there is no charset specified in the HTTP header, but
+        # the content-type header is "xml/text". In this case, requests
+        # will set the encoding to ISO-8859-1. See the last paragraph citing
+        # RFC 2616 here:
+        # https://requests.readthedocs.io/en/latest/user/advanced/#encodings
+
+        # The OAI spec, however, specifies that the encoding of the XML
+        # document *must* be UTF-8:
+        # https://www.openarchives.org/OAI/openarchivesprotocol.html#XMLResponse
+        # so we enforce that here by setting the encoding to utf-8, regardless
+        # of http response headers. The value of response.encoding is used by
+        # requests when getting response.text.
+        response.encoding = 'utf-8'
+        return response.text
 
     def increment(self, http_resp):
         super(OaiFetcher, self).increment(http_resp)

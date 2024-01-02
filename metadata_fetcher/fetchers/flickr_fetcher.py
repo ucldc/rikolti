@@ -106,18 +106,18 @@ class FlickrFetcher(Fetcher):
         """
         return {"url": self.get_current_url()}
 
-    def aggregate_vernacular_content(self, content: str) -> str:
+    def aggregate_vernacular_content(self, resp: requests.Response) -> str:
         """
         Accepts content from a response for page of photos, and transforms it
         in a dictionary. This requires a `flickr.photos.getInfo` request for
         each photo.
 
         Parameters:
-            content: str
+            resp: requests.Response
 
         Returns: str
         """
-        photos = json.loads(content)
+        photos = json.loads(resp.text)
 
         logger.debug(
             f"[{self.collection_id}]: Starting to fetch all photos for page"
