@@ -173,6 +173,7 @@ Next, back in the Rikolti repository, create the `startup.sh` file by running `c
 export VERNACULAR_DATA=file:///usr/local/airflow/rikolti_data
 export MAPPED_DATA=file:///usr/local/airflow/rikolti_data
 export WITH_CONTENT_URL_DATA=file:///usr/local/airflow/rikolti_data
+export MERGED_DATA=file:///usr/local/airflow/rikolti_data
 ```
 
 The folder located at `RIKOLTI_DATA_HOME` (set in `aws-mwaa-local-runner/docker/.env`) is mounted to `/usr/local/airflow/rikolti_data` on the airflow docker container.
