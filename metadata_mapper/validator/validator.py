@@ -562,7 +562,7 @@ class Validator:
             "&wt=json&indent=true"
         )
         couch = f"/couchdb/_utils/document.html?ucldc/{self.key}"
-        calisphere = f"/search/?q={urllib.parse.quote_plus(self.key)}"
+        calisphere = f'/search/?q="{urllib.parse.quote_plus(self.key)}"'
 
         return {
             "key": self.key,
