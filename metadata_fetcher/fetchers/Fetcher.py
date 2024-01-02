@@ -54,7 +54,6 @@ class Fetcher(object):
         )
         try:
             response = requests.get(**page)
-            response.encoding = response.apparent_encoding
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             raise FetchError(
@@ -63,7 +62,7 @@ class Fetcher(object):
         record_count = self.check_page(response)
         filepath = None
         if record_count:
-            content = self.aggregate_vernacular_content(response.text)
+            content = self.aggregate_vernacular_content(response)
             try:
                 filepath = put_vernacular_page(
                     content, self.write_page, self.vernacular_version)
@@ -79,8 +78,8 @@ class Fetcher(object):
             'status': 'success'
         }
 
-    def aggregate_vernacular_content(self, response):
-        return response
+    def aggregate_vernacular_content(self, response: requests.Response):
+        return response.text
 
     def build_fetch_request(self):
         """build parameters for the institution's requests.get()
