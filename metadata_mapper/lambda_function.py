@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import settings
 from .mappers.mapper import Record, Vernacular
-from rikolti.utils.versions import get_vernacular_page_content, put_mapped_page
+from rikolti.utils.versions import get_vernacular_page_content, put_mapped_page, get_version
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,8 @@ def map_page(
 
     vernacular_reader = import_vernacular_reader(
         collection.get('rikolti_mapper_type'))
-    page_filename = os.path.basename(vernacular_page_path)
+    vernacular_version = get_version(collection_id, vernacular_page_path)
+    page_filename = vernacular_page_path.split(vernacular_version + '/data/')[-1]
     api_resp = get_vernacular_page_content(vernacular_page_path)
 
     source_vernacular = vernacular_reader(collection_id, page_filename)

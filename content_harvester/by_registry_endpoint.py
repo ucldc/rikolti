@@ -2,7 +2,7 @@ import sys
 
 import requests
 
-from .by_collection import harvest_collection
+from .by_collection import harvest_collection_content
 from rikolti.utils.versions import get_most_recent_mapped_version
 
 def registry_endpoint(url):
@@ -37,8 +37,9 @@ def harvest_endpoint(url, limit=None):
         )
 
         # TODO: what is return val? 
-        collection_stats = harvest_collection(
-            collection,
+        collection_stats = harvest_collection_content(
+            collection['id'],
+            collection['rikolti_mapper_type'],
             get_most_recent_mapped_version(collection['id'])
         )
         collection_stats.update({'solr_count': collection['solr_count']})

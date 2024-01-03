@@ -14,7 +14,11 @@ from rikolti.dags.shared_content_harvester import ContentHarvestEcsOperator
         'collection_id': 
         Param(None, description="Collection ID to harvest_content"),
         'page_filename':
-        Param(None, description="Page filename to harvest_content")
+        Param(None, description="Page filename to harvest_content"),
+        'mapper_type':
+        Param(None, description="Ignored unless 'nuxeo.nuxeo'"),
+        'with_content_urls_version':
+        Param(None, description="with_content_urls version path")
     },
     tags=["dev"],
 )
@@ -22,7 +26,9 @@ def ecs_content_harvest():
     harvest_content_for_page = ContentHarvestEcsOperator(
         task_id="page_content_harvester_on_ecs",
         collection_id="{{ params.collection_id }}",
+        with_content_urls_version="{{ params.with_content_urls_version }}",
         page="{{ params.page_filename }}",
+        mapper_type="{{ params.mapper_type }}",
     )
     harvest_content_for_page
 
@@ -40,7 +46,9 @@ def ecs_content_harvest():
             ]
         },
         collection_id = "{{ params.collection_id }}",
-        page="all"
+        with_content_urls_version="{{ params.with_content_urls_version }}",
+        page="all",
+        mapper_type="{{ params.mapper_type }}",
     )
     harvest_content_for_collection
 

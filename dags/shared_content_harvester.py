@@ -38,7 +38,7 @@ def get_awsvpc_config():
 
 
 class ContentHarvestEcsOperator(EcsRunTaskOperator):
-    def __init__(self, collection_id=None, content_data_version=None, page=None, **kwargs):
+    def __init__(self, collection_id=None, with_content_urls_version=None, page=None, mapper_type=None, **kwargs):
         container_name = "rikolti-content_harvester"
         if page:
             page_basename = page.split('/')[-1]
@@ -56,21 +56,22 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                         "name": container_name,
                         "command": [
                             f"{collection_id}",
-                            f"{page}",
-                            f"{content_data_version}"
+                            page,
+                            with_content_urls_version,
+                            mapper_type
                         ],
                         "environment": [
                             {
                                 "name": "MAPPED_DATA",
-                                "value": os.environ.get("CONTENT_DATA")
+                                "value": "file:///rikolti_data"
                             },
                             {
-                                "name": "CONTENT_DATA",
-                                "value": os.environ.get("CONTENT_DATA")
+                                "name": "WITH_CONTENT_URL_DATA",
+                                "value": "file:///rikolti_data"
                             },
                             {
                                 "name": "CONTENT_ROOT",
-                                "value": os.environ.get("CONTENT_ROOT")
+                                "value": "file:///rikolti_content"
                             },
                             {
                                 "name": "NUXEO_USER",
@@ -109,11 +110,11 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
 
 
 class ContentHarvestDockerOperator(DockerOperator):
-    def __init__(self, collection_id, content_data_version, page, **kwargs):
+    def __init__(self, collection_id, with_content_urls_version, page, mapper_type, **kwargs):
         mounts = []
-        if os.environ.get("CONTENT_DATA_MOUNT"):
+        if os.environ.get("METADATA_MOUNT"):
             mounts.append(Mount(
-                source=os.environ.get("CONTENT_DATA_MOUNT"),
+                source=os.environ.get("METADATA_MOUNT"),
                 target="/rikolti_data",
                 type="bind",
             ))
@@ -123,6 +124,19 @@ class ContentHarvestDockerOperator(DockerOperator):
                 target="/rikolti_content",
                 type="bind",
             ))
+        if os.environ.get("MOUNT_CODEBASE"):
+            mounts = mounts + [
+                Mount(
+                    source=f"{os.environ.get('MOUNT_CODEBASE')}/content_harvester",
+                    target="/content_harvester",
+                    type="bind"
+                ),
+                Mount(
+                    source=f"{os.environ.get('MOUNT_CODEBASE')}/utils",
+                    target="/rikolti/utils",
+                    type="bind"
+                )
+            ]
         if not mounts:
             mounts=None
 
@@ -139,22 +153,31 @@ class ContentHarvestDockerOperator(DockerOperator):
         args = {
             "image": f"{container_image}:{container_version}",
             "container_name": container_name,
-            "command": [f"{collection_id}", f"{page}", f"{content_data_version}"],
+            "command": [
+                f"{collection_id}",
+                page,
+                with_content_urls_version,
+                mapper_type
+            ],
             "network_mode": "bridge",
             "auto_remove": 'force',
             "mounts": mounts,
             "mount_tmp_dir": False,
             "environment": {
-                "MAPPED_DATA": os.environ.get("CONTENT_DATA"),
-                "CONTENT_DATA": os.environ.get("CONTENT_DATA"),
-                "CONTENT_ROOT": os.environ.get("CONTENT_ROOT"),
+                "MAPPED_DATA": "file:///rikolti_data",
+                "WITH_CONTENT_URL_DATA": "file:///rikolti_data",
+                "CONTENT_ROOT": "file:///rikolti_content",
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                 "NUXEO_PASS": os.environ.get("NUXEO_PASS")
             },
+            "max_active_tis_per_dag": 4
         }
         args.update(kwargs)
         super().__init__(**args)
 
+    def execute(self, context):
+        print(f"Running {self.command} on {self.image} image")
+        return super().execute(context)
 
 if CONTAINER_EXECUTION_ENVIRONMENT == 'ecs':
     ContentHarvestOperator = ContentHarvestEcsOperator

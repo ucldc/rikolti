@@ -48,20 +48,20 @@ vi env.local
 
 Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments.
 
-Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `VERNACULAR_DATA` to the URI where you would like Rikolti to store and retrieve fetched data - Rikolti will create a folder (or s3 prefix) `<collection_id>/vernacular_metadata` at this location. Set `MAPPED_DATA` to the URI where you would like Rikolti to store and retrieve mapped data - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_metadata` at this location. Set `CONTENT_DATA` to the URI where you would like Rikolti to store mapped data that has been updated with pointers to content files - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_with_content` at this location. Set `CONTENT_ROOT` to the URI where you would like Rikolti to store content files.
+Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `VERNACULAR_DATA` to the URI where you would like Rikolti to store and retrieve fetched data - Rikolti will create a folder (or s3 prefix) `<collection_id>/vernacular_metadata` at this location. Set `MAPPED_DATA` to the URI where you would like Rikolti to store and retrieve mapped data - Rikolti will create a folder (or s3 prefix) `<collection_id>/mapped_metadata` at this location. Set `WITH_CONTENT_URL_DATA` to the URI where you would like Rikolti to store mapped data that has been updated with urls to content files - Rikolti will create a folder (or s3 prefix) `<collection_id>/with_content_urls` at this location. Set `CONTENT_ROOT` to the URI where you would like Rikolti to store content files.
 
 For example, one way to configure `env.local` is:
 
 ```
 VERNACULAR_DATA=file:///Users/awieliczka/Projects/rikolti/rikolti_data
 MAPPED_DATA=$VERNACULAR_DATA
-CONTENT_DATA=$VERNACULAR_DATA
+WITH_CONTENT_URL_DATA=$VERNACULAR_DATA
 CONTENT_ROOT=file:///Users/awieliczka/Projects/rikolti/rikolti_content
 ```
 
 Each of these can be different locations, however. For example, if you're attempting to re-run a mapper locally off of previously fetched data stored on s3, you might set `VERNACULAR_DATA=s3://rikolti_data`.
 
-In env.example you'll also see `CONTENT_DATA_MOUNT` and `CONTENT_MOUNT` environment variables. These are only relevant if you are running the content harvester using airflow, and want to set and of the CONTENT_ environment variables to the local filesystem. Their usage is described below in the Airflow Development section.
+In env.example you'll also see `METADATA_MOUNT` and `CONTENT_MOUNT` environment variables. These are only relevant if you are running the content harvester using airflow, and want to set and of the CONTENT_ environment variables to the local filesystem. Their usage is described below in the Airflow Development section.
 
 ### Docker
 
@@ -172,20 +172,19 @@ Next, back in the Rikolti repository, create the `startup.sh` file by running `c
 ```
 export VERNACULAR_DATA=file:///usr/local/airflow/rikolti_data
 export MAPPED_DATA=file:///usr/local/airflow/rikolti_data
+export WITH_CONTENT_URL_DATA=file:///usr/local/airflow/rikolti_data
 ```
 
 The folder located at `RIKOLTI_DATA_HOME` (set in `aws-mwaa-local-runner/docker/.env`) is mounted to `/usr/local/airflow/rikolti_data` on the airflow docker container.
 
-Please also make sure the following `CONTENT_*` variables are set - `CONTENT_DATA_MOUNT` and `CONTENT_MOUNT` to wherever the rikolti_data and rikolti_content folders live on your local machine, for example:
+Please also make sure the following variables are set - `METADATA_MOUNT` and `CONTENT_MOUNT` to wherever the rikolti_data and rikolti_content folders live on your local machine, for example:
 
 ```
-export CONTENT_DATA_MOUNT=/Users/awieliczka/Projects/rikolti_data
+export METADATA_MOUNT=/Users/awieliczka/Projects/rikolti_data
 export CONTENT_MOUNT=/Users/awieliczka/Projects/rikolti_content
-export CONTENT_DATA=file:///rikolti_data
-export CONTENT_ROOT=file:///rikolti_content
 ```
 
-The folder located at `CONTENT_DATA_MOUNT` is mounted to `/rikolti_data` and the folder located at `CONTENT_MOUNT` is mounted to `/rikolti_content` on the content_harvester docker container.
+The folder located at `METADATA_MOUNT` is mounted to `/rikolti_data` and the folder located at `CONTENT_MOUNT` is mounted to `/rikolti_content` on the content_harvester docker container.
 
 You can specify a `CONTENT_HARVEST_IMAGE` and `CONTENT_HARVEST_VERSION` through environment variables as well. The default value for `CONTENT_HARVEST_IMAGE` is `public.ecr.aws/b6c7x7s4/rikolti/content_harvester` and the default value for `CONTENT_HARVEST_VERSION` is `latest`.
 
@@ -197,6 +196,12 @@ If you would like to run your own rikolti/content_harvester image instead of pul
 
 ```
 export CONTENT_HARVEST_IMAGE=rikolti/content_harvester
+```
+
+If you would like to mount your own codebase to the content_harvester container run via a DockerOperator in Airflow, then add the following to `dags/startup.sh`:
+
+```
+export MOUNT_CODEBASE=<path to rikolti, for example: /Users/awieliczka/Projects/rikolti>
 ```
 
 Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.

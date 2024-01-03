@@ -34,7 +34,7 @@ The above media and thumbnail fetching processes are enacted upon child metadata
 
 # Settings
 
-You can bypass uploading to s3 by setting `settings.CONTENT_DATA = "file://<local path>"` and `settings.CONTENT_ROOT = "file://<local_path>"`. This is useful for local development and testing. This will, however, set the metadata records' `media['media_filepath']` and `thumbnail['thumbnail_filepath']` to a local filepath. 
+You can bypass uploading to s3 by setting `WITH_CONTENT_URL_DATA = "file://<local path>"` and `CONTENT_ROOT = "file://<local_path>"`. This is useful for local development and testing. This will, however, set the metadata records' `media['media_filepath']` and `thumbnail['thumbnail_filepath']` to a local filepath (thus rendering the output useless for publishing).
 
 # Local Development
 

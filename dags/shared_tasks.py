@@ -1,4 +1,5 @@
 import boto3
+import pprint
 import os
 from datetime import datetime
 
@@ -14,13 +15,12 @@ from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.record_indexer.create_collection_index import create_new_index
-from rikolti.record_indexer.create_collection_index import get_index_name
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 from rikolti.utils.versions import create_vernacular_version
 from rikolti.utils.versions import get_version
 from rikolti.utils.versions import create_mapped_version
-from rikolti.utils.versions import create_content_data_version
+from rikolti.utils.versions import create_with_content_urls_version
 
 
 # TODO: remove the rikoltifetcher registry endpoint and restructure
@@ -55,24 +55,56 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
         '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
     ]
     """
-    fetch_status = fetch_collection(collection, vernacular_version, {})
-    success = all([page['status'] == 'success' for page in fetch_status])
-    total_items = sum([page['document_count'] for page in fetch_status])
-    total_pages = len(fetch_status)
-    diff_items = total_items - collection['solr_count']
+    def flatten_stats(stats):
+        success = all([page_stat['status'] == 'success' for page_stat in stats])
+        total_items = sum([page_stat['document_count'] for page_stat in stats])
+        total_pages = len(stats)
+        filepaths = [page_stat['vernacular_filepath'] for page_stat in stats]
+
+        children = False
+        for page_stat in stats:
+            child_pages = page_stat.get('children')
+            if child_pages:
+                flat_stats = flatten_stats(child_pages)
+                success = success and flat_stats['success']
+                total_items = total_items + flat_stats['total_items']
+                total_pages = total_pages + flat_stats['total_pages']
+                filepaths = filepaths + flat_stats['filepaths']
+                children = True
+
+        return {
+            'success': success,
+            'total_items': total_items,
+            'total_pages': total_pages,
+            'filepaths': filepaths,
+            'children': children
+        }
+
+    fetch_status = fetch_collection(collection, vernacular_version)
+    stats = flatten_stats(fetch_status)
+    total_parent_items = sum([page['document_count'] for page in fetch_status])
+    diff_items = total_parent_items - collection['solr_count']
     date = datetime.strptime(
         collection['solr_last_updated'],
         "%Y-%m-%dT%H:%M:%S.%f"
     )
 
     print(
-        f"{'Successfully fetched' if success else 'Error fetching'} "
+        f"{'Successfully fetched' if stats['success'] else 'Error fetching'} "
         f"collection {collection['collection_id']}"
     )
     print(
-        f"Fetched {total_items} items across {total_pages} pages "
-        f"at a rate of ~{total_items / total_pages} items per page"
+        f"Fetched {stats['total_items']} items across {stats['total_pages']} "
+        f"pages at a rate of ~{stats['total_items'] / stats['total_pages']} "
+        "items per page"
     )
+    if stats['children']:
+        print(
+            f"Fetched {total_parent_items} parent items across "
+            f"{len(fetch_status)} pages and "
+            f"{stats['total_items']-total_parent_items} child items across "
+            f"{stats['total_pages']-len(fetch_status)} child pages"
+        )
     print(
         f"As of {datetime.strftime(date, '%B %d, %Y %H:%M:%S.%f')} "
         f"Solr has {collection['solr_count']} items"
@@ -83,15 +115,16 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
             f"{'more' if diff_items > 0 else 'fewer'} items."
         )
 
-    vernacular_filepaths = [page['vernacular_filepath'] for page in fetch_status]
-    if not vernacular_filepaths or not success:
+    if not stats['filepaths'] or not stats['success']:
         raise Exception(
-            'vernacular metadata not successfully fetched\n{fetch_status}')
+            f"vernacular metadata not successfully fetched"
+            f"\n{pprint.pprint(fetch_status)}\n{stats['success']}\n{stats['filepaths']}"
+        )
 
-    return vernacular_filepaths
+    return stats['filepaths']
 
 
-@task()
+@task(multiple_outputs=True)
 def get_collection_metadata_task(params=None):
     if not params or not params.get('collection_id'):
         raise ValueError("Collection ID not found in params")
@@ -199,28 +232,21 @@ def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) ->
 
 
 @task()
-def create_content_data_version_task(collection: dict, mapped_pages: list[dict]):
+def create_with_content_urls_version_task(collection: dict, mapped_pages: list[dict]):
     mapped_version = get_version(
         collection['id'], mapped_pages[0]['mapped_page_path'])
-    return create_content_data_version(mapped_version)
+    return create_with_content_urls_version(mapped_version)
 
 
 @task()
-def create_stage_index_task(collection: dict, index_name: str):
+def create_stage_index_task(collection: dict, version_pages: list[str]):
     collection_id = collection.get('id')
     if not collection_id:
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
-    create_new_index(collection_id, index_name)
 
-
-@task()
-def get_index_name_task(collection: dict, version: str):
-    collection_id = collection.get('id')
-    if not collection_id:
-        raise ValueError(
-            f"Collection ID not found in collection metadata: {collection}")
-    return get_index_name(collection_id, version)
+    index_name = create_new_index(collection_id, version_pages)
+    return index_name
 
 
 # Task is triggered if at least one upstream (direct parent) task has failed

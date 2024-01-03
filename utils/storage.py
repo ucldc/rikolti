@@ -227,11 +227,13 @@ def upload_file(filepath:str, data_uri: str, **kwargs):
     Creates any subdirectories required to successfully write to data_uri.
     """
     data = parse_data_uri(data_uri)
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
 
     if data.store == 's3':
         return upload_s3_file(data, filepath, **kwargs)
     elif data.store == 'file':
-        return move_file(data, filepath)
+        return copy_file(data, filepath)
     else:
         raise Exception(f"Unknown data store: {data.store}")
 
@@ -247,7 +249,7 @@ def upload_s3_file(data: DataStorage, filepath, **kwargs):
     )
     return data.uri
 
-def move_file(data: DataStorage, filepath):
+def copy_file(data: DataStorage, filepath):
     destination_path = os.sep.join(data.path.split('/'))
     directory_path = os.path.dirname(destination_path)
     if not os.path.exists(directory_path):

@@ -4,10 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', False)
-AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', False)
-AWS_SESSION_TOKEN = os.environ.get('AWS_SESSION_TOKEN', False)
-AWS_REGION = os.environ.get('AWS_REGION', False)
+AWS_CREDENTIALS = {
+    "aws_access_key_id": os.environ.get('AWS_ACCESS_KEY_ID', False),
+    "aws_secret_access_key": os.environ.get('AWS_SECRET_ACCESS_KEY', False),
+    "aws_session_token": os.environ.get('AWS_SESSION_TOKEN', False),
+    "aws_region": os.environ.get('AWS_REGION', False)
+}
 
 NUXEO_USER = os.environ.get('NUXEO_USER', '')
 NUXEO_PASS = os.environ.get('NUXEO_PASS', '')

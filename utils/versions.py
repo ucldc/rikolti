@@ -85,19 +85,34 @@ def create_validation_version(
         suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     return f"{mapped_version}/validation_{suffix}.csv"
 
-def create_content_data_version(
+def create_with_content_urls_version(
         mapped_version: str, suffix: Optional[str] = None) -> str:
     """
     Given a mapped version, ex: 3433/vernacular_metadata_v1/mapped_metadata_v2/
-    and a version suffix, ex: v2, creates a new content data version, ex:
-    3433/vernacular_metadata_v1/mapped_metadata_v2/content_data_v2/
+    and a version suffix, ex: v2, creates a new with content urls version, ex:
+    3433/vernacular_metadata_v1/mapped_metadata_v2/with_content_urls_v2/
 
     If no suffix is provided, uses the current datetime.
     """
     mapped_version = mapped_version.rstrip('/')
     if not suffix:
         suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    return f"{mapped_version}/content_data_{suffix}/"
+    return f"{mapped_version}/with_content_urls_{suffix}/"
+
+def create_merged_version(
+        with_content_urls_version: str, suffix: Optional[str] = None) -> str:
+    """
+    Given a with content urls version, ex: 
+    3433/vernacular_metadata_v1/mapped_metadata_v2/with_content_urls_v2/ and a
+    version suffix, ex: v1, creates a new merged version, ex:
+    3433/vernacular_metadata_v1/mapped_metadata_v2/with_content_urls_v2/merged_v1/
+
+    If no suffix is provided, uses the current datetime.
+    """
+    with_content_urls_version = with_content_urls_version.rstrip('/')
+    if not suffix:
+        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    return f"{with_content_urls_version}/merged_{suffix}/"
 
 def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     """
@@ -148,6 +163,27 @@ def get_mapped_pages(version, **kwargs):
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)
     return [path[len(data_root)+1:] for path in page_list]
 
+def get_with_content_urls_pages(version, **kwargs):
+    """
+    resolves a with_content_urls version to a data_uri at 
+    $WITH_CONTENT_URL_DATA/<version>/
+    returns a list of version pages located at that data_uri.
+    """
+    data_root = os.environ.get("WITH_CONTENT_URL_DATA", "file:///tmp")
+    data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
+    page_list = storage.list_pages(data_path, recursive=True, **kwargs)
+    return [path[len(data_root)+1:] for path in page_list]
+
+def get_merged_pages(version, **kwargs):
+    """
+    resolves a merged version to a data_uri at $MERGED_DATA/<version>/
+    returns a list of version pages located at that data_uri.
+    """
+    data_root = os.environ.get("MERGED_DATA", "file:///tmp")
+    data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
+    page_list = storage.list_pages(data_path, recursive=False, **kwargs)
+    return [path[len(data_root)+1:] for path in page_list]
+
 def get_child_directories(version, **kwargs):
     """
     resolves a mapped version to a data_uri at $MAPPED_DATA/<version>/data/
@@ -196,6 +232,16 @@ def get_mapped_page_content(version_page):
     content = storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
     return json.loads(content)
 
+def get_with_content_urls_page_content(version_page):
+    data_root = os.environ.get("WITH_CONTENT_URL_DATA", "file:///tmp").rstrip('/')
+    content = storage.get_page_content(f"{data_root}/{version_page}")
+    return json.loads(content)
+
+def get_merged_page_content(version_page):
+    data_root = os.environ.get("MERGED_DATA", "file:///tmp").rstrip('/')
+    content = storage.get_page_content(f"{data_root}/{version_page}")
+    return json.loads(content)
+
 def put_vernacular_page(content: str, page_name: Union[int, str], version: str):
     """
     resolves a version path to a page uri at $VERNACULAR_DATA/<version>/data/<page_name>
@@ -218,17 +264,23 @@ def put_mapped_page(content, page_name, version):
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}.jsonl"
 
-def put_content_data_page(content, page_name, version):
+def put_with_content_urls_page(content, page_name, version):
     """
-    resolves a version path to a page uri at $CONTENT_DATA/<version>/data/<page_name>
+    resolves a version path to a page uri at $WITH_CONTENT_URL_DATA/<version>/data/<page_name>
     and writes content to that data uri. returns the version page.
 
     content should be a json.dumped string of a list of dicts.
     """
-    data_root = os.environ.get("CONTENT_DATA", "file:///tmp")
+    data_root = os.environ.get("WITH_CONTENT_URL_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}"
+
+def put_merged_page(content, page_name, version):
+    data_root = os.environ.get("MERGED_DATA", "file:///tmp")
+    path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}.jsonl"
+    storage.put_page_content(content, path)
+    return f"{version.rstrip('/')}/data/{page_name}.jsonl"
 
 def put_validation_report(content, version_page):
     """

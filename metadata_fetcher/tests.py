@@ -27,7 +27,7 @@ def main():
     for harvest in harvests:
         print(f"tests.py: {json.dumps(harvest)}")
         vernacular_version = create_vernacular_version(harvest.get('collection_id'))
-        status = fetch_collection(json.dumps(harvest), vernacular_version, {})
+        status = fetch_collection(json.dumps(harvest), vernacular_version)
         print(f"Harvest status: {status}")
 
     urls = [

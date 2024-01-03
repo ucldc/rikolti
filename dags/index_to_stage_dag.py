@@ -1,28 +1,43 @@
 from datetime import datetime
 
-from airflow.decorators import dag
+from airflow.decorators import dag, task
 from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks import cleanup_failed_index_creation_task
 from rikolti.dags.shared_tasks import create_stage_index_task
 from rikolti.dags.shared_tasks import get_collection_metadata_task
-from rikolti.dags.shared_tasks import get_index_name_task
+from rikolti.utils.versions import get_merged_pages, get_with_content_urls_pages
+
+
+@task()
+def get_version_pages(params=None):
+    if not params or not params.get('version'):
+        raise ValueError("Version path not found in params")
+    version = params.get('version')
+
+    if 'merged' in version:
+        version_pages = get_merged_pages(version)
+    else:
+        version_pages = get_with_content_urls_pages(version)
+
+    return version_pages
+
 
 @dag(
     dag_id="index_collection_to_stage",
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'collection_id': Param(None, description="Collection ID to index")},
+    params={
+        'collection_id': Param(None, description="Collection ID to index"),
+        'version': Param(None, description="Version path to index")
+    },
     tags=["rikolti"],
 )
 def index_collection_to_stage_dag():
     collection = get_collection_metadata_task()
-    # Once we start keeping dated versions of mapped metadata on S3,
-    # the version will correspond to the S3 namespace
-    datetime_string = datetime.today().strftime("%Y%m%d%H%M%S")
-    index_name = get_index_name_task(collection=collection, version=datetime_string)
-    create_stage_index_task(collection=collection, index_name=index_name) >> \
-        cleanup_failed_index_creation_task(index_name=index_name)
+    version_pages = get_version_pages()
+    index_name = create_stage_index_task(collection, version_pages)
+    cleanup_failed_index_creation_task(index_name=index_name)
 
 index_collection_to_stage_dag()
