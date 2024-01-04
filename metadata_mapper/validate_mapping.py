@@ -173,8 +173,8 @@ def make_solr_request(**params):
         res = requests.post(solr_url, headers=solr_auth, data=query, verify=False)
         res.raise_for_status()
     except Exception as e:
-        print(query)
-        print(solr_url)
+        print(f"Error making post request to {solr_url}", file=sys.stderr)
+        print(f"Errored solr query: {query}", file=sys.stderr)
         raise(e)
     return json.loads(res.content.decode('utf-8'))
 
