@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 
@@ -38,7 +39,7 @@ class PsplValidator(Validator):
             {
                 "field": "is_shown_by",
                 "validations": [
-                    PsplValidator.str_match_ignore_url_protocol,
+                    PsplValidator.str_match_ignore_url_template,
                     Validator.verify_type(str)
                 ]
             },
@@ -55,6 +56,30 @@ class PsplValidator(Validator):
             comparison_value = comparison_value.replace('http', 'https')
 
         if not rikolti_value == comparison_value:
+            return "Content mismatch"
+
+    @staticmethod
+    def str_match_ignore_url_template(validation_def: dict,
+                                      rikolti_value: Any,
+                                      comparison_value: Any) -> None:
+        if rikolti_value == comparison_value:
+            return
+
+        old_template = (
+            r"http://collections\.accessingthepast\.org/cgi-bin/imageserver"
+            r"\.pl\?oid=(?P<oid>.+)&width=400&ext=jpg"
+        )
+
+        new_template = (
+            r"https://collections\.accessingthepast\.org/\?a=is&oid=(?P<oid>.+)"
+            r"&type=pagethumbnailimage&width=200"
+        )
+
+        old_match = re.fullmatch(old_template, comparison_value)
+        new_match = re.fullmatch(new_template, rikolti_value)
+        if old_match and new_match and old_match['oid'] == new_match['oid']:
+            return
+        else:
             return "Content mismatch"
 
 
