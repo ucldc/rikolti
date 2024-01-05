@@ -127,7 +127,7 @@ class Validator:
         self.validatable_fields.append({k: v for k, v in validation_def.items() if v})
         return True
 
-    def add_validatable_fields(self, *fields: list[dict[str, Any]]) -> dict[str, bool]:
+    def add_validatable_fields(self, fields: list[dict[str, Any]]) -> dict[str, bool]:
         """
         Adds a list of validatable fields.
 

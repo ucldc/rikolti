@@ -39,7 +39,7 @@ class CcaVaultRecord(OaiRecord):
 class CcaVaultValidator(Validator):
 
     def setup(self):
-        self.add_validatable_fields(
+        self.add_validatable_fields([
             {
                 "field": "is_shown_by",
                 "validations": [
@@ -57,7 +57,7 @@ class CcaVaultValidator(Validator):
                 "validations": [CcaVaultValidator.description_match],
                 "level": ValidationLogLevel.WARNING,
             }
-        )
+        ])
 
     @staticmethod
     def str_match_ignore_url_protocol(validation_def: dict,

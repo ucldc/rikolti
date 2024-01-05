@@ -26,7 +26,7 @@ class PsplRecord(OaiRecord):
 
 class PsplValidator(Validator):
     def setup(self):
-        self.add_validatable_fields(
+        self.add_validatable_fields([
             {
                 "field": "is_shown_at",
                 "validations": [
@@ -42,7 +42,7 @@ class PsplValidator(Validator):
                     Validator.verify_type(str)
                 ]
             },
-        )
+        ])
 
     @staticmethod
     def str_match_ignore_url_protocol(validation_def: dict,
