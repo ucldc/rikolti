@@ -5,6 +5,8 @@ import re
 import requests_mock
 import traceback
 
+from textwrap import dedent
+
 from .helpers.base_helper import BaseTestHelper
 from ..mappers.mapper import Record
 
@@ -55,14 +57,16 @@ class TestMapper:
             except Exception as exc:
                 pytest.assume(
                     False,
-                    f"{type(instance).__name__} raised '{exc}' at mapping:\n"
-                    f"{traceback.format_exc()}",
+                    dedent(f"""\n**{type(instance).__name__}** raised error '{exc}'
+                    at time of mapping.\n Here's the backtrace:\n
+                    {traceback.format_exc()}"""),
                 )
         except Exception as exc:
             pytest.assume(
                 False,
-                f"{record_class.__name__} raised '{exc}' at initialization:\n"
-                f"{traceback.format_exc()}",
+                dedent(f"""\n**{record_class.__name__}** raised error '{exc}'
+                at time of initialization.\n Here's the backtrace:\n
+                {traceback.format_exc()}"""),
             )
 
     # Test methods (invoked by pytest)
@@ -100,7 +104,8 @@ class TestMapper:
                     continue
 
                 module = importlib.import_module(
-                    f".mappers.{'.'.join(module_parts)}", package="rikolti.metadata_mapper"
+                    f".mappers.{'.'.join(module_parts)}",
+                    package="rikolti.metadata_mapper",
                 )
                 helper_class = BaseTestHelper.for_mapper(module_parts)
 
