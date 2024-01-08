@@ -24,11 +24,6 @@ class BaseTestHelper:
     # the final fixture schema.
     SCHEMA = {}
 
-    # Values generated for any field name in STATIC_ATTRS is cached so that it
-    # can be reused. This is especially useful for identifier fields that need
-    # to be referenced multiple times throughout fixture generation.
-    STATIC_ATTRS = ["id", "identifier"]
-
     @classmethod
     def for_mapper(cls, module_parts: list[str]) -> type["BaseTestHelper"]:
         helper_path = None
@@ -64,7 +59,7 @@ class BaseTestHelper:
         else:
             return None
 
-    def __init__(self, request_mock):
+    def __init__(self, request_mock=None):
         self.request_mock = request_mock
         self.faker = Faker()
         self.collection_id = self.faker.pyint()
@@ -87,37 +82,33 @@ class BaseTestHelper:
         """
         Generates a test data fixture.
         """
-        schema = self.SCHEMA or {}
-
-        superschemas = [
-            super(c, self).SCHEMA
-            for c in list(reversed(type(self).__mro__))
-            if hasattr(super(c, self), "SCHEMA")
-        ]
-
-
-
-        for superschema in superschemas:
-            schema = {**superschema, **schema}
+        schema = self.merged_schema(schema_index)
 
         return {
             key: self.generate_value_for(key, type) for (key, type) in schema.items()
         }
 
+    def merged_schema(self, schema_index: int = 0) -> dict[str, Any]:
+        inheritance_chain = list(reversed(type(self).__mro__))
+        superschemas = [
+            super(cls, self).SCHEMA
+            for cls in inheritance_chain
+            if hasattr(super(cls, self), "SCHEMA")
+        ]
+
+        schema = {}
+        for superschema in superschemas:
+            schema = {**schema, **superschema}
+
+        return {**schema, **self.SCHEMA}
+
     def generate_value_for(
         self,
         field_name: str = None,
         expected_type: Union[type, list, str] = str,
-        skip_static: bool = False,
     ) -> Any:
         if isinstance(expected_type, str):
             return getattr(self, expected_type)()
-        elif not skip_static and field_name in self.STATIC_ATTRS:
-            if not self.static.get(field_name):
-                self.static[field_name] = self.generate_value_for(
-                    field_name, expected_type, skip_static=True
-                )
-                return self.static[field_name]
         elif isinstance(expected_type, type):
             return self.generate_value_of_type(expected_type)
         elif isinstance(expected_type, list):
