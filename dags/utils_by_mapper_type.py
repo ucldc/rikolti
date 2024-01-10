@@ -176,7 +176,7 @@ def validate_endpoint_task(url, mapped_versions, params=None):
             )
             print(
                 f"Review collection data at: "
-                "https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
+                f"https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
                 f"#{collection['mapped_version'].rstrip('/')}/data/"
             )
 
