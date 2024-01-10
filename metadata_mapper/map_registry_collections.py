@@ -34,6 +34,7 @@ def map_endpoint(url, fetched_versions, limit=None):
 
     if not limit:
         limit = total
+    limit = int(limit)
 
     print(f">>> Mapping {limit}/{total} collections described at {url}")
     # print(map_report_headers)

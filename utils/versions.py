@@ -158,6 +158,8 @@ def get_mapped_pages(version, **kwargs):
     resolves a mapped version to a data_uri at $MAPPED_DATA/<version>/
     returns a list of version pages located at that data_uri.
     """
+    if not version:
+        raise ValueError("versions.get_mapped_pages: No mapped version path provided")
     data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)
