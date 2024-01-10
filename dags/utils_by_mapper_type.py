@@ -56,7 +56,7 @@ def make_mapper_type_endpoint(params=None):
 
     offset = params.get('offset')
     if offset:
-        endpoint = endpoint + "&offset={offset}"
+        endpoint = endpoint + f"&offset={offset}"
 
     print("Fetching, mapping, and validating collections listed at: ")
     print(endpoint)
@@ -131,8 +131,10 @@ def validate_endpoint_task(url, mapped_versions, params=None):
     response = requests.get(url=url)
     response.raise_for_status()
     total = response.json().get('meta', {}).get('total_count', 1)
+    progress = 0
     if not limit:
         limit = total
+    limit = int(limit)
 
     print(f">>> Validating {limit}/{total} collections described at {url}")
 
@@ -141,13 +143,14 @@ def validate_endpoint_task(url, mapped_versions, params=None):
 
     for collection in registry_endpoint(url):
         collection_id = collection['collection_id']
+        progress = progress + 1
         print(f"{collection_id:<6} Validating collection")
 
         mapped_version = mapped_versions.get(str(collection_id))
         try:
             mapped_pages = get_mapped_pages(mapped_version)
-        except FileNotFoundError:
-            print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
+        except (FileNotFoundError, ValueError) as e:
+            print(f"{collection_id:<6}: not mapped yet; {e}", file=sys.stderr)
             continue
 
         num_rows, version_page = create_collection_validation_csv(
@@ -159,6 +162,9 @@ def validate_endpoint_task(url, mapped_versions, params=None):
             'data_uri': f"{data_root.rstrip('/')}/{version_page}"
         }
         print(f"Output {num_rows} rows to {version_page}")
+
+        if limit and progress >= limit:
+            break
 
     if data_root.startswith('s3'):
         for collection in collections.values():
