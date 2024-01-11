@@ -297,13 +297,13 @@ class NuxeoValidator(Validator):
         if not set(rikolti_value.keys()).issubset(set(expected_keys)):
             return ("Rikolti value includes unexpected keys")
 
-        if not 'url' in rikolti_value.keys():
+        if 'url' not in rikolti_value.keys():
             return "Rikolti value missing required url key value pair"
 
-        if not 'mimetype' in rikolti_value.keys():
+        if 'mimetype' not in rikolti_value.keys():
             return "Rikolti value missing mimetype key value pair, defaults to image/jpeg"
 
-        if not 'filename' in rikolti_value.keys():
+        if 'filename' not in rikolti_value.keys():
             return "Rikolti value missing filename key value pair, defaults to basename of url"
 
         return
