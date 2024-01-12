@@ -1,5 +1,6 @@
 --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.6.3/constraints-3.10.txt"
 boto3
+opensearch-py
 requests
 sickle
 python-dotenv
