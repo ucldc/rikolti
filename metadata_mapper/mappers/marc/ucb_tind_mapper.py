@@ -1,4 +1,5 @@
 from .marc_mapper import MarcRecord, MarcVernacular
+from ..oai.oai_mapper import OaiVernacular
 
 from sickle import models
 from pymarc import parse_xml_to_array
@@ -8,56 +9,123 @@ from io import StringIO
 
 class UcbTindRecord(MarcRecord):
     def UCLDC_map(self):
-        print({
+        return {
             "calisphere-id": self.legacy_couch_db_id.split("--")[1],
-            "isShownAt": self.map_is_shown_at,
-            "isShownBy": self.map_is_shown_by,
-            "title": self.get_marc_field("245", subfield_key="a"),
+            "isShownAt": self.get_marc_values(["856"], ["u"]),
+            "isShownBy": self.get_marc_values(["856"], ["u"]),
+            "language": self.get_marc_values(["041"], ["a"]),
+            "date": self.get_marc_values(["260"], ["c"]),
+            "publisher": self.get_marc_values(["260"], ["a", "b"]),
+            "format": self.get_marc_values(["337", "338", "340"], ["a"]),
+            "extent": self.map_extent,
+            "identifier": self.get_marc_values(["020", "022", "035"], ["a"]),
+            "creator": self.get_marc_values(["100", "110", "111"]),
+            "relation": self.map_relation,
+            "description": self.map_description,
+            "rights": self.get_marc_values(["506", "540"]),
+            "temporal": self.get_marc_values(["648"]),
+            "contributor": self.get_marc_values(["700", "710", "711", "720"]),
+            "title": self.map_title,
+            "spatial": self.map_spatial,
+        }
 
-            # lambda_shepherd misreports that `marc.ucb_tind not yet implemented` if
-            # this isn't here
-            "collection": ["collections1", "collections2"],
-            "identifier": ["identifier1", "identifier2"]
-        })
+    def get_metadata_fields(self):
+        return [str(i) for i in [600, 630, 650, 651] + list(range(610, 620)) + list(
+            range(653, 659)) + list(range(690, 700))]
 
-    def map_is_shown_at(self):
+    def map_spatial(self) -> list:
+        f651 = self.get_marc_values(["651"], ["a"])
+
+        return f651 + self.get_marc_values(self.get_metadata_fields(), ["z"])
+
+    def map_subject(self) -> list:
+        return self.get_marc_values(self.get_metadata_fields())
+
+    def map_temporal(self) -> list:
+        f648 = self.get_marc_values(["648"])
+
+        return f648 + self.get_marc_values(self.get_metadata_fields(), ["y"])
+
+    def map_format(self) -> list:
+        return self.get_marc_values(self.get_metadata_fields(), ["v"])
+
+    def map_description(self) -> list:
+        field_range = [str(i) for i in range(500, 600) if i != 538]
+
+        return self.get_marc_values(field_range)
+
+    def map_relation(self) -> list:
+        field_range = [str(i) for i in range(760, 788)]  # Up to 787
+
+        self.get_marc_values(field_range)
+
+    def map_identifier(self) -> list:
+        f050 = self.get_marc_values(["050"], ["a", "b"])
+
+        return f050 + self.get_marc_values(["020", "022", "035"], ["a"])
+
+    def map_extent(self) -> list:
         """
-        Can we identify is_shown_at by something about the URL format?
-        :return:
+        Retrieves the extent values from MARC field 300 and 340.
+
+        :return: A list of extent values.
         """
-        return self.get_marc_field("856", subfield_key="u")
+        return self.get_marc_values(["300"]) + self.get_marc_values(["340"], ["b"])
 
-    def map_is_shown_by(self):
+    def map_title(self):
+        # 245, all subfields except c
+        f245 = self.get_marc_values(["245"], ["c"], exclude_subfields=True)
+
+        # 242, all subfields
+        f242 = self.get_marc_values(["242"])
+
+        # 240, all subfields
+        f240 = self.get_marc_values(["240"])
+
+        return f245 + f242 + f240
+
+    def get_marc_values(self, field_tags: list, subfield_codes=[], **kwargs) -> list:
         """
-        Can we identify is_shown_by by something about the URL format?
-        :return:
+        Get the values of specified subfields from given MARC fields.
+
+        :param field_tags: A list of MARC fields.
+        :param subfield_codes: A list of subfield codes to filter the values. If empty, all subfields will be included.
+        :return: A list of values of the specified subfields.
         """
-        return self.get_marc_field("856", subfield_key="u")
 
-    def get_marc_field(self, field_key: str, subfield_key: str = None):
-        fields = self.source_metadata.get("fields")
-        if not fields:
-            return
-        matching_fields = []
-        for field in fields:
-            fk, fv = list(field.items())[0]
-            if field_key == fk:
-                matching_fields.append(fv)
+        def include_subfield(check_code, subfield_codes, exclude_subfields):
+            if not subfield_codes:
+                return True
+            if exclude_subfields:
+                return check_code not in subfield_codes
+            else:
+                return check_code in subfield_codes
 
-        if not matching_fields:
-            return []
+        exclude_subfields = "exclude_subfields" in kwargs and kwargs[
+            'exclude_subfields']
 
-        subfield_values = []
-        for field in matching_fields:
-            subfields = field.get("subfields")
-            for subfield in subfields:
-                sk, sv = list(subfield.items())[0]
-                if subfield_key == sk or subfield_key is None:
-                    subfield_values.append(sv)
-        return subfield_values
+        matching_fields = [field for field in self.get_marc_fields(field_tags)]
+
+        value_list = [value
+                      for matching_field in matching_fields
+                      for subfield in list(matching_field.subfields_as_dict().items())
+                      for value in subfield[1]
+                      if include_subfield(subfield[0], subfield_codes, exclude_subfields)]
+
+        return value_list if isinstance(value_list, list) else []
+
+    def get_marc_fields(self, field_tags: list) -> list:
+        """
+        Get the specified MARC fields from the source_metadata.
+
+        :param field_tags: List of MARC fields to retrieve.
+        :return: List of MARC fields from the source_metadata.
+        """
+
+        return [f for f in self.source_metadata.get("marc").get_fields(*field_tags)]
 
 
-class UcbTindVernacular(MarcVernacular):
+class UcbTindVernacular(OaiVernacular):
     record_cls = UcbTindRecord
 
     def _process_record(self, record_element: list, request_url: str) -> UcbTindRecord:
@@ -79,16 +147,17 @@ class UcbTindVernacular(MarcVernacular):
              f'{marc_record_string}'
              '</collection>')
 
-        record = parse_xml_to_array(StringIO(marc_collection_xml_full))[0].as_dict()
-
         sickle_rec = models.Record(record_element)
         sickle_header = sickle_rec.header
 
         if sickle_header.deleted:
             return None
 
-        record["datestamp"] = sickle_header.datestamp
-        record["id"] = sickle_header.identifier
-        record["request_url"] = request_url
+        record = {
+            "datestamp": sickle_header.datestamp,
+            "id": sickle_header.identifier,
+            "request_url": request_url,
+            "marc": parse_xml_to_array(StringIO(marc_collection_xml_full))[0]
+        }
 
         return record
