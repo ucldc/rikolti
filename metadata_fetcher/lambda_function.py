@@ -2,6 +2,7 @@ import importlib
 import json
 import logging
 import sys
+import time
 
 from .fetchers.Fetcher import Fetcher
 from rikolti.utils.versions import create_vernacular_version
@@ -21,7 +22,7 @@ def import_fetcher(harvest_type):
 
 
 # AWS Lambda entry point
-def fetch_collection(payload, vernacular_version) -> list[dict]:
+def fetch_collection(payload, vernacular_version, context, sleep=False) -> list[dict]:
     """
     returns a list of dicts with the following keys:
         document_count: int
@@ -38,6 +39,23 @@ def fetch_collection(payload, vernacular_version) -> list[dict]:
     payload.update({'vernacular_version': vernacular_version})
     next_page = payload
     fetch_status = []
+    try:
+        if sleep:
+            print("Sleeping!")
+            time.sleep(1)
+            print("Done Sleeping!")
+        fetcher = fetcher_class(payload)
+        fetch_status.append(fetcher.fetch_page())
+    except InvalidHarvestEndpoint as e:
+        logger.error(e)
+        fetch_status.append({
+            'status': 'error',
+            'body': json.dumps({
+                'error': repr(e),
+                'payload': payload
+            })
+        })
+        return fetch_status
 
     while not next_page.get('finished'):
         fetcher = fetcher_class(next_page)
