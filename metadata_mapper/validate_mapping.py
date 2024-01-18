@@ -2,6 +2,7 @@ import json
 import functools
 import sys
 from typing import Type
+from collections import Counter
 
 import requests
 import urllib3
@@ -66,6 +67,15 @@ def validate_collection(collection_id: int,
         all_rikolti_ids += rikolti_ids
         new_rikolti_ids += new_ids
 
+    id_counter = Counter(all_rikolti_ids)
+    dupes = [(item, count) for item, count in id_counter.items() if count > 1]
+    if dupes:
+        dupes.sort(key=lambda x: x[1], reverse=True)
+        num_dupes = sum([count for _, count in dupes]) - len(dupes)
+        print(
+            f"ERROR: {num_dupes} duplicate harvest_ids found in rikolti data:")
+        print(dupes)
+
     # check all objects in rikolti against objects in solr
     num_lost_solr_ids, num_solr_records = validate_collection_from_solr(
         collection_id, all_rikolti_ids, validator)
@@ -86,7 +96,6 @@ def validate_collection(collection_id: int,
 
 def validate_collection_from_solr(
         collection_id: int, all_rikolti_ids: list[str], validator: Validator):
-    print(f"{collection_id:>6} Validating {len(all_rikolti_ids)} rikolti records against solr")
     # check all objects in solr against objects in rikolti to track lost objects
     solr_ids = get_all_solr_records_in_collection(collection_id)
     lost_solr_ids = list(set(solr_ids).difference(set(all_rikolti_ids)))
