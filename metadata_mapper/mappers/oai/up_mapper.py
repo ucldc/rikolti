@@ -17,7 +17,8 @@ class UpRecord(OaiRecord):
             return
 
         values = [u.replace('thumbnail', 'preview')
-                  for u in filter(None, self.source_metadata.get('description'))]
+                  for u in self.source_metadata.get('description', [])
+                  if 'thumbnail.jpg' in u]
 
         if values:
             return values[0]
