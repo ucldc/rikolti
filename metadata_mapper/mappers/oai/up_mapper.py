@@ -7,6 +7,11 @@ from ..mapper import Validator
 
 
 class UpRecord(OaiRecord):
+    def UCLDC_map(self):
+        return {
+            "description": self.map_description
+        }
+
     def map_is_shown_by(self):
         if 'description' not in self.source_metadata:
             return
