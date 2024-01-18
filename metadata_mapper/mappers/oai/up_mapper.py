@@ -1,4 +1,5 @@
-from typing import Any
+import re
+from typing import Any, Optional
 
 
 from .oai_mapper import OaiRecord, OaiVernacular
@@ -52,12 +53,19 @@ class UpValidator(Validator):
                     Validator.verify_type(str)
                 ]
             },
+            {
+                "field": "identifier",
+                "validations": [
+                    UpValidator.identifier_ignore_url_template_match,
+                    Validator.verify_type(Validator.list_of(str))
+                ]
+            }
         ])
 
     @staticmethod
     def str_match_ignore_url_protocol(validation_def: dict,
                                     rikolti_value: Any,
-                                    comparison_value: Any) -> None:
+                                    comparison_value: Any) -> Optional[str]:
         if rikolti_value == comparison_value:
             return
 
@@ -65,6 +73,55 @@ class UpValidator(Validator):
             comparison_value = comparison_value.replace('http', 'https')
 
         if not rikolti_value == comparison_value:
+            return "Content mismatch"
+
+
+    @staticmethod
+    def identifier_ignore_url_template_match(validation_def: dict,
+                                             rikolti_value: Any,
+                                             comparison_value: Any) -> Optional[str]:
+        if rikolti_value == comparison_value:
+            return
+
+        if len(comparison_value) != len(rikolti_value):
+            return "Content mismatch"
+
+        comparison_value = [comparison_item.replace("http:", "https:") if
+                            comparison_item.startswith("http:") else comparison_item for
+                            comparison_item in comparison_value]
+        if comparison_value == rikolti_value:
+            return
+
+        for i in range(len(comparison_value)):
+            if comparison_value[i] == rikolti_value[i]:
+                continue
+
+            image_match = re.match(
+                comparison_value[i] + r"/(\w+).(?:jpg|png|JPG|tif)",
+                rikolti_value[i]
+            )
+            if image_match:
+                continue
+
+            comparison_match = re.match(
+                (
+                    r"https://scholarlycommons.pacific.edu/cgi/"
+                    r"viewcontent.cgi\?article=(?P<article>\d+)(?:&|&amp;)"
+                    r"context=(?P<context>\w+)"
+                ),
+                comparison_value[i]
+            )
+            rikolti_match = re.match(
+                (
+                    r"https://scholarlycommons.pacific.edu/"
+                    r"context/(?P<context>\w+)/article/(?P<article>\d+)"
+                ),
+                rikolti_value[i]
+            )
+            if (comparison_match and rikolti_match and
+                comparison_match.groupdict() == rikolti_match.groupdict()):
+                continue
+
             return "Content mismatch"
 
 
