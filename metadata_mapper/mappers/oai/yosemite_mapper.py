@@ -84,7 +84,7 @@ class YosemiteValidator(Validator):
                 self.log.add(
                     key=self.key,
                     field="is_shown_at",
-                    description=f"Doesn't match new URL format",
+                    description="Doesn't match new URL format",
                     expected=constructed,
                     actual=is_shown_at,
                 )

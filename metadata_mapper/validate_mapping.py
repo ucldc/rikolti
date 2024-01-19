@@ -199,7 +199,7 @@ def validate_page(collection_id: int, page_path: str,
             validator.log.add(
                 key=harvest_id,
                 field="missing record",
-                description=f"No Solr data found",
+                description="No Solr data found",
                 expected=None,
                 actual=rikolti_record,
             )
