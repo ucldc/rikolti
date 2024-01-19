@@ -22,6 +22,8 @@ Add the current stage index for a collection to the `rikolti-prd` alias:
 python -m record_indexer.move_index_to_prod <collection_id>
 ```
 
+Note that the index creation code enforces the existence of one stage index at a time. This means we can simply supply the collection ID as input and the process will move the current stage index to production.
+
 
 
 

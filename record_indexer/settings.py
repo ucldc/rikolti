@@ -8,7 +8,7 @@ load_dotenv()
 
 def get_auth():
     credentials = Session().get_credentials()
-    return AWSV4SignerAuth(credentials, "us-west-2")
+    return AWSV4SignerAuth(credentials, os.environ.get("AWS_REGION"))
 
 ENDPOINT = os.environ.get("RIKOLTI_ES_ENDPOINT")
 AUTH = get_auth()
