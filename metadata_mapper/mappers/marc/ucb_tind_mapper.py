@@ -16,7 +16,7 @@ class UcbTindRecord(MarcRecord):
             "language": self.get_marc_values(["041"], ["a"]),
             "date": self.get_marc_values(["260"], ["c"]),
             "publisher": self.get_marc_values(["260"], ["a", "b"]),
-            "format": self.get_marc_values(["337", "338", "340"], ["a"]),
+            "format": self.map_format,
             "extent": self.map_extent,
             "identifier": self.get_marc_values(["020", "022", "035"], ["a"]),
             "creator": self.get_marc_values(["100", "110", "111"]),
@@ -27,6 +27,7 @@ class UcbTindRecord(MarcRecord):
             "contributor": self.get_marc_values(["700", "710", "711", "720"]),
             "title": self.map_title,
             "spatial": self.map_spatial,
+            "subject": self.map_subject
         }
 
     def get_metadata_fields(self):
@@ -37,6 +38,11 @@ class UcbTindRecord(MarcRecord):
         f651 = self.get_marc_values(["651"], ["a"])
 
         return f651 + self.get_marc_values(self.get_metadata_fields(), ["z"])
+
+    def map_format(self) -> list:
+        f3xx = self.get_marc_values(["337", "338", "340"], ["a"]),
+
+        return f3xx + self.get_marc_values(self.get_metadata_fields(), ["v"])
 
     def map_subject(self) -> list:
         return self.get_marc_values(self.get_metadata_fields())
@@ -72,7 +78,7 @@ class UcbTindRecord(MarcRecord):
         """
         return self.get_marc_values(["300"]) + self.get_marc_values(["340"], ["b"])
 
-    def map_title(self):
+    def map_title(self) -> list:
         # 245, all subfields except c
         f245 = self.get_marc_values(["245"], ["c"], exclude_subfields=True)
 
@@ -93,7 +99,13 @@ class UcbTindRecord(MarcRecord):
         :return: A list of values of the specified subfields.
         """
 
-        def include_subfield(check_code, subfield_codes, exclude_subfields):
+        def subfield_matches(check_code: str, subfield_codes: list, exclude_subfields: bool) -> bool:
+            """
+            :param check_code: The code to check against the subfield codes.
+            :param subfield_codes: A list of subfield codes to include / exclude
+            :param exclude_subfields: A boolean value indicating whether to exclude the specified subfield codes.
+            :return: A boolean value indicating whether the check_code is included or excluded based on the subfield_codes and exclude_subfields parameters.
+            """
             if not subfield_codes:
                 return True
             if exclude_subfields:
@@ -110,7 +122,7 @@ class UcbTindRecord(MarcRecord):
                       for matching_field in matching_fields
                       for subfield in list(matching_field.subfields_as_dict().items())
                       for value in subfield[1]
-                      if include_subfield(subfield[0], subfield_codes, exclude_subfields)]
+                      if subfield_matches(subfield[0], subfield_codes, exclude_subfields)]
 
         return value_list if isinstance(value_list, list) else []
 
