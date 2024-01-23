@@ -43,7 +43,7 @@ def build_bulk_request_body(records: list, index: str):
     # https://opensearch.org/docs/1.2/opensearch/rest-api/document-apis/bulk/
     body = ""
     for record in records:
-        doc_id = record.get("calisphere-id")
+        doc_id = record.get("id")
 
         action = {"create": {"_index": index, "_id": doc_id}}
 

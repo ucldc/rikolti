@@ -205,6 +205,23 @@ If you would like to mount your own codebase to the content_harvester container 
 export MOUNT_CODEBASE=<path to rikolti, for example: /Users/awieliczka/Projects/rikolti>
 ```
 
+In order to run the indexer code, make sure the following variables are set:
+
+```
+export RIKOLTI_ES_ENDPOINT= # ask for endpoint url
+export RIKOLTI_HOME=/usr/local/airflow/dags/rikolti
+export INDEX_RETENTION=1
+```
+
+Also make sure to set your temporary AWS credentials and the region so that the mwaa-local-runner container can authenticate when talking to the OpenSearch API:
+
+```
+export AWS_ACCESS_KEY_ID=
+export AWS_SECRET_ACCESS_KEY=
+export AWS_SESSION_TOKEN=
+export AWS_REGION=us-west-2
+```
+
 Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
 
 For more information on `mwaa-local-env`, look for instructions in the [ucldc/aws-mwaa-local-runner:README](https://github.com/ucldc/aws-mwaa-local-runner/#readme) to build the docker image, run the container, and do local development.
