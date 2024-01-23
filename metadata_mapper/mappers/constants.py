@@ -98,8 +98,10 @@ type_map = {
     "application/pdf": "text",
     "application/msword": "text",
     "book": "text",
+    "booklet": "text",
     "document": "text",
     "documents": "text",
+    "articles (documents)": "text",
     "label, product": "image",
     "specimen": "image",
     "electronic resource": "interactive resource",
@@ -110,6 +112,7 @@ type_map = {
     "frame": "image",
     "costume": "image",
     "object": "physical object",
+    "physical object": "physical object",
     "statue": "image",
     "sculpture": "image",
     "container": "image",
@@ -121,6 +124,8 @@ type_map = {
     "image": "image",
     "images": "image",
     "stillimage": "image",
+    "still image": "image",
+    "stil image": "image", # fix for 26725
     "negative": "image",
     "slide": "image",
     "drawing": "image",
@@ -141,6 +146,7 @@ type_map = {
     "essay": "text",
     "transcript": "text",
     "program": "text",
+    "program notes": "text",
     "music, sheet": "text",
     "schedule": "text",
     "postcard": "image",
@@ -178,7 +184,8 @@ format_map = {
     "christmas card": "image",
     "mail art": "image",
     "postcard": "image",
-    "image": "image"
+    "image": "image",
+    "still image": "image"
 }
 imt_types = ['application', 'audio', 'image', 'message', 'model',
              'multipart', 'text', 'video']
