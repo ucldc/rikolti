@@ -11,7 +11,7 @@ from rikolti.dags.shared_tasks import move_index_to_prod_task
     schedule=None,
     start_date=datetime(2023, 1, 1),
     catchup=False,
-    params={'collection_id': Param(None, description="Collection ID to index")},
+    params={'collection_id': Param(None, description="Collection ID to move to prod")},
     tags=["rikolti"],
 )
 def index_to_prod_dag():

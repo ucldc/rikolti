@@ -1,4 +1,5 @@
 boto3
+opensearch-py
 python-dotenv
 requests
 requests-aws4auth

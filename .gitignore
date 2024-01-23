@@ -21,3 +21,5 @@ samconfig.toml
 startup.sh
 
 __pycache__
+.venv/
+env/

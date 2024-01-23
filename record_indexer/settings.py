@@ -1,11 +1,17 @@
 import os
 
+from boto3 import Session
 from dotenv import load_dotenv
+from opensearchpy import AWSV4SignerAuth
 
 load_dotenv()
 
+def get_auth():
+    credentials = Session().get_credentials()
+    return AWSV4SignerAuth(credentials, os.environ.get("AWS_REGION"))
+
 ENDPOINT = os.environ.get("RIKOLTI_ES_ENDPOINT")
-AUTH = ("rikolti", os.environ.get("RIKOLTI_ES_PASS"))
+AUTH = get_auth()
 
 RIKOLTI_HOME = os.environ.get("RIKOLTI_HOME", "/usr/local/airflow/dags/rikolti")
 RECORD_INDEX_CONFIG = os.sep.join(
