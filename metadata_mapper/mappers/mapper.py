@@ -558,23 +558,23 @@ class Record(ABC, object):
         called with the following parameters:
         2081 times: no parameters
         """
-        record_types = self.mapped_data.get('type', [])
-        if not record_types:
-            return self
-
-        if not isinstance(record_types, list):
-            record_types = [record_types]
-        record_types = [
-            t.get('#text')
-            if isinstance(t, dict) else t
-            for t in record_types
-        ]
-        record_types = [t.lower().rstrip('s') for t in record_types]
         mapped_type = None
-        for record_type in record_types:
-            if record_type in constants.type_map:
-                mapped_type = constants.type_map[record_type]
-                break
+
+        record_types = self.mapped_data.get('type', [])
+        if record_types:
+            if not isinstance(record_types, list):
+                record_types = [record_types]
+            record_types = [
+                t.get('#text')
+                if isinstance(t, dict) else t
+                for t in record_types
+            ]
+            record_types = [t.lower().rstrip('s') for t in record_types]
+
+            for record_type in record_types:
+                if record_type in constants.type_map:
+                    mapped_type = constants.type_map[record_type]
+                    break
 
         if not mapped_type:
             # try to get type from format
