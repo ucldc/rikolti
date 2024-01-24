@@ -8,9 +8,11 @@ load_dotenv()
 
 def get_auth():
     credentials = Session().get_credentials()
-    return AWSV4SignerAuth(credentials, os.environ.get("AWS_REGION"))
+    if not credentials:
+        return False
+    return AWSV4SignerAuth(credentials, os.environ.get("AWS_REGION", "us-west-2"))
 
-ENDPOINT = os.environ.get("RIKOLTI_ES_ENDPOINT")
+ENDPOINT = os.environ.get("RIKOLTI_ES_ENDPOINT", False)
 AUTH = get_auth()
 
 RIKOLTI_HOME = os.environ.get("RIKOLTI_HOME", "/usr/local/airflow/dags/rikolti")
