@@ -1,6 +1,8 @@
 import json
-from .Fetcher import Fetcher
 import requests
+
+from .Fetcher import Fetcher
+from ..settings import CALISPHERE_ETL_TOKEN
 from urllib.parse import urlencode
 
 
@@ -28,7 +30,8 @@ class CalisphereSolrFetcher(Fetcher):
         }
 
         request = {
-            "url": "https://solr.calisphere.org/solr/select?" + urlencode(params)
+            "url": "https://solr.calisphere.org/solr/select?" + urlencode(params),
+            "headers": {'X-Authentication-Token': CALISPHERE_ETL_TOKEN}
         }
 
         print(
