@@ -17,10 +17,7 @@ class ChapmanRecord(OaiRecord):
         return identifiers[0] if identifiers else None
 
     def map_is_shown_by(self) -> Union[str, None]:
-        if not self.is_image_type():
-            return
-
-        description = [d for d in self.source_metadata.get("description")
+        description = [d for d in self.source_metadata.get("description", [])
                        if "thumbnail" in d]
         if not description:
             return
@@ -46,18 +43,6 @@ class ChapmanRecord(OaiRecord):
                 spatial.extend(value)
 
         return spatial
-
-    def is_image_type(self) -> bool:
-        """
-        The `type` field has the value `text` for many images, so it's a useless
-        indicator of whether its an image or not
-        """
-        if "format" not in self.source_metadata:
-            return False
-
-        type: list[str] = self.source_metadata.get("format", [])
-
-        return type and type[0].lower().startswith("image")
 
     def map_identifier(self) -> Union[str, None]:
         if "identifier" not in self.source_metadata:

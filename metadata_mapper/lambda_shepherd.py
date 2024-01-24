@@ -105,10 +105,10 @@ def map_collection(collection_id, vernacular_version=None, validate=False):
             mapped_page = map_page(
                 collection_id, page, mapped_data_version, collection)
             mapped_pages.append(mapped_page)
-        except KeyError:
+        except KeyError as e:
             print(
                 f"[{collection_id}]: {collection['rikolti_mapper_type']} "
-                "not yet implemented", file=sys.stderr
+                f"not yet implemented, {e}", file=sys.stderr
             )
             continue
 

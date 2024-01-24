@@ -2,6 +2,7 @@ import requests
 import logging
 import os
 import sys
+import traceback
 
 from urllib.parse import urlparse
 
@@ -56,7 +57,7 @@ def make_mapper_type_endpoint(params=None):
 
     offset = params.get('offset')
     if offset:
-        endpoint = endpoint + "&offset={offset}"
+        endpoint = endpoint + f"&offset={offset}"
 
     print("Fetching, mapping, and validating collections listed at: ")
     print(endpoint)
@@ -104,10 +105,17 @@ def fetch_endpoint_task(endpoint, params=None):
             f"fetching: {errored_collections.keys()}"
         )
         print(errored_collections)
+
+    if not fetched_versions:
+        raise ValueError("No collections successfully fetched, exiting.")
+
     return fetched_versions
 
 @task()
 def map_endpoint_task(endpoint, fetched_versions, params=None):
+    if not fetched_versions:
+        raise ValueError("No fetched versions provided to map")
+
     limit = params.get('limit', None) if params else None
     mapper_job_results = map_endpoint(endpoint, fetched_versions, limit)
     mapped_versions = {}
@@ -126,32 +134,46 @@ def map_endpoint_task(endpoint, fetched_versions, params=None):
 
 @task()
 def validate_endpoint_task(url, mapped_versions, params=None):
+    if not mapped_versions:
+        raise ValueError("No mapped versions provided to validate")
+
     limit = params.get('limit', None) if params else None
 
     response = requests.get(url=url)
     response.raise_for_status()
     total = response.json().get('meta', {}).get('total_count', 1)
+    progress = 0
     if not limit:
         limit = total
+    limit = int(limit)
 
     print(f">>> Validating {limit}/{total} collections described at {url}")
 
     collections = {}
     data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
 
+    errored_collections = {}
+
     for collection in registry_endpoint(url):
         collection_id = collection['collection_id']
+        progress = progress + 1
         print(f"{collection_id:<6} Validating collection")
 
         mapped_version = mapped_versions.get(str(collection_id))
         try:
             mapped_pages = get_mapped_pages(mapped_version)
-        except FileNotFoundError:
+        except (FileNotFoundError, ValueError) as e:
             print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
+            errored_collections[collection_id] = e
             continue
 
-        num_rows, version_page = create_collection_validation_csv(
-            collection_id, mapped_pages)
+        try:
+            num_rows, version_page = create_collection_validation_csv(
+                collection_id, mapped_pages)
+        except Exception as e:
+            print(f"{collection_id:<6}: {e}", file=sys.stderr)
+            errored_collections[collection_id] = e
+            continue
 
         collections[collection_id] = {
             'csv': version_page,
@@ -159,6 +181,9 @@ def validate_endpoint_task(url, mapped_versions, params=None):
             'data_uri': f"{data_root.rstrip('/')}/{version_page}"
         }
         print(f"Output {num_rows} rows to {version_page}")
+
+        if limit and progress >= limit:
+            break
 
     if data_root.startswith('s3'):
         for collection in collections.values():
@@ -170,9 +195,29 @@ def validate_endpoint_task(url, mapped_versions, params=None):
             )
             print(
                 f"Review collection data at: "
-                "https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
+                f"https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
                 f"#{collection['mapped_version'].rstrip('/')}/data/"
             )
+
+    if len(errored_collections) > 0:
+        print("-" * 60, file=sys.stderr)
+        header = ' Validation Errors '
+        print(f"{header:-^60}", file=sys.stderr)
+        print("-" * 60, file=sys.stderr)
+    for collection_id, e in errored_collections.items():
+        collection_error_header = f" Collection {collection_id}: {e} "
+        print(f"{collection_error_header:>^60}", file=sys.stderr)
+        traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)
+        print("<"*60, file=sys.stderr)
+    if len(errored_collections) > 0:
+        print("*" * 60)
+        print(f"{len(errored_collections)} collections encountered validation errors")
+        print(f"please validate manually: {list(errored_collections.keys())}")
+        print("*" * 60)
+
+    if not len(collections):
+        print("-", file=sys.stderr)
+        raise ValueError("No collections successfully validated, exiting.")
 
     return [collection['csv'] for collection in collections.values()]
 

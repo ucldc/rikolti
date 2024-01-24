@@ -1,6 +1,7 @@
 import json
+from typing import Any, Union
 
-from ..mapper import Record, Vernacular
+from ..mapper import Record, Vernacular, Validator
 
 
 class NuxeoRecord(Record):
@@ -63,12 +64,17 @@ class NuxeoRecord(Record):
             'temporalCoverage': list(
                 self.source_metadata.get('ucldc_schema:temporalcoverage', [])),
             'title': [self.source_metadata.get('dc:title')],
-            'type': [self.source_metadata.get('ucldc_schema:type', None)],
+            'type': self.map_type,
             'provenance': self.source_metadata.get('ucldc_schema:provenance', None),
             'alternativeTitle': list(
                 self.source_metadata.get('ucldc_schema:alternativetitle', [])),
             'genre': self.collate_subfield('ucldc_schema:formgenre', 'heading')()
         }
+
+    def map_type(self):
+        type = self.source_metadata.get('ucldc_schema:type', None)
+        if type:
+            return [type]
 
     def to_dict(self):
         return self.mapped_data
@@ -260,8 +266,51 @@ class NuxeoRecord(Record):
         return thumbnail_source
 
 
+class NuxeoValidator(Validator):
+    def setup(self):
+        self.add_validatable_field(field="is_shown_by", validations=[
+            NuxeoValidator.is_shown_by_validation,
+            Validator.verify_type(str)
+        ])
+
+    @staticmethod
+    def is_shown_by_validation(validation_def: dict,
+                               rikolti_value: Any,
+                               comparison_value: Any) -> Union[str, None]:
+
+        if rikolti_value == comparison_value:
+            return
+
+        if not comparison_value:
+            return "Solr value is empty"
+        if not rikolti_value or not isinstance(rikolti_value, dict):
+            return "Invalid Rikolti value type"
+
+        legacy_location = (
+            "https://s3.amazonaws.com/static.ucldc.cdlib.org/"
+            "ucldc-nuxeo-thumb-media/"
+        )
+        if not comparison_value.startswith(legacy_location):
+            return "Unusual Solr value"
+
+        expected_keys = ['url', 'mimetype', 'filename', 'nuxeo_type']
+        if not set(rikolti_value.keys()).issubset(set(expected_keys)):
+            return ("Rikolti value includes unexpected keys")
+
+        if 'url' not in rikolti_value.keys():
+            return "Rikolti value missing required url key value pair"
+
+        if 'mimetype' not in rikolti_value.keys():
+            return "Rikolti value missing mimetype key value pair, defaults to image/jpeg"
+
+        if 'filename' not in rikolti_value.keys():
+            return "Rikolti value missing filename key value pair, defaults to basename of url"
+
+        return
+
 class NuxeoVernacular(Vernacular):
     record_cls = NuxeoRecord
+    validator = NuxeoValidator
 
     def parse(self, api_response):
         return self.get_records(json.loads(api_response)['entries'])

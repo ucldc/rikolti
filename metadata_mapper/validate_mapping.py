@@ -2,6 +2,7 @@ import json
 import functools
 import sys
 from typing import Type
+from collections import Counter
 
 import requests
 import urllib3
@@ -59,14 +60,92 @@ def validate_collection(collection_id: int,
                                     log_level = log_level,
                                     verbose = verbose)
 
+    all_rikolti_ids = []
+    new_rikolti_ids = []
     for page_path in mapped_page_paths:
-        validate_page(collection_id, page_path, validator)
+        rikolti_ids, new_ids = validate_page(collection_id, page_path, validator)
+        all_rikolti_ids += rikolti_ids
+        new_rikolti_ids += new_ids
+
+    id_counter = Counter(all_rikolti_ids)
+    dupes = [(item, count) for item, count in id_counter.items() if count > 1]
+    if dupes:
+        dupes.sort(key=lambda x: x[1], reverse=True)
+        num_dupes = sum([count for _, count in dupes]) - len(dupes)
+        print(
+            f"ERROR: {num_dupes} duplicate harvest_ids found in rikolti data:")
+        print(dupes)
+
+    # check all objects in rikolti against objects in solr
+    num_lost_solr_ids, num_solr_records = validate_collection_from_solr(
+        collection_id, all_rikolti_ids, validator)
+
+    metadata_errors = (
+        len(validator.log.log) - len(new_rikolti_ids) - num_lost_solr_ids)
+
+    print(
+        f"{collection_id:<6}, "
+        f"{metadata_errors} validation errors, "
+        f"{len(new_rikolti_ids)} new records, "
+        f"{num_lost_solr_ids} lost records, "
+        f"{len(all_rikolti_ids)} rikolti records, "
+        f"{num_solr_records} solr records"
+    )
 
     return validator
 
+def validate_collection_from_solr(
+        collection_id: int, all_rikolti_ids: list[str], validator: Validator):
+    # check all objects in solr against objects in rikolti to track lost objects
+    solr_ids = get_all_solr_records_in_collection(collection_id)
+    lost_solr_ids = list(set(solr_ids).difference(set(all_rikolti_ids)))
+
+    if lost_solr_ids:
+        solr_data = get_solr_data(collection_id, lost_solr_ids)
+        for solr_record in solr_data:
+            validator.log.add(
+                key=solr_record['harvest_id_s'],
+                field="missing record",
+                description="No mapped rikolti data found",
+                expected=solr_record,
+                actual=None,
+                level=ValidationLogLevel.ERROR,
+                **validator.log_entry_urls(solr_record['harvest_id_s'])
+            )
+    return len(lost_solr_ids), len(solr_ids)
+
+def get_all_solr_records_in_collection(collection_id: int):
+    collection_url = ("collection_url:\"https://registry.cdlib.org/api/v1/"
+                      f"collection/{collection_id}/\"")
+
+    query = {
+        'fq': collection_url,
+        'start': 0,
+        'rows': 5000,
+        'fl': "harvest_id_s",
+    }
+
+    response = make_solr_request(**query)
+    solr_ids = [
+        doc['harvest_id_s'] for doc in
+        response.get("response", {}).get("docs", [])
+    ]
+    num_fetched = len(solr_ids)
+    num_found = response.get("response", {}).get("numFound", 0)
+
+    while num_fetched < num_found:
+        query['start'] = num_fetched
+        response = make_solr_request(**query)
+        solr_ids = solr_ids + [
+            doc['harvest_id_s'] for doc in
+            response.get("response", {}).get("docs", [])
+        ]
+        num_fetched = len(solr_ids)
+
+    return solr_ids
 
 def validate_page(collection_id: int, page_path: str,
-                  validator: Validator) -> Validator:
+                  validator: Validator) -> tuple[list[str], list]:
     """
     Validates a provided page of a provided collection of mapped data.
 
@@ -89,8 +168,10 @@ def validate_page(collection_id: int, page_path: str,
     collection = get_mapped_page_content(page_path)
 
     if len(collection) == 0:
-        print(f"No mapped metadata found for {collection_id} page {page_path}. Aborting.")
-        return
+        raise ValueError(
+            f"No mapped metadata found for {collection_id} "
+            f"page {page_path}. Aborting."
+        )
 
     mapped_metadata = validator.generate_keys(
                         collection,
@@ -104,26 +185,31 @@ def validate_page(collection_id: int, page_path: str,
                         context=context
                       )
 
-    # if len(mapped_metadata) == 0 or len(comparison_data) == 0:
-    #     print("No data found in "
-    #           f"{'mapped Rikolti data' if len(mapped_metadata) == 0 else 'Solr'}."
-    #           " Aborting."
-    #           )
-    #     return
-
     all_keys = set(mapped_metadata.keys()).union(set(comparison_data.keys()))
 
     if len(all_keys) == 0:
-        print("No data found. Aborting.")
-        return
+        raise ValueError("No rikolti or solr data found. Aborting.")
 
+    new_records = []
     for harvest_id in all_keys:
         rikolti_record = mapped_metadata.get(harvest_id)
         solr_record = comparison_data.get(harvest_id)
 
-        validator.validate(harvest_id, rikolti_record, solr_record)
+        if not solr_record:
+            validator.log.add(
+                key=harvest_id,
+                field="missing record",
+                description="No Solr data found",
+                expected=None,
+                actual=rikolti_record,
+            )
+            new_records.append(harvest_id)
+        elif not rikolti_record:
+            raise ValueError(f"No rikolti data found for {harvest_id}")
+        else:
+            validator.validate(harvest_id, rikolti_record, solr_record)
 
-    return validator
+    return list(mapped_metadata.keys()), new_records
 
 
 def create_collection_validation_csv(
@@ -148,17 +234,24 @@ def get_comparison_data(collection_id: int, harvest_ids: list[str]) -> list[dict
 
 
 def get_solr_data(collection_id: int, harvest_ids: list[str]) -> list[dict]:
-    collection_url = ("collection_url:\"https://registry.cdlib.org/api/v1/"
-                      f"collection/{collection_id}/\"")
-    harvest_id_q = " OR ".join([f"harvest_id_s:\"{f}\"" for f in harvest_ids])
-    query = {
-        'fq': f"{collection_url} AND ({harvest_id_q})",
-        'rows': len(harvest_ids),
-        'start': 0
-    }
+    # solr often times out, limit this to sets of 50 harvest_ids.
+    solr_batch_size = 50
+    solr_data = []
+    for i in range(0, len(harvest_ids), solr_batch_size):
+        solr_batch = harvest_ids[i:i+solr_batch_size]
 
-    response = make_solr_request(**query)
-    return response.get("response", {"docs": None}).get("docs", [])
+        collection_url = ("collection_url:\"https://registry.cdlib.org/api/v1/"
+                        f"collection/{collection_id}/\"")
+        harvest_id_q = " OR ".join([f"harvest_id_s:\"{f}\"" for f in solr_batch])
+        query = {
+            'fq': f"{collection_url} AND ({harvest_id_q})",
+            'rows': len(solr_batch),
+            'start': 0
+        }
+
+        response = make_solr_request(**query)
+        solr_data = solr_data + response.get("response", {"docs": None}).get("docs", [])
+    return solr_data
 
 
 def make_solr_request(**params):
@@ -173,8 +266,8 @@ def make_solr_request(**params):
         res = requests.post(solr_url, headers=solr_auth, data=query, verify=False)
         res.raise_for_status()
     except Exception as e:
-        print(query)
-        print(solr_url)
+        print(f"Error making post request to {solr_url}", file=sys.stderr)
+        print(f"Errored solr query: {query}", file=sys.stderr)
         raise(e)
     return json.loads(res.content.decode('utf-8'))
 

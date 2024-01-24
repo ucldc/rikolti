@@ -43,27 +43,17 @@ class Validator:
         self.comparison_data = comparison_metadata
         self.validation_mode = validation_mode or self.default_validation_mode
 
-        if not self.rikolti_data or not self.comparison_data:
-            missing_data_desc = "mapped Rikolti" if not self.rikolti_data else "Solr"
-            print(f"ERROR: No {missing_data_desc} data found for key {self.key}")
-            # error = {
-            #     "key": self.key,
-            #     "level": "ERROR",
-            #     "description": f"No {missing_data_desc} data found for key"
-            # }
-            # self.log.add(**error)
-        else:
-            self.successfully_validated_fields = []
+        self.successfully_validated_fields = []
 
-            self.before_validation()
+        self.before_validation()
 
-            for validation_def in self.validatable_fields:
-                self._perform_validations(self._normalize_validation_definition(validation_def))
+        for validation_def in self.validatable_fields:
+            self._perform_validations(self._normalize_validation_definition(validation_def))
 
-            self.rights_validation()
-            self.after_validation()
+        self.rights_validation()
+        self.after_validation()
 
-            self._maybe_create_validation_success_entry()
+        self._maybe_create_validation_success_entry()
 
         return self.log
 
@@ -127,7 +117,7 @@ class Validator:
         self.validatable_fields.append({k: v for k, v in validation_def.items() if v})
         return True
 
-    def add_validatable_fields(self, *fields: list[dict[str, Any]]) -> dict[str, bool]:
+    def add_validatable_fields(self, fields: list[dict[str, Any]]) -> dict[str, bool]:
         """
         Adds a list of validatable fields.
 
@@ -553,17 +543,27 @@ class Validator:
 
         self.log.add(**entry)
 
-    def _default_log_entry(self, validation_def: dict[str, Any],
-                            rikolti_value: Any, comparison_value: Any) -> dict:
-        solr_query = f'harvest_id_s:"{self.key}"'
+    def log_entry_urls(self, record_id):
+        solr_query = f'harvest_id_s:"{record_id}"'
         solr = (
             "/solr/dc-collection/select?q="
             f"{urllib.parse.quote_plus(solr_query)}"
             "&wt=json&indent=true"
         )
-        couch = f"/couchdb/_utils/document.html?ucldc/{self.key}"
-        calisphere = f'/search/?q="{urllib.parse.quote_plus(self.key)}"'
+        couch = f"/couchdb/_utils/document.html?ucldc/{record_id}"
+        calisphere = f'/search/?q="{urllib.parse.quote_plus(record_id)}"'
 
+        return {
+            "calisphere_prd": f"https://calisphere.org{calisphere}",
+            "solr_prd": f"https://harvest-prd.cdlib.org{solr}",
+            "couch_prd": f"https://harvest-prd.cdlib.org{couch}",
+            "calisphere_test": f"https://calisphere-test.cdlib.org{calisphere}",
+            "solr_stg": f"https://harvest-stg.cdlib.org{solr}",
+            "couch_stg": f"https://harvest-stg.cdlib.org{couch}",
+        }
+
+    def _default_log_entry(self, validation_def: dict[str, Any],
+                            rikolti_value: Any, comparison_value: Any) -> dict:
         return {
             "key": self.key,
             "level": ValidationLogLevel.ERROR,
@@ -571,12 +571,7 @@ class Validator:
             "description": "Validation failed",
             "actual": rikolti_value,
             "expected": comparison_value,
-            "calisphere_prd": f"https://calisphere.org{calisphere}",
-            "solr_prd": f"https://harvest-prd.cdlib.org{solr}",
-            "couch_prd": f"https://harvest-prd.cdlib.org{couch}",
-            "calisphere_test": f"https://calisphere-test.cdlib.org{calisphere}",
-            "solr_stg": f"https://harvest-stg.cdlib.org{solr}",
-            "couch_stg": f"https://harvest-stg.cdlib.org{couch}",
+            **self.log_entry_urls(self.key)
         }
 
     def _maybe_create_validation_success_entry(self) -> None:

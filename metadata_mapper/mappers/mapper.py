@@ -243,7 +243,7 @@ class Record(ABC, object):
         34 times:   field["rights"],    mode=["overwrite"]
         """
         field = field[0]
-        mode = mode[0]
+        mode = mode[0] if mode else None
         field_value = None
 
         if field == "rights":
@@ -265,6 +265,9 @@ class Record(ABC, object):
         if field == "title":
             field_value = ["Title unknown"]
 
+        if not self.mapped_data or not isinstance(self.mapped_data, dict):
+            raise ValueError("no mapped metadata record")
+
         if field_value:
             if mode == "overwrite":
                 self.mapped_data[field] = field_value
@@ -274,7 +277,7 @@ class Record(ABC, object):
                 else:
                     self.mapped_data[field] = field_value
             else:  # default is fill if empty
-                if field not in self.mapped_data:
+                if not self.mapped_data.get(field):
                     self.mapped_data[field] = field_value
 
         # not sure what this is about
@@ -555,23 +558,23 @@ class Record(ABC, object):
         called with the following parameters:
         2081 times: no parameters
         """
-        record_types = self.mapped_data.get('type', [])
-        if not record_types:
-            return self
-
-        if not isinstance(record_types, list):
-            record_types = [record_types]
-        record_types = [
-            t.get('#text')
-            if isinstance(t, dict) else t
-            for t in record_types
-        ]
-        record_types = [t.lower().rstrip('s') for t in record_types]
         mapped_type = None
-        for record_type in record_types:
-            if record_type in constants.type_map:
-                mapped_type = constants.type_map[record_type]
-                break
+
+        record_types = self.mapped_data.get('type', [])
+        if record_types:
+            if not isinstance(record_types, list):
+                record_types = [record_types]
+            record_types = [
+                t.get('#text')
+                if isinstance(t, dict) else t
+                for t in record_types
+            ]
+            record_types = [t.lower().rstrip('s') for t in record_types]
+
+            for record_type in record_types:
+                if record_type in constants.type_map:
+                    mapped_type = constants.type_map[record_type]
+                    break
 
         if not mapped_type:
             # try to get type from format
