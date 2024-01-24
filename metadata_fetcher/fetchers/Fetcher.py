@@ -78,6 +78,9 @@ class Fetcher(object):
             'status': 'success'
         }
 
+    def check_page(self, response: requests.Response) -> int:
+        raise NotImplementedError
+
     def aggregate_vernacular_content(self, response: requests.Response):
         return response.text
 
@@ -103,7 +106,7 @@ class Fetcher(object):
         """increment internal state for fetching the next page
 
         takes as an argument the http_resp from institution API call
-        https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientResponse
+        https://docs.python-requests.org/en/latest/api/#requests.Response
         """
         self.write_page = self.write_page + 1
 

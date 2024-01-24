@@ -57,7 +57,7 @@ class SolrFetcher(Fetcher):
 
         return request
 
-    def check_page(self, http_resp: requests.Response) -> bool:
+    def check_page(self, http_resp: requests.Response) -> int:
         """
         Parameters:
             http_resp: requests.Response
@@ -73,7 +73,7 @@ class SolrFetcher(Fetcher):
             f"at {http_resp.url} with {hits} hits"
         )
 
-        return hits > 0
+        return hits
 
     def increment(self, http_resp: requests.Response):
         """
