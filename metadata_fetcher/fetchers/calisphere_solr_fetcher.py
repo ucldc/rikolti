@@ -30,13 +30,14 @@ class CalisphereSolrFetcher(Fetcher):
         }
 
         request = {
-            "url": "https://solr.calisphere.org/solr/select?" + urlencode(params),
-            "headers": {'X-Authentication-Token': CALISPHERE_ETL_TOKEN}
+            "url": "https://solr.calisphere.org/solr/query",
+            "headers": {'X-Authentication-Token': CALISPHERE_ETL_TOKEN},
+            "params": params
         }
 
         print(
             f"[{self.collection_id}]: Fetching page {self.write_page} "
-            f"at {request.get('url')}")
+            f"at {request.get('url')} with params {params}")
 
         return request
 
@@ -48,7 +49,7 @@ class CalisphereSolrFetcher(Fetcher):
         Returns: int: number of records in the response
         """
 
-        resp_dict = json.loads(http_resp.content)
+        resp_dict = http_resp.json()
         hits = len(resp_dict["response"]["docs"])
 
         print(
@@ -66,9 +67,10 @@ class CalisphereSolrFetcher(Fetcher):
              http_resp: requests.Response
         """
         super(CalisphereSolrFetcher, self).increment(http_resp)
-        resp_dict = json.loads(http_resp.content)
+        resp_dict = http_resp.json()
         if self.cursor_mark != resp_dict["nextCursorMark"]:
             self.cursor_mark = resp_dict["nextCursorMark"]
+            self.finished = False
         else:
             self.finished = True
 
@@ -82,10 +84,8 @@ class CalisphereSolrFetcher(Fetcher):
             "harvest_type": self.harvest_type,
             "collection_id": self.collection_id,
             "write_page": self.write_page,
-            "cursor_mark": self.cursor_mark
+            "cursor_mark": self.cursor_mark,
+            "finished": self.finished
         }
-
-        if self.finished:
-            current_state.update({"finished": True})
 
         return json.dumps(current_state)
