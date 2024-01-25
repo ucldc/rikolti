@@ -1,4 +1,3 @@
-from typing import Any
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
