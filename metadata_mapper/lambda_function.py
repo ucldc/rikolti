@@ -116,7 +116,8 @@ def map_page(
 
     # TODO: analyze and simplify this straight port of the
     # solr updater module into the Rikolti framework
-    mapped_records = [record.solr_updater() for record in mapped_records]
+    if collection.get('rikolti_mapper_type') != 'calisphere_solr.calisphere_solr':
+        mapped_records = [record.solr_updater() for record in mapped_records]
     mapped_records = [record.remove_none_values() for record in mapped_records]
 
     group_page_exceptions = {}
