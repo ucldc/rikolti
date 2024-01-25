@@ -198,7 +198,7 @@ def validate_page(collection_id: int, page_path: str,
         if not solr_record:
             validator.log.add(
                 key=harvest_id,
-                field="missing record",
+                field="new record",
                 description="No Solr data found",
                 expected=None,
                 actual=rikolti_record,
