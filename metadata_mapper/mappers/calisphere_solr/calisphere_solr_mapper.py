@@ -3,14 +3,14 @@ import json
 from ..mapper import Record, Vernacular, Validator
 
 class CalisphereSolrRecord(Record):
-
+    # This mapper does not handle Nuxeo record complexities, meaning:
+    #   - it ignores structmap* solr fields for complex objects
+    #   - it does not map media_source
     def UCLDC_map(self) -> dict:
         return {
-            "calisphere-id": self.source_metadata.get('id'),
+            "calisphere-id": self.map_calisphere_id(),
             "is_shown_at": self.source_metadata.get("url_item"),
-            #"is_shown_by": # same as thumbnail_source. not in solr, only couch?
-            #"thumbnail_source": # same as is_shown_by
-            #"media_source": # not in solr. solr only has reference_image_md5.
+            "thumbnail_source": self.map_thumbnail_source(),
             "title": self.source_metadata.get("title"),
             "alternative_title": self.source_metadata.get("alternative_title", None),
             "contributor": self.source_metadata.get("contributor", None),
@@ -59,22 +59,28 @@ class CalisphereSolrRecord(Record):
             "campus_id": self.source_metadata.get("campus_id", None),
             "collection_id": self.source_metadata.get("collection_id", None),
             "repository_id": self.source_metadata.get("repository_id", None),
-            "item_count": self.source_metadata.get("item_count", None)
+            "item_count": self.source_metadata.get("item_count", None),
+            "reference_image_md5": self.source_metadata.get("reference_image_md5", None),
+            "reference_image_dimensions": self.source_metadata.get("reference_image_dimensions", None),
         }
 
-        """
-        # fields added later by content harvester?
-        "media": ,
-        "thumbnail":
+    def map_calisphere_id(self):
+        harvest_id = self.source_metadata.get('harvest_id_s')
+        return harvest_id.split("--")[1]
 
-        # these fields are calculated based on ???
-        "reference_image_md5": self.source_metadata.get("reference_image_md5", None),
-        "reference_image_dimensions": self.source_metadata.get("reference_image_dimensions", None),
-        """
+    def map_thumbnail_source(self):
+        image_md5 = self.source_metadata.get("reference_image_md5", None)
+        if image_md5:
+            return f"https://static-ucldc-cdlib-org.s3.us-west-2.amazonaws.com/harvested_images/{image_md5}"
+
+class CalisphereSolrValidator(Validator):
+    def setup(self):
+        # is_shown_by does not need to be validated
+        self.add_validatable_field(field="is_shown_by", validations=[])
 
 class CalisphereSolrVernacular(Vernacular):
     record_cls = CalisphereSolrRecord
-    # validator = CalisphereSolrRecordValidator
+    validator = CalisphereSolrValidator
 
     def parse(self, api_response):
         page_element = json.loads(api_response)
