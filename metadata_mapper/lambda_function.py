@@ -56,7 +56,9 @@ def parse_enrichment_url(enrichment_url):
 
 
 def run_enrichments(records, collection, enrichment_set, page_filename):
-    for enrichment_url in collection.get(enrichment_set, []):
+    enrichment_urls = collection.get(enrichment_set) \
+        if collection.get(enrichment_set) else []
+    for enrichment_url in enrichment_urls:
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
             continue

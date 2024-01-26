@@ -63,14 +63,14 @@ def map_endpoint(url, fetched_versions, limit=None):
             continue
 
         pre_mapping = map_result.get('pre_mapping', [])
-        if len(pre_mapping) > 0:
+        if pre_mapping and len(pre_mapping) > 0:
             print(
                 f"{collection_id:<6}: {'pre-mapping enrichments':<24}: "
                 f"\"{pre_mapping}\""
             )
 
         enrichments = map_result.get('enrichments', [])
-        if len(enrichments) > 0:
+        if enrichments and len(enrichments) > 0:
             print(
                 f"{collection_id:<6}, {'post-mapping enrichments':<24}: "
                 f"\"{enrichments}\""

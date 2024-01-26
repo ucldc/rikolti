@@ -29,7 +29,7 @@ def check_for_missing_enrichments(collection):
     not_yet_implemented = []
     collection_enrichments = (
         (collection.get('rikolti__pre_mapping') or []) +
-        collection.get('rikolti__enrichments')
+        (collection.get('rikolti__enrichments') or [])
     )
     for e_url in collection_enrichments:
         e_path = urlparse(e_url).path

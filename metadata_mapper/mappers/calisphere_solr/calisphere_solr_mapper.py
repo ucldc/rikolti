@@ -1,12 +1,16 @@
+import json
+
+from ..mapper import Record, Vernacular, Validator
+
 class CalisphereSolrRecord(Record):
 
     def UCLDC_map(self) -> dict:
         return {
             "calisphere-id": self.source_metadata.get('id'),
-            #"is_shown_at": self.source_metadata.get("url_item"),
-            #"is_shown_by": # same as thumbnail_source
-            #"media_source":
-            #"thumbnail_source":
+            "is_shown_at": self.source_metadata.get("url_item"),
+            #"is_shown_by": # same as thumbnail_source. not in solr, only couch?
+            #"thumbnail_source": # same as is_shown_by
+            #"media_source": # not in solr. solr only has reference_image_md5.
             "title": self.source_metadata.get("title"),
             "alternative_title": self.source_metadata.get("alternative_title", None),
             "contributor": self.source_metadata.get("contributor", None),
@@ -27,7 +31,7 @@ class CalisphereSolrRecord(Record):
             "rights_date": self.source_metadata.get("rights_date", None),
             "source": self.source_metadata.get("source", None),
             "spatial": self.source_metadata.get("spatial", None),
-            "subject": self.source_metadata.get("subject", None)
+            "subject": self.source_metadata.get("subject", None),
             "temporal": self.source_metadata.get("temporal", None),
             "type": self.source_metadata.get("type", None),
             "sort_title": self.source_metadata.get("sort_title", None),
@@ -55,25 +59,24 @@ class CalisphereSolrRecord(Record):
             "campus_id": self.source_metadata.get("campus_id", None),
             "collection_id": self.source_metadata.get("collection_id", None),
             "repository_id": self.source_metadata.get("repository_id", None),
-            "item_count": self.source_metadata.get("item_count", None),
-
-
-            """
-            # fields added later by content harvester?
-            "media": ,
-            "thumbnail": 
-
-            # some nuxeo objects have a reference image
-            "reference_image_md5": self.source_metadata.get("reference_image_md5", None),
-            "reference_image_dimensions": self.source_metadata.get("reference_image_dimensions", None),
-            
-            # some nuxeo objects have children
-            "children": 
-            """         
+            "item_count": self.source_metadata.get("item_count", None)
         }
-        
+
+        """
+        # fields added later by content harvester?
+        "media": ,
+        "thumbnail":
+
+        # these fields are calculated based on ???
+        "reference_image_md5": self.source_metadata.get("reference_image_md5", None),
+        "reference_image_dimensions": self.source_metadata.get("reference_image_dimensions", None),
+        """
 
 class CalisphereSolrVernacular(Vernacular):
     record_cls = CalisphereSolrRecord
     # validator = CalisphereSolrRecordValidator
 
+    def parse(self, api_response):
+        page_element = json.loads(api_response)
+        records = page_element.get("response", {}).get("docs", [])
+        return self.get_records([record for record in records])
