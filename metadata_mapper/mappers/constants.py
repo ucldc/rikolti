@@ -88,6 +88,7 @@ scdl_fix_format = {
 type_map = {
     "photographs": "image",
     "photograph": "image",
+    "photographic prints": "image",
     "sample book": "image",
     "ambrotype": "image",
     "carte-de-visite": "image",
@@ -153,6 +154,7 @@ type_map = {
     "correspondence": "text",
     "writing": "text",
     "manuscript": "text",
+    "yearbook": "text", # for for pspl 26715
     "equipment": "image",
     "cartographic": "image",
     "notated music": "image",
