@@ -75,8 +75,7 @@ class CalisphereSolrRecord(Record):
 
 class CalisphereSolrValidator(Validator):
     def setup(self):
-        # is_shown_by does not need to be validated
-        self.add_validatable_field(field="is_shown_by", validations=[])
+        self.remove_validatable_field(field="is_shown_by")
 
 class CalisphereSolrVernacular(Vernacular):
     record_cls = CalisphereSolrRecord
