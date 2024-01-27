@@ -88,7 +88,7 @@ scdl_fix_format = {
 type_map = {
     "photographs": "image",
     "photograph": "image",
-    "photographic prints": "image",
+    "photographic print": "image",    # fix for islandora 
     "sample book": "image",
     "ambrotype": "image",
     "carte-de-visite": "image",
@@ -155,6 +155,7 @@ type_map = {
     "writing": "text",
     "manuscript": "text",
     "yearbook": "text", # for for pspl 26715
+    "school yearbook": "text", # for islandora 26601
     "equipment": "image",
     "cartographic": "image",
     "notated music": "image",
