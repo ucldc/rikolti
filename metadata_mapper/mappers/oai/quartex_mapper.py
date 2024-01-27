@@ -1,7 +1,36 @@
+from typing import Union
 from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class QuartexRecord(OaiRecord):
+    def UCLDC_map(self):
+        return {
+            'spatial': self.map_spatial
+        }
+
+    def map_spatial(self) -> Union[list[str], None]:
+        spatial = self.collate_fields(["coverage", "spatial"])()
+        split_spatial = []
+        for value in spatial:
+            split_spatial.extend(value.split(';'))
+
+        return [val.strip() for val in split_spatial if val]
+
+    def map_subject(self) -> Union[list[dict[str, str]], None]:
+        # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127 # noqa: E501
+        value = self.source_metadata.get("subject")
+        if not value:
+            return None
+
+        if isinstance(value, str):
+            value = [value]
+
+        split_subjects = []
+        for v in value:
+            split_subjects.extend(v.split(';'))
+
+        return [{"name": v.strip()} for v in split_subjects if v]
+
     def map_is_shown_at(self):
         if "identifier" not in self.source_metadata:
             return

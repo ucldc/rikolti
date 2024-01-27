@@ -1,4 +1,5 @@
 import requests
+from requests.adapters import HTTPAdapter, Retry
 
 from .oai_mapper import OaiRecord, OaiVernacular
 
@@ -19,51 +20,52 @@ class IslandoraRecord(OaiRecord):
             return None
 
     def map_is_shown_at(self):
-        if self.source_metadata.get('request_url'):
-            coll_url = (
-                self.source_metadata
-                .get('request_url')
-                .replace('/oai2', '')
-            )
+        oai_url = self.source_metadata.get('request_url', '')
+        request_url = oai_url.replace('/oai2', '')
 
-        ident = self.source_metadata.get('id', '')
-        if ':' in ident:
-            collID, recID = ident.rsplit(':', 1)
-            newID = recID.replace('_', '%3A')
+        identifier = self.source_metadata.get('id', '')
+        _, record_id = identifier.rsplit(':', 1)
+        new_id = record_id.replace('_', '%3A', 1)
 
-            return f"{coll_url}/islandora/object/{newID}"
+        if request_url and new_id:
+            return f"{request_url}/islandora/object/{new_id}"
         else:
             return None
 
     def map_is_shown_by(self):
-        if self.source_metadata.get('request_url'):
-            coll_url = (
-                self.source_metadata
-                .get('request_url')
-                .replace('/oai2', '')
-            )
+        oai_url = self.source_metadata.get('request_url', '')
+        request_url = oai_url.replace('/oai2', '')
 
-        ident = self.source_metadata.get('id', '')
-        if ':' in ident:
-            collID, recID = ident.rsplit(':', 1)
-            newID = recID.replace('_', '%3A')
+        identifier = self.source_metadata.get('id', '')
+        _, record_id = identifier.rsplit(':', 1)
+        new_id = record_id.replace('_', '%3A', 1)
 
-            thumb_url = (
-                f"{coll_url}/islandora/object/{newID}/datastream/TN/view")
-
-            # Change URL from 'TN' to 'JPG' for larger versions of image
-            # objects & test to make sure the link resolves
-            if 'image' or 'StillImage' in self.source_metadata.get('type', ''):
-                jpg_url = thumb_url.replace("/TN/", "/JPG/")
-                # TODO: should figure out a way to punt a request
-                # to minimize the mapper's reliance on external systems
-                request = requests.get(jpg_url)
-                if request.status_code == 200:
-                    thumb_url = jpg_url
-
-            return thumb_url
-        else:
+        if not (request_url and new_id):
             return None
+
+        thumb_url = (
+            f"{request_url}/islandora/object/{new_id}/datastream/TN/view")
+
+        # Change URL from 'TN' to 'JPG' for larger versions of image
+        # objects & test to make sure the link resolves
+        if 'image' or 'StillImage' in self.source_metadata.get('type', ''):
+            jpg_url = thumb_url.replace("/TN/", "/JPG/")
+            # TODO: should figure out a way to punt a request
+            # to minimize the mapper's reliance on external systems
+            http = requests.Session()
+            retry_strategy = Retry(
+                total=3,
+                status_forcelist=[413, 429, 500, 502, 503, 504],
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            http.mount("https://", adapter)
+            http.mount("http://", adapter)
+
+            request = http.get(jpg_url)
+            if request.status_code == 200:
+                thumb_url = jpg_url
+
+        return thumb_url
 
 
 class IslandoraVernacular(OaiVernacular):

@@ -282,7 +282,7 @@ class NuxeoValidator(Validator):
             return
 
         if not comparison_value:
-            return "Solr value is empty"
+            return "CouchDB value is empty"
         if not rikolti_value or not isinstance(rikolti_value, dict):
             return "Invalid Rikolti value type"
 
@@ -291,7 +291,7 @@ class NuxeoValidator(Validator):
             "ucldc-nuxeo-thumb-media/"
         )
         if not comparison_value.startswith(legacy_location):
-            return "Unusual Solr value"
+            return "Unusual CouchDB value"
 
         expected_keys = ['url', 'mimetype', 'filename', 'nuxeo_type']
         if not set(rikolti_value.keys()).issubset(set(expected_keys)):
