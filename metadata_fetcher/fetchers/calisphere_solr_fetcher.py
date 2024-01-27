@@ -3,8 +3,6 @@ import requests
 
 from .Fetcher import Fetcher
 from ..settings import CALISPHERE_ETL_TOKEN
-from urllib.parse import urlencode
-
 
 class CalisphereSolrFetcher(Fetcher):
     def __init__(self, params: dict[str, str]):
