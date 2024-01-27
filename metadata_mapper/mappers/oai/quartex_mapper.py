@@ -10,6 +10,7 @@ class QuartexRecord(OaiRecord):
 
     def map_spatial(self) -> Union[list[str], None]:
         spatial = self.collate_fields(["coverage", "spatial"])()
+        spatial = [s for s in spatial if s]
         split_spatial = []
         for value in spatial:
             split_spatial.extend(value.split(';'))
