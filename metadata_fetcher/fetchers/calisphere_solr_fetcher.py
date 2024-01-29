@@ -9,6 +9,8 @@ class CalisphereSolrFetcher(Fetcher):
         super(CalisphereSolrFetcher, self).__init__(params)
         self.collection_id = params.get("collection_id")
         self.cursor_mark = params.get("cursor_mark", "*")
+        self.num_found = params.get("num_found", 0)
+        self.num_fetched = params.get("num_fetched", 0)
 
     def build_fetch_request(self) -> dict[str, str]:
         """
@@ -66,7 +68,13 @@ class CalisphereSolrFetcher(Fetcher):
         """
         super(CalisphereSolrFetcher, self).increment(http_resp)
         resp_dict = http_resp.json()
-        if self.cursor_mark != resp_dict["nextCursorMark"]:
+
+        # this is a workaround for solr giving us an extra page
+        # with zero docs after the last page of results
+        self.num_found = resp_dict["response"]["numFound"]
+        self.num_fetched = self.num_fetched + len(resp_dict["response"]["docs"])
+        if self.cursor_mark != resp_dict["nextCursorMark"] \
+        and self.num_fetched != self.num_found:
             self.cursor_mark = resp_dict["nextCursorMark"]
             self.finished = False
         else:
@@ -83,6 +91,8 @@ class CalisphereSolrFetcher(Fetcher):
             "collection_id": self.collection_id,
             "write_page": self.write_page,
             "cursor_mark": self.cursor_mark,
+            "num_found": self.num_found,
+            "num_fetched": self.num_fetched,
             "finished": self.finished
         }
 
