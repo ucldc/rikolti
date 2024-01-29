@@ -9,24 +9,26 @@ from io import StringIO
 from typing import Callable
 from collections import OrderedDict
 
+import re
+
 class UcbTindRecord(MarcRecord):
     def UCLDC_map(self):
         return {
             "calisphere-id": self.legacy_couch_db_id.split("--")[1],
-            "isShownAt": self.get_marc_values(["856"], ["u"]),
-            "isShownBy": self.get_marc_values(["856"], ["u"]),
-            "language": self.get_marc_values(["041"], ["a"]),
-            "date": self.get_marc_values(["260"], ["c"]),
-            "publisher": self.get_marc_values(["260"], ["a", "b"]),
+            "isShownAt": self.get_marc_data_fields(["856"], ["u"]),
+            "isShownBy": self.get_marc_data_fields(["856"], ["u"]),
+            "language": self.get_marc_data_fields(["041"], ["a"]),
+            "date": self.get_marc_data_fields(["260"], ["c"]),
+            "publisher": self.get_marc_data_fields(["260"], ["a", "b"]),
             "format": self.map_format,
             "extent": self.map_extent,
-            "identifier": self.get_marc_values(["020", "022", "035"], ["a"]),
-            "creator": self.get_marc_values(["100", "110", "111"]),
+            "identifier": self.get_marc_data_fields(["020", "022", "035"], ["a"]),
+            "creator": self.get_marc_data_fields(["100", "110", "111"]),
             "relation": self.map_relation,
             "description": self.map_description,
-            "rights": self.get_marc_values(["506", "540"]),
-            "temporal": self.get_marc_values(["648"]),
-            "contributor": self.get_marc_values(["700", "710", "711", "720"]),
+            "rights": self.get_marc_data_fields(["506", "540"]),
+            "temporal": self.get_marc_data_fields(["648"]),
+            "contributor": self.get_marc_data_fields(["700", "710", "711", "720"]),
             "title": self.map_title,
             "spatial": self.map_spatial,
             "spec_type": self.map_spec_type,
@@ -35,15 +37,49 @@ class UcbTindRecord(MarcRecord):
         }
 
     def map_type(self):
-        self.get_marc_leader("type_of_control") + self.get_marc_leader("bibliographic_level")
+        value = []
 
-        print(self.get_marc_control_field("005", 1))
-        print(self.get_marc_control_field("001", 3))
+        for type_mapping in self.get_type_mapping():
+            value.append(type_mapping[1])
+
+        return value
+
 
     def map_spec_type(self):
-        pass
+        value = []
+
+        for type_mapping in self.get_type_mapping():
+            value.append(type_mapping[0])
+
+        if (self.get_marc_control_field("008", 28)
+                in ("a", "c", "f", "i", "l", "m", "o", "s") or
+                self.get_marc_data_fields(["086", "087"])):
+            value.append("Government Document")
+
+        return value
+
+    def get_type_mapping(self):
+        type_mapping = []
+
+        compare = (self.get_marc_leader("type_of_control") +
+                   self.get_marc_leader("bibliographic_level") +
+                   self.get_marc_control_field("007", 1) +
+                   self.get_marc_control_field("008", 21))
+
+        for (key, value) in self.type_mapping["leader"]:
+            if re.match(f"^{key}", compare):
+                type_mapping.append(value)
+
+        return type_mapping
 
     def get_metadata_fields(self):
+        """
+        Returns a list of metadata fields used by map_format, map_subject,
+        map_temporal, map_format
+
+        :return: A list of fields
+        :rtype: list
+        """
         return [str(i) for i in [600, 630, 650, 651] + list(range(610, 620)) + list(
             range(653, 659)) + list(range(690, 700))]
 
@@ -87,14 +123,13 @@ class UcbTindRecord(MarcRecord):
         def split_subject(value, tag, code):
             delimiters = get_delimiters(tag, code)
 
+            # Skip codes that are numeric
             if not code or code.isdigit():
-                # Skip codes that are numeric
                 return
 
             value = value.rstrip(", ")
 
             if value:
-                delimiters = get_delimiters(tag, code)
                 for delimiter in delimiters:
                     values = [delimiter.join(values)]
                     if delimiter != delimiters[-1]:
@@ -103,7 +138,8 @@ class UcbTindRecord(MarcRecord):
 
             return values
 
-        return self.get_marc_data_fields(self.get_metadata_fields(), process_value=split_subject)
+        return self.get_marc_data_fields(self.get_metadata_fields(),
+                                         process_value=split_subject)
 
     def map_temporal(self) -> list:
         f648 = self.get_marc_data_fields(["648"])
@@ -134,7 +170,8 @@ class UcbTindRecord(MarcRecord):
 
         :return: A list of extent values.
         """
-        return self.get_marc_data_fields(["300"]) + self.get_marc_data_fields(["340"], ["b"])
+        return self.get_marc_data_fields(["300"]) + self.get_marc_data_fields(["340"],
+                                                                              ["b"])
 
     def map_title(self) -> list:
         # 245, all subfields except c
@@ -163,7 +200,8 @@ class UcbTindRecord(MarcRecord):
         """
 
         # Don't let any data tags sneak in! They have subfields.
-        data_field_tag = field_tag if field_tag.isnumeric() and int(field_tag) < 100 else ""
+        data_field_tag = field_tag if field_tag.isnumeric() and int(
+            field_tag) < 100 else ""
 
         values = [v[0].value() for (k, v)
                   in self.get_marc_tag_value_map([data_field_tag]).items()
@@ -182,7 +220,8 @@ class UcbTindRecord(MarcRecord):
 
         return value
 
-    def get_marc_data_fields(self, field_tags: list, subfield_codes=[], **kwargs) -> list:
+    def get_marc_data_fields(self, field_tags: list, subfield_codes=[],
+                             **kwargs) -> list:
         """
         Get the values of specified subfields from given MARC fields.
 
@@ -202,7 +241,8 @@ class UcbTindRecord(MarcRecord):
         data_field_tags = [tag for tag in field_tags
                            if tag.isnumeric() and int(tag) > 99]
 
-        def subfield_matches(check_code: str, subfield_codes: list, exclude_subfields: bool) -> bool:
+        def subfield_matches(check_code: str, subfield_codes: list,
+                             exclude_subfields: bool) -> bool:
             """
             :param check_code: The code to check against the subfield codes.
             :param subfield_codes: A list of subfield codes to include / exclude
@@ -228,11 +268,13 @@ class UcbTindRecord(MarcRecord):
 
         value_list = [process_value(value, field_tag, subfield[0])
                       if process_value else value
-                      for (field_tag, matching_fields) in self.get_marc_tag_value_map(data_field_tags).items()
+                      for (field_tag, matching_fields) in
+                      self.get_marc_tag_value_map(data_field_tags).items()
                       for matching_field in matching_fields
                       for subfield in list(matching_field.subfields_as_dict().items())
                       for value in subfield[1]
-                      if subfield_matches(subfield[0], subfield_codes, exclude_subfields)]
+                      if
+                      subfield_matches(subfield[0], subfield_codes, exclude_subfields)]
 
         return value_list if isinstance(value_list, list) else []
 
@@ -312,25 +354,26 @@ class UcbTindRecord(MarcRecord):
                  ("XC", ("Conference", "Text")),
                  ("XS", ("Statistics", "Text"))]),
             "leader": OrderedDict(
-                [("am",         ("Book", "Text")),
-                 ("asn",        ("Newspapers", "Text")),
-                 ("as",         ("Serial", "Text")),
-                 ("aa",         ("Book", "Text")),
+                [("am", ("Book", "Text")),
+                 ("asn", ("Newspapers", "Text")),
+                 ("as", ("Serial", "Text")),
+                 ("aa", ("Book", "Text")),
                  ("a(?![mcs])", ("Serial", "Text")),
-                 ("[cd].*",     ("Musical Score", "Text")),
-                 ("t.*",        ("Manuscript", "Text")),
-                 ("[ef].*",     ("Maps", "Image")),
-                 ("g.[st]",     ("Photograph/Pictorial Works", "Image")),
-                 ("g.[cdfo]",   ("Film/Video", "Moving Image")),
-                 ("g.*",        (None, "Image")),
-                 ("k.*",        ("Photograph/Pictorial Works", "Image")),
-                 ("i.*",        ("Nonmusic", "Sound")),
-                 ("j.*",        ("Music", "Sound")),
-                 ("r.*",        (None, "Physical object")),
-                 ("p[cs].*",    (None, "Collection")),
-                 ("m.*",        (None, "Interactive Resource")),
-                 ("o.*",        (None, "Collection"))])
+                 ("[cd].*", ("Musical Score", "Text")),
+                 ("t.*", ("Manuscript", "Text")),
+                 ("[ef].*", ("Maps", "Image")),
+                 ("g.[st]", ("Photograph/Pictorial Works", "Image")),
+                 ("g.[cdfo]", ("Film/Video", "Moving Image")),
+                 ("g.*", (None, "Image")),
+                 ("k.*", ("Photograph/Pictorial Works", "Image")),
+                 ("i.*", ("Nonmusic", "Sound")),
+                 ("j.*", ("Music", "Sound")),
+                 ("r.*", (None, "Physical object")),
+                 ("p[cs].*", (None, "Collection")),
+                 ("m.*", (None, "Interactive Resource")),
+                 ("o.*", (None, "Collection"))])
         }
+
 
 class UcbTindVernacular(OaiVernacular):
     record_cls = UcbTindRecord
