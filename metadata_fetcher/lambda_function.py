@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 import time
+import os
 
 from .fetchers.Fetcher import Fetcher
 from rikolti.utils.versions import create_vernacular_version
@@ -22,7 +23,7 @@ def import_fetcher(harvest_type):
 
 
 # AWS Lambda entry point
-def fetch_collection(payload, vernacular_version, context, sleep=False) -> list[dict]:
+def fetch_collection(payload, vernacular_version, sleep=True) -> list[dict]:
     """
     returns a list of dicts with the following keys:
         document_count: int
@@ -41,7 +42,7 @@ def fetch_collection(payload, vernacular_version, context, sleep=False) -> list[
     fetch_status = []
     try:
         if sleep:
-            print("Sleeping!")
+            print(f"Sleeping in {os.path.basename(__file__)}!")
             time.sleep(1)
             print("Done Sleeping!")
         fetcher = fetcher_class(payload)

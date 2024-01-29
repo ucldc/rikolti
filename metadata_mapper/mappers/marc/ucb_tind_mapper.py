@@ -15,6 +15,7 @@ class UcbTindRecord(MarcRecord):
     def UCLDC_map(self):
         return {
             "calisphere-id": self.legacy_couch_db_id.split("--")[1],
+            "_id": self.get_marc_data_fields(["901"], ["a"]),
             "isShownAt": self.get_marc_data_fields(["856"], ["u"]),
             "isShownBy": self.get_marc_data_fields(["856"], ["u"]),
             "language": self.get_marc_data_fields(["041"], ["a"]),
@@ -22,7 +23,8 @@ class UcbTindRecord(MarcRecord):
             "publisher": self.get_marc_data_fields(["260"], ["a", "b"]),
             "format": self.map_format,
             "extent": self.map_extent,
-            "identifier": self.get_marc_data_fields(["020", "022", "035"], ["a"]),
+            "identifier": self.get_marc_data_fields(["020", "022", "024", "901"],
+                                                    ["a"]),
             "creator": self.get_marc_data_fields(["100", "110", "111"]),
             "relation": self.map_relation,
             "description": self.map_description,
@@ -38,18 +40,16 @@ class UcbTindRecord(MarcRecord):
 
     def map_type(self):
         value = []
-
-        for type_mapping in self.get_type_mapping():
-            value.append(type_mapping[1])
+        for types in self.get_matching_types():
+            value.append(types[1])
 
         return value
-
 
     def map_spec_type(self):
         value = []
 
-        for type_mapping in self.get_type_mapping():
-            value.append(type_mapping[0])
+        for types in self.get_matching_types():
+            value.append(types[0])
 
         if (self.get_marc_control_field("008", 28)
                 in ("a", "c", "f", "i", "l", "m", "o", "s") or
@@ -58,15 +58,14 @@ class UcbTindRecord(MarcRecord):
 
         return value
 
-    def get_type_mapping(self):
+    def get_matching_types(self):
         type_mapping = []
-
         compare = (self.get_marc_leader("type_of_control") +
                    self.get_marc_leader("bibliographic_level") +
                    self.get_marc_control_field("007", 1) +
                    self.get_marc_control_field("008", 21))
 
-        for (key, value) in self.type_mapping["leader"]:
+        for (key, value) in self.get_types()["leader"].items():
             if re.match(f"^{key}", compare):
                 type_mapping.append(value)
 
@@ -223,7 +222,7 @@ class UcbTindRecord(MarcRecord):
     def get_marc_data_fields(self, field_tags: list, subfield_codes=[],
                              **kwargs) -> list:
         """
-        Get the values of specified subfields from given MARC fields.
+        Get the values of specified subfields from given MARC fields. This allows control fields too.
 
         Set the `exclude_subfields` kwarg to exclude the specified subfield_codes.
 
@@ -236,11 +235,6 @@ class UcbTindRecord(MarcRecord):
                                all subfields will be included.
         :return: A list of values of the specified subfields.
         """
-
-        # Don't let any control tags sneak in! They don't have subfields.
-        data_field_tags = [tag for tag in field_tags
-                           if tag.isnumeric() and int(tag) > 99]
-
         def subfield_matches(check_code: str, subfield_codes: list,
                              exclude_subfields: bool) -> bool:
             """
@@ -269,7 +263,7 @@ class UcbTindRecord(MarcRecord):
         value_list = [process_value(value, field_tag, subfield[0])
                       if process_value else value
                       for (field_tag, matching_fields) in
-                      self.get_marc_tag_value_map(data_field_tags).items()
+                      self.get_marc_tag_value_map(field_tags).items()
                       for matching_field in matching_fields
                       for subfield in list(matching_field.subfields_as_dict().items())
                       for value in subfield[1]
@@ -311,7 +305,7 @@ class UcbTindRecord(MarcRecord):
 
         return ""
 
-    def get_type_mapping(self):
+    def get_types(self):
         """
         Legacy code verbatim
         :return:

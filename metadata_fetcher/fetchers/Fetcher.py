@@ -3,7 +3,8 @@ import requests
 
 from requests.adapters import HTTPAdapter, Retry
 from rikolti.utils.versions import put_vernacular_page
-
+import time
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,11 @@ class Fetcher(object):
             f"[{self.collection_id}]: fetching page {self.write_page} "
             f"at {page.get('url')}"
         )
+
+        # Added because collection 28011 was failing without this
+        print(f"Sleeping in {os.path.basename(__file__)}!")
+        time.sleep(1)
+        print("Done Sleeping!")
         try:
             response = requests.get(**page)
             response.raise_for_status()
