@@ -39,7 +39,7 @@ class NuxeoRecord(Record):
             'creator': self.collate_subfield('ucldc_schema:creator', 'name'),
             'date': [date.strip() for date in
                 self.collate_subfield('ucldc_schema:date', 'date')()
-                if date != ""],
+                if date and date != ""],
             'description': self.map_description(),
             'extent': [self.source_metadata.get('ucldc_schema:extent', None)],
             'format': [self.source_metadata.get('ucldc_schema:physdesc', None)],
