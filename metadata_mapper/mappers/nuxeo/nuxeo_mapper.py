@@ -56,11 +56,7 @@ class NuxeoRecord(Record):
                 self.source_metadata.get('ucldc_schema:relatedresource', [])),
             'rights': self.map_rights(),
             'spatial': self.map_spatial(),
-            'subject': (
-                    self.collate_subfield(
-                        'ucldc_schema:subjecttopic', 'heading')() +
-                    self.collate_subfield('ucldc_schema:subjectname', 'name')()
-            ),
+            'subject': self.map_subject(),
             'temporal': list(
                 self.source_metadata.get('ucldc_schema:temporalcoverage', [])),
             'title': [self.source_metadata.get('dc:title')],
@@ -75,6 +71,11 @@ class NuxeoRecord(Record):
         type = self.source_metadata.get('ucldc_schema:type', None)
         if type:
             return [type]
+
+    def map_subject(self):
+        subject = self.collate_subfield('ucldc_schema:subjecttopic', 'heading')() + \
+                  self.collate_subfield('ucldc_schema:subjectname', 'name')()
+        return [s for s in subject if s != ""]
 
     def to_dict(self):
         return self.mapped_data
