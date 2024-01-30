@@ -37,7 +37,7 @@ class NuxeoRecord(Record):
             'contributor': self.collate_subfield(
                 'ucldc_schema:contributor', 'name'),
             'creator': self.collate_subfield('ucldc_schema:creator', 'name'),
-            'date': [date for date in
+            'date': [date.strip() for date in
                 self.collate_subfield('ucldc_schema:date', 'date')()
                 if date != ""],
             'description': self.map_description(),
