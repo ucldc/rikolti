@@ -163,7 +163,8 @@ class NuxeoRecord(Record):
         rights_status = [self.map_rights_codes(rights_status)]
         rights_statement = [self.source_metadata.get(
             'ucldc_schema:rightsstatement')]
-        return rights_status + rights_statement
+        rights = rights_status + rights_statement
+        return [r for r in rights if r]
 
     def map_spatial(self):
         spatial = []
