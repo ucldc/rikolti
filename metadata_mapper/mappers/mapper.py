@@ -1401,7 +1401,7 @@ class Record(ABC, object):
                 # no ARK in identifiers. See if is a nuxeo object
                 collection = couch_doc['collection'][0]
                 harvest_type = collection['harvest_type']
-                if harvest_type == 'NUX':
+                if harvest_type == 'nuxeo':
                     solr_id = couch_doc.get('calisphere-id', None)
                 else:
                     solr_id = None
@@ -1512,8 +1512,7 @@ class Record(ABC, object):
                 'transcription': filter_blank_values(
                     record.get('transcription')),
                 'location': filter_blank_values(
-                    record.get('properties', {}).get(
-                        'ucldc_schema:physlocation'))
+                    record.get('location'))
             }
 
             solr_doc['media_source'] = record.get('media_source', {})
