@@ -47,10 +47,6 @@ class NuxeoRecord(Record):
                 [self.source_metadata.get('ucldc_schema:identifier')] +
                 self.source_metadata.get('ucldc_schema:localidentifier', [])
             ),
-            'id': (
-                [self.source_metadata.get('ucldc_schema:identifier')] +
-                self.source_metadata.get('ucldc_schema:localidentifier', [])
-            ),
             'language': self.map_language(),
             'publisher': list(
                 self.source_metadata.get('ucldc_schema:publisher', [])),

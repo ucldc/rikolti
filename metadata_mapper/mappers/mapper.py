@@ -1401,7 +1401,7 @@ class Record(ABC, object):
                 # no ARK in identifiers. See if is a nuxeo object
                 collection = couch_doc['collection'][0]
                 harvest_type = collection['harvest_type']
-                if harvest_type == 'NUX':
+                if harvest_type == 'nuxeo':
                     solr_id = couch_doc.get('calisphere-id', None)
                 else:
                     solr_id = None
