@@ -62,14 +62,14 @@ def map_endpoint(url, fetched_versions, limit=None):
             print(f"{ collection_id:<6}: not fetched yet", file=sys.stderr)
             continue
 
-        pre_mapping = map_result.get('pre_mapping', [])
+        pre_mapping = map_result.get('pre_mapping') or []
         if len(pre_mapping) > 0:
             print(
                 f"{collection_id:<6}: {'pre-mapping enrichments':<24}: "
                 f"\"{pre_mapping}\""
             )
 
-        enrichments = map_result.get('enrichments', [])
+        enrichments = map_result.get('enrichments') or []
         if len(enrichments) > 0:
             print(
                 f"{collection_id:<6}, {'post-mapping enrichments':<24}: "

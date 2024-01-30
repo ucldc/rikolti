@@ -56,7 +56,8 @@ def parse_enrichment_url(enrichment_url):
 
 
 def run_enrichments(records, collection, enrichment_set, page_filename):
-    for enrichment_url in collection.get(enrichment_set, []):
+    enrichment_urls = collection.get(enrichment_set) or []
+    for enrichment_url in enrichment_urls:
         enrichment_func, kwargs = parse_enrichment_url(enrichment_url)
         if not enrichment_func and settings.SKIP_UNDEFINED_ENRICHMENTS:
             continue
@@ -116,7 +117,8 @@ def map_page(
 
     # TODO: analyze and simplify this straight port of the
     # solr updater module into the Rikolti framework
-    mapped_records = [record.solr_updater() for record in mapped_records]
+    if collection.get('rikolti_mapper_type') != 'calisphere_solr.calisphere_solr':
+        mapped_records = [record.solr_updater() for record in mapped_records]
     mapped_records = [record.remove_none_values() for record in mapped_records]
 
     group_page_exceptions = {}
