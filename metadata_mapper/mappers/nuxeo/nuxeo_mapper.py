@@ -61,7 +61,7 @@ class NuxeoRecord(Record):
                         'ucldc_schema:subjecttopic', 'heading')() +
                     self.collate_subfield('ucldc_schema:subjectname', 'name')()
             ),
-            'temporalCoverage': list(
+            'temporal': list(
                 self.source_metadata.get('ucldc_schema:temporalcoverage', [])),
             'title': [self.source_metadata.get('dc:title')],
             'type': self.map_type,
