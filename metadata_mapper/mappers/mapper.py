@@ -1512,8 +1512,7 @@ class Record(ABC, object):
                 'transcription': filter_blank_values(
                     record.get('transcription')),
                 'location': filter_blank_values(
-                    record.get('properties', {}).get(
-                        'ucldc_schema:physlocation'))
+                    record.get('location'))
             }
 
             solr_doc['media_source'] = record.get('media_source', {})
