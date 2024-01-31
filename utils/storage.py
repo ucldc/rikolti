@@ -98,20 +98,23 @@ def list_s3_pages(data: DataStorage, recursive: bool=True, **kwargs) -> list:
     List all objects in s3_bucket with prefix s3_prefix
     """
     s3 = boto3.client('s3', **kwargs)
-    s3_objects = s3.list_objects_v2(
+    paginator = s3.get_paginator('list_objects_v2')
+    pages = paginator.paginate(
         Bucket=data.bucket, 
         Prefix=data.path.lstrip('/')
     )
-    # TODO: check resp['IsTruncated'] and use ContinuationToken if needed
 
-    keys = [f"s3://{data.bucket}/{obj['Key']}" for obj in s3_objects['Contents']]
-    prefix = f"s3://{data.bucket}/{data.path}"
+    keys = []
+    for page in pages:
+        keys += [f"s3://{data.bucket}/{obj['Key']}" for obj in page['Contents']]
 
     if not recursive:
         # prune deeper branches
+        prefix = f"s3://{data.bucket}/{data.path}"
         leaf_regex = re.escape(prefix) + r"^\/?[\w!'_.*()-]+\/?$"
         keys = [key for key in keys if re.match(leaf_regex, key)]
 
+    print(f"len(keys): {len(keys)}")
     return keys
 
 
