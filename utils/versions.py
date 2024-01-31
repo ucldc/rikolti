@@ -31,7 +31,9 @@ def get_version(collection_id: Union[int, str], uri: str) -> str:
     uri_parts = uri.lstrip('/').split('/')
     if str(collection_id) not in uri_parts or len(uri_parts) < 2:
         raise Exception(f"Not a valid version path: {uri}, {uri_parts}")
-    rikolti_data_root, relative_path = uri.split(f"{collection_id}/")
+    if not uri.startswith("/"):
+        uri = f"/{uri}"
+    rikolti_data_root, relative_path = uri.split(f"/{collection_id}/")
     path_list = relative_path.split('/')
     if 'data' in path_list:
         path_list = path_list[:path_list.index('data')]
