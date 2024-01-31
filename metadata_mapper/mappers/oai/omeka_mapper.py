@@ -15,6 +15,7 @@ class OmekaRecord(OaiRecord):
     def UCLDC_map(self):
         return {
             "identifier": self.map_identifier,
+            "dateCopyrighted": self.source_metadata.get('dateCopyrighted'),
         }
 
     def map_is_shown_at(self):
