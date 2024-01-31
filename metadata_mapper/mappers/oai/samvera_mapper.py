@@ -129,14 +129,20 @@ class SamveraValidator(Validator):
         """
         if rikolti_value == comparison_value:
             return
-        new_phone_number = '(310) 825-4988'
-        if comparison_value and len(comparison_value) == 2:
-            new_comparison_value = re.sub(
+
+
+        def sub_phone_number(rights: str) -> str:
+            return re.sub(
                 r'\(310\) 825-\d{4}',   # old phone number regex
-                new_phone_number,
-                comparison_value[1]
+                '(310) 825-4988',       # new phone number
+                rights
             )
-            comparison_value[1] = new_comparison_value
+
+        if comparison_value and len(comparison_value) > 0:
+            comparison_value = [
+                sub_phone_number(rights_value) 
+                for rights_value in comparison_value
+            ]
 
             if rikolti_value == comparison_value:
                 return
