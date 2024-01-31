@@ -114,7 +114,6 @@ def list_s3_pages(data: DataStorage, recursive: bool=True, **kwargs) -> list:
         leaf_regex = re.escape(prefix) + r"^\/?[\w!'_.*()-]+\/?$"
         keys = [key for key in keys if re.match(leaf_regex, key)]
 
-    print(f"len(keys): {len(keys)}")
     return keys
 
 
