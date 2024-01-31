@@ -15,8 +15,16 @@ class OmekaRecord(OaiRecord):
     def UCLDC_map(self):
         return {
             "identifier": self.map_identifier,
-            "dateCopyrighted": self.source_metadata.get('dateCopyrighted'),
+            "dateCopyrighted": self.map_rights_date,
         }
+
+    def map_rights_date(self):
+        dateCopyrighted = self.source_metadata.get('dateCopyrighted')
+        if dateCopyrighted:
+            if isinstance(dateCopyrighted, list):
+                return dateCopyrighted[0]
+            elif isinstance(dateCopyrighted, str):
+                return dateCopyrighted
 
     def map_is_shown_at(self):
         identifiers = [i for i in filter(None, self.source_metadata.get('identifier'))
