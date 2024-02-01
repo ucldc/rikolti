@@ -168,10 +168,11 @@ def validate_page(collection_id: int, page_path: str,
     collection = get_mapped_page_content(page_path)
 
     if len(collection) == 0:
-        raise ValueError(
-            f"No mapped metadata found for {collection_id} "
-            f"page {page_path}. Aborting."
+        print(
+            f"WARNING: No mapped metadata found for {collection_id} "
+            f"page {page_path}."
         )
+        return [],[]
 
     mapped_metadata = validator.generate_keys(
                         collection,
