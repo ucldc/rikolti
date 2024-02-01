@@ -7,6 +7,11 @@ from ..mapper import Validator
 
 
 class PsplRecord(OaiRecord):
+    def UCLDC_map(self):
+        return {
+            "type": self.split_and_flatten("type")
+        }
+
     def map_is_shown_by(self):
         identifier = self.source_metadata.get('id')
         if ':' not in identifier:
