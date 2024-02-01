@@ -143,8 +143,9 @@ class Record(ABC, object):
         try:
             return func(**kwargs)
         except Exception as e:
-            print(f"ENRICHMENT ERROR: {str(kwargs)}")
-            raise e
+            raise Exception(f"ENRICHMENT ERROR for enrichment: `{enrichment_function_name}` "
+                f"with kwargs: `{str(kwargs)}` "
+                )
 
     def select_id(self, prop: list[str]):
         """
@@ -918,8 +919,10 @@ class Record(ABC, object):
             return None
 
         prop = prop[0].split('/')[-1]  # remove sourceResource
-        value = self.mapped_data[prop]
-        self.mapped_data[prop] = recursive_substring_replace(value, old[0], new)
+        value = self.mapped_data.get(prop)
+        if value:
+            self.mapped_data[prop] = recursive_substring_replace(
+                value, old[0], new)
         return self
 
     def filter_fields(self, **_):
