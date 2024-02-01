@@ -233,8 +233,9 @@ def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) ->
 
 @task()
 def create_with_content_urls_version_task(collection: dict, mapped_pages: list[dict]):
-    mapped_version = get_version(
-        collection['id'], mapped_pages[0]['mapped_page_path'])
+    mapped_page_path = [page['mapped_page_path'] for page in mapped_pages
+        if page['mapped_page_path']][0]
+    mapped_version = get_version(collection['id'], mapped_page_path)
     return create_with_content_urls_version(mapped_version)
 
 

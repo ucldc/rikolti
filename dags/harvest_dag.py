@@ -70,7 +70,8 @@ def merge_children(version):
 
 @task()
 def get_mapped_page_filenames_task(mapped_pages):
-    return [mapped['mapped_page_path'] for mapped in mapped_pages]
+    return [mapped['mapped_page_path'] for mapped in mapped_pages
+        if mapped['mapped_page_path']]
 
 
 @dag(

@@ -90,7 +90,7 @@ def map_page(
         status: success
         num_records_mapped: int
         page_exceptions: TODO
-        mapped_page_path: str, ex:
+        mapped_page_path: str|None, ex:
             3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
     """
     if isinstance(collection, str):
@@ -106,12 +106,16 @@ def map_page(
     source_metadata_records = source_vernacular.parse(api_resp)
 
     if not source_metadata_records:
-        mapped_metadata = []
-        group_page_exceptions = {}
         logging.warning(
             f"No source vernacular records found for {collection_id} "
             f"page {vernacular_page_path}."
             )
+        return {
+            'status': 'success',
+            'num_records_mapped': 0,
+            'page_exceptions': {},
+            'mapped_page_path': None,
+        }
     else:
         source_metadata_records = run_enrichments(
             source_metadata_records, collection, 'rikolti__pre_mapping', page_filename)
@@ -148,16 +152,16 @@ def map_page(
 
         mapped_metadata = [record.to_dict() for record in mapped_records]
 
-    mapped_page_path = put_mapped_page(
-        json.dumps(mapped_metadata, ensure_ascii=False),
-        page_filename, mapped_data_version)
+        mapped_page_path = put_mapped_page(
+            json.dumps(mapped_metadata, ensure_ascii=False),
+            page_filename, mapped_data_version)
 
-    return {
-        'status': 'success',
-        'num_records_mapped': len(mapped_metadata),
-        'page_exceptions': group_page_exceptions,
-        'mapped_page_path': mapped_page_path,
-    }
+        return {
+            'status': 'success',
+            'num_records_mapped': len(mapped_metadata),
+            'page_exceptions': group_page_exceptions,
+            'mapped_page_path': mapped_page_path,
+        }
 
 
 if __name__ == "__main__":
