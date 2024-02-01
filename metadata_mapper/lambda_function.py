@@ -105,47 +105,56 @@ def map_page(
     source_vernacular = vernacular_reader(collection_id, page_filename)
     source_metadata_records = source_vernacular.parse(api_resp)
 
-    source_metadata_records = run_enrichments(
-        source_metadata_records, collection, 'rikolti__pre_mapping', page_filename)
+    if not source_metadata_records:
+        mapped_metadata = []
+        group_page_exceptions = {}
+        logging.warning(
+            f"No source vernacular records found for {collection_id} "
+            f"page {vernacular_page_path}."
+            )
+    else:
+        source_metadata_records = run_enrichments(
+            source_metadata_records, collection, 'rikolti__pre_mapping', page_filename)
 
-    for record in source_metadata_records:
-        record.to_UCLDC()
-    mapped_records = source_metadata_records
+        for record in source_metadata_records:
+            record.to_UCLDC()
+        mapped_records = source_metadata_records
 
-    mapped_records = run_enrichments(
-        mapped_records, collection, 'rikolti__enrichments', page_filename)
+        mapped_records = run_enrichments(
+            mapped_records, collection, 'rikolti__enrichments', page_filename)
 
-    # TODO: analyze and simplify this straight port of the
-    # solr updater module into the Rikolti framework
-    if collection.get('rikolti_mapper_type') != 'calisphere_solr.calisphere_solr':
-        mapped_records = [record.solr_updater() for record in mapped_records]
-    mapped_records = [record.remove_none_values() for record in mapped_records]
+        # TODO: analyze and simplify this straight port of the
+        # solr updater module into the Rikolti framework
+        if collection.get('rikolti_mapper_type') != 'calisphere_solr.calisphere_solr':
+            mapped_records = [record.solr_updater() for record in mapped_records]
+        mapped_records = [record.remove_none_values() for record in mapped_records]
 
-    group_page_exceptions = {}
-    page_exceptions = {
-        rec.legacy_couch_db_id: rec.enrichment_report
-        for rec in mapped_records if rec.enrichment_report
-    }
-    if page_exceptions:
-        # Group like lists of enrichment chain errors
-        for couch_id, reports in page_exceptions.items():
-            report = " | ".join(reports)
-            group_page_exceptions.setdefault(report, []).append(couch_id)
+        group_page_exceptions = {}
+        page_exceptions = {
+            rec.legacy_couch_db_id: rec.enrichment_report
+            for rec in mapped_records if rec.enrichment_report
+        }
+        if page_exceptions:
+            # Group like lists of enrichment chain errors
+            for couch_id, reports in page_exceptions.items():
+                report = " | ".join(reports)
+                group_page_exceptions.setdefault(report, []).append(couch_id)
 
-    # some enrichments had previously happened at ingest into Solr
-    # TODO: these are just two, investigate further
-    # mapped_records = [record.add_sort_title() for record in mapped_records]
-    # mapped_records = [record.map_registry_data(collection)
-    #                   for record in mapped_records]
+        # some enrichments had previously happened at ingest into Solr
+        # TODO: these are just two, investigate further
+        # mapped_records = [record.add_sort_title() for record in mapped_records]
+        # mapped_records = [record.map_registry_data(collection)
+        #                   for record in mapped_records]
 
-    mapped_metadata = [record.to_dict() for record in mapped_records]
+        mapped_metadata = [record.to_dict() for record in mapped_records]
+
     mapped_page_path = put_mapped_page(
         json.dumps(mapped_metadata, ensure_ascii=False),
         page_filename, mapped_data_version)
 
     return {
         'status': 'success',
-        'num_records_mapped': len(mapped_records),
+        'num_records_mapped': len(mapped_metadata),
         'page_exceptions': group_page_exceptions,
         'mapped_page_path': mapped_page_path,
     }
