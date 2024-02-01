@@ -2,7 +2,7 @@ from typing import Union, Any, Optional
 
 from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
-from ...validator import ValidationLogLevel, ValidationMode
+from ...validator import ValidationLogLevel
 
 
 class QuartexRecord(OaiRecord):
@@ -17,7 +17,7 @@ class QuartexRecord(OaiRecord):
         languages = self.source_metadata.get("language")
         if not isinstance(languages, list):
             languages = [languages]
-        languages = [l for l in languages if l]
+        languages = [language for language in languages if language]
         split_languages = []
         for value in languages:
             split_languages.extend(value.split(';'))
