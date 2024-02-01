@@ -142,7 +142,7 @@ class Record(ABC, object):
         func: Callable = getattr(self, enrichment_function_name)
         try:
             return func(**kwargs)
-        except Exception as e:
+        except Exception:
             raise Exception(f"ENRICHMENT ERROR for enrichment: `{enrichment_function_name}` "
                 f"with kwargs: `{str(kwargs)}` "
                 )
