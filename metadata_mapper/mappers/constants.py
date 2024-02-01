@@ -155,6 +155,7 @@ type_map = {
     "writing": "text",
     "manuscript": "text",
     "yearbook": "text", # for for pspl 26715
+    "scrapbook": "text", # for quartex 23760
     "school yearbook": "text", # for islandora 26601
     "equipment": "image",
     "cartographic": "image",
@@ -188,7 +189,8 @@ format_map = {
     "mail art": "image",
     "postcard": "image",
     "image": "image",
-    "still image": "image"
+    "still image": "image",
+    "photographic postcard": "image" # fix for 27845 quartex
 }
 imt_types = ['application', 'audio', 'image', 'message', 'model',
              'multipart', 'text', 'video']
