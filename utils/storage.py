@@ -105,7 +105,7 @@ def list_s3_pages(data: DataStorage, recursive: bool=True, **kwargs) -> list:
     )
 
     keys = []
-    for page in pages:
+    for obj_list in page_iterator:
         keys += [f"s3://{data.bucket}/{obj['Key']}" for obj in page['Contents']]
 
     if not recursive:
