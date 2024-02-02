@@ -43,7 +43,7 @@ class CcaVaultValidator(Validator):
             {
                 "field": "is_shown_by",
                 "validations": [
-                    CcaVaultValidator.str_match_ignore_url_protocol,
+                    Validator.str_match_ignore_url_protocol,
                     Validator.verify_type(str)
                 ]
             },

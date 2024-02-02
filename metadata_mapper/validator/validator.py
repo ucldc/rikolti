@@ -453,6 +453,19 @@ class Validator:
         lam.__name__ = f"Dictionary of {', '.join([t.__name__ for t in types])}"
         return lam
 
+    @staticmethod
+    def str_match_ignore_url_protocol(validation_def: dict,
+                                      rikolti_value: Any,
+                                      comparison_value: Any) -> None:
+        if rikolti_value == comparison_value:
+            return
+
+        if comparison_value and comparison_value.startswith('http'):
+            comparison_value = comparison_value.replace('http', 'https')
+
+        if not rikolti_value == comparison_value:
+            return "Content mismatch"
+
     # Private
 
     def _perform_validations(self, validation_def: dict[str, Any]) -> None:
