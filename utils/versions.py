@@ -25,17 +25,15 @@ def get_version(collection_id: Union[int, str], uri: str) -> str:
     keyword.
 
     Returns a version path.
+    Test cases we've encountered: "8/vernacular_metadata_2024-01-31T00:39:58/data/986", "8/vernacular_metadata_v1/data/8"
     """
     collection_id = str(collection_id)
-    uri = uri.rstrip('/')
-    uri_parts = uri.lstrip('/').split('/')
+    uri_parts = uri.strip('/').split('/')
     if str(collection_id) not in uri_parts or len(uri_parts) < 2:
         raise Exception(f"Not a valid version path: {uri}, {uri_parts}")
-    rikolti_data_root, relative_path = uri.split(f"{collection_id}/")
-    path_list = relative_path.split('/')
+    path_list = uri_parts[uri_parts.index(collection_id):]
     if 'data' in path_list:
         path_list = path_list[:path_list.index('data')]
-    path_list.insert(0, str(collection_id))
     version = "/".join(path_list)
     return version
 
