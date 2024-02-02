@@ -43,6 +43,8 @@ class OmekaRecord(OaiRecord):
         for i in identifiers:
             if 's3.amazonaws.com/omeka-net' in i:
                 return i
+            elif i.startswith('https://d1y502jg6fpugt.cloudfront.net'):
+                return i
             elif '/files/thumbnails/' in i:
                 return i
             elif '/files/original/' in i:
@@ -68,6 +70,8 @@ class OmekaRecord(OaiRecord):
         filtered_identifiers = []
         for i in identifiers:
             if "s3.amazonaws.com/omeka-net/" in i:
+                continue
+            if i.startswith("https://d1y502jg6fpugt.cloudfront.net"):
                 continue
             if "files/original" in i:
                 continue
