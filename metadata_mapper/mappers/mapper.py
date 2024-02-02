@@ -1224,14 +1224,15 @@ class Record(ABC, object):
         def normalize_sort_field(sort_field,
                                  default_missing='~title unknown',
                                  missing_equivalents=['title unknown']):
-            sort_field = sort_field.lower()
-            # remove punctuation
-            re_alphanumspace = re.compile(r'[^0-9A-Za-z\s]*')
-            sort_field = re_alphanumspace.sub('', sort_field)
-            words = sort_field.split()
-            if words:
-                if words[0] in ('the', 'a', 'an'):
-                    sort_field = ' '.join(words[1:])
+            if sort_field:
+                sort_field = sort_field.lower()
+                # remove punctuation
+                re_alphanumspace = re.compile(r'[^0-9A-Za-z\s]*')
+                sort_field = re_alphanumspace.sub('', sort_field)
+                words = sort_field.split()
+                if words:
+                    if words[0] in ('the', 'a', 'an'):
+                        sort_field = ' '.join(words[1:])
             if not sort_field or sort_field in missing_equivalents:
                 sort_field = default_missing
             return sort_field
