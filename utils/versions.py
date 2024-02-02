@@ -25,6 +25,7 @@ def get_version(collection_id: Union[int, str], uri: str) -> str:
     keyword.
 
     Returns a version path.
+    Test cases we've encountered: "8/vernacular_metadata_2024-01-31T00:39:58/data/986", "8/vernacular_metadata_v1/data/8"
     """
     collection_id = str(collection_id)
     uri_parts = uri.strip('/').split('/')
