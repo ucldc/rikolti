@@ -99,7 +99,7 @@ def list_s3_pages(data: DataStorage, recursive: bool=True, **kwargs) -> list:
     """
     s3 = boto3.client('s3', **kwargs)
     paginator = s3.get_paginator('list_objects_v2')
-    pages = paginator.paginate(
+    page_iterator = paginator.paginate(
         Bucket=data.bucket, 
         Prefix=data.path.lstrip('/')
     )
