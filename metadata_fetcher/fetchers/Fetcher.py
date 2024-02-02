@@ -52,6 +52,9 @@ class Fetcher(object):
             f"[{self.collection_id}]: fetching page {self.write_page} "
             f"at {page.get('url')}"
         )
+        if 'url' not in page:
+            raise InvalidHarvestEndpoint(
+                f"[{self.collection_id}]: invalid harvest endpoint")
         try:
             response = requests.get(**page)
             response.raise_for_status()
@@ -91,7 +94,7 @@ class Fetcher(object):
         {'headers': {}, 'params': {}} or any other options accepted by
         https://docs.python-requests.org/en/latest/api/#requests.get
         """
-        pass
+        raise NotImplementedError
 
     def get_records(self, http_resp):
         """parses http_resp from institutional API into a list of records
@@ -100,7 +103,7 @@ class Fetcher(object):
         by json.dumps into json line format; takes as an argument:
         https://docs.python-requests.org/en/latest/api/#requests.Response
         """
-        pass
+        raise NotImplementedError
 
     def increment(self, http_resp):
         """increment internal state for fetching the next page
