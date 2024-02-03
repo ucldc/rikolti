@@ -17,5 +17,6 @@ class NothumbVernacular(OmekaVernacular):
                     '/files/original/']
 
         return not any([search in identifier
+                        or identifier.startswith('https://d1y502jg6fpugt.cloudfront.net')
                         for search in searches
                         for identifier in filter(None, record.get('identifier'))])
