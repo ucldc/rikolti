@@ -133,19 +133,34 @@ class MarcRecord(Record):
         exclude_subfields = "exclude_subfields" in kwargs and kwargs[
             "exclude_subfields"]
 
+        # Do we want process_value to have access to the 880 field values as well?
+        # If so, call process_value with value + the output of
+        # get_alternate_graphic_representation
         value_list = [[(process_value(value, field_tag, subfield[0])
                       if process_value else value)] +
                       get_alternate_graphic_representation(field_tag, subfield[0], field_index, recurse)
+
+                      # Iterate the fields that have tags matching those requested
                       for (field_tag, matching_fields) in
                       self.get_marc_tag_value_map(field_tags).items()
+
+                      # Iterate the individual matches, tracking order in index
                       for field_index, matching_field in enumerate(matching_fields)
+
+                      # Iterate the subfield codes in those fields
                       for subfield in list(matching_field.subfields_as_dict().items())
+
+                      # Iterate the values in those subfields
                       for value in subfield[1]
                       if
+
+                      # Ensure we're including only requested subfields
                       subfield_matches(subfield[0], subfield_codes, exclude_subfields)]
 
+        # Flatten the output
         values = list(chain.from_iterable(value_list)) if isinstance(value_list, list) else []
 
+        # Dedupe the output
         deduped_values = []
         [deduped_values.append(value) for value in values
          if value not in deduped_values]
