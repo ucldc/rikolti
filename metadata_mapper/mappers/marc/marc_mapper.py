@@ -2,19 +2,13 @@ from ..oai.oai_mapper import OaiVernacular
 from ..mapper import Record
 
 from typing import Callable
+import re
+from itertools import chain
 
 class MarcRecord(Record):
     def UCLDC_map(self):
         return {
-
         }
-
-    def map_type(self):
-        value = []
-        for types in self.get_matching_types():
-            value.append(types[1])
-
-        return value
 
     def get_marc_control_field(self, field_tag: str, index: int = None) -> list:
         """
@@ -22,8 +16,6 @@ class MarcRecord(Record):
             * Control field isn't set
             * No value exists at the requested index
         Otherwise it returns a value
-
-        TODO: maybe need to accept slices in addition to ints for the index
 
         :param field_tag: Field tag to retrieve.
         :param index: A specific index to fetch
@@ -51,10 +43,14 @@ class MarcRecord(Record):
 
         return value
 
-    def get_marc_data_fields(self, field_tags: list, subfield_codes=[],
+    def get_marc_data_fields(self, field_tags: list, subfield_codes=[], recurse=True,
                              **kwargs) -> list:
         """
-        Get the values of specified subfields from given MARC fields. This allows control fields too.
+        TODO: Variable name meaning becomes quite fuzzy in the heart of this
+              function. Most variables could stand to be renamed.
+
+        Get the values of specified subfields from given MARC fields. This allows
+        control fields too.
 
         Set the `exclude_subfields` kwarg to exclude the specified subfield_codes.
 
@@ -62,6 +58,12 @@ class MarcRecord(Record):
         do transformations based on the field tag, code and value. See `map_subject` for
         an example.
 
+        :param recurse: Indicates whether alternate graphic representations (field 880)
+                        should be sought. This is used here to prevent infinite loops
+                        when this function is called to get field 880. It would also be
+                        possible (and maybe preferable) to remove this argument and set
+                        a `recurse` variable to false if "880" is included among
+                        `field_tags`.
         :param field_tags: A list of MARC fields.
         :param subfield_codes: A list of subfield codes to filter the values. If empty,
                                all subfields will be included.
@@ -77,12 +79,51 @@ class MarcRecord(Record):
             :return: A boolean value indicating whether the check_code is included or
                     excluded based on the subfield_codes and exclude_subfields parameters.
             """
+
+            # Always exclude subfield 6 unless it is explicitly listed
+            if check_code == "6" and "6" not in subfield_codes:
+                return False
             if not subfield_codes:
                 return True
             if exclude_subfields:
                 return check_code not in subfield_codes
             else:
                 return check_code in subfield_codes
+
+        def get_alternate_graphic_representation(tag: str, code: str, index: int,
+                                                 recurse=True) -> list:
+            """
+            This is where field 880 is handled
+            :param tag:
+            :param code:
+            :param index:
+            :param recurse:
+            :return:
+            """
+            if not recurse:
+                return []
+
+            subfield_6 = self.get_marc_data_fields([tag], ["6"], False)
+            if not subfield_6 or index >= len(subfield_6):
+                return []
+
+            match = re.match(r"^880\-([0-9]+)$", subfield_6[index])
+            if not match:
+                return []
+
+            all_880 = self.get_marc_tag_value_map(["880"])["880"]
+            index_880 = int(match.group(1)) - 1  # 880 indices start at 1
+
+            if not all_880 or index_880 >= len(all_880):
+                return []
+
+            field = all_880[index_880]
+            subfields = field.subfields_as_dict()
+
+            if code not in subfields:
+                return []
+
+            return subfields[code]
 
         if "process_value" in kwargs and isinstance(kwargs["process_value"], Callable):
             process_value = kwargs["process_value"]
@@ -92,17 +133,24 @@ class MarcRecord(Record):
         exclude_subfields = "exclude_subfields" in kwargs and kwargs[
             "exclude_subfields"]
 
-        value_list = [process_value(value, field_tag, subfield[0])
-                      if process_value else value
+        value_list = [[(process_value(value, field_tag, subfield[0])
+                      if process_value else value)] +
+                      get_alternate_graphic_representation(field_tag, subfield[0], field_index, recurse)
                       for (field_tag, matching_fields) in
                       self.get_marc_tag_value_map(field_tags).items()
-                      for matching_field in matching_fields
+                      for field_index, matching_field in enumerate(matching_fields)
                       for subfield in list(matching_field.subfields_as_dict().items())
                       for value in subfield[1]
                       if
                       subfield_matches(subfield[0], subfield_codes, exclude_subfields)]
 
-        return value_list if isinstance(value_list, list) else []
+        values = list(chain.from_iterable(value_list)) if isinstance(value_list, list) else []
+
+        deduped_values = []
+        [deduped_values.append(value) for value in values
+         if value not in deduped_values]
+
+        return deduped_values
 
     def get_marc_tag_value_map(self, field_tags: list) -> dict:
         """
@@ -136,7 +184,6 @@ class MarcRecord(Record):
             return leader.getattr(leader_key, "")
 
         return ""
-
 
 
 class MarcVernacular(OaiVernacular):

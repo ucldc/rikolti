@@ -20,8 +20,7 @@ class UcbTindRecord(MarcRecord):
             "_id": self.get_marc_data_fields(["901"], ["a"]),
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
-            "alt_title": self.get_marc_data_fields(["246"], ["6"],
-                                                   exclude_subfields=True),
+            "alternativeTitle": self.get_marc_data_fields(["246"]),
             "language": self.get_marc_data_fields(["041"], ["a"]),
             "date": self.get_marc_data_fields(["260"], ["c"]),
             "publisher": self.get_marc_data_fields(["260"], ["a", "b"]),
@@ -39,7 +38,6 @@ class UcbTindRecord(MarcRecord):
             "temporal": self.get_marc_data_fields(["648"]),
             "title": self.map_title,
             "spatial": self.map_spatial,
-            "spec_type": self.map_spec_type,
             "subject": self.map_subject,
             "type": self.get_marc_data_fields(["336"])
         }
@@ -55,32 +53,6 @@ class UcbTindRecord(MarcRecord):
             return ("https://digicoll.lib.berkeley.edu/nanna/thumbnail/v2/" +
                     field_001 + "?redirect=1")
 
-    def map_spec_type(self):
-        value = []
-
-        for types in self.get_matching_types():
-            value.append(types[0])
-
-        if (self.get_marc_control_field("008", 28)
-                in ("a", "c", "f", "i", "l", "m", "o", "s") or
-                self.get_marc_data_fields(["086", "087"])):
-            value.append("Government Document")
-
-        return value
-
-    def get_matching_types(self):
-        type_mapping = []
-        compare = (self.get_marc_leader("type_of_control") +
-                   self.get_marc_leader("bibliographic_level") +
-                   self.get_marc_control_field("007", 1) +
-                   self.get_marc_control_field("008", 21))
-
-        for (key, value) in self.get_types()["leader"].items():
-            if re.match(f"^{key}", compare):
-                type_mapping.append(value)
-
-        return type_mapping
-
     def get_metadata_fields(self):
         """
         Returns a list of metadata fields used by map_format, map_subject,
@@ -95,11 +67,15 @@ class UcbTindRecord(MarcRecord):
     def map_spatial(self) -> list:
         f651 = self.get_marc_data_fields(["651"], ["a"])
 
-        return f651 + self.get_marc_data_fields(self.get_metadata_fields(), ["z"])
+        values = f651 + self.get_marc_data_fields(self.get_metadata_fields(), ["z"])
+
+        # Stripping off trailing period
+        return [value[0:-1] if value[-1] == "." else value for value in values]
 
     def map_subject(self) -> list:
         fields = self.get_metadata_fields()
-        return [{"name": s} for s in self.get_marc_data_fields(fields, ["2"], exclude_subfields=True)]
+        return [{"name": s} for s in
+                self.get_marc_data_fields(fields, ["2"], exclude_subfields=True)]
 
     def map_temporal(self) -> list:
         f648 = self.get_marc_data_fields(["648"])
@@ -130,8 +106,9 @@ class UcbTindRecord(MarcRecord):
 
         :return: A list of extent values.
         """
-        return [", ".join(self.get_marc_data_fields(["300"]) + self.get_marc_data_fields(["340"],
-                                                                              ["b"]))]
+        return [", ".join(
+            self.get_marc_data_fields(["300"]) + self.get_marc_data_fields(["340"],
+                                                                           ["b"]))]
 
     def map_title(self) -> list:
         # 245, all subfields except c
@@ -144,70 +121,6 @@ class UcbTindRecord(MarcRecord):
         f240 = self.get_marc_data_fields(["240"])
 
         return f245 + f242 + f240
-
-
-    def get_types(self):
-        """
-        Legacy code verbatim
-        :return:
-        """
-        return {
-            "datafield": OrderedDict(
-                [("AJ", ("Journal", "Text")),
-                 ("AN", ("Newspaper", "Text")),
-                 ("BI", ("Biography", "Text")),
-                 ("BK", ("Book", "Text")),
-                 ("CF", ("Computer File", "Interactive Resource")),
-                 ("CR", ("CDROM", "Interactive Resource")),
-                 ("CS", ("Software", "Software")),
-                 ("DI", ("Dictionaries", "Text")),
-                 ("DR", ("Directories", "Text")),
-                 ("EN", ("Encyclopedias", "Text")),
-                 ("HT", ("HathiTrust", None)),
-                 ("MN", ("Maps-Atlas", "Image")),
-                 ("MP", ("Map", "Image")),
-                 ("MS", ("Musical Score", "Text")),
-                 ("MU", ("Music", "Text")),
-                 ("MV", ("Archive", "Collection")),
-                 ("MW", ("Manuscript", "Text")),
-                 ("MX", ("Mixed Material", "Collection")),
-                 ("PP", ("Photograph/Pictorial Works", "Image")),
-                 ("RC", ("Audio CD", "Sound")),
-                 ("RL", ("Audio LP", "Sound")),
-                 ("RM", ("Music", "Sound")),
-                 ("RS", ("Spoken word", "Sound")),
-                 ("RU", (None, "Sound")),
-                 ("SE", ("Serial", "Text")),
-                 ("SX", ("Serial", "Text")),
-                 ("VB", ("Video (Blu-ray)", "Moving Image")),
-                 ("VD", ("Video (DVD)", "Moving Image")),
-                 ("VG", ("Video Games", "Moving Image")),
-                 ("VH", ("Video (VHS)", "Moving Image")),
-                 ("VL", ("Motion Picture", "Moving Image")),
-                 ("VM", ("Visual Material", "Image")),
-                 ("WM", ("Microform", "Text")),
-                 ("XC", ("Conference", "Text")),
-                 ("XS", ("Statistics", "Text"))]),
-            "leader": OrderedDict(
-                [("am", ("Book", "Text")),
-                 ("asn", ("Newspapers", "Text")),
-                 ("as", ("Serial", "Text")),
-                 ("aa", ("Book", "Text")),
-                 ("a(?![mcs])", ("Serial", "Text")),
-                 ("[cd].*", ("Musical Score", "Text")),
-                 ("t.*", ("Manuscript", "Text")),
-                 ("[ef].*", ("Maps", "Image")),
-                 ("g.[st]", ("Photograph/Pictorial Works", "Image")),
-                 ("g.[cdfo]", ("Film/Video", "Moving Image")),
-                 ("g.*", (None, "Image")),
-                 ("k.*", ("Photograph/Pictorial Works", "Image")),
-                 ("i.*", ("Nonmusic", "Sound")),
-                 ("j.*", ("Music", "Sound")),
-                 ("r.*", (None, "Physical object")),
-                 ("p[cs].*", (None, "Collection")),
-                 ("m.*", (None, "Interactive Resource")),
-                 ("o.*", (None, "Collection"))])
-        }
 
 
 class UcbTindValidator(Validator):
@@ -229,6 +142,7 @@ class UcbTindValidator(Validator):
                 ]
             }
         ])
+
 
 class UcbTindVernacular(OaiVernacular):
     record_cls = UcbTindRecord
