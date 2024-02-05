@@ -865,64 +865,12 @@ default_validatable_fields: list[dict[str, Any]] = [
         "level": ValidationLogLevel.WARNING
     },
     {
-        "field": "reference_image_md5",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "reference_image_dimensions",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "created",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "last_modified",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
         "field": "sort_date_start",
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
     {
         "field": "sort_date_end",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "item_count",
-        "validations": [Validator.content_match],
-       "level": ValidationLogLevel.WARNING
-    },
-    # analysis needed: are the following fields populated
-    # in solr for any records at all?
-    {
-        "field": "campus_id",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "collection_id",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "repository_id",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "manifest",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "object_template",
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
