@@ -49,19 +49,8 @@ class CalisphereSolrRecord(Record):
             "repository_data": self.source_metadata.get("repository_data", None),
             "repository_url": self.source_metadata.get("repository_url", None),
             "rights_uri": self.source_metadata.get("rights_uri", None),
-            "manifest": self.source_metadata.get("manifest", None),
-            "object_template": self.source_metadata.get("object_template", None),
-            "url_item": self.source_metadata.get("url_item", None),
-            "created": self.source_metadata.get("created", None),
-            "last_modified": self.source_metadata.get("last_modified", None),            
             "sort_date_start": self.source_metadata.get("sort_date_start", None),
             "sort_date_end": self.source_metadata.get("sort_date_end", None),
-            "campus_id": self.source_metadata.get("campus_id", None),
-            "collection_id": self.source_metadata.get("collection_id", None),
-            "repository_id": self.source_metadata.get("repository_id", None),
-            "item_count": self.source_metadata.get("item_count", None),
-            "reference_image_md5": self.source_metadata.get("reference_image_md5", None),
-            "reference_image_dimensions": self.source_metadata.get("reference_image_dimensions", None),
         }
 
     def map_calisphere_id(self):
