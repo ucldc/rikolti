@@ -152,7 +152,7 @@ def map_page_task(vernacular_page: str, collection: dict, mapped_data_version: s
         status: success
         num_records_mapped: int
         page_exceptions: TODO
-        mapped_page_path: str, ex: 
+        mapped_page_path|None: str, ex:
             3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl
     """
     collection_id = collection.get('id')
@@ -170,7 +170,7 @@ def get_mapping_status_task(collection: dict, mapped_pages: list):
         status: success
         num_records_mapped: int
         page_exceptions: TODO
-        mapped_page_path: str, ex: 
+        mapped_page_path: str|None, ex:
             3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl
     returns a dict with the following keys:
         mapped_page_paths: ex: [
@@ -233,8 +233,9 @@ def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) ->
 
 @task()
 def create_with_content_urls_version_task(collection: dict, mapped_pages: list[dict]):
-    mapped_version = get_version(
-        collection['id'], mapped_pages[0]['mapped_page_path'])
+    mapped_page_path = [page['mapped_page_path'] for page in mapped_pages
+        if page['mapped_page_path']][0]
+    mapped_version = get_version(collection['id'], mapped_page_path)
     return create_with_content_urls_version(mapped_version)
 
 

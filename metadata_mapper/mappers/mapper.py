@@ -142,9 +142,10 @@ class Record(ABC, object):
         func: Callable = getattr(self, enrichment_function_name)
         try:
             return func(**kwargs)
-        except Exception as e:
-            print(f"ENRICHMENT ERROR: {str(kwargs)}")
-            raise e
+        except Exception:
+            raise Exception(f"ENRICHMENT ERROR for enrichment: `{enrichment_function_name}` "
+                f"with kwargs: `{str(kwargs)}` "
+                )
 
     def select_id(self, prop: list[str]):
         """
@@ -918,8 +919,10 @@ class Record(ABC, object):
             return None
 
         prop = prop[0].split('/')[-1]  # remove sourceResource
-        value = self.mapped_data[prop]
-        self.mapped_data[prop] = recursive_substring_replace(value, old[0], new)
+        value = self.mapped_data.get(prop)
+        if value:
+            self.mapped_data[prop] = recursive_substring_replace(
+                value, old[0], new)
         return self
 
     def filter_fields(self, **_):
@@ -1221,14 +1224,15 @@ class Record(ABC, object):
         def normalize_sort_field(sort_field,
                                  default_missing='~title unknown',
                                  missing_equivalents=['title unknown']):
-            sort_field = sort_field.lower()
-            # remove punctuation
-            re_alphanumspace = re.compile(r'[^0-9A-Za-z\s]*')
-            sort_field = re_alphanumspace.sub('', sort_field)
-            words = sort_field.split()
-            if words:
-                if words[0] in ('the', 'a', 'an'):
-                    sort_field = ' '.join(words[1:])
+            if sort_field:
+                sort_field = sort_field.lower()
+                # remove punctuation
+                re_alphanumspace = re.compile(r'[^0-9A-Za-z\s]*')
+                sort_field = re_alphanumspace.sub('', sort_field)
+                words = sort_field.split()
+                if words:
+                    if words[0] in ('the', 'a', 'an'):
+                        sort_field = ' '.join(words[1:])
             if not sort_field or sort_field in missing_equivalents:
                 sort_field = default_missing
             return sort_field
@@ -1401,7 +1405,7 @@ class Record(ABC, object):
                 # no ARK in identifiers. See if is a nuxeo object
                 collection = couch_doc['collection'][0]
                 harvest_type = collection['harvest_type']
-                if harvest_type == 'NUX':
+                if harvest_type == 'nuxeo':
                     solr_id = couch_doc.get('calisphere-id', None)
                 else:
                     solr_id = None
@@ -1512,8 +1516,7 @@ class Record(ABC, object):
                 'transcription': filter_blank_values(
                     record.get('transcription')),
                 'location': filter_blank_values(
-                    record.get('properties', {}).get(
-                        'ucldc_schema:physlocation'))
+                    record.get('location'))
             }
 
             solr_doc['media_source'] = record.get('media_source', {})

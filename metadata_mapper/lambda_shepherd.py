@@ -46,7 +46,7 @@ def get_mapping_status(collection, mapped_pages):
         status: success
         num_records_mapped: int
         page_exceptions: TODO
-        mapped_page_path: str, ex:
+        mapped_page_path: str|None, ex:
             3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
     returns a dict, one of the keys is mapped_page_paths:
         mapped_page_paths: ex: [
@@ -73,7 +73,8 @@ def get_mapping_status(collection, mapped_pages):
         'count': count,
         'page_count': page_count,
         'group_exceptions': group_exceptions,
-        'mapped_page_paths': [page['mapped_page_path'] for page in mapped_pages],
+        'mapped_page_paths': [page['mapped_page_path'] for page in mapped_pages
+            if page['mapped_page_path']],
     }
 
 def map_collection(collection_id, vernacular_version=None, validate=False):

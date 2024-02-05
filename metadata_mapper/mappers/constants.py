@@ -88,6 +88,7 @@ scdl_fix_format = {
 type_map = {
     "photographs": "image",
     "photograph": "image",
+    "photographic print": "image",    # fix for islandora 
     "sample book": "image",
     "ambrotype": "image",
     "carte-de-visite": "image",
@@ -153,6 +154,9 @@ type_map = {
     "correspondence": "text",
     "writing": "text",
     "manuscript": "text",
+    "yearbook": "text", # for for pspl 26715
+    "scrapbook": "text", # for quartex 23760
+    "school yearbook": "text", # for islandora 26601
     "equipment": "image",
     "cartographic": "image",
     "notated music": "image",
@@ -185,7 +189,8 @@ format_map = {
     "mail art": "image",
     "postcard": "image",
     "image": "image",
-    "still image": "image"
+    "still image": "image",
+    "photographic postcard": "image" # fix for 27845 quartex
 }
 imt_types = ['application', 'audio', 'image', 'message', 'model',
              'multipart', 'text', 'video']

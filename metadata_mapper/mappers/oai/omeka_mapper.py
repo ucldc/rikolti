@@ -15,7 +15,16 @@ class OmekaRecord(OaiRecord):
     def UCLDC_map(self):
         return {
             "identifier": self.map_identifier,
+            "dateCopyrighted": self.map_rights_date,
         }
+
+    def map_rights_date(self):
+        dateCopyrighted = self.source_metadata.get('dateCopyrighted')
+        if dateCopyrighted:
+            if isinstance(dateCopyrighted, list):
+                return dateCopyrighted[0]
+            elif isinstance(dateCopyrighted, str):
+                return dateCopyrighted
 
     def map_is_shown_at(self):
         identifiers = [i for i in filter(None, self.source_metadata.get('identifier'))
@@ -33,6 +42,8 @@ class OmekaRecord(OaiRecord):
         identifiers = filter(None, self.source_metadata.get('identifier'))
         for i in identifiers:
             if 's3.amazonaws.com/omeka-net' in i:
+                return i
+            elif i.startswith('https://d1y502jg6fpugt.cloudfront.net'):
                 return i
             elif '/files/thumbnails/' in i:
                 return i
@@ -59,6 +70,8 @@ class OmekaRecord(OaiRecord):
         filtered_identifiers = []
         for i in identifiers:
             if "s3.amazonaws.com/omeka-net/" in i:
+                continue
+            if i.startswith("https://d1y502jg6fpugt.cloudfront.net"):
                 continue
             if "files/original" in i:
                 continue

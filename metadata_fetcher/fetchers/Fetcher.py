@@ -60,15 +60,20 @@ class Fetcher(object):
                 f"[{self.collection_id}]: unable to fetch page {page}")
 
         record_count = self.check_page(response)
+        if not record_count:
+            logger.warning(
+                f"[{self.collection_id}]: no records found "
+                f"on page {self.write_page}"
+            )
+
         filepath = None
-        if record_count:
-            content = self.aggregate_vernacular_content(response)
-            try:
-                filepath = put_vernacular_page(
-                    content, self.write_page, self.vernacular_version)
-            except Exception as e:
-                print(f"Metadata Fetcher: {e}")
-                raise(e)
+        content = self.aggregate_vernacular_content(response)
+        try:
+            filepath = put_vernacular_page(
+                content, self.write_page, self.vernacular_version)
+        except Exception as e:
+            print(f"Metadata Fetcher: {e}")
+            raise(e)
 
         self.increment(response)
 
