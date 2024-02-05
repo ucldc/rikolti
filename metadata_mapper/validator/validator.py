@@ -667,7 +667,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "sort_title",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
@@ -675,7 +674,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "collection_name",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
@@ -683,7 +681,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "collection_data",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
@@ -691,7 +688,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "collection_url",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
@@ -699,7 +695,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "sort_collection_data",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
@@ -707,7 +702,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "repository_name",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
@@ -715,7 +709,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "repository_data",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
@@ -723,7 +716,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "repository_url",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
@@ -731,7 +723,6 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "url_item",
         "validations": [
-                        Validator.required_field,
                         Validator.content_match,
                         Validator.verify_type(str)
                         ]
