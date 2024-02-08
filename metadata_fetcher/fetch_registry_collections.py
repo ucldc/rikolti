@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+import traceback
 
 import requests
 
@@ -75,7 +76,8 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
             print(f"ERROR fetching collection { collection_id }: {e}")
             results[collection_id] = {
                 'status': 'error',
-                'error_message': e
+                'error_message': e, 
+                'traceback': traceback.format_exc()
             }
             continue
 

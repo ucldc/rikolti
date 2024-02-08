@@ -4,7 +4,6 @@ import requests
 from requests.adapters import HTTPAdapter, Retry
 from rikolti.utils.versions import put_vernacular_page
 import time
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -54,12 +53,13 @@ class Fetcher(object):
             f"at {page.get('url')}"
         )
 
-        # Added because collection 28011 was failing without this
-        print(f"Sleeping in {os.path.basename(__file__)}!")
-        time.sleep(1)
-        print("Done Sleeping!")
         try:
             response = requests.get(**page)
+            if response.status_code == 503:
+                # TIND sometimes throws a 503 error, so we'll sleep & try again;
+                # 28011 was most notorious
+                time.sleep(1)
+                response = requests.get(**page)
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             raise FetchError(
