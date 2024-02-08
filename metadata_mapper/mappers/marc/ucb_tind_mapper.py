@@ -1,10 +1,11 @@
-from .marc_mapper import MarcRecord, MarcVernacular
+from .marc_mapper import MarcRecord
 from ..oai.oai_mapper import OaiVernacular
 
 from sickle import models
 from pymarc import parse_xml_to_array
 from lxml import etree
 from io import StringIO
+from typing import Optional
 
 from ..mapper import Validator
 
@@ -148,7 +149,9 @@ class UcbTindVernacular(OaiVernacular):
     record_cls = UcbTindRecord
     validator = UcbTindValidator
 
-    def _process_record(self, record_element: list, request_url: str) -> UcbTindRecord:
+    def _process_record(self,
+                        record_element: etree.ElementBase,
+                        request_url: Optional[str]) -> Optional[dict]:
         """
         Process a record element and extract relevant information.
 
@@ -156,6 +159,11 @@ class UcbTindVernacular(OaiVernacular):
         :param request_url: The URL of the request.
         :return: A dictionary containing the extracted information from the record.
         """
+        sickle_rec = models.Record(record_element)
+        sickle_header = sickle_rec.header
+        if sickle_header.deleted:
+            return None
+
         marc_record_element = record_element.find(".//marc:record", namespaces={
             "marc": "http://www.loc.gov/MARC21/slim"})
         marc_record_string = etree.tostring(marc_record_element,
@@ -167,11 +175,6 @@ class UcbTindVernacular(OaiVernacular):
              f'{marc_record_string}'
              '</collection>')
 
-        sickle_rec = models.Record(record_element)
-        sickle_header = sickle_rec.header
-
-        if sickle_header.deleted:
-            return None
 
         record = {
             "datestamp": sickle_header.datestamp,
