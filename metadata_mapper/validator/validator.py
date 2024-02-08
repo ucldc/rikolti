@@ -600,7 +600,6 @@ class Validator:
     def _ensure_is_list(value: Any) -> list[Any]:
         return value if isinstance(value, list) else [value]
 
-
 default_validatable_fields: list[dict[str, Any]] = [
     # Full fidelity fields
     # Full type and content matches required
@@ -665,6 +664,70 @@ default_validatable_fields: list[dict[str, Any]] = [
                         Validator.verify_type(str)
                         ]
     },
+    {
+        "field": "sort_title",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+    {
+        "field": "collection_name",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+    {
+        "field": "collection_data",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+    {
+        "field": "collection_url",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+    {
+        "field": "sort_collection_data",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+    {
+        "field": "repository_name",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+    {
+        "field": "repository_data",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+    {
+        "field": "repository_url",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+    {
+        "field": "url_item",
+        "validations": [
+                        Validator.content_match,
+                        Validator.verify_type(str)
+                        ]
+    },
+
     # Partial fidelity fields
     # Content match required; nulls okay
     {
@@ -781,7 +844,27 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "transcription",
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
-    }
+    },
+    {
+        "field": "campus_name",
+        "validations": [Validator.content_match],
+        "level": ValidationLogLevel.WARNING
+    },
+    {
+        "field": "campus_data",
+        "validations": [Validator.content_match],
+        "level": ValidationLogLevel.WARNING
+    },
+    {
+        "field": "sort_date_start",
+        "validations": [Validator.content_match],
+        "level": ValidationLogLevel.WARNING
+    },
+    {
+        "field": "sort_date_end",
+        "validations": [Validator.content_match],
+        "level": ValidationLogLevel.WARNING
+    },
 ]
 
 Validator.validatable_fields = default_validatable_fields

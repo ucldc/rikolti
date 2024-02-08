@@ -57,22 +57,10 @@
                 "repository_data": {"type": "keyword"},
                 "repository_url": {"type": "keyword"},
                 "rights_uri": {"type": "keyword"},
-                "reference_image_md5": {"type": "keyword"},
-                "reference_image_dimensions": {"type": "keyword"},
-                "manifest": {"type": "keyword"},
-                "object_template": {"type": "keyword"},
                 "url_item": {"type": "keyword"},
 
-                "created": {"type": "date", "fields": {"raw": {"type": "keyword"}}},
-                "last_modified": {"type": "date", "fields": {"raw": {"type": "keyword"}}},
                 "sort_date_start": {"type": "date"},
                 "sort_date_end": {"type": "date"},
-
-                "campus_id": {"type": "integer"},
-                "collection_id": {"type": "integer"},
-                "repository_id": {"type": "integer"},
-                "item_count": {"type": "integer"},
-
 
                 "media": {
                     "properties": {
