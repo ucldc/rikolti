@@ -57,6 +57,7 @@
                 "repository_data": {"type": "keyword"},
                 "repository_url": {"type": "keyword"},
                 "rights_uri": {"type": "keyword"},
+                "url_item": {"type": "keyword"},
 
                 "sort_date_start": {"type": "date"},
                 "sort_date_end": {"type": "date"},
