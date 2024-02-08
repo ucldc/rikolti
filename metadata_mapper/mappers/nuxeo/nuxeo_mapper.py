@@ -314,3 +314,9 @@ class NuxeoVernacular(Vernacular):
 
     def parse(self, api_response):
         return self.get_records(json.loads(api_response)['entries'])
+
+    def skip(self, record):
+        if not record.get("properties").get("dc:title"):
+            print(f"**SKIPPED RECORD**: [{self.collection_id}] Record with uid ",
+                f"{record.get('uid')} has no title; not mapping")
+            return True
