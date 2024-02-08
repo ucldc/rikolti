@@ -4,6 +4,10 @@ opensearch-py
 requests
 sickle
 python-dotenv
+beautifulsoup4
+lxml
+pymarc
+MarkupSafe
 apache-airflow-providers-docker
 apache-airflow-providers-google
 apache-airflow-providers-amazon
