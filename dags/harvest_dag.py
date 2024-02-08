@@ -33,6 +33,10 @@ def get_child_records(version, parent_id) -> list:
         child_records.extend(get_with_content_urls_page_content(child))
     return child_records
 
+def get_child_thumbnail(child_records):
+    for child in child_records:
+        if child.get("thumbnail"):
+            return child.get("thumbnail")
 
 @task()
 def merge_children(version):
@@ -58,6 +62,11 @@ def merge_children(version):
                 f"record {calisphere_id}."
             )
             record['children'] = child_records
+            # if the parent doesn't have a thumbnail, grab one from children
+            if not record.get('thumbnail'):
+                child_thumbnail = get_child_thumbnail(child_records)
+                if child_thumbnail:
+                    record['thumbnail'] = child_thumbnail
         merged_pages.append(
             put_merged_page(
                 json.dumps(parent_records),
