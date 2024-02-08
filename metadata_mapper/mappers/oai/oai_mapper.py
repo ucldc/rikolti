@@ -134,32 +134,29 @@ class OaiRecord(Record):
 class OaiVernacular(Vernacular):
     namespaces = {"oai2": "http://www.openarchives.org/OAI/2.0/"}
 
-    def parse(self, api_response: requests.Response) -> list[Record]:
-        api_response = bytes(api_response, "utf-8")
-        page = etree.XML(api_response)
+    def parse(self, api_response: str) -> list[Record]:
+        api_response_b = bytes(api_response, "utf-8")
+        page = etree.XML(api_response_b)
 
-        record_elements = self._get_record_elements(page)
-        request_url = self._get_request_url(page)
-        records = self._create_records(record_elements, request_url)
+        request_elem = page.find("oai2:request", namespaces=self.namespaces)
+        request_url = request_elem.text if request_elem is not None else None
 
-        return self.get_records(records)
-
-    def _get_record_elements(self, page: etree.ElementBase) -> list[etree.ElementBase]:
-        return (
+        record_elements = (
             page
             .find("oai2:ListRecords", namespaces=self.namespaces)
             .findall("oai2:record", namespaces=self.namespaces)
         )
 
-    def _get_request_url(self, page: etree.ElementBase) -> Optional[str]:
-        request_elem = page.find("oai2:request", namespaces=self.namespaces)
-        return request_elem.text if request_elem is not None else None
+        records = [self._process_record(re, request_url)
+                   for re in record_elements]
+        records = list(filter(None, records))
 
-    def _create_records(self, record_elements: list[etree.ElementBase],
-                        request_url: str) -> list[Record]:
-        return [self._process_record(re, request_url) for re in record_elements]
+        return self.get_records(records)
 
-    def _process_record(self, record_element, request_url):
+
+    def _process_record(self,
+                        record_element: etree.ElementBase,
+                        request_url: Optional[str]) -> Optional[dict]:
         sickle_rec = models.Record(record_element)
         sickle_header = sickle_rec.header
 
@@ -173,7 +170,7 @@ class OaiVernacular(Vernacular):
 
         return record
 
-    def strip_metadata(self, record_metadata):
+    def strip_metadata(self, record_metadata: dict) -> dict:
         stripped = {}
         for key, value in record_metadata.items():
             if isinstance(value, str):
