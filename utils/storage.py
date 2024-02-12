@@ -41,7 +41,7 @@ def list_dirs(data_uri: str, recursive=False, **kwargs) -> list[str]:
         s3 = boto3.client('s3', **kwargs)
         s3_objects = s3.list_objects_v2(
             Bucket=data.bucket, 
-            Prefix=data.path.lstrip('/'),
+            Prefix=data.path.strip('/'),
             Delimiter='/'
         )
         keys = [
