@@ -81,7 +81,7 @@ def sample_docker_operators():
         mount_tmp_dir=False,
         mounts=[
             Mount(
-                source="/Users/awieliczka/Projects/rikolti_data",
+                source=os.environ.get("METADATA_MOUNT")
                 target="/tmp/rikolti_data",
                 type="bind",
             )

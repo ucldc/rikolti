@@ -40,10 +40,6 @@ def get_awsvpc_config():
 class ContentHarvestEcsOperator(EcsRunTaskOperator):
     def __init__(self, collection_id=None, with_content_urls_version=None, page=None, mapper_type=None, **kwargs):
         container_name = "rikolti-content_harvester"
-        if page:
-            page_basename = page.split('/')[-1]
-            container_name = (
-                f"content_harvester_{collection_id}_{page_basename.split('.')[0]}")
 
         args = {
             "cluster": "rikolti-ecs-cluster",
@@ -63,15 +59,15 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                         "environment": [
                             {
                                 "name": "MAPPED_DATA",
-                                "value": "file:///rikolti_data"
+                                "value": "s3://rikolti-data"
                             },
                             {
                                 "name": "WITH_CONTENT_URL_DATA",
-                                "value": "file:///rikolti_data"
+                                "value": "s3://rikolti-data"
                             },
                             {
                                 "name": "CONTENT_ROOT",
-                                "value": "file:///rikolti_content"
+                                "value": "s3://rikolti-content"
                             },
                             {
                                 "name": "NUXEO_USER",
@@ -150,6 +146,21 @@ class ContentHarvestDockerOperator(DockerOperator):
         container_name = (
             f"content_harvester_{collection_id}_{page_basename.split('.')[0]}")
 
+        if os.environ.get('MAPPED_DATA', '').startswith('s3'):
+            mapped_data = os.environ.get('MAPPED_DATA')
+        else:
+            mapped_data = "file:///rikolti_data"
+
+        if os.environ.get('WITH_CONTENT_URL_DATA', '').startswith('s3'):
+            with_content_url_data = os.environ.get('WITH_CONTENT_URL_DATA')
+        else:
+            with_content_url_data = "file:///rikolti_data"
+
+        if os.environ.get('CONTENT_ROOT', '').startswith('s3'):
+            content_root = os.environ.get('CONTENT_ROOT')
+        else:
+            content_root = "file:///rikolti_content"
+
         args = {
             "image": f"{container_image}:{container_version}",
             "container_name": container_name,
@@ -164,9 +175,9 @@ class ContentHarvestDockerOperator(DockerOperator):
             "mounts": mounts,
             "mount_tmp_dir": False,
             "environment": {
-                "MAPPED_DATA": "file:///rikolti_data",
-                "WITH_CONTENT_URL_DATA": "file:///rikolti_data",
-                "CONTENT_ROOT": "file:///rikolti_content",
+                "MAPPED_DATA": mapped_data,
+                "WITH_CONTENT_URL_DATA": with_content_url_data,
+                "CONTENT_ROOT": content_root,
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                 "NUXEO_PASS": os.environ.get("NUXEO_PASS")
             },
