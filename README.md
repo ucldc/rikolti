@@ -209,7 +209,6 @@ In order to run the indexer code, make sure the following variables are set:
 
 ```
 export RIKOLTI_ES_ENDPOINT= # ask for endpoint url
-export RIKOLTI_HOME=/usr/local/airflow/dags/rikolti
 export INDEX_RETENTION=1
 ```
 

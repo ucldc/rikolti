@@ -15,9 +15,4 @@ def get_auth():
 ENDPOINT = os.environ.get("RIKOLTI_ES_ENDPOINT", False)
 AUTH = get_auth()
 
-RIKOLTI_HOME = os.environ.get("RIKOLTI_HOME", "/usr/local/airflow/dags/rikolti")
-RECORD_INDEX_CONFIG = os.sep.join(
-    [RIKOLTI_HOME, "record_indexer/index_templates/record_index_config.json"]
-)
-
 INDEX_RETENTION = os.environ.get("INDEX_RETENTION", 1)

@@ -5,6 +5,7 @@ from pprint import pprint
 import requests
 
 from . import settings
+from .index_templates.record_index_config import RECORD_INDEX_CONFIG
 from rikolti.utils.versions import (
     get_merged_page_content, get_with_content_urls_page_content)
 
@@ -63,8 +64,7 @@ def remove_unexpected_fields(record: dict, expected_fields: list):
 
 
 def get_expected_fields():
-    record_index_config = json.load(open(settings.RECORD_INDEX_CONFIG))
-    record_schema = record_index_config["template"]["mappings"]["properties"]
+    record_schema = RECORD_INDEX_CONFIG["template"]["mappings"]["properties"]
     expected_fields = list(record_schema.keys())
 
     return expected_fields

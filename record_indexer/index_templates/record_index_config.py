@@ -1,4 +1,4 @@
-{
+RECORD_INDEX_CONFIG = {
     "index_patterns": ["rikolti*"],
     "template": {
         "settings": {

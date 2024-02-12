@@ -5,6 +5,7 @@ import sys
 import requests
 
 from .. import settings
+from .record_index_config import RECORD_INDEX_CONFIG
 
 """
     Create OpenSearch index template for rikolti
@@ -18,8 +19,7 @@ def main():
     # solr filter documentation: https://solr.apache.org/guide/8_6/filter-descriptions.html
     # TODO add aliases, version, _meta, priority to record_index_template.json
     # TODO make sort_title a multifield of title?
-    record_index_config = json.load(open(settings.RECORD_INDEX_CONFIG))
-    record_schema = record_index_config["template"]["mappings"]["properties"]
+    record_schema = RECORD_INDEX_CONFIG["template"]["mappings"]["properties"]
 
     # child schema == record schema, except without the "children" field
     child_schema = copy.deepcopy(record_schema)

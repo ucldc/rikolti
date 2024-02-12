@@ -1,3 +1,5 @@
+import os
+
 from datetime import datetime
 from docker.types import Mount
 from airflow.decorators import dag, task
@@ -81,7 +83,7 @@ def sample_docker_operators():
         mount_tmp_dir=False,
         mounts=[
             Mount(
-                source=os.environ.get("METADATA_MOUNT")
+                source=os.environ.get("METADATA_MOUNT"),
                 target="/tmp/rikolti_data",
                 type="bind",
             )
