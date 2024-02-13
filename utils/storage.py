@@ -76,7 +76,7 @@ def list_pages(data_uri: str, recursive: bool=True, **kwargs) -> list:
         except Exception as e:
             url = (
                 f"https://{data.bucket}.s3.us-west-2.amazonaws"
-                ".com/index.html#{data.path}/"
+                f".com/index.html#{data.path}/"
             )
             print(
                 f"Error listing files at {data.uri}\n"

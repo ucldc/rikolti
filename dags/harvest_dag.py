@@ -44,6 +44,7 @@ def merge_children(version):
 
     # Recurse through the record's children (if any)
     child_directories = get_child_directories(version)
+    print(child_directories)
     if not child_directories:
         return with_content_urls_pages
 
