@@ -16,7 +16,7 @@ def bulk_add(records: list, index: str):
 
     headers = {"Content-Type": "application/json"}
 
-    r = requests.post(url, headers=headers, data=data, auth=settings.AUTH)
+    r = requests.post(url, headers=headers, data=data, auth=settings.get_auth())
     r.raise_for_status()
 
     bulk_resp = r.json()

@@ -13,7 +13,7 @@ def move_index_to_prod(collection_id: str):
     Add current rikolti-stg index to rikolti-prd alias
     """
     url = f"{settings.ENDPOINT}/_alias/rikolti-stg"
-    r = requests.get(url=url, auth=settings.AUTH)
+    r = requests.get(url=url, auth=settings.get_auth())
     r.raise_for_status()
     indices = json.loads(r.text)
     indices_for_collection = [

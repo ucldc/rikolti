@@ -19,14 +19,14 @@ def update_alias_for_collection(alias: str, collection_id: str, index: str):
 
     data = {"actions": [{"add": {"index": index, "alias": alias}}]}
 
-    r = requests.post(url, headers=headers, data=json.dumps(data), auth=settings.AUTH)
+    r = requests.post(url, headers=headers, data=json.dumps(data), auth=settings.get_auth())
     r.raise_for_status()
     print(f"added index `{index}` to alias `{alias}`")
 
 
 def remove_collection_indices_from_alias(alias: str, collection_id: str):
     url = f"{settings.ENDPOINT}/_alias/{alias}"
-    r = requests.get(url=url, auth=settings.AUTH)
+    r = requests.get(url=url, auth=settings.get_auth())
     if r.status_code == 404:
         return
     else:
@@ -44,7 +44,7 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
             }
 
             r = requests.post(
-                url, headers=headers, data=json.dumps(data), auth=settings.AUTH
+                url, headers=headers, data=json.dumps(data), auth=settings.get_auth()
             )
             r.raise_for_status()
             print(f"removed indices `{indices_to_remove}` from alias `{alias}`")
@@ -56,7 +56,7 @@ def delete_old_collection_indices(collection_id: str):
     """
     url = f"{settings.ENDPOINT}/rikolti-{collection_id}-*"
     params = {"ignore_unavailable": "true"}
-    r = requests.get(url=url, params=params, auth=settings.AUTH)
+    r = requests.get(url=url, params=params, auth=settings.get_auth())
     r.raise_for_status()
     indices = json.loads(r.text)
 
@@ -76,7 +76,7 @@ def delete_old_collection_indices(collection_id: str):
 def delete_index(index: str):
     url = f"{settings.ENDPOINT}/{index}"
 
-    r = requests.delete(url, auth=settings.AUTH)
+    r = requests.delete(url, auth=settings.get_auth())
     if r.status_code == 404:
         return
     else:
