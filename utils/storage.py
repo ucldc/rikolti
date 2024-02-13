@@ -47,7 +47,7 @@ def list_dirs(data_uri: str, recursive=False, **kwargs) -> list[str]:
         keys = [
             obj['Prefix'][len(data.path):-1] 
             for obj in s3_objects['CommonPrefixes']
-            if obj['Prefix'] != data.path
+            if obj['Prefix'][len(data.path):-1] != ''
         ]
         return keys
     elif data.store == 'file':
