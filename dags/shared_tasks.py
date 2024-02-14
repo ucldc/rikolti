@@ -84,10 +84,12 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
     stats = flatten_stats(fetch_status)
     total_parent_items = sum([page['document_count'] for page in fetch_status])
     diff_items = total_parent_items - collection['solr_count']
-    date = datetime.strptime(
-        collection['solr_last_updated'],
-        "%Y-%m-%dT%H:%M:%S.%f"
-    )
+    date = None
+    if collection.get('solr_last_updated'):
+        date = datetime.strptime(
+            collection['solr_last_updated'],
+            "%Y-%m-%dT%H:%M:%S.%f"
+        )
 
     print(
         f"{'Successfully fetched' if stats['success'] else 'Error fetching'} "
@@ -105,10 +107,13 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
             f"{stats['total_items']-total_parent_items} child items across "
             f"{stats['total_pages']-len(fetch_status)} child pages"
         )
-    print(
-        f"As of {datetime.strftime(date, '%B %d, %Y %H:%M:%S.%f')} "
-        f"Solr has {collection['solr_count']} items"
-    )
+    if date:
+        print(
+            f"As of {datetime.strftime(date, '%B %d, %Y %H:%M:%S.%f')} "
+            f"Solr has {collection['solr_count']} items"
+        )
+    else:
+        print("The collection registry has no record of Solr count.")
     if diff_items != 0:
         print(
             f"Rikolti fetched {abs(diff_items)} "
