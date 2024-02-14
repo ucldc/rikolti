@@ -28,6 +28,7 @@ def get_vernacular_page_batches_task(
     # TODO: split page_list into pages and children?
 
     # 1024 is the maximum number of fanout tasks allowed
+    # so number of batches should never be more than 1024
     batch_size = math.ceil(len(pages) / 1024)
     return batched(pages, batch_size)
 

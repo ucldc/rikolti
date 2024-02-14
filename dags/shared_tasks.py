@@ -139,6 +139,7 @@ def fetch_collection_task(
         )
 
     # 1024 is the maximum number of fanout tasks allowed
+    # so number of batches should never be more than 1024
     batch_size = math.ceil(len(stats['filepaths']) / 1024)
     return batched(stats['filepaths'], batch_size)
 

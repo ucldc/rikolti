@@ -1,5 +1,6 @@
 import os
 import boto3
+import json
 
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.providers.amazon.aws.operators.ecs import EcsRunTaskOperator
@@ -142,7 +143,9 @@ class ContentHarvestDockerOperator(DockerOperator):
         )
         container_version = os.environ.get(
             'CONTENT_HARVEST_VERSION', 'latest')
-        page_basename = pages[0].split('/')[-1]
+
+        json_pages = json.loads(pages)
+        page_basename = json_pages[0].split('/')[-1]
         container_name = (
             f"content_harvester_{collection_id}_{page_basename.split('.')[0]}")
 
