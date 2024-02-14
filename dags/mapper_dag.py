@@ -5,12 +5,12 @@ from typing import Optional
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
-from rikolti.dags.shared_tasks import get_registry_data_task
-from rikolti.dags.shared_tasks import create_mapped_version_task
-from rikolti.dags.shared_tasks import map_page_task
-from rikolti.dags.shared_tasks import get_mapping_status_task
-from rikolti.dags.shared_tasks import validate_collection_task
-from rikolti.dags.shared_tasks import batched
+from rikolti.dags.shared_tasks.shared_tasks import get_registry_data_task
+from rikolti.dags.shared_tasks.shared_tasks import create_mapped_version_task
+from rikolti.dags.shared_tasks.shared_tasks import map_page_task
+from rikolti.dags.shared_tasks.shared_tasks import get_mapping_status_task
+from rikolti.dags.shared_tasks.shared_tasks import validate_collection_task
+from rikolti.dags.shared_tasks.shared_tasks import batched
 from rikolti.utils.versions import get_most_recent_vernacular_version
 from rikolti.utils.versions import get_most_recent_mapped_version
 from rikolti.utils.versions import get_vernacular_pages

@@ -7,21 +7,21 @@ from airflow.models.param import Param
 from typing import Optional
 
 
-from rikolti.dags.shared_tasks import create_vernacular_version_task
-from rikolti.dags.shared_tasks import fetch_collection_task
-from rikolti.dags.shared_tasks import get_registry_data_task
-from rikolti.dags.shared_tasks  import create_mapped_version_task
-from rikolti.dags.shared_tasks  import map_page_task
-from rikolti.dags.shared_tasks  import get_mapping_status_task
-from rikolti.dags.shared_tasks import validate_collection_task
-from rikolti.dags.shared_tasks import create_with_content_urls_version_task
+from rikolti.dags.shared_tasks.shared_tasks import create_vernacular_version_task
+from rikolti.dags.shared_tasks.shared_tasks import fetch_collection_task
+from rikolti.dags.shared_tasks.shared_tasks import get_registry_data_task
+from rikolti.dags.shared_tasks.shared_tasks  import create_mapped_version_task
+from rikolti.dags.shared_tasks.shared_tasks  import map_page_task
+from rikolti.dags.shared_tasks.shared_tasks  import get_mapping_status_task
+from rikolti.dags.shared_tasks.shared_tasks import validate_collection_task
+from rikolti.dags.shared_tasks.shared_tasks import create_with_content_urls_version_task
 from rikolti.dags.shared_content_harvester import ContentHarvestOperator
 from rikolti.utils.versions import (
     get_child_directories, get_with_content_urls_pages,
     get_with_content_urls_page_content, get_child_pages,
     create_merged_version, put_merged_page)
-from rikolti.dags.shared_tasks import create_stage_index_task
-from rikolti.dags.shared_tasks import cleanup_failed_index_creation_task
+from rikolti.dags.shared_tasks.shared_tasks import create_stage_index_task
+from rikolti.dags.shared_tasks.shared_tasks import cleanup_failed_index_creation_task
 
 
 def get_child_records(version, parent_id) -> list:

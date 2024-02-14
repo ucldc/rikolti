@@ -3,9 +3,9 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
 
-from rikolti.dags.shared_tasks import get_registry_data_task
-from rikolti.dags.shared_tasks import fetch_collection_task
-from rikolti.dags.shared_tasks import create_vernacular_version_task
+from rikolti.dags.shared_tasks.shared_tasks import get_registry_data_task
+from rikolti.dags.shared_tasks.shared_tasks import fetch_collection_task
+from rikolti.dags.shared_tasks.shared_tasks import create_vernacular_version_task
 
 @dag(
     dag_id="fetch_collection",

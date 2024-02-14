@@ -3,8 +3,8 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
 
-from rikolti.dags.shared_tasks import get_registry_data_task
-from rikolti.dags.shared_tasks import move_index_to_prod_task
+from rikolti.dags.shared_tasks.shared_tasks import get_registry_data_task
+from rikolti.dags.shared_tasks.shared_tasks import move_index_to_prod_task
 
 @dag(
     dag_id="index_collection_to_prod",
