@@ -78,13 +78,15 @@ def merge_children(version):
 
 
 @task()
-def get_mapped_page_filenames_task(mapped_pages):
-    mapped_pages = [
-        [mapped['mapped_page_path'] for mapped in mapped_page_list
-         if mapped['mapped_page_path']]
-        for mapped_page_list in mapped_pages]
+def get_mapped_page_filenames_task(mapped_page_batches: list[list[dict]]):
+    batches = []
+    for mapped_page_batch in mapped_page_batches:
+        batch = [
+            mapped_page['mapped_page_path'] for mapped_page in mapped_page_batch
+            if mapped_page['mapped_page_path']]
+        batches.append(json.dumps(batch))
 
-    return json.dumps(mapped_pages)
+    return batches
 
 
 @dag(
@@ -104,24 +106,24 @@ def harvest():
     collection = get_collection_metadata_task()
 
     vernacular_version = create_vernacular_version_task(collection=fetchdata)
-    fetched_pages = fetch_collection_task(
+    fetched_page_batches = fetch_collection_task(
         collection=fetchdata, vernacular_version=vernacular_version)
     mapped_data_version = create_mapped_version_task(
         collection=collection,
-        vernacular_pages=fetched_pages
+        vernacular_page_batches=fetched_page_batches
     )
-    mapped_pages = (
+    mapped_status_batches = (
         map_page_task
             .partial(collection=collection, mapped_data_version=mapped_data_version)
-            .expand(vernacular_pages=fetched_pages)
+            .expand(vernacular_page_batch=fetched_page_batches)
     )
 
-    mapping_status = get_mapping_status_task(collection, mapped_pages)
+    mapping_status = get_mapping_status_task(collection, mapped_status_batches)
     validate_collection_task(collection['id'], mapping_status['mapped_page_paths'])
-    mapped_page_paths = get_mapped_page_filenames_task(mapped_pages)
+    mapped_page_batches = get_mapped_page_filenames_task(mapped_status_batches)
 
     with_content_urls_version = create_with_content_urls_version_task(
-        collection, mapped_pages)
+        collection, mapped_page_batches)
 
     content_harvest_task = (
         ContentHarvestOperator
@@ -132,14 +134,14 @@ def harvest():
                 mapper_type=collection['rikolti_mapper_type']
             )
             .expand(
-                pages=mapped_page_paths
+                pages=mapped_page_batches
             )
     )
 
-    merged_parent_records = merge_children(with_content_urls_version)
-    content_harvest_task >> merged_parent_records
+    merged_pages = merge_children(with_content_urls_version)
+    content_harvest_task >> merged_pages
 
-    stage_index = create_stage_index_task(collection, merged_parent_records)
+    stage_index = create_stage_index_task(collection, merged_pages)
     cleanup_failed_index_creation_task(stage_index)
 
 

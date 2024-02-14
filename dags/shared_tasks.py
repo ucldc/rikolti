@@ -1,5 +1,6 @@
 import boto3
 import pprint
+import json
 import os
 import math
 from datetime import datetime
@@ -42,13 +43,12 @@ def get_collection_fetchdata_task(params=None):
     return resp.json()
 
 
-def paginate_filepaths_for_fanout(filepaths):
-    # 1024 is the maximum number of fanout tasks allowed
-    page_size = math.ceil(len(filepaths) / 1024)
-    paginated_filepaths = []
-    for i in range(0, len(filepaths), page_size):
-        paginated_filepaths.append(filepaths[i:i+page_size])
-    return paginated_filepaths
+# TODO: in python3.12 we can use itertools.batched
+def batched(l, batch_size):
+    batches = []
+    for i in range(0, len(l), batch_size):
+        batches.append(l[i:i+batch_size])
+    return batches
 
 
 @task()
@@ -58,7 +58,8 @@ def create_vernacular_version_task(collection) -> str:
 
 
 @task()
-def fetch_collection_task(collection: dict, vernacular_version: str):
+def fetch_collection_task(
+    collection: dict, vernacular_version: str) -> list[list[str]]:
     """
     returns a list of the filepaths of the vernacular metadata relative to the
     collection id, ex: [
@@ -137,7 +138,9 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
             f"\n{pprint.pprint(fetch_status)}\n{stats['success']}\n{stats['filepaths']}"
         )
 
-    return paginate_filepaths_for_fanout(stats['filepaths'])
+    # 1024 is the maximum number of fanout tasks allowed
+    batch_size = math.ceil(len(stats['filepaths']) / 1024)
+    return batched(stats['filepaths'], batch_size)
 
 
 @task(multiple_outputs=True)
@@ -159,11 +162,11 @@ def get_collection_metadata_task(params=None):
 # instances can be running at the same time, *across all DAG runs*
 @task()
 def map_page_task(
-    vernacular_pages: Union[str,list[str]],
+    vernacular_page_batch: Union[str,list[str]],
     collection: dict,
     mapped_data_version: str):
     """
-    vernacular_pages is a list of filepaths relative to the collection id, ex:
+    vernacular_page_batches is a list of filepaths relative to the collection id, ex:
         [ 3433/vernacular_metadata_2023-01-01T00:00:00/data/1 ]
     or:
         [
@@ -184,7 +187,7 @@ def map_page_task(
         return False
 
     mapped_pages = []
-    for vernacular_page in vernacular_pages:
+    for vernacular_page in vernacular_page_batch:
         mapped_page = map_page(
             collection_id, vernacular_page, mapped_data_version, collection)
         mapped_pages.append(mapped_page)
@@ -192,7 +195,7 @@ def map_page_task(
 
 
 @task(multiple_outputs=True)
-def get_mapping_status_task(collection: dict, paginated_mapped_pages: list):
+def get_mapping_status_task(collection: dict, mapped_page_batches: list) -> dict:
     """
     mapped_pages is a list of a list of dicts with the following keys:
         status: success
@@ -208,15 +211,15 @@ def get_mapping_status_task(collection: dict, paginated_mapped_pages: list):
         ]
     """
     mapped_pages = []
-    for pages in paginated_mapped_pages:
-        mapped_pages.extend(pages)
+    for batch in mapped_page_batches:
+        mapped_pages.extend(batch)
     mapping_status = get_mapping_status(collection, mapped_pages)
 
     return mapping_status
 
 
 @task()
-def create_mapped_version_task(collection, vernacular_pages):
+def create_mapped_version_task(collection, vernacular_page_batches) -> str:
     """
     vernacular pages is a list of lists of the filepaths of the vernacular
     metadata relative to the collection id, ex: [
@@ -226,10 +229,12 @@ def create_mapped_version_task(collection, vernacular_pages):
     returns the path to a new mapped version, ex:
         "3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/"
     """
-    vernacular_version = get_version(collection.get('id'), vernacular_pages[0][0])
+    vernacular_page_batch = vernacular_page_batches[0]
+    vernacular_page = vernacular_page_batch[0]
+    vernacular_version = get_version(collection.get('id'), vernacular_page)
     if not vernacular_version:
         raise ValueError(
-            f"Vernacular version not found in {vernacular_pages[0][0]}")
+            f"Vernacular version not found in {vernacular_page}")
     mapped_data_version = create_mapped_version(vernacular_version)
     return mapped_data_version
 
@@ -264,10 +269,10 @@ def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) ->
 
 
 @task()
-def create_with_content_urls_version_task(collection: dict, mapped_pages: list[list[dict]]):
-    mapped_page_path = [page['mapped_page_path'] for page in mapped_pages[0]
-        if page['mapped_page_path']][0]
-    mapped_version = get_version(collection['id'], mapped_page_path)
+def create_with_content_urls_version_task(
+    collection: dict, mapped_page_batches: list[str]):
+    mapped_page_batch = json.loads(mapped_page_batches[0])
+    mapped_version = get_version(collection['id'], mapped_page_batch[0])
     return create_with_content_urls_version(mapped_version)
 
 

@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 from typing import Optional
 
@@ -9,7 +10,7 @@ from rikolti.dags.shared_tasks import create_mapped_version_task
 from rikolti.dags.shared_tasks import map_page_task
 from rikolti.dags.shared_tasks import get_mapping_status_task
 from rikolti.dags.shared_tasks import validate_collection_task
-from rikolti.dags.shared_tasks import paginate_filepaths_for_fanout
+from rikolti.dags.shared_tasks import batched
 from rikolti.utils.versions import get_most_recent_vernacular_version
 from rikolti.utils.versions import get_most_recent_mapped_version
 from rikolti.utils.versions import get_vernacular_pages
@@ -17,14 +18,18 @@ from rikolti.utils.versions import get_mapped_pages
 
 
 @task()
-def get_vernacular_pages_task(collection: dict, params: Optional[dict]=None):
+def get_vernacular_page_batches_task(
+    collection: dict, params: Optional[dict]=None) -> list[list[str]]:
     collection_id = collection['id']
     vernacular_version = params.get('vernacular_version') if params else None
     if not vernacular_version:
         vernacular_version = get_most_recent_vernacular_version(collection_id)
     pages = get_vernacular_pages(vernacular_version)
     # TODO: split page_list into pages and children?
-    return paginate_filepaths_for_fanout(pages)
+
+    # 1024 is the maximum number of fanout tasks allowed
+    batch_size = math.ceil(len(pages) / 1024)
+    return batched(pages, batch_size)
 
 @task()
 def get_mapped_pages_task(params: Optional[dict] = None):
@@ -65,18 +70,18 @@ def get_mapped_pages_task(params: Optional[dict] = None):
 )
 def mapper_dag():
     collection = get_collection_metadata_task()
-    page_list = get_vernacular_pages_task(collection=collection)
+    page_batches = get_vernacular_page_batches_task(collection=collection)
     mapped_data_version = create_mapped_version_task(
         collection=collection,
-        vernacular_pages=page_list
+        vernacular_page_batches=page_batches
     )
-    mapped_pages = (
+    mapped_status_batches = (
         map_page_task
             .partial(collection=collection, mapped_data_version=mapped_data_version)
-            .expand(vernacular_pages=page_list)
+            .expand(vernacular_page_batch=page_batches)
     )
 
-    mapping_status = get_mapping_status_task(collection, mapped_pages)
+    mapping_status = get_mapping_status_task(collection, mapped_status_batches)
     validate_collection_task(collection['id'], mapping_status['mapped_page_paths'])
 
 mapper_dag()
