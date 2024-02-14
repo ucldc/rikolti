@@ -2,8 +2,9 @@ import json
 import os
 
 from datetime import datetime
-from airflow.decorators import dag, task
+from airflow.decorators import dag, task, task_group
 from airflow.models.param import Param
+from typing import Optional
 
 
 from rikolti.dags.shared_tasks import create_vernacular_version_task
@@ -88,25 +89,21 @@ def get_mapped_page_filenames_task(mapped_page_batches: list[list[dict]]):
     return batches
 
 
-@dag(
-    dag_id="harvest_collection",
-    schedule=None,
-    start_date=datetime(2023, 1, 1),
-    catchup=False,
-    params={
-        'collection_id': Param(None, description="Collection ID to harvest"),
-    },
-    tags=["rikolti"],
-)
-def harvest():
-
-    collection = get_registry_data_task()
-
+@task_group(group_id='fetching')
+def fetching_tasks(collection: Optional[dict] = None):
     vernacular_version = create_vernacular_version_task(
         collection=collection['registry_fetchdata'])
     fetched_page_batches = fetch_collection_task(
         collection=collection['registry_fetchdata'], 
         vernacular_version=vernacular_version)
+    return fetched_page_batches
+
+
+@task_group(group_id='mapping')
+def mapping_tasks(
+    collection: Optional[dict] = None, 
+    fetched_page_batches: Optional[list[list[str]]] = None):
+
     mapped_data_version = create_mapped_version_task(
         collection=collection,
         vernacular_page_batches=fetched_page_batches
@@ -120,6 +117,13 @@ def harvest():
     mapping_status = get_mapping_status_task(collection, mapped_status_batches)
     validate_collection_task(collection['id'], mapping_status['mapped_page_paths'])
     mapped_page_batches = get_mapped_page_filenames_task(mapped_status_batches)
+
+    return mapped_page_batches
+
+@task_group(group_id='content_harvesting')
+def content_harvesting_tasks(
+    collection: Optional[dict] = None, 
+    mapped_page_batches: Optional[list[list[str]]] = None):
 
     with_content_urls_version = create_with_content_urls_version_task(
         collection, mapped_page_batches)
@@ -136,10 +140,28 @@ def harvest():
                 pages=mapped_page_batches
             )
     )
+    return with_content_urls_version, content_harvest_task
 
+
+@dag(
+    dag_id="harvest_collection",
+    schedule=None,
+    start_date=datetime(2023, 1, 1),
+    catchup=False,
+    params={
+        'collection_id': Param(None, description="Collection ID to harvest"),
+    },
+    tags=["rikolti"],
+)
+def harvest():
+
+    collection = get_registry_data_task()
+    fetched_page_batches = fetching_tasks(collection)
+    mapped_page_batches = mapping_tasks(collection, fetched_page_batches)
+    with_content_urls_version, content_harvest_task = content_harvesting_tasks(
+        collection, mapped_page_batches)
     merged_pages = merge_children(with_content_urls_version)
-    content_harvest_task >> merged_pages
-
+    merged_pages.set_upstream(content_harvest_task)
     stage_index = create_stage_index_task(collection, merged_pages)
     cleanup_failed_index_creation_task(stage_index)
 
