@@ -22,7 +22,6 @@ from rikolti.utils.versions import (
     create_merged_version, put_merged_page)
 from rikolti.dags.shared_tasks import create_stage_index_task
 from rikolti.dags.shared_tasks import cleanup_failed_index_creation_task
-from rikolti.dags.shared_tasks import paginate_filepaths_for_fanout
 
 
 def get_child_records(version, parent_id) -> list:
@@ -80,10 +79,12 @@ def merge_children(version):
 
 @task()
 def get_mapped_page_filenames_task(mapped_pages):
-    mapped_pages = [mapped['mapped_page_path'] for mapped in mapped_pages
-        if mapped['mapped_page_path']]
+    mapped_pages = [
+        [mapped['mapped_page_path'] for mapped in mapped_page_list
+         if mapped['mapped_page_path']]
+        for mapped_page_list in mapped_pages]
 
-    return paginate_filepaths_for_fanout(mapped_pages)
+    return json.dumps(mapped_pages)
 
 
 @dag(

@@ -218,18 +218,18 @@ def get_mapping_status_task(collection: dict, paginated_mapped_pages: list):
 @task()
 def create_mapped_version_task(collection, vernacular_pages):
     """
-    vernacular pages is a list of the filepaths of the vernacular metadata
-    relative to the collection id, ex: [
-        '3433/vernacular_metadata_2023-01-01T00:00:00/data/1',
-        '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
+    vernacular pages is a list of lists of the filepaths of the vernacular
+    metadata relative to the collection id, ex: [
+        ['3433/vernacular_metadata_2023-01-01T00:00:00/data/1'],
+        ['3433/vernacular_metadata_2023-01-01T00:00:00/data/2]'
     ]
     returns the path to a new mapped version, ex:
         "3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/"
     """
-    vernacular_version = get_version(collection.get('id'), vernacular_pages[0])
+    vernacular_version = get_version(collection.get('id'), vernacular_pages[0][0])
     if not vernacular_version:
         raise ValueError(
-            f"Vernacular version not found in {vernacular_pages[0]}")
+            f"Vernacular version not found in {vernacular_pages[0][0]}")
     mapped_data_version = create_mapped_version(vernacular_version)
     return mapped_data_version
 
@@ -264,8 +264,8 @@ def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) ->
 
 
 @task()
-def create_with_content_urls_version_task(collection: dict, mapped_pages: list[dict]):
-    mapped_page_path = [page['mapped_page_path'] for page in mapped_pages
+def create_with_content_urls_version_task(collection: dict, mapped_pages: list[list[dict]]):
+    mapped_page_path = [page['mapped_page_path'] for page in mapped_pages[0]
         if page['mapped_page_path']][0]
     mapped_version = get_version(collection['id'], mapped_page_path)
     return create_with_content_urls_version(mapped_version)
