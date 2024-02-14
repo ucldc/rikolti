@@ -3,7 +3,7 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
 
-from rikolti.dags.shared_tasks import get_collection_fetchdata_task
+from rikolti.dags.shared_tasks import get_registry_data_task
 from rikolti.dags.shared_tasks import fetch_collection_task
 from rikolti.dags.shared_tasks import create_vernacular_version_task
 
@@ -16,9 +16,12 @@ from rikolti.dags.shared_tasks import create_vernacular_version_task
     tags=["rikolti"],
 )
 def fetcher_dag():
-    fetchdata = get_collection_fetchdata_task()
-    vernacular_version = create_vernacular_version_task(collection=fetchdata)
+    collection = get_registry_data_task()
+    vernacular_version = create_vernacular_version_task(
+        collection=collection['registry_fetchdata'])
     fetch_collection_task(
-        collection=fetchdata, vernacular_version=vernacular_version)
+        collection=collection['registry_fetchdata'], 
+        vernacular_version=vernacular_version
+    )
 
 fetcher_dag()

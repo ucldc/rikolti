@@ -5,7 +5,7 @@ from typing import Optional
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
-from rikolti.dags.shared_tasks import get_collection_metadata_task
+from rikolti.dags.shared_tasks import get_registry_data_task
 from rikolti.dags.shared_tasks import create_mapped_version_task
 from rikolti.dags.shared_tasks import map_page_task
 from rikolti.dags.shared_tasks import get_mapping_status_task
@@ -70,7 +70,7 @@ def get_mapped_pages_task(params: Optional[dict] = None):
     tags=["rikolti"],
 )
 def mapper_dag():
-    collection = get_collection_metadata_task()
+    collection = get_registry_data_task()
     page_batches = get_vernacular_page_batches_task(collection=collection)
     mapped_data_version = create_mapped_version_task(
         collection=collection,
@@ -99,7 +99,7 @@ mapper_dag()
     tags=["rikolti"]
 )
 def validation_dag():
-    collection = get_collection_metadata_task()
+    collection = get_registry_data_task()
     page_list = get_mapped_pages_task()
     validate_collection_task(collection['id'], page_list)
 
