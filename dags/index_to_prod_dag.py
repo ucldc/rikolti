@@ -3,7 +3,7 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
 
-from rikolti.dags.shared_tasks import get_collection_metadata_task
+from rikolti.dags.shared_tasks import get_registry_data_task
 from rikolti.dags.shared_tasks import move_index_to_prod_task
 
 @dag(
@@ -15,7 +15,7 @@ from rikolti.dags.shared_tasks import move_index_to_prod_task
     tags=["rikolti"],
 )
 def index_to_prod_dag():
-    collection = get_collection_metadata_task()
+    collection = get_registry_data_task()
     move_index_to_prod_task(collection=collection)
 
 index_to_prod_dag()

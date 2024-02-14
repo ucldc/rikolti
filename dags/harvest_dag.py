@@ -8,8 +8,7 @@ from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks import create_vernacular_version_task
 from rikolti.dags.shared_tasks import fetch_collection_task
-from rikolti.dags.shared_tasks import get_collection_fetchdata_task
-from rikolti.dags.shared_tasks import get_collection_metadata_task
+from rikolti.dags.shared_tasks import get_registry_data_task
 from rikolti.dags.shared_tasks  import create_mapped_version_task
 from rikolti.dags.shared_tasks  import map_page_task
 from rikolti.dags.shared_tasks  import get_mapping_status_task
@@ -101,13 +100,13 @@ def get_mapped_page_filenames_task(mapped_page_batches: list[list[dict]]):
 )
 def harvest():
 
-    # see TODO at get_collection_fetchdata_task
-    fetchdata = get_collection_fetchdata_task()
-    collection = get_collection_metadata_task()
+    collection = get_registry_data_task()
 
-    vernacular_version = create_vernacular_version_task(collection=fetchdata)
+    vernacular_version = create_vernacular_version_task(
+        collection=collection['registry_fetchdata'])
     fetched_page_batches = fetch_collection_task(
-        collection=fetchdata, vernacular_version=vernacular_version)
+        collection=collection['registry_fetchdata'], 
+        vernacular_version=vernacular_version)
     mapped_data_version = create_mapped_version_task(
         collection=collection,
         vernacular_page_batches=fetched_page_batches

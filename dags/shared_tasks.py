@@ -26,21 +26,29 @@ from rikolti.utils.versions import create_mapped_version
 from rikolti.utils.versions import create_with_content_urls_version
 
 
-# TODO: remove the rikoltifetcher registry endpoint and restructure
-# the fetch_collection function to accept a rikolticollection resource.
-@task()
-def get_collection_fetchdata_task(params=None):
+@task(multiple_outputs=True)
+def get_registry_data_task(params=None):
     if not params or not params.get('collection_id'):
         raise ValueError("Collection ID not found in params")
     collection_id = params.get('collection_id')
 
     resp = requests.get(
         "https://registry.cdlib.org/api/v1/"
-        f"rikoltifetcher/{collection_id}/?format=json"
+        f"rikolticollection/{collection_id}/?format=json"
     )
     resp.raise_for_status()
+    registry_data = resp.json()
 
-    return resp.json()
+    # TODO: remove the rikoltifetcher registry endpoint and restructure
+    # the fetch_collection function to accept a rikolticollection resource.
+    fetchdata_resp = requests.get(
+        "https://registry.cdlib.org/api/v1/"
+        f"rikoltifetcher/{collection_id}/?format=json"
+    )
+    fetchdata_resp.raise_for_status()
+    registry_data['registry_fetchdata'] = fetchdata_resp.json()
+
+    return registry_data
 
 
 # TODO: in python3.12 we can use itertools.batched
@@ -142,21 +150,6 @@ def fetch_collection_task(
     # so number of batches should never be more than 1024
     batch_size = math.ceil(len(stats['filepaths']) / 1024)
     return batched(stats['filepaths'], batch_size)
-
-
-@task(multiple_outputs=True)
-def get_collection_metadata_task(params=None):
-    if not params or not params.get('collection_id'):
-        raise ValueError("Collection ID not found in params")
-    collection_id = params.get('collection_id')
-
-    resp = requests.get(
-        "https://registry.cdlib.org/api/v1/"
-        f"rikolticollection/{collection_id}/?format=json"
-    )
-    resp.raise_for_status()
-
-    return resp.json()
 
 
 # max_active_tis_per_dag - setting on the task to restrict how many

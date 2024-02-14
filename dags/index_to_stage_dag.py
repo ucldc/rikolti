@@ -5,7 +5,7 @@ from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks import cleanup_failed_index_creation_task
 from rikolti.dags.shared_tasks import create_stage_index_task
-from rikolti.dags.shared_tasks import get_collection_metadata_task
+from rikolti.dags.shared_tasks import get_registry_data_task
 from rikolti.utils.versions import get_merged_pages, get_with_content_urls_pages
 
 
@@ -35,7 +35,7 @@ def get_version_pages(params=None):
     tags=["rikolti"],
 )
 def index_collection_to_stage_dag():
-    collection = get_collection_metadata_task()
+    collection = get_registry_data_task()
     version_pages = get_version_pages()
     index_name = create_stage_index_task(collection, version_pages)
     cleanup_failed_index_creation_task(index_name=index_name)
