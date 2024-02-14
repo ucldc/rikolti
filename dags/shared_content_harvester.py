@@ -38,7 +38,7 @@ def get_awsvpc_config():
 
 
 class ContentHarvestEcsOperator(EcsRunTaskOperator):
-    def __init__(self, collection_id=None, with_content_urls_version=None, page=None, mapper_type=None, **kwargs):
+    def __init__(self, collection_id=None, with_content_urls_version=None, pages=None, mapper_type=None, **kwargs):
         container_name = "rikolti-content_harvester"
 
         args = {
@@ -52,7 +52,7 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                         "name": container_name,
                         "command": [
                             f"{collection_id}",
-                            page,
+                            pages,
                             with_content_urls_version,
                             mapper_type
                         ],
@@ -106,7 +106,7 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
 
 
 class ContentHarvestDockerOperator(DockerOperator):
-    def __init__(self, collection_id, with_content_urls_version, page, mapper_type, **kwargs):
+    def __init__(self, collection_id, with_content_urls_version, pages, mapper_type, **kwargs):
         mounts = []
         if os.environ.get("METADATA_MOUNT"):
             mounts.append(Mount(
@@ -142,7 +142,7 @@ class ContentHarvestDockerOperator(DockerOperator):
         )
         container_version = os.environ.get(
             'CONTENT_HARVEST_VERSION', 'latest')
-        page_basename = page.split('/')[-1]
+        page_basename = pages[0].split('/')[-1]
         container_name = (
             f"content_harvester_{collection_id}_{page_basename.split('.')[0]}")
 
@@ -166,7 +166,7 @@ class ContentHarvestDockerOperator(DockerOperator):
             "container_name": container_name,
             "command": [
                 f"{collection_id}",
-                page,
+                pages,
                 with_content_urls_version,
                 mapper_type
             ],

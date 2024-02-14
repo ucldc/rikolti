@@ -87,14 +87,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Harvest content using a page of mapped metadata")
     parser.add_argument('collection_id', help="Collection ID")
-    parser.add_argument('mapped_page_path', help="URI-formatted path to a mapped metadata page")
+    parser.add_argument('mapped_page_path', help="URI-formatted path to a mapped metadata page, optionally a list")
     parser.add_argument('with_content_urls_version', help="URI-formatted path to a with_content_urls version")
     parser.add_argument('mapper_type', help="If 'nuxeo.nuxeo', use Nuxeo auth")
     args = parser.parse_args()
 
-    print(harvest_page_content(
-        args.collection_id,
-        args.mapper_type,
-        args.mapped_page_path,
-        args.with_content_urls_version
-    ))
+    print_value = []
+    if args.mapped_page_path.startswith('['):
+        mapped_page_paths = json.loads(args.mapped_page_path)
+        for mapped_page_path in mapped_page_paths:
+            print_value.append(harvest_page_content(
+                args.collection_id,
+                args.mapper_type,
+                mapped_page_path,
+                args.with_content_urls_version
+            ))
+    else:
+        print_value = harvest_page_content(
+            args.collection_id,
+            args.mapper_type,
+            args.mapped_page_path,
+            args.with_content_urls_version
+        )
+    print(print_value)

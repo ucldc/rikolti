@@ -27,7 +27,7 @@ def ecs_content_harvest():
         task_id="page_content_harvester_on_ecs",
         collection_id="{{ params.collection_id }}",
         with_content_urls_version="{{ params.with_content_urls_version }}",
-        page="{{ params.page_filename }}",
+        pages="{{ params.page_filename }}",
         mapper_type="{{ params.mapper_type }}",
     )
     harvest_content_for_page
@@ -47,7 +47,7 @@ def ecs_content_harvest():
         },
         collection_id = "{{ params.collection_id }}",
         with_content_urls_version="{{ params.with_content_urls_version }}",
-        page="all",
+        pages="all",
         mapper_type="{{ params.mapper_type }}",
     )
     harvest_content_for_collection

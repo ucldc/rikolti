@@ -1,7 +1,9 @@
 import boto3
 import pprint
 import os
+import math
 from datetime import datetime
+from typing import Union
 
 import requests
 
@@ -38,6 +40,15 @@ def get_collection_fetchdata_task(params=None):
     resp.raise_for_status()
 
     return resp.json()
+
+
+def paginate_filepaths_for_fanout(filepaths):
+    # 1024 is the maximum number of fanout tasks allowed
+    page_size = math.ceil(len(filepaths) / 1024)
+    paginated_filepaths = []
+    for i in range(0, len(filepaths), page_size):
+        paginated_filepaths.append(filepaths[i:i+page_size])
+    return paginated_filepaths
 
 
 @task()
@@ -126,7 +137,7 @@ def fetch_collection_task(collection: dict, vernacular_version: str):
             f"\n{pprint.pprint(fetch_status)}\n{stats['success']}\n{stats['filepaths']}"
         )
 
-    return stats['filepaths']
+    return paginate_filepaths_for_fanout(stats['filepaths'])
 
 
 @task(multiple_outputs=True)
@@ -147,10 +158,18 @@ def get_collection_metadata_task(params=None):
 # max_active_tis_per_dag - setting on the task to restrict how many
 # instances can be running at the same time, *across all DAG runs*
 @task()
-def map_page_task(vernacular_page: str, collection: dict, mapped_data_version: str):
+def map_page_task(
+    vernacular_pages: Union[str,list[str]],
+    collection: dict,
+    mapped_data_version: str):
     """
-    vernacular_page is a filepath relative to the collection id, ex:
-        3433/vernacular_metadata_2023-01-01T00:00:00/data/1
+    vernacular_pages is a list of filepaths relative to the collection id, ex:
+        [ 3433/vernacular_metadata_2023-01-01T00:00:00/data/1 ]
+    or:
+        [
+            3433/vernacular_metadata_2023-01-01T00:00:00/data/1,
+            3433/vernacular_metadata_2023-01-01T00:00:00/data/2
+        ]
     mapped_data_version is a path relative to the collection id, ex:
         3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/
     returns a dictionary with the following keys:
@@ -163,15 +182,19 @@ def map_page_task(vernacular_page: str, collection: dict, mapped_data_version: s
     collection_id = collection.get('id')
     if not collection_id or not mapped_data_version:
         return False
-    mapped_page = map_page(
-        collection_id, vernacular_page, mapped_data_version, collection)
-    return mapped_page
+
+    mapped_pages = []
+    for vernacular_page in vernacular_pages:
+        mapped_page = map_page(
+            collection_id, vernacular_page, mapped_data_version, collection)
+        mapped_pages.append(mapped_page)
+    return mapped_pages
 
 
 @task(multiple_outputs=True)
-def get_mapping_status_task(collection: dict, mapped_pages: list):
+def get_mapping_status_task(collection: dict, paginated_mapped_pages: list):
     """
-    mapped_pages is a list of dicts with the following keys:
+    mapped_pages is a list of a list of dicts with the following keys:
         status: success
         num_records_mapped: int
         page_exceptions: TODO
@@ -184,7 +207,11 @@ def get_mapping_status_task(collection: dict, mapped_pages: list):
             3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/3.jsonl
         ]
     """
+    mapped_pages = []
+    for pages in paginated_mapped_pages:
+        mapped_pages.extend(pages)
     mapping_status = get_mapping_status(collection, mapped_pages)
+
     return mapping_status
 
 
