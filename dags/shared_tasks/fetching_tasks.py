@@ -5,7 +5,7 @@ from typing import Optional
 
 from airflow.decorators import task, task_group
 
-from rikolti.dags.shared_tasks.shared_tasks import batched
+from rikolti.dags.shared_tasks.shared import batched
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.utils.versions import create_vernacular_version
 
