@@ -6,10 +6,8 @@ from airflow.decorators import dag, task
 from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks.shared_tasks import get_registry_data_task
-from rikolti.dags.shared_tasks.shared_tasks import create_mapped_version_task
-from rikolti.dags.shared_tasks.shared_tasks import map_page_task
-from rikolti.dags.shared_tasks.shared_tasks import get_mapping_status_task
-from rikolti.dags.shared_tasks.shared_tasks import validate_collection_task
+from rikolti.dags.shared_tasks.mapping_tasks import mapping_tasks
+from rikolti.dags.shared_tasks.mapping_tasks import validate_collection_task
 from rikolti.dags.shared_tasks.shared_tasks import batched
 from rikolti.utils.versions import get_most_recent_vernacular_version
 from rikolti.utils.versions import get_most_recent_mapped_version
@@ -54,10 +52,6 @@ def get_mapped_pages_task(params: Optional[dict] = None):
 # TODO: Any changes to mapper_dag should be carefully considered, duplicated
 # to map_collection, and tested in both contexts. Resolve multiple contexts.
 
-# TODO: this is a simple dynamic task mapping w/ max_map_length=1024 by default
-# if get_vernacular_pages_task() returns more than 1024 pages, map_page_task
-# will fail - need to somehow chunk up pages into groups of 1024?
-
 @dag(
     dag_id="map_collection",
     schedule=None,
@@ -72,19 +66,7 @@ def get_mapped_pages_task(params: Optional[dict] = None):
 def mapper_dag():
     collection = get_registry_data_task()
     page_batches = get_vernacular_page_batches_task(collection=collection)
-    mapped_data_version = create_mapped_version_task(
-        collection=collection,
-        vernacular_page_batches=page_batches
-    )
-    mapped_status_batches = (
-        map_page_task
-            .partial(collection=collection, mapped_data_version=mapped_data_version)
-            .expand(vernacular_page_batch=page_batches)
-    )
-
-    mapping_status = get_mapping_status_task(collection, mapped_status_batches)
-    validate_collection_task(collection['id'], mapping_status['mapped_page_paths'])
-
+    mapping_tasks(collection, page_batches)
 mapper_dag()
 
 @dag(
