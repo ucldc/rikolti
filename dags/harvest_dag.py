@@ -7,12 +7,9 @@ from airflow.models.param import Param
 from typing import Optional
 
 
-from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
 from rikolti.dags.shared_tasks.shared_tasks import get_registry_data_task
-from rikolti.dags.shared_tasks.shared_tasks  import create_mapped_version_task
-from rikolti.dags.shared_tasks.shared_tasks  import map_page_task
-from rikolti.dags.shared_tasks.shared_tasks  import get_mapping_status_task
-from rikolti.dags.shared_tasks.shared_tasks import validate_collection_task
+from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
+from rikolti.dags.shared_tasks.mapping_tasks  import mapping_tasks
 from rikolti.dags.shared_tasks.shared_tasks import create_with_content_urls_version_task
 from rikolti.dags.shared_content_harvester import ContentHarvestOperator
 from rikolti.utils.versions import (
@@ -75,40 +72,6 @@ def merge_children(version):
         )
     return merged_pages
 
-
-@task()
-def get_mapped_page_filenames_task(mapped_page_batches: list[list[dict]]):
-    batches = []
-    for mapped_page_batch in mapped_page_batches:
-        batch = [
-            mapped_page['mapped_page_path'] for mapped_page in mapped_page_batch
-            if mapped_page['mapped_page_path']]
-        batches.append(json.dumps(batch))
-
-    return batches
-
-
-
-@task_group(group_id='mapping')
-def mapping_tasks(
-    collection: Optional[dict] = None, 
-    fetched_page_batches: Optional[list[list[str]]] = None):
-
-    mapped_data_version = create_mapped_version_task(
-        collection=collection,
-        vernacular_page_batches=fetched_page_batches
-    )
-    mapped_status_batches = (
-        map_page_task
-            .partial(collection=collection, mapped_data_version=mapped_data_version)
-            .expand(vernacular_page_batch=fetched_page_batches)
-    )
-
-    mapping_status = get_mapping_status_task(collection, mapped_status_batches)
-    validate_collection_task(collection['id'], mapping_status['mapped_page_paths'])
-    mapped_page_batches = get_mapped_page_filenames_task(mapped_status_batches)
-
-    return mapped_page_batches
 
 @task_group(group_id='content_harvesting')
 def content_harvesting_tasks(
