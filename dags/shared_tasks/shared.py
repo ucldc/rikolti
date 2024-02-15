@@ -1,19 +1,11 @@
 import boto3
-import json
 import os
 
 import requests
 
 from airflow.decorators import task
-from airflow.utils.trigger_rule import TriggerRule
 
 from urllib.parse import urlparse
-
-from rikolti.record_indexer.create_collection_index import create_new_index
-from rikolti.record_indexer.create_collection_index import delete_index
-from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
-from rikolti.utils.versions import get_version
-from rikolti.utils.versions import create_with_content_urls_version
 
 
 @task(multiple_outputs=True)
@@ -47,40 +39,6 @@ def batched(list_to_batch, batch_size):
     for i in range(0, len(list_to_batch), batch_size):
         batches.append(list_to_batch[i:i+batch_size])
     return batches
-
-
-@task()
-def create_with_content_urls_version_task(
-    collection: dict, mapped_page_batches: list[str]):
-    mapped_page_batch = json.loads(mapped_page_batches[0])
-    mapped_version = get_version(collection['id'], mapped_page_batch[0])
-    return create_with_content_urls_version(mapped_version)
-
-
-@task()
-def create_stage_index_task(collection: dict, version_pages: list[str]):
-    collection_id = collection.get('id')
-    if not collection_id:
-        raise ValueError(
-            f"Collection ID not found in collection metadata: {collection}")
-
-    index_name = create_new_index(collection_id, version_pages)
-    return index_name
-
-
-# Task is triggered if at least one upstream (direct parent) task has failed
-@task(trigger_rule=TriggerRule.ONE_FAILED)
-def cleanup_failed_index_creation_task(index_name: str):
-    delete_index(index_name)
-
-
-@task()
-def move_index_to_prod_task(collection: dict):
-    collection_id = collection.get('id')
-    if not collection_id:
-        raise ValueError(
-            f"Collection ID not found in collection metadata: {collection}")
-    move_index_to_prod(collection_id)
 
 
 @task()

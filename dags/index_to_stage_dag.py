@@ -3,9 +3,9 @@ from datetime import datetime
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
-from rikolti.dags.shared_tasks.shared_tasks import cleanup_failed_index_creation_task
-from rikolti.dags.shared_tasks.shared_tasks import create_stage_index_task
-from rikolti.dags.shared_tasks.shared_tasks import get_registry_data_task
+from rikolti.dags.shared_tasks.indexing_tasks import cleanup_failed_index_creation_task
+from rikolti.dags.shared_tasks.indexing_tasks import create_stage_index_task
+from rikolti.dags.shared_tasks.shared import get_registry_data_task
 from rikolti.utils.versions import get_merged_pages, get_with_content_urls_pages
 
 

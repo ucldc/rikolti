@@ -2,22 +2,20 @@ import json
 import os
 
 from datetime import datetime
-from airflow.decorators import dag, task, task_group
+from airflow.decorators import dag, task
 from airflow.models.param import Param
-from typing import Optional
 
 
-from rikolti.dags.shared_tasks.shared_tasks import get_registry_data_task
+from rikolti.dags.shared_tasks.shared import get_registry_data_task
 from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
 from rikolti.dags.shared_tasks.mapping_tasks  import mapping_tasks
-from rikolti.dags.shared_tasks.shared_tasks import create_with_content_urls_version_task
-from rikolti.dags.shared_content_harvester import ContentHarvestOperator
+from rikolti.dags.shared_tasks.content_harvest_tasks import content_harvesting_tasks
 from rikolti.utils.versions import (
     get_child_directories, get_with_content_urls_pages,
     get_with_content_urls_page_content, get_child_pages,
     create_merged_version, put_merged_page)
-from rikolti.dags.shared_tasks.shared_tasks import create_stage_index_task
-from rikolti.dags.shared_tasks.shared_tasks import cleanup_failed_index_creation_task
+from rikolti.dags.shared_tasks.indexing_tasks import create_stage_index_task
+from rikolti.dags.shared_tasks.indexing_tasks import cleanup_failed_index_creation_task
 
 
 def get_child_records(version, parent_id) -> list:
@@ -71,29 +69,6 @@ def merge_children(version):
             )
         )
     return merged_pages
-
-
-@task_group(group_id='content_harvesting')
-def content_harvesting_tasks(
-    collection: Optional[dict] = None, 
-    mapped_page_batches: Optional[list[list[str]]] = None):
-
-    with_content_urls_version = create_with_content_urls_version_task(
-        collection, mapped_page_batches)
-
-    content_harvest_task = (
-        ContentHarvestOperator
-            .partial(
-                task_id="content_harvest", 
-                collection_id="{{ params.collection_id }}",
-                with_content_urls_version=with_content_urls_version,
-                mapper_type=collection['rikolti_mapper_type']
-            )
-            .expand(
-                pages=mapped_page_batches
-            )
-    )
-    return with_content_urls_version, content_harvest_task
 
 
 @dag(
