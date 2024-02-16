@@ -1,7 +1,7 @@
 import itertools
 import re
 import urllib.parse
-from typing import Any, Callable, Union
+from typing import Any, Callable, Union, Optional
 
 from .validation_log import ValidationLog, ValidationLogLevel
 from .validation_mode import ValidationMode
@@ -305,6 +305,44 @@ class Validator:
         if not validation_def["validation_mode"].value.compare(
             rikolti_value, comparison_value):
             return "Content mismatch"
+
+    @staticmethod
+    def registry_qualified_content_match(qualified_part: int,
+                                         model: str,
+                                         split_string: str = "::") -> Callable:
+        """
+        Validates that the content of the provided values is equal when
+        the rikolti value is qualified by the registry url.
+
+        Parameters:
+            qualified_part: int
+                The part of the rikolti value to qualify with the registry url.
+
+                Ex: if rikolti_value = ["3433::CCA/C Archives"], then
+                qualified_part = 0, but if rikolti_value =
+                ['ccac archives:CCA/C Archives:3433']
+                the qualified part is 2.
+            model: str
+                The registry url model, ie: 'collection' or 'repository'
+            split_string: str (default: "::")
+                The string to split the rikolti value on.
+
+        Returns: Callable
+        """
+        def inner(validation_def: dict, rikolti_values: Any,
+                  comparison_value: Any) -> Optional[str]:
+            qualified_rikolti_values = []
+            for rikolti_value in rikolti_values:
+                parts = str(rikolti_value).split(split_string)
+                parts[qualified_part] = (
+                    f"https://registry.cdlib.org/api/v1/{model}/" +
+                    str(parts[qualified_part]) + "/"
+                )
+                qualified_rikolti_values.append(split_string.join(parts))
+
+            return Validator.content_match(
+                validation_def, qualified_rikolti_values, comparison_value)
+        return inner
 
     @staticmethod
     def required_field(validation_def: dict, rikolti_value: Any,
@@ -681,21 +719,21 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "collection_data",
         "validations": [
-                        Validator.content_match,
+                        Validator.registry_qualified_content_match(0, 'collection'),
                         Validator.verify_type(str)
                         ]
     },
     {
         "field": "collection_url",
         "validations": [
-                        Validator.content_match,
+                        Validator.registry_qualified_content_match(0, 'collection'),
                         Validator.verify_type(str)
                         ]
     },
     {
         "field": "sort_collection_data",
         "validations": [
-                        Validator.content_match,
+                        Validator.registry_qualified_content_match(2, 'collection', ':'),
                         Validator.verify_type(str)
                         ]
     },
@@ -709,14 +747,14 @@ default_validatable_fields: list[dict[str, Any]] = [
     {
         "field": "repository_data",
         "validations": [
-                        Validator.content_match,
+                        Validator.registry_qualified_content_match(0, 'repository'),
                         Validator.verify_type(str)
                         ]
     },
     {
         "field": "repository_url",
         "validations": [
-                        Validator.content_match,
+                        Validator.registry_qualified_content_match(0, 'repository'),
                         Validator.verify_type(str)
                         ]
     },
@@ -855,16 +893,17 @@ default_validatable_fields: list[dict[str, Any]] = [
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
     },
-    {
-        "field": "sort_date_start",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
-    {
-        "field": "sort_date_end",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
-    },
+    # TODO: Add date range validation with date range fields
+    # {
+    #     "field": "sort_date_start",
+    #     "validations": [Validator.content_match],
+    #     "level": ValidationLogLevel.WARNING
+    # },
+    # {
+    #     "field": "sort_date_end",
+    #     "validations": [Validator.content_match],
+    #     "level": ValidationLogLevel.WARNING
+    # },
 ]
 
 Validator.validatable_fields = default_validatable_fields
