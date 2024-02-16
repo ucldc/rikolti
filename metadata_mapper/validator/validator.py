@@ -713,49 +713,49 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "collection_name",
         "validations": [
                         Validator.content_match,
-                        Validator.verify_type(str)
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "collection_data",
         "validations": [
                         Validator.registry_qualified_content_match(0, 'collection'),
-                        Validator.verify_type(str)
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "collection_url",
         "validations": [
                         Validator.registry_qualified_content_match(0, 'collection'),
-                        Validator.verify_type(str)
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "sort_collection_data",
         "validations": [
                         Validator.registry_qualified_content_match(2, 'collection', ':'),
-                        Validator.verify_type(str)
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "repository_name",
         "validations": [
                         Validator.content_match,
-                        Validator.verify_type(str)
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "repository_data",
         "validations": [
                         Validator.registry_qualified_content_match(0, 'repository'),
-                        Validator.verify_type(str)
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
         "field": "repository_url",
         "validations": [
                         Validator.registry_qualified_content_match(0, 'repository'),
-                        Validator.verify_type(str)
+                        Validator.verify_type(Validator.list_of(str))
                         ]
     },
     {
