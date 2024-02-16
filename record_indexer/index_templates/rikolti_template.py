@@ -1,6 +1,7 @@
 import copy
 import json
 import sys
+from pprint import pprint
 
 import requests
 
@@ -33,7 +34,9 @@ def main():
         data=json.dumps(RECORD_INDEX_CONFIG),
         auth=settings.get_auth(),
     )
-    r.raise_for_status()
+    if 200 <= r.status_code <= 299:
+        pprint(r.json())
+        r.raise_for_status()
     print(r.text)
 
 
