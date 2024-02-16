@@ -1460,13 +1460,13 @@ class Record(ABC, object):
                 'item_count': record.get('item_count', 0),
 
                 # registry fields
-                'collection_url': [c['id'] for c in collections],
+                'collection_url': [str(c['id']) for c in collections],
                 'collection_name': [c['name'] for c in collections],
                 'collection_data': [f"{c['id']}::{c['name']}"
                                     for c in collections],
                 'sort_collection_data': [sort_col_data(c) for c in collections],
 
-                'repository_url': [repo['id'] for repo in repos],
+                'repository_url': [str(repo['id']) for repo in repos],
                 'repository_name': [repo['name'] for repo in repos],
                 'repository_data': [compose_repo_data(repo) for repo in repos],
 
