@@ -23,11 +23,12 @@ from rikolti.dags.shared_content_harvester import ContentHarvestDockerOperator
     tags=["dev"],
 )
 def docker_content_harvest():
+
     harvest_content_for_page_task = ContentHarvestDockerOperator(
         task_id="page_content_harvester_on_local_docker",
         collection_id="{{ params.collection_id }}",
         with_content_urls_version="{{ params.with_content_urls_version }}",
-        pages="{{ params.page_filename }}",
+        pages='["{{ params.page_filename }}"]',
         mapper_type="{{ params.mapper_type }}",
     )
     harvest_content_for_page_task
@@ -38,7 +39,7 @@ def docker_content_harvest():
         command=["{{ params.collection_id }}"],
         collection_id="{{ params.collection_id }}",
         with_content_urls_version="{{ params.with_content_urls_version }}",
-        pages="all",
+        pages='["all"]',
         mapper_type="{{ params.mapper_type }}"
     )
     harvest_content_for_collection_task
