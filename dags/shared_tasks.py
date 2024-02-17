@@ -44,10 +44,10 @@ def get_collection_fetchdata_task(params=None):
 
 
 # TODO: in python3.12 we can use itertools.batched
-def batched(l, batch_size):
+def batched(list_to_batch, batch_size):
     batches = []
-    for i in range(0, len(l), batch_size):
-        batches.append(l[i:i+batch_size])
+    for i in range(0, len(list_to_batch), batch_size):
+        batches.append(list_to_batch[i:i+batch_size])
     return batches
 
 
