@@ -30,7 +30,7 @@ def main():
     r = requests.put(
         f"{settings.ENDPOINT}/_index_template/rikolti_template",
         headers={"Content-Type": "application/json"},
-        data=json.dumps(record_index_config),
+        data=json.dumps(RECORD_INDEX_CONFIG),
         auth=settings.get_auth(),
     )
     r.raise_for_status()
