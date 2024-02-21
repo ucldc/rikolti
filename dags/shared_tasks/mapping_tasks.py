@@ -19,7 +19,7 @@ from rikolti.utils.versions import create_mapped_version
 from rikolti.utils.versions import get_mapped_pages
 from rikolti.utils.versions import get_version
 
-@task()
+@task(task_id='create_mapped_version')
 def create_mapped_version_task(collection, vernacular_page_batches) -> str:
     """
     vernacular pages is a list of lists of the filepaths of the vernacular
@@ -42,7 +42,7 @@ def create_mapped_version_task(collection, vernacular_page_batches) -> str:
 
 # max_active_tis_per_dag - setting on the task to restrict how many
 # instances can be running at the same time, *across all DAG runs*
-@task()
+@task(task_id='map_page')
 def map_page_task(
     vernacular_page_batch: Union[str,list[str]],
     collection: dict,
@@ -76,8 +76,8 @@ def map_page_task(
     return mapped_pages
 
 
-@task(multiple_outputs=True)
-def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> dict:
+@task(task_id='create_map_report')
+def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> list['str']:
     """
     mapped_pages is a list of a list of dicts with the following keys:
         status: success
@@ -93,15 +93,21 @@ def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> di
         ]
     """
     mapped_statuses = []
+    mapped_page_batches = []
     for mapped_status_batch in mapped_status_batches:
         mapped_statuses.extend(mapped_status_batch)
+        mapped_page_batch = [
+            mapped_status['mapped_page_path'] for mapped_status in mapped_status_batch
+            if mapped_status['mapped_page_path']]
+        mapped_page_batches.append(json.dumps(mapped_page_batch))
+
     mapping_status = get_mapping_status(collection, mapped_statuses)
 
-    return mapping_status
+    return mapped_page_batches
 
 
-@task()
-def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) -> str:
+@task(task_id='validate_collection')
+def validate_collection_task(collection_id: int, mapped_page_batches: dict) -> str:
     """
     collection_status is a dict containing the following keys:
         mapped_page_paths: ex: [
@@ -110,6 +116,10 @@ def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) ->
             3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/3.jsonl
         ]
     """
+    mapped_metadata_pages = []
+    for mapped_page_batch in mapped_page_batches:
+        mapped_metadata_pages.extend(json.loads(mapped_page_batch))
+
     parent_pages = [path for path in mapped_metadata_pages if 'children' not in path]
 
     num_rows, file_location = create_collection_validation_csv(
@@ -129,18 +139,6 @@ def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) ->
     return file_location
 
 
-@task()
-def get_mapped_page_filenames_task(mapped_status_batches: list[list[dict]]):
-    mapped_page_batches = []
-    for mapped_status_batch in mapped_status_batches:
-        mapped_page_batch = [
-            mapped_status['mapped_page_path'] for mapped_status in mapped_status_batch
-            if mapped_status['mapped_page_path']]
-        mapped_page_batches.append(json.dumps(mapped_page_batch))
-
-    return mapped_page_batches
-
-
 @task_group(group_id='mapping')
 def mapping_tasks(
     collection: Optional[dict] = None, 
@@ -156,9 +154,8 @@ def mapping_tasks(
             .expand(vernacular_page_batch=fetched_page_batches)
     )
 
-    mapping_status = get_mapping_status_task(collection, mapped_status_batches)
-    validate_collection_task(collection['id'], mapping_status['mapped_page_paths'])
-    mapped_page_batches = get_mapped_page_filenames_task(mapped_status_batches)
+    mapped_page_batches = get_mapping_status_task(collection, mapped_status_batches)
+    validate_collection_task(collection['id'], mapped_page_batches)
 
     return mapped_page_batches
 
