@@ -77,7 +77,7 @@ def map_page_task(
 
 
 @task(multiple_outputs=True)
-def get_mapping_status_task(collection: dict, mapped_page_batches: list) -> dict:
+def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> dict:
     """
     mapped_pages is a list of a list of dicts with the following keys:
         status: success
@@ -92,10 +92,10 @@ def get_mapping_status_task(collection: dict, mapped_page_batches: list) -> dict
             3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/3.jsonl
         ]
     """
-    mapped_pages = []
-    for batch in mapped_page_batches:
-        mapped_pages.extend(batch)
-    mapping_status = get_mapping_status(collection, mapped_pages)
+    mapped_statuses = []
+    for mapped_status_batch in mapped_status_batches:
+        mapped_statuses.extend(mapped_status_batch)
+    mapping_status = get_mapping_status(collection, mapped_statuses)
 
     return mapping_status
 
@@ -130,15 +130,15 @@ def validate_collection_task(collection_id: int, mapped_metadata_pages: dict) ->
 
 
 @task()
-def get_mapped_page_filenames_task(mapped_page_batches: list[list[dict]]):
-    batches = []
-    for mapped_page_batch in mapped_page_batches:
-        batch = [
-            mapped_page['mapped_page_path'] for mapped_page in mapped_page_batch
-            if mapped_page['mapped_page_path']]
-        batches.append(json.dumps(batch))
+def get_mapped_page_filenames_task(mapped_status_batches: list[list[dict]]):
+    mapped_page_batches = []
+    for mapped_status_batch in mapped_status_batches:
+        mapped_page_batch = [
+            mapped_status['mapped_page_path'] for mapped_status in mapped_status_batch
+            if mapped_status['mapped_page_path']]
+        mapped_page_batches.append(json.dumps(mapped_page_batch))
 
-    return batches
+    return mapped_page_batches
 
 
 @task_group(group_id='mapping')
