@@ -5,6 +5,7 @@ from typing import Callable
 import re
 from itertools import chain
 
+
 class MarcRecord(Record):
     def UCLDC_map(self):
         return {
@@ -27,7 +28,7 @@ class MarcRecord(Record):
             field_tag) < 100 else ""
 
         values = [v[0].value() for (k, v)
-                  in self.get_marc_tag_value_map([data_field_tag]).items()
+                  in self.marc_tags_as_dict([data_field_tag]).items()
                   if len(v) > 0]
 
         if not values:
@@ -49,14 +50,16 @@ class MarcRecord(Record):
         TODO: Variable name meaning becomes quite fuzzy in the heart of this
               function. Most variables could stand to be renamed.
 
-        Get the values of specified subfields from given MARC fields. This allows
-        control fields too.
+        In most cases, this returns the Cartesian product of the provided `field_tags`
+        and `subfield codes`. If `recurse` is true, it will augment to include values
+        from field 880. Note the special handling of code `6`.
 
         Set the `exclude_subfields` kwarg to exclude the specified subfield_codes.
 
         Set the `process_value` kwarg to pass the value through your own code to
-        do transformations based on the field tag, code and value. See `map_subject` for
-        an example.
+        do transformations based on the field tag, code and value. There isn't an
+        example of this in use currently, but it could be useful for debugging or
+        for context-based transformations.
 
         :param recurse: Indicates whether alternate graphic representations (field 880)
                         should be sought. This is used here to prevent infinite loops
@@ -111,7 +114,7 @@ class MarcRecord(Record):
             if not match:
                 return []
 
-            all_880 = self.get_marc_tag_value_map(["880"])["880"]
+            all_880 = self.marc_tags_as_dict(["880"])["880"]
             index_880 = int(match.group(1)) - 1  # 880 indices start at 1
 
             if not all_880 or index_880 >= len(all_880):
@@ -142,7 +145,7 @@ class MarcRecord(Record):
 
                       # Iterate the fields that have tags matching those requested
                       for (field_tag, matching_fields) in
-                      self.get_marc_tag_value_map(field_tags).items()
+                      self.marc_tags_as_dict(field_tags).items()
 
                       # Iterate the individual matches, tracking order in index
                       for field_index, matching_field in enumerate(matching_fields)
@@ -157,17 +160,18 @@ class MarcRecord(Record):
                       # Ensure we're including only requested subfields
                       subfield_matches(subfield[0], subfield_codes, exclude_subfields)]
 
-        # Flatten the output
-        values = list(chain.from_iterable(value_list)) if isinstance(value_list, list) else []
-
         # Dedupe the output
         deduped_values = []
-        [deduped_values.append(value) for value in values
+        [deduped_values.append(value) for value in value_list
          if value not in deduped_values]
 
-        return deduped_values
+        # Flatten the output
+        flattened_values = list(chain.from_iterable(deduped_values)) if (
+            isinstance(deduped_values, list)) else []
 
-    def get_marc_tag_value_map(self, field_tags: list) -> dict:
+        return flattened_values
+
+    def marc_tags_as_dict(self, field_tags: list) -> dict:
         """
         Get the specified MARC fields from the source_metadata, mapping by field tag
 
@@ -181,9 +185,7 @@ class MarcRecord(Record):
         """
         Retrieve the value of specified leader key from the MARC metadata.
 
-        Couple things:
-            * We're not accommodating passing a slice, which pymarc can handle should it be necessary
-            * Both
+        We're not accommodating passing a slice, which pymarc can handle should it be necessary
 
         :param leader_key: The key of the leader field to retrieve.
         :type leader_key: str
