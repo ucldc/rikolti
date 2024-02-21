@@ -13,6 +13,9 @@ class MarcRecord(Record):
 
     def get_marc_control_field(self, field_tag: str, index: int = None) -> list:
         """
+
+        See: https://www.loc.gov/marc/bibliographic/bd00x.html
+
         Get MARC control field. Returns an empty string if:
             * Control field isn't set
             * No value exists at the requested index
@@ -50,6 +53,9 @@ class MarcRecord(Record):
         TODO: Variable name meaning becomes quite fuzzy in the heart of this
               function. Most variables could stand to be renamed.
 
+        `Data fields` is not a specific term in MARC. This function really will accept
+        any field tags. See https://www.loc.gov/marc/bibliographic/ for all fields.
+
         In most cases, this returns the Cartesian product of the provided `field_tags`
         and `subfield codes`. If `recurse` is true, it will augment to include values
         from field 880. Note the special handling of code `6`.
@@ -83,7 +89,11 @@ class MarcRecord(Record):
                     excluded based on the subfield_codes and exclude_subfields parameters.
             """
 
-            # Always exclude subfield 6 unless it is explicitly listed
+            # Always exclude subfield 6 (Linkage,
+            # see: https://www.loc.gov/marc/bibliographic/ecbdcntf.html) unless it is
+            # explicitly listed. Not excluding this was producing results that
+            # were not expected. Note the explicit inclusion of 6 in
+            # `get_alternate_graphic_representation()`, below.
             if check_code == "6" and "6" not in subfield_codes:
                 return False
             if not subfield_codes:
@@ -96,7 +106,9 @@ class MarcRecord(Record):
         def get_alternate_graphic_representation(tag: str, code: str, index: int,
                                                  recurse=True) -> list:
             """
-            This is where field 880 is handled
+            This is where field 880 is handled.
+            See: https://www.loc.gov/marc/bibliographic/bd880.html
+
             :param tag:
             :param code:
             :param index:
@@ -184,6 +196,7 @@ class MarcRecord(Record):
     def get_marc_leader(self, leader_key: str):
         """
         Retrieve the value of specified leader key from the MARC metadata.
+        See: https://www.loc.gov/marc/bibliographic/bdleader.html
 
         We're not accommodating passing a slice, which pymarc can handle should it be necessary
 
