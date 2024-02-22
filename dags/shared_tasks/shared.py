@@ -42,6 +42,54 @@ def batched(list_to_batch, batch_size):
 
 
 @task()
+def make_mapper_type_endpoint(params=None):
+    if not params:
+        raise ValueError("No parameters provided")
+
+    arg_keys = ['mapper_type', 'rikolti_mapper_type', 'registry_api_queryset']
+    args = {key: params.get(key) for key in arg_keys if params.get(key)}
+    if not any(args.values()):
+        raise ValueError("Endpoint data not found in params, please provide "
+                         "either a mapper_type, a rikolti_mapper_type, or a "
+                         "registry_api_queryset")
+
+    which_arg = list(args.keys())
+    if len(which_arg) > 1:
+        raise ValueError("Please provide only one of mapper_type, "
+                         "rikolti_mapper_type, or registry_api_queryset")
+
+    which_arg = which_arg[0]
+    if which_arg == 'mapper_type':
+        mapper_type = params.get('mapper_type')
+        endpoint = (
+            "https://registry.cdlib.org/api/v1/rikoltifetcher/?format=json"
+            f"&mapper_type={mapper_type}&ready_for_publication=true"
+        )
+    elif which_arg == 'rikolti_mapper_type':
+        rikolti_mapper_type = params.get('rikolti_mapper_type')
+        endpoint = (
+            "https://registry.cdlib.org/api/v1/rikoltifetcher/?format=json"
+            f"&rikolti_mapper_type={rikolti_mapper_type}"
+            "&ready_for_publication=true"
+        )
+    elif which_arg == 'registry_api_queryset':
+        endpoint = params.get('registry_api_queryset')
+        # TODO: validate endpoint is a valid registry endpoint describing
+        # a queryset of collections
+    else:
+        raise ValueError(
+            "Please provide a mapper_type, rikolti_mapper_type, or endpoint")
+
+    offset = params.get('offset')
+    if offset:
+        endpoint = endpoint + f"&offset={offset}"
+
+    print("Fetching, mapping, and validating collections listed at: ")
+    print(endpoint)
+    return endpoint
+
+
+@task()
 def s3_to_localfilesystem(s3_url=None, params=None):
     """
     Download all files at a specified s3 location to the local filesystem.
