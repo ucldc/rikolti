@@ -3,7 +3,7 @@ import json
 import logging
 import sys
 
-from .fetchers.Fetcher import Fetcher
+from .fetchers.Fetcher import Fetcher, FetchedPage
 from rikolti.utils.versions import create_vernacular_version
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def import_fetcher(harvest_type):
 
 
 # AWS Lambda entry point
-def fetch_collection(payload, vernacular_version) -> list[dict]:
+def fetch_collection(payload, vernacular_version) -> list[FetchedPage]:
     """
     returns a list of dicts with the following keys:
         document_count: int
@@ -37,21 +37,21 @@ def fetch_collection(payload, vernacular_version) -> list[dict]:
     fetcher_class = import_fetcher(payload.get('harvest_type'))
     payload.update({'vernacular_version': vernacular_version})
     next_page = payload
-    fetch_status = []
+    page_statuses = []
 
     while not next_page.get('finished'):
         fetcher = fetcher_class(next_page)
         page_status = fetcher.fetch_page()
-        fetch_status.append(page_status)
+        page_statuses.append(page_status)
 
         # this is a nuxeo and ucd json fetcher workaround
-        if len(fetch_status) == 1 and isinstance(fetch_status[0], list):
-            fetch_status = fetch_status[0]
+        if len(page_statuses) == 1 and isinstance(page_statuses[0], list):
+            page_statuses = page_statuses[0]
 
         next_page = json.loads(fetcher.json())
         next_page.update({'vernacular_version': vernacular_version})
 
-    return fetch_status
+    return page_statuses
 
 
 if __name__ == "__main__":

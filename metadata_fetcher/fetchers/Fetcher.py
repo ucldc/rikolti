@@ -1,6 +1,9 @@
 import logging
 import requests
 
+from dataclasses import dataclass
+from typing import Optional
+
 from requests.adapters import HTTPAdapter, Retry
 from rikolti.utils.versions import put_vernacular_page
 
@@ -18,6 +21,13 @@ class CollectionIdRequired(Exception):
 
 class FetchError(Exception):
     pass
+
+
+@dataclass
+class FetchedPage:
+    document_count: int
+    vernacular_filepath: str
+    children: Optional[list] = None
 
 
 class Fetcher(object):
@@ -39,13 +49,18 @@ class Fetcher(object):
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
 
-    def fetch_page(self):
+    def fetch_page(self) -> FetchedPage:
         """
-        returns a dict with the following keys:
+        returns a FetchedPage with the following attributes:
             document_count: int
             vernacular_filepath: path relative to collection id
                 ex: "3433/vernacular_version_1/data/1"
-            status: 'success' or 'error'
+
+        raises a FetchError if the fetch request fails
+         - TODO-py3.11: instead of raising FetchError, exception.add_note()
+                        to add the collection id and request data
+        raises a Exception if writing the vernacular page to rikolti storage fails
+         - TODO-py3.11: instead of printing to the log, use exception.add_note()
         """
         page = self.build_fetch_request()
         logger.debug(
@@ -77,11 +92,7 @@ class Fetcher(object):
 
         self.increment(response)
 
-        return {
-            'document_count': record_count,
-            'vernacular_filepath': filepath,
-            'status': 'success'
-        }
+        return FetchedPage(record_count, filepath)
 
     def check_page(self, response: requests.Response) -> int:
         raise NotImplementedError
@@ -96,7 +107,7 @@ class Fetcher(object):
         {'headers': {}, 'params': {}} or any other options accepted by
         https://docs.python-requests.org/en/latest/api/#requests.get
         """
-        pass
+        raise NotImplementedError
 
     def get_records(self, http_resp):
         """parses http_resp from institutional API into a list of records
@@ -105,7 +116,7 @@ class Fetcher(object):
         by json.dumps into json line format; takes as an argument:
         https://docs.python-requests.org/en/latest/api/#requests.Response
         """
-        pass
+        raise NotImplementedError
 
     def increment(self, http_resp):
         """increment internal state for fetching the next page
@@ -117,7 +128,7 @@ class Fetcher(object):
 
     def json(self):
         """build json serialization of current state"""
-        pass
+        raise NotImplementedError
 
     def make_http_request(self, url: str) -> requests.Response:
         """

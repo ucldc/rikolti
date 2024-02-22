@@ -69,7 +69,7 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
         vernacular_version = create_vernacular_version(collection_id)
 
         try:
-            fetch_result = lambda_function.fetch_collection(
+            page_statuses = lambda_function.fetch_collection(
                 collection, vernacular_version)
         except Exception as e:
             print(f"ERROR fetching collection { collection_id }: {e}")
@@ -79,11 +79,10 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
             }
             continue
 
-        results[collection_id] = fetch_result
+        results[collection_id] = page_statuses
 
-        success = all([page['status'] == 'success' for page in fetch_result])
-        total_items = sum([page['document_count'] for page in fetch_result])
-        total_pages = len(fetch_result)
+        total_items = sum([page.document_count for page in page_statuses])
+        total_pages = len(page_statuses)
         diff_items = total_items - collection['solr_count']
         diff_items_label = ""
         if diff_items > 0:
@@ -98,18 +97,13 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
             f"{collection_id:<6}: finish fetching {progress_bar} collections")
 
         fetch_report_row = (
-            f"{collection_id:<6}: {'success,' if success else 'error,':9} "
+            f"{collection_id:<6}: {'success,':9} "
             f"{total_pages:>4} pages, {total_items:>6} items, "
             f"{collection['solr_count']:>6} solr items, "
             f"{str(diff_items) + ' ' + diff_items_label + ',':>16} "
             f"solr count last updated: {collection['solr_last_updated']}"
         )
         print(fetch_report_row)
-
-        if not success:
-            fetch_report_failure_row = (
-                f"{collection_id:<6}: {fetch_result[-1]}")
-            print(fetch_report_failure_row)
 
         if limit and len(results.keys()) >= limit:
             break
