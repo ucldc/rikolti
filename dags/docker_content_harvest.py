@@ -2,7 +2,7 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
 
-from dags.shared_tasks.content_harvest_operators import ContentHarvestDockerOperator
+from rikolti.dags.shared_tasks.content_harvest_operators import ContentHarvestDockerOperator
 
 
 @dag(
