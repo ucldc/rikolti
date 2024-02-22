@@ -5,10 +5,10 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.models.param import Param
 
-from rikolti.dags.utils_by_mapper_type import make_mapper_type_endpoint
-from rikolti.dags.utils_by_mapper_type import fetch_endpoint_task
-from rikolti.dags.utils_by_mapper_type import map_endpoint_task
-from rikolti.dags.utils_by_mapper_type import validate_endpoint_task
+from rikolti.dags.shared_tasks.shared import make_mapper_type_endpoint
+from rikolti.dags.shared_tasks.fetching_tasks import fetch_endpoint_task
+from rikolti.dags.shared_tasks.mapping_tasks import map_endpoint_task
+from rikolti.dags.shared_tasks.mapping_tasks import validate_endpoint_task
 
 logger = logging.getLogger("airflow.task")
 

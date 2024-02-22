@@ -1,3 +1,4 @@
+import logging
 import math
 import pprint
 from datetime import datetime
@@ -7,8 +8,9 @@ from airflow.decorators import task, task_group
 
 from rikolti.dags.shared_tasks.shared import batched
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
+from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
 from rikolti.utils.versions import create_vernacular_version
-
+from rikolti.utils.versions import get_version
 
 @task()
 def create_vernacular_version_task(collection) -> str:
@@ -112,4 +114,54 @@ def fetching_tasks(collection: Optional[dict] = None):
         vernacular_version=vernacular_version)
     return fetched_page_batches
 
+
+logger = logging.getLogger("airflow.task")
+
+
+@task()
+def fetch_endpoint_task(endpoint, params=None):
+    """
+    3433: [
+            {
+                document_count: int
+                vernacular_filepath: path relative to collection id
+                    ex: "3433/vernacular_version_1/data/1"
+                status: 'success' or 'error'
+            }
+        ]
+    """
+    limit = params.get('limit', None) if params else None
+    fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
+    fetched_versions = {}
+    errored_collections = {}
+    for collection_id, fetch_job in fetcher_job_result.items():
+        if isinstance(fetch_job, dict) and 'error' in fetch_job:
+            errored_collections[collection_id] = fetch_job
+            continue
+        if not isinstance(fetch_job, list):
+            errored_collections[collection_id] = fetch_job
+            continue
+        if not fetch_job[0].get('vernacular_filepath'):
+            errored_collections[collection_id] = fetch_job
+            continue
+        version = get_version(
+            collection_id,
+            fetch_job[0]['vernacular_filepath']
+        )
+        print(
+            "Review fetched data at: https://rikolti-data.s3.us-west-2."
+            f"amazonaws.com/index.html#{version.rstrip('/')}/data/"
+        )
+        fetched_versions[collection_id] = version
+    if errored_collections:
+        print(
+            f"{len(errored_collections)} encountered an error when "
+            f"fetching: {errored_collections.keys()}"
+        )
+        print(errored_collections)
+
+    if not fetched_versions:
+        raise ValueError("No collections successfully fetched, exiting.")
+
+    return fetched_versions
 
