@@ -2,6 +2,7 @@ import logging
 import math
 import pprint
 from datetime import datetime
+from dataclasses import asdict
 from typing import Optional
 
 from airflow.decorators import task, task_group
@@ -28,34 +29,31 @@ def fetch_collection_task(
         '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
     ]
     """
-    def flatten_stats(stats):
-        success = all([page_stat['status'] == 'success' for page_stat in stats])
-        total_items = sum([page_stat['document_count'] for page_stat in stats])
-        total_pages = len(stats)
-        filepaths = [page_stat['vernacular_filepath'] for page_stat in stats]
+    def flatten_stats(page_statuses):
+        total_items = sum([ps.document_count for ps in page_statuses])
+        total_pages = len(page_statuses)
+        filepaths = [ps.vernacular_filepath for ps in page_statuses]
 
         children = False
-        for page_stat in stats:
-            child_pages = page_stat.get('children')
+        for page_status in page_statuses:
+            child_pages = page_status.get('children')
             if child_pages:
                 flat_stats = flatten_stats(child_pages)
-                success = success and flat_stats['success']
                 total_items = total_items + flat_stats['total_items']
                 total_pages = total_pages + flat_stats['total_pages']
                 filepaths = filepaths + flat_stats['filepaths']
                 children = True
 
         return {
-            'success': success,
             'total_items': total_items,
             'total_pages': total_pages,
             'filepaths': filepaths,
             'children': children
         }
 
-    fetch_status = fetch_collection(collection, vernacular_version)
-    stats = flatten_stats(fetch_status)
-    total_parent_items = sum([page['document_count'] for page in fetch_status])
+    page_statuses = fetch_collection(collection, vernacular_version)
+    stats = flatten_stats(page_statuses)
+    total_parent_items = sum([page.document_count for page in page_statuses])
     diff_items = total_parent_items - collection['solr_count']
     date = None
     if collection.get('solr_last_updated'):
@@ -76,9 +74,9 @@ def fetch_collection_task(
     if stats['children']:
         print(
             f"Fetched {total_parent_items} parent items across "
-            f"{len(fetch_status)} pages and "
+            f"{len(page_statuses)} pages and "
             f"{stats['total_items']-total_parent_items} child items across "
-            f"{stats['total_pages']-len(fetch_status)} child pages"
+            f"{stats['total_pages']-len(page_statuses)} child pages"
         )
     if date:
         print(
@@ -96,7 +94,7 @@ def fetch_collection_task(
     if not stats['filepaths'] or not stats['success']:
         raise Exception(
             f"vernacular metadata not successfully fetched"
-            f"\n{pprint.pprint(fetch_status)}\n{stats['success']}\n{stats['filepaths']}"
+            f"\n{pprint.pprint([asdict(ps) for ps in page_statuses])}\n{stats['success']}\n{stats['filepaths']}"
         )
 
     # 1024 is the maximum number of fanout tasks allowed
@@ -134,19 +132,16 @@ def fetch_endpoint_task(endpoint, params=None):
     fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
     fetched_versions = {}
     errored_collections = {}
-    for collection_id, fetch_job in fetcher_job_result.items():
-        if isinstance(fetch_job, dict) and 'error' in fetch_job:
-            errored_collections[collection_id] = fetch_job
+    for collection_id, page_statuses in fetcher_job_result.items():
+        if not isinstance(page_statuses, list):
+            errored_collections[collection_id] = page_statuses
             continue
-        if not isinstance(fetch_job, list):
-            errored_collections[collection_id] = fetch_job
-            continue
-        if not fetch_job[0].get('vernacular_filepath'):
-            errored_collections[collection_id] = fetch_job
+        if not page_statuses[0].get('vernacular_filepath'):
+            errored_collections[collection_id] = page_statuses
             continue
         version = get_version(
             collection_id,
-            fetch_job[0]['vernacular_filepath']
+            page_statuses[0]['vernacular_filepath']
         )
         print(
             "Review fetched data at: https://rikolti-data.s3.us-west-2."

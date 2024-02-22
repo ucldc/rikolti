@@ -9,7 +9,7 @@ import requests
 from xml.etree import ElementTree
 from bs4 import BeautifulSoup
 
-from .Fetcher import Fetcher, FetchError
+from .Fetcher import Fetcher, FetchError, FetchedPage
 from rikolti.utils.versions import put_vernacular_page
 
 class UcdJsonFetcher(Fetcher):
@@ -24,7 +24,7 @@ class UcdJsonFetcher(Fetcher):
         self.url = params.get("harvest_data").get("url")
         self.per_page = 10
 
-    def fetch_page(self) -> dict[str, int or str]:
+    def fetch_page(self) -> list[FetchedPage]:
         """
         UCD's harvesting endpoint gets us an XML document listing a URL for every record
         in a collection, but not the actual metadata records themselves. fetch_page
@@ -46,13 +46,13 @@ class UcdJsonFetcher(Fetcher):
 
         return self.fetch_all_pages(response)
 
-    def fetch_all_pages(self, response: requests.Response) -> list:
+    def fetch_all_pages(self, response: requests.Response) -> list[FetchedPage]:
         """
         Parameters:
             response: requests.Response
 
         Returns:
-            list
+            list[FetchedPage]
         """
         ns = {"ns": "http://www.sitemaps.org/schemas/sitemap/0.9"}
         xml = ElementTree.fromstring(response.text)
@@ -71,11 +71,7 @@ class UcdJsonFetcher(Fetcher):
             try:
                 filepath = put_vernacular_page(
                     json.dumps(records), self.write_page, self.vernacular_version)
-                fetch_status.append({
-                    'document_count': document_count,
-                    'vernacular_filepath': filepath,
-                    'status': 'success'
-                })
+                fetch_status.append(FetchedPage(document_count, filepath))
             except Exception as e:
                 print(f"Metadata Fetcher: {e}", file=sys.stderr)
                 raise(e)
