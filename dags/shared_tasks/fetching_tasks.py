@@ -1,17 +1,16 @@
 import logging
 import math
 import pprint
-from datetime import datetime
-from dataclasses import asdict
 from typing import Optional
+from dataclasses import asdict
 
 from airflow.decorators import task, task_group
 
 from rikolti.dags.shared_tasks.shared import batched
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
+from rikolti.metadata_fetcher.lambda_function import print_fetched_collection_report
 from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
 from rikolti.utils.versions import create_vernacular_version
-from rikolti.utils.versions import get_version
 
 @task()
 def create_vernacular_version_task(collection) -> str:
@@ -29,78 +28,26 @@ def fetch_collection_task(
         '3433/vernacular_metadata_2023-01-01T00:00:00/data/2'
     ]
     """
-    def flatten_stats(page_statuses):
-        total_items = sum([ps.document_count for ps in page_statuses])
-        total_pages = len(page_statuses)
-        filepaths = [ps.vernacular_filepath for ps in page_statuses]
-
-        children = False
-        for page_status in page_statuses:
-            child_pages = page_status.get('children')
-            if child_pages:
-                flat_stats = flatten_stats(child_pages)
-                total_items = total_items + flat_stats['total_items']
-                total_pages = total_pages + flat_stats['total_pages']
-                filepaths = filepaths + flat_stats['filepaths']
-                children = True
-
-        return {
-            'total_items': total_items,
-            'total_pages': total_pages,
-            'filepaths': filepaths,
-            'children': children
-        }
-
-    page_statuses = fetch_collection(collection, vernacular_version)
-    stats = flatten_stats(page_statuses)
-    total_parent_items = sum([page.document_count for page in page_statuses])
-    diff_items = total_parent_items - collection['solr_count']
-    date = None
-    if collection.get('solr_last_updated'):
-        date = datetime.strptime(
-            collection['solr_last_updated'],
-            "%Y-%m-%dT%H:%M:%S.%f"
-        )
-
-    print(
-        f"{'Successfully fetched' if stats['success'] else 'Error fetching'} "
-        f"collection {collection['collection_id']}"
-    )
-    print(
-        f"Fetched {stats['total_items']} items across {stats['total_pages']} "
-        f"pages at a rate of ~{stats['total_items'] / stats['total_pages']} "
-        "items per page"
-    )
-    if stats['children']:
-        print(
-            f"Fetched {total_parent_items} parent items across "
-            f"{len(page_statuses)} pages and "
-            f"{stats['total_items']-total_parent_items} child items across "
-            f"{stats['total_pages']-len(page_statuses)} child pages"
-        )
-    if date:
-        print(
-            f"As of {datetime.strftime(date, '%B %d, %Y %H:%M:%S.%f')} "
-            f"Solr has {collection['solr_count']} items"
-        )
-    else:
-        print("The collection registry has no record of Solr count.")
-    if diff_items != 0:
-        print(
-            f"Rikolti fetched {abs(diff_items)} "
-            f"{'more' if diff_items > 0 else 'fewer'} items."
-        )
-
-    if not stats['filepaths'] or not stats['success']:
+    fetched_collection = fetch_collection(collection, vernacular_version)
+    if not fetched_collection.filepaths:
         raise Exception(
-            f"vernacular metadata not successfully fetched"
-            f"\n{pprint.pprint([asdict(ps) for ps in page_statuses])}\n{stats['success']}\n{stats['filepaths']}"
+            f"vernacular metadata not successfully fetched\n"
+            f"{pprint.pprint(asdict(fetched_collection))}\n"
+            f"{fetched_collection.filepaths}"
         )
+
+    print(f"Successfully fetched collection {collection['collection_id']}")
+    print_fetched_collection_report(collection, fetched_collection)
+    version = fetched_collection.version
+    print(
+        "Review fetched data at: https://rikolti-data.s3.us-west-2."
+        f"amazonaws.com/index.html#{version.rstrip('/')}/data/"
+    )
 
     # 1024 is the maximum number of fanout tasks allowed
     # so number of batches should never be more than 1024
-    batch_size = math.ceil(len(stats['filepaths']) / 1024)
-    return batched(stats['filepaths'], batch_size)
+    batch_size = math.ceil(len(fetched_collection.filepaths) / 1024)
+    return batched(fetched_collection.filepaths, batch_size)
 
 
 @task_group(group_id='fetching')
@@ -132,17 +79,8 @@ def fetch_endpoint_task(endpoint, params=None):
     fetcher_job_result = fetch_endpoint(endpoint, limit, logger)
     fetched_versions = {}
     errored_collections = {}
-    for collection_id, page_statuses in fetcher_job_result.items():
-        if not isinstance(page_statuses, list):
-            errored_collections[collection_id] = page_statuses
-            continue
-        if not page_statuses[0].get('vernacular_filepath'):
-            errored_collections[collection_id] = page_statuses
-            continue
-        version = get_version(
-            collection_id,
-            page_statuses[0]['vernacular_filepath']
-        )
+    for collection_id, fetched_collection in fetcher_job_result.items():
+        version = fetched_collection.version
         print(
             "Review fetched data at: https://rikolti-data.s3.us-west-2."
             f"amazonaws.com/index.html#{version.rstrip('/')}/data/"

@@ -23,35 +23,31 @@ def registry_endpoint(url):
             yield collection
 
 
-def fetch_endpoint(url, limit=None, job_logger=logger):
+def fetch_endpoint(url, limit=None, job_logger=logger) -> dict[int, lambda_function.FetchedCollection]:
     """
-    returns a dictionary of collection ids and fetch results, where
-    fetch results are a list of of dictionaries with the following keys:
-    ex: 3433: [
-            {
-                document_count: int
-                vernacular_filepath: path relative to collection id
-                    ex: "3433/vernacular_version_1/data/1"
-                status: 'success' or 'error'
-            }
-        ]
+    returns a dictionary of collection ids and FetchedCollection objects:
+    ex: {
+        3433: FetchedCollection(
+            num_items=10,
+            num_pages=1,
+            num_parent_items=10,
+            num_parent_pages=1,
+            filepaths=['3433/vernacular_version_1/data/1'],
+            children=False,
+            version='3433/vernacular_version_1'
+        )
+    }
     """
     response = requests.get(url=url)
     response.raise_for_status()
     total = response.json().get('meta', {}).get('total_count', 1)
     progress = 0
-    # fetch_report_headers = (
-    #     "Collection ID, Status, Total Pages, Rikolti Count, Solr Count, "
-    #     "Diff Count, Solr Last Updated"
-    # )
-
     if not limit:
         limit = total
     else:
         limit = int(limit)
 
     print(f">>> Fetching {limit}/{total} collections described at {url}")
-    # print(fetch_report_headers)
 
     results = {}
 
@@ -69,7 +65,7 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
         vernacular_version = create_vernacular_version(collection_id)
 
         try:
-            page_statuses = lambda_function.fetch_collection(
+            fetched_collection = lambda_function.fetch_collection(
                 collection, vernacular_version)
         except Exception as e:
             print(f"ERROR fetching collection { collection_id }: {e}")
@@ -79,31 +75,13 @@ def fetch_endpoint(url, limit=None, job_logger=logger):
             }
             continue
 
-        results[collection_id] = page_statuses
-
-        total_items = sum([page.document_count for page in page_statuses])
-        total_pages = len(page_statuses)
-        diff_items = total_items - collection['solr_count']
-        diff_items_label = ""
-        if diff_items > 0:
-            diff_items_label = 'new items'
-        elif diff_items < 0:
-            diff_items_label = 'lost items'
-        else:
-            diff_items_label = 'same extent'
+        results[collection_id] = fetched_collection
+        lambda_function.print_fetched_collection_report(
+            collection, fetched_collection)
 
         progress_bar = f"{progress}/{limit}"
         job_logger.debug(
             f"{collection_id:<6}: finish fetching {progress_bar} collections")
-
-        fetch_report_row = (
-            f"{collection_id:<6}: {'success,':9} "
-            f"{total_pages:>4} pages, {total_items:>6} items, "
-            f"{collection['solr_count']:>6} solr items, "
-            f"{str(diff_items) + ' ' + diff_items_label + ',':>16} "
-            f"solr count last updated: {collection['solr_last_updated']}"
-        )
-        print(fetch_report_row)
 
         if limit and len(results.keys()) >= limit:
             break
