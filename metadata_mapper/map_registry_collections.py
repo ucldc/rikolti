@@ -23,6 +23,62 @@ def registry_endpoint(url):
             yield collection
 
 
+def print_map_status(collection, map_result):
+    collection_id = collection['collection_id']
+    pre_mapping = map_result.get('pre_mapping') or []
+    if len(pre_mapping) > 0:
+        print(
+            f"{collection_id:<6}: {'pre-mapping enrichments':<24}: "
+            f"\"{pre_mapping}\""
+        )
+
+    enrichments = map_result.get('enrichments') or []
+    if len(enrichments) > 0:
+        print(
+            f"{collection_id:<6}, {'post-mapping enrichments':<24}: "
+            f"\"{enrichments}\""
+        )
+
+    missing_enrichments = map_result.get('missing_enrichments', [])
+    if len(missing_enrichments) > 0:
+        print(
+            f"{collection_id:<6}, {'missing enrichments':<24}: "
+            f"\"{missing_enrichments}\""
+        )
+    exceptions = map_result.get('exceptions', {})
+    if len(exceptions) > 0:
+        for exception, couch_ids in exceptions.items():
+            print(
+                f"{collection_id:<6}, {'enrichment errors':<24}: "
+                f"{len(couch_ids)} items: \"{exception}\""
+            )
+            print(
+                f"{collection_id:<6}, {'enrichment error records':24}: "
+                f"{len(couch_ids)} items: \"{couch_ids}\""
+            )
+
+    # "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
+    success = 'success' if map_result['status'] == 'success' else 'error'
+
+    extent = map_result['count']
+    diff = extent - collection['solr_count']
+    diff_items_label = ""
+    if diff > 0:
+        diff_items_label = 'new items'
+    elif diff < 0:
+        diff_items_label = 'lost items'
+    else:
+        diff_items_label = 'same extent'
+
+    map_report_row = (
+        f"{collection_id:<6}, {success:9}, {extent:>6} items, "
+        f"{collection['solr_count']:>6} solr items, "
+        f"{str(diff) + ' ' + diff_items_label + ',':>16} "
+        f"solr count last updated: {collection['solr_last_updated']}"
+    )
+    print(map_report_row)
+
+
 def map_endpoint(url, fetched_versions, limit=None):
     response = requests.get(url=url)
     response.raise_for_status()
@@ -62,64 +118,13 @@ def map_endpoint(url, fetched_versions, limit=None):
             print(f"{ collection_id:<6}: not fetched yet", file=sys.stderr)
             continue
 
-        pre_mapping = map_result.get('pre_mapping') or []
-        if len(pre_mapping) > 0:
-            print(
-                f"{collection_id:<6}: {'pre-mapping enrichments':<24}: "
-                f"\"{pre_mapping}\""
-            )
-
-        enrichments = map_result.get('enrichments') or []
-        if len(enrichments) > 0:
-            print(
-                f"{collection_id:<6}, {'post-mapping enrichments':<24}: "
-                f"\"{enrichments}\""
-            )
-
-        missing_enrichments = map_result.get('missing_enrichments', [])
-        if len(missing_enrichments) > 0:
-            print(
-                f"{collection_id:<6}, {'missing enrichments':<24}: "
-                f"\"{missing_enrichments}\""
-            )
-        exceptions = map_result.get('exceptions', {})
-        if len(exceptions) > 0:
-            for exception, couch_ids in exceptions.items():
-                print(
-                    f"{collection_id:<6}, {'enrichment errors':<24}: "
-                    f"{len(couch_ids)} items: \"{exception}\""
-                )
-                print(
-                    f"{collection_id:<6}, {'enrichment error records':24}: "
-                    f"{len(couch_ids)} items: \"{couch_ids}\""
-                )
-
-        # "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
-        success = 'success' if map_result['status'] == 'success' else 'error'
-
-        extent = map_result['count']
-        diff = extent - collection['solr_count']
-        diff_items_label = ""
-        if diff > 0:
-            diff_items_label = 'new items'
-        elif diff < 0:
-            diff_items_label = 'lost items'
-        else:
-            diff_items_label = 'same extent'
-
         progress_bar = f"{progress}/{limit}"
         logger.debug(
             f"{collection_id:<6}: finish mapping {progress_bar}")
 
-        map_report_row = (
-            f"{collection_id:<6}, {success:9}, {extent:>6} items, "
-            f"{collection['solr_count']:>6} solr items, "
-            f"{str(diff) + ' ' + diff_items_label + ',':>16} "
-            f"solr count last updated: {collection['solr_last_updated']}"
-        )
-        print(map_report_row)
-        map_report.append(map_result)
+        print_map_status(collection, map_result)
 
+        map_report.append(map_result)
         if limit and progress >= limit:
             break
 
