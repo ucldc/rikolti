@@ -14,6 +14,7 @@ from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import registry_endpoint
+from rikolti.metadata_mapper.map_registry_collections import print_map_status
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.utils.versions import create_mapped_version
 from rikolti.utils.versions import get_mapped_pages
@@ -76,7 +77,7 @@ def map_page_task(
     return mapped_pages
 
 
-@task(task_id='create_map_report')
+@task(task_id='get_mapping_status')
 def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> list['str']:
     """
     mapped_pages is a list of a list of dicts with the following keys:
@@ -102,6 +103,7 @@ def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> li
         mapped_page_batches.append(json.dumps(mapped_page_batch))
 
     mapping_status = get_mapping_status(collection, mapped_statuses)
+    print_map_status(collection, mapping_status)
 
     return mapped_page_batches
 
