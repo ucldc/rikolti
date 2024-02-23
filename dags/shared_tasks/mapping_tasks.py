@@ -78,19 +78,19 @@ def map_page_task(
 
 
 @task(task_id='get_mapping_status')
-def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> list['str']:
+def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> list[str]:
     """
-    mapped_pages is a list of a list of dicts with the following keys:
+    mapped_status_batches is a list of a list of dicts with the following keys:
         status: success
         num_records_mapped: int
         page_exceptions: TODO
         mapped_page_path: str|None, ex:
-            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl
-    returns a dict with the following keys:
-        mapped_page_paths: ex: [
-            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl,
-            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/2.jsonl,
-            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/3.jsonl
+            3433/vernacular_metadata_v1/mapped_metadata_v1/1.jsonl
+    returns a list of strings, ex:
+        [
+            "[3433/vernacular_metadata_v1/mapped_metadata_v1/1.jsonl]",
+            "[3433/vernacular_metadata_v1/mapped_metadata_v1/2.jsonl]",
+            "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
         ]
     """
     mapped_statuses = []
@@ -105,18 +105,26 @@ def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> li
     mapping_status = get_mapping_status(collection, mapped_statuses)
     print_map_status(collection, mapping_status)
 
+    mapped_version = get_version(
+        collection['id'], mapping_status['mapped_page_paths'][0])
+    print(
+        "Review mapped data at: https://rikolti-data.s3.us-west-2."
+        f"amazonaws.com/index.html#{mapped_version.rstrip('/')}/data/"
+    )
+
     return mapped_page_batches
 
 
 @task(task_id='validate_collection')
-def validate_collection_task(collection_id: int, mapped_page_batches: dict) -> str:
+def validate_collection_task(collection_id: int, mapped_page_batches: list[str]) -> str:
     """
-    collection_status is a dict containing the following keys:
-        mapped_page_paths: ex: [
-            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl,
-            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/2.jsonl,
-            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/3.jsonl
-        ]
+    mapped_page_batches is a list of str representations of lists of mapped
+    page paths, ex:
+    [
+        "[3433/vernacular_metadata_v1/mapped_metadata_v1/1.jsonl]",
+        "[3433/vernacular_metadata_v1/mapped_metadata_v1/2.jsonl]",
+        "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
+    ]
     """
     mapped_metadata_pages = []
     for mapped_page_batch in mapped_page_batches:
@@ -124,21 +132,28 @@ def validate_collection_task(collection_id: int, mapped_page_batches: dict) -> s
 
     parent_pages = [path for path in mapped_metadata_pages if 'children' not in path]
 
-    num_rows, file_location = create_collection_validation_csv(
+    num_rows, version_page = create_collection_validation_csv(
         collection_id, parent_pages)
-    print(f"Output {num_rows} rows to {file_location}")
+
+    print(f"Output {num_rows} rows to {version_page}")
 
     # create a link to the file in the logs
-    mapper_data_dest = os.environ.get("MAPPED_DATA", "file:///tmp")
-    if mapper_data_dest.startswith("s3"):
-        parsed_loc = urlparse(
-            f"{mapper_data_dest.rstrip('/')}/{file_location}")
-        file_location = (
-            f"https://{parsed_loc.netloc}.s3.us-west-2."
-            f"amazonaws.com{parsed_loc.path}"
+    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    if data_root.startswith('s3'):
+        s3_path = urlparse(f"{data_root.rstrip('/')}/{version_page}")
+        bucket = s3_path.netloc
+        print(
+            "Download validation report at: "
+            f"https://{bucket}.s3.amazonaws.com{s3_path.path}"
+        )
+        mapped_version = get_version(collection_id, parent_pages[0])
+        print(
+            f"Review collection data at: "
+            f"https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
+            f"#{mapped_version.rstrip('/')}/data/"
         )
 
-    return file_location
+    return version_page
 
 
 @task_group(group_id='mapping')
