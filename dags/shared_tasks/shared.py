@@ -1,5 +1,6 @@
 import boto3
 import os
+import json
 
 import requests
 
@@ -39,6 +40,42 @@ def batched(list_to_batch, batch_size):
     for i in range(0, len(list_to_batch), batch_size):
         batches.append(list_to_batch[i:i+batch_size])
     return batches
+
+
+def send_log_to_sqs(task_instance, task_message):
+    """
+    Send a log message to a SQS FIFO queue for a specific job.
+    :param queue_url: URL of the SQS FIFO queue
+    :param job_id: Identifier for the job to keep log order within the job
+    :param log_message: Dictionary containing the log message
+    """
+    log_message = {
+        'dag_id': task_instance.dag_id, 
+        'dag_run_id': task_instance.dag_run.run_id,
+        'task_id': task_instance.task_id,
+        'try_number': task_instance.try_number,
+        'dag_run_conf': task_instance.dag_run.conf,
+        'rikolti_message': task_message
+    }
+    message_body = json.dumps(log_message)
+
+    # these are example credentials, replace with an added statement 
+    # on the MWAA Execution Role Policy
+    aws_credentials = {
+        "aws_access_key_id": "",
+        "aws_secret_access_key": "",
+        "aws_session_token": "",
+        "region_name": "us-west-2"
+    }
+
+    sqs = boto3.client('sqs', **aws_credentials)
+    response = sqs.send_message(
+        QueueUrl="https://sqs.us-west-2.amazonaws.com/777968769372/RikoltiEvents.fifo",
+        MessageBody=message_body,
+        MessageGroupId=task_instance.dag_run.run_id,  # Ensure messages are ordered within this dag run
+        MessageDeduplicationId=str(hash(message_body))  # Simple deduplication ID
+    )
+    print(f"Message sent to SQS with Message ID: {response['MessageId']}")
 
 
 @task(task_id="make_registry_endpoint")

@@ -6,7 +6,7 @@ from dataclasses import asdict
 
 from airflow.decorators import task, task_group
 
-from rikolti.dags.shared_tasks.shared import batched
+from rikolti.dags.shared_tasks.shared import batched, send_log_to_sqs
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.metadata_fetcher.lambda_function import print_fetched_collection_report
 from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
@@ -20,7 +20,7 @@ def create_vernacular_version_task(collection) -> str:
 
 @task(task_id="fetch_collection")
 def fetch_collection_task(
-    collection: dict, vernacular_version: str) -> list[list[str]]:
+    collection: dict, vernacular_version: str, **context) -> list[list[str]]:
     """
     returns a list of the filepaths of the vernacular metadata relative to the
     collection id, ex: [
@@ -35,6 +35,11 @@ def fetch_collection_task(
             f"{pprint.pprint(asdict(fetched_collection))}\n"
             f"{fetched_collection.filepaths}"
         )
+
+    try:
+        send_log_to_sqs(context['task_instance'], asdict(fetched_collection))
+    except Exception as e:
+        print(f"Failed to send log to SQS: {e}")
 
     print(f"Successfully fetched collection {collection['collection_id']}")
     print_fetched_collection_report(collection, fetched_collection)
