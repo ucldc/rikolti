@@ -23,11 +23,14 @@ def registry_endpoint(url):
             yield collection
 
 
-def fetch_endpoint(url, limit=None, job_logger=logger) -> dict[int, lambda_function.FetchedCollection]:
+def fetch_endpoint(
+        url, 
+        limit=None, 
+        job_logger=logger) -> dict[int, lambda_function.FetchedCollectionStatus]:
     """
-    returns a dictionary of collection ids and FetchedCollection objects:
+    returns a dictionary of collection ids and FetchedCollectionStatus objects:
     ex: {
-        3433: FetchedCollection(
+        3433: FetchedCollectionStatus(
             num_items=10,
             num_pages=1,
             num_parent_items=10,

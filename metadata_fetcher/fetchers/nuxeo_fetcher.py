@@ -6,7 +6,7 @@ from rikolti.utils.versions import put_vernacular_page
 import requests
 
 from .. import settings
-from .Fetcher import Fetcher, InvalidHarvestEndpoint, FetchedPage
+from .Fetcher import Fetcher, InvalidHarvestEndpoint, FetchedPageStatus
 
 logger = logging.getLogger(__name__)
 
@@ -117,11 +117,11 @@ class NuxeoFetcher(Fetcher):
         each page to Rikolti storage at:
             <vernacular_version>/children/<record uuid>-<page number>
 
-        Returns a list of FetchedPage objects for each page, for example:
+        Returns a list of FetchedPageStatus objects for each page, for example:
             [
-                FetchedPage(document_count = 100, vernacular_filepath = '3433/vernacular_metadata_v1/data/children/record1-page1'),
-                FetchedPage(document_count = 100, vernacular_filepath = '3433/vernacular_metadata_v1/data/children/record1-page2'),
-                FetchedPage(document_count =   8, vernacular_filepath = '3433/vernacular_metadata_v1/data/children/record1-page3'),
+                FetchedPageStatus(document_count = 100, vernacular_filepath = '3433/vernacular_metadata_v1/data/children/record1-page1'),
+                FetchedPageStatus(document_count = 100, vernacular_filepath = '3433/vernacular_metadata_v1/data/children/record1-page2'),
+                FetchedPageStatus(document_count =   8, vernacular_filepath = '3433/vernacular_metadata_v1/data/children/record1-page3'),
             ]
         to indicate that there are 208 child records to record 1 of 3433 saved on 3 different pages
         """
@@ -141,7 +141,7 @@ class NuxeoFetcher(Fetcher):
                 self.vernacular_version
             )
             pages_of_record_components.append(
-                FetchedPage(
+                FetchedPageStatus(
                     len(component_resp.json().get('entries', [])),
                     child_version_page
                 )
@@ -203,7 +203,7 @@ class NuxeoFetcher(Fetcher):
                     self.get_pages_of_record_components(record))
 
             record_pages.append(
-                FetchedPage(
+                FetchedPageStatus(
                     len(document_resp.json().get('entries', [])),
                     version_page,
                     pages_of_records_components
@@ -256,7 +256,7 @@ class NuxeoFetcher(Fetcher):
             page_prefix.pop()
         return pages
 
-    def fetch_page(self) -> list[FetchedPage]:
+    def fetch_page(self) -> list[FetchedPageStatus]:
         page_prefix = ['r']
         # page_prefix is manipulated during tree traversal to indicate which
         # folder page, folder, and document page we're currently at.
