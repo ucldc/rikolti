@@ -120,6 +120,12 @@ def map_endpoint_task(endpoint, fetched_versions, params=None):
     mapper_job_results = map_endpoint(endpoint, fetched_versions, limit)
     mapped_versions = {}
     for mapper_job_result in mapper_job_results:
+        if not mapper_job_result.get('mapped_page_paths'):
+            logging.warning(
+                f"{mapper_job_result['collection_id']:<6}: "
+                "no mapped pages written"
+            )
+            continue
         mapped_version = get_version(
             mapper_job_result['collection_id'],
             mapper_job_result['mapped_page_paths'][0]

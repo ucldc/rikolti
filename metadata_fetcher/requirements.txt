@@ -3,3 +3,4 @@ requests
 sickle
 python-dotenv
 beautifulsoup4
+pymarc
