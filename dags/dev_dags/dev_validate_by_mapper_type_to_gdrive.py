@@ -7,7 +7,7 @@ from airflow.models.param import Param
 
 from airflow.providers.google.suite.transfers.local_to_drive import LocalFilesystemToGoogleDriveOperator
 
-from rikolti.dags.shared_tasks.shared import make_mapper_type_endpoint
+from rikolti.dags.shared_tasks.shared import make_registry_endpoint_task
 from rikolti.dags.shared_tasks.fetching_tasks import fetch_endpoint_task
 from rikolti.dags.shared_tasks.mapping_tasks import map_endpoint_task
 from rikolti.dags.shared_tasks.mapping_tasks import validate_endpoint_task
@@ -40,7 +40,7 @@ logger = logging.getLogger("airflow.task")
     tags=["dev"],
 )
 def dev_validate_by_mapper_type():
-    endpoint=make_mapper_type_endpoint()
+    endpoint=make_registry_endpoint_task()
     fetched_versions = fetch_endpoint_task(endpoint)
     mapped_versions = map_endpoint_task(endpoint, fetched_versions)
     validation_reports = validate_endpoint_task(endpoint, mapped_versions)

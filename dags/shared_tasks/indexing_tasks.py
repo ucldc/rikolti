@@ -5,7 +5,7 @@ from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 
-@task()
+@task(task_id="create_stage_index")
 def create_stage_index_task(collection: dict, version_pages: list[str]):
     collection_id = collection.get('id')
     if not collection_id:
@@ -17,12 +17,12 @@ def create_stage_index_task(collection: dict, version_pages: list[str]):
 
 
 # Task is triggered if at least one upstream (direct parent) task has failed
-@task(trigger_rule=TriggerRule.ONE_FAILED)
+@task(trigger_rule=TriggerRule.ONE_FAILED, task_id="cleanup_failed_index_creation")
 def cleanup_failed_index_creation_task(index_name: str):
     delete_index(index_name)
 
 
-@task()
+@task(task_id="move_index_to_prod")
 def move_index_to_prod_task(collection: dict):
     collection_id = collection.get('id')
     if not collection_id:

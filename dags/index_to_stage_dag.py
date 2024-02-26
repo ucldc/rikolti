@@ -9,7 +9,7 @@ from rikolti.dags.shared_tasks.shared import get_registry_data_task
 from rikolti.utils.versions import get_merged_pages, get_with_content_urls_pages
 
 
-@task()
+@task(task_id="get_version_pages")
 def get_version_pages(params=None):
     if not params or not params.get('version'):
         raise ValueError("Version path not found in params")
