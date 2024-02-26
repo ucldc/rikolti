@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from dataclasses import dataclass
 
-from .fetchers.Fetcher import Fetcher, FetchedPage
+from .fetchers.Fetcher import Fetcher, FetchedPageStatus
 from rikolti.utils.versions import create_vernacular_version, get_version
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ def import_fetcher(harvest_type):
 
 
 @dataclass(frozen=True, eq=True)
-class FetchedCollection:
+class FetchedCollectionStatus:
     num_items: int
     num_pages: int
     num_parent_items: int
@@ -34,7 +34,9 @@ class FetchedCollection:
     version: str
 
 
-def aggregate_page_statuses(collection_id, statuses: list[FetchedPage]):
+def aggregate_page_statuses(
+        collection_id, 
+        statuses: list[FetchedPageStatus]) -> FetchedCollectionStatus:
     total_items = sum([status.document_count for status in statuses])
     parent_items = total_items
     total_pages = len(statuses)
@@ -50,7 +52,7 @@ def aggregate_page_statuses(collection_id, statuses: list[FetchedPage]):
             total_pages = total_pages + child_status.num_pages
             filepaths = filepaths + child_status.filepaths
             children = True
-    return FetchedCollection(
+    return FetchedCollectionStatus(
         num_items=total_items,
         num_pages=total_pages,
         num_parent_items=parent_items,
@@ -62,9 +64,9 @@ def aggregate_page_statuses(collection_id, statuses: list[FetchedPage]):
 
 
 # AWS Lambda entry point
-def fetch_collection(payload, vernacular_version) -> FetchedCollection:
+def fetch_collection(payload, vernacular_version) -> FetchedCollectionStatus:
     """
-    returns a FetchedCollection objects with the following attributes:
+    returns a FetchedCollectionStatus objects with the following attributes:
         num_items: int
         num_pages: int
         num_parent_items: int

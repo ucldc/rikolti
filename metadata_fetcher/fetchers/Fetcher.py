@@ -24,7 +24,7 @@ class FetchError(Exception):
 
 
 @dataclass
-class FetchedPage:
+class FetchedPageStatus:
     document_count: int
     vernacular_filepath: str
     children: Optional[list] = None
@@ -49,9 +49,9 @@ class Fetcher(object):
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
 
-    def fetch_page(self) -> FetchedPage:
+    def fetch_page(self) -> FetchedPageStatus:
         """
-        returns a FetchedPage with the following attributes:
+        returns a FetchedPageStatus with the following attributes:
             document_count: int
             vernacular_filepath: path relative to collection id
                 ex: "3433/vernacular_version_1/data/1"
@@ -92,7 +92,7 @@ class Fetcher(object):
 
         self.increment(response)
 
-        return FetchedPage(record_count, filepath)
+        return FetchedPageStatus(record_count, filepath)
 
     def check_page(self, response: requests.Response) -> int:
         raise NotImplementedError
