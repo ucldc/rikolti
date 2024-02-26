@@ -8,7 +8,7 @@ from airflow.decorators import task
 from urllib.parse import urlparse
 
 
-@task(multiple_outputs=True)
+@task(multiple_outputs=True, task_id="get_registry_data")
 def get_registry_data_task(params=None):
     if not params or not params.get('collection_id'):
         raise ValueError("Collection ID not found in params")
@@ -41,8 +41,8 @@ def batched(list_to_batch, batch_size):
     return batches
 
 
-@task()
-def make_mapper_type_endpoint(params=None):
+@task(task_id="make_registry_endpoint")
+def make_registry_endpoint_task(params=None):
     if not params:
         raise ValueError("No parameters provided")
 

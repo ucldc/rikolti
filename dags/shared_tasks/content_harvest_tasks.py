@@ -7,7 +7,7 @@ from rikolti.utils.versions import get_version
 from rikolti.utils.versions import create_with_content_urls_version
 from rikolti.dags.shared_tasks.content_harvest_operators import ContentHarvestOperator
 
-@task()
+@task(task_id="create_with_content_urls_version")
 def create_with_content_urls_version_task(
     collection: dict, mapped_page_batches: list[str]):
     mapped_page_batch = json.loads(mapped_page_batches[0])

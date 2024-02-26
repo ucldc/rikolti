@@ -15,7 +15,7 @@ from rikolti.utils.versions import get_vernacular_pages
 from rikolti.utils.versions import get_mapped_pages
 
 
-@task()
+@task(task_id="get_vernacular_page_batches")
 def get_vernacular_page_batches_task(
     collection: dict, params: Optional[dict]=None) -> list[list[str]]:
     collection_id = collection['id']
@@ -30,7 +30,7 @@ def get_vernacular_page_batches_task(
     batch_size = math.ceil(len(pages) / 1024)
     return batched(pages, batch_size)
 
-@task()
+@task(task_id="get_mapped_pages")
 def get_mapped_pages_task(params: Optional[dict] = None):
     collection_id = params.get('collection_id') if params else None
     if not collection_id:

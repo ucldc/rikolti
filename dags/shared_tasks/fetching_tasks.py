@@ -12,13 +12,13 @@ from rikolti.metadata_fetcher.lambda_function import print_fetched_collection_re
 from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
 from rikolti.utils.versions import create_vernacular_version
 
-@task()
+@task(task_id="create_vernacular_version")
 def create_vernacular_version_task(collection) -> str:
     # returns: '3433/vernacular_metadata_v1/'
     return create_vernacular_version(collection.get('collection_id'))
 
 
-@task()
+@task(task_id="fetch_collection")
 def fetch_collection_task(
     collection: dict, vernacular_version: str) -> list[list[str]]:
     """
@@ -63,7 +63,7 @@ def fetching_tasks(collection: Optional[dict] = None):
 logger = logging.getLogger("airflow.task")
 
 
-@task()
+@task(task_id="fetch_endpoint")
 def fetch_endpoint_task(endpoint, params=None):
     """
     3433: [

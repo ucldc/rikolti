@@ -32,8 +32,8 @@ def get_child_thumbnail(child_records):
         if child.get("thumbnail"):
             return child.get("thumbnail")
 
-@task()
-def merge_children(version):
+@task(task_id="merge_any_child_records")
+def merge_any_child_records_task(version):
     with_content_urls_pages = get_with_content_urls_pages(version)
 
     # Recurse through the record's children (if any)
@@ -88,7 +88,7 @@ def harvest():
     mapped_page_batches = mapping_tasks(collection, fetched_page_batches)
     with_content_urls_version, content_harvest_task = content_harvesting_tasks(
         collection, mapped_page_batches)
-    merged_pages = merge_children(with_content_urls_version)
+    merged_pages = merge_any_child_records_task(with_content_urls_version)
     merged_pages.set_upstream(content_harvest_task)
     stage_index = create_stage_index_task(collection, merged_pages)
     cleanup_failed_index_creation_task(stage_index)
