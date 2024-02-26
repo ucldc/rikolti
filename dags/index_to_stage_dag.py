@@ -3,7 +3,6 @@ from datetime import datetime
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
-from rikolti.dags.shared_tasks.indexing_tasks import cleanup_failed_index_creation_task
 from rikolti.dags.shared_tasks.indexing_tasks import create_stage_index_task
 from rikolti.dags.shared_tasks.shared import get_registry_data_task
 from rikolti.utils.versions import get_merged_pages, get_with_content_urls_pages
@@ -37,7 +36,6 @@ def get_version_pages(params=None):
 def index_collection_to_stage_dag():
     collection = get_registry_data_task()
     version_pages = get_version_pages()
-    index_name = create_stage_index_task(collection, version_pages)
-    cleanup_failed_index_creation_task(index_name=index_name)
+    index_name = create_stage_index_task(collection, version_pages)  # noqa F841
 
 index_collection_to_stage_dag()

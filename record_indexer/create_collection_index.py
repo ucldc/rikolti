@@ -99,10 +99,12 @@ def delete_index(index: str):
         print(f"deleted index `{index}`")
 
 
-def create_new_index(collection_id: str, version_pages: list[str]):
+def create_index_name(collection_id: str):
     version = datetime.today().strftime("%Y%m%d%H%M%S")
-    index_name = f"rikolti-{collection_id}-{version}"
+    return f"rikolti-{collection_id}-{version}"
 
+
+def create_new_index(collection_id: str, version_pages: list[str], index_name: str):
     # OpenSearch creates the index on the fly when first written to.
     for version_page in version_pages:
         add_page(version_page, index_name)
