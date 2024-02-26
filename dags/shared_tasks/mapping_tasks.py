@@ -20,7 +20,7 @@ from rikolti.utils.versions import create_mapped_version
 from rikolti.utils.versions import get_mapped_pages
 from rikolti.utils.versions import get_version
 
-@task(task_id='create_mapped_version')
+@task()
 def create_mapped_version_task(collection, vernacular_page_batches) -> str:
     """
     vernacular pages is a list of lists of the filepaths of the vernacular
@@ -43,7 +43,7 @@ def create_mapped_version_task(collection, vernacular_page_batches) -> str:
 
 # max_active_tis_per_dag - setting on the task to restrict how many
 # instances can be running at the same time, *across all DAG runs*
-@task(task_id='map_page')
+@task()
 def map_page_task(
     vernacular_page_batch: Union[str,list[str]],
     collection: dict,
@@ -77,7 +77,7 @@ def map_page_task(
     return mapped_pages
 
 
-@task(task_id='get_mapping_status')
+@task()
 def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> list[str]:
     """
     mapped_status_batches is a list of a list of dicts with the following keys:
@@ -115,7 +115,7 @@ def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> li
     return mapped_page_batches
 
 
-@task(task_id='validate_collection')
+@task()
 def validate_collection_task(collection_id: int, mapped_page_batches: list[str]) -> str:
     """
     mapped_page_batches is a list of str representations of lists of mapped
