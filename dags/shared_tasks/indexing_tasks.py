@@ -1,6 +1,6 @@
 from airflow.decorators import task
-from airflow.utils.trigger_rule import TriggerRule
 
+from rikolti.record_indexer.create_collection_index import create_index_name
 from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
@@ -12,14 +12,13 @@ def create_stage_index_task(collection: dict, version_pages: list[str]):
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
 
-    index_name = create_new_index(collection_id, version_pages)
+    index_name = create_index_name(collection_id)
+    try:
+        create_new_index(collection_id, version_pages, index_name)
+    except Exception as e:
+        delete_index(index_name)
+        raise e
     return index_name
-
-
-# Task is triggered if at least one upstream (direct parent) task has failed
-@task(trigger_rule=TriggerRule.ONE_FAILED, task_id="cleanup_failed_index_creation")
-def cleanup_failed_index_creation_task(index_name: str):
-    delete_index(index_name)
 
 
 @task(task_id="move_index_to_prod")
