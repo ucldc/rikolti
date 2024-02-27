@@ -1,7 +1,6 @@
 import copy
 import json
 import sys
-from pprint import pprint
 
 import requests
 
@@ -28,14 +27,15 @@ def main():
     record_schema["children"]["properties"] = child_schema
 
     # create index template
+    url = f"{settings.ENDPOINT}/_index_template/rikolti_template"
     r = requests.put(
-        f"{settings.ENDPOINT}/_index_template/rikolti_template",
+        url,
         headers={"Content-Type": "application/json"},
         data=json.dumps(RECORD_INDEX_CONFIG),
         auth=settings.get_auth(),
     )
-    if 200 <= r.status_code <= 299:
-        pprint(r.json())
+    if not (200 <= r.status_code <= 299):
+        settings.print_opensearch_error(r, url)
         r.raise_for_status()
     print(r.text)
 

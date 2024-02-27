@@ -3,8 +3,6 @@ from datetime import datetime
 import json
 import sys
 
-from pprint import pprint
-
 import requests
 
 from .add_page_to_index import add_page
@@ -23,8 +21,8 @@ def update_alias_for_collection(alias: str, collection_id: str, index: str):
 
     r = requests.post(
         url, headers=headers, data=json.dumps(data), auth=settings.get_auth())
-    if 200 <= r.status_code <= 299:
-        pprint(r.json())
+    if not (200 <= r.status_code <= 299):
+        settings.print_opensearch_error(r, url)
         r.raise_for_status()
     print(f"added index `{index}` to alias `{alias}`")
 
@@ -35,8 +33,8 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
     if r.status_code == 404:
         return
     else:
-        if 200 <= r.status_code <= 299:
-            pprint(r.json())
+        if not (200 <= r.status_code <= 299):
+            settings.print_opensearch_error(r, url)
             r.raise_for_status()
         indices = json.loads(r.text)
         indices_to_remove = [
@@ -55,8 +53,8 @@ def remove_collection_indices_from_alias(alias: str, collection_id: str):
             r = requests.post(
                 url, headers=headers, data=json.dumps(data), auth=settings.get_auth()
             )
-            if 200 <= r.status_code <= 299:
-                pprint(r.json())
+            if not (200 <= r.status_code <= 299):
+                settings.print_opensearch_error(r, url)
                 r.raise_for_status()
             print(f"removed indices `{indices_to_remove}` from alias `{alias}`")
 
@@ -68,8 +66,8 @@ def delete_old_collection_indices(collection_id: str):
     url = f"{settings.ENDPOINT}/rikolti-{collection_id}-*"
     params = {"ignore_unavailable": "true"}
     r = requests.get(url=url, params=params, auth=settings.get_auth())
-    if 200 <= r.status_code <= 299:
-        pprint(r.json())
+    if not (200 <= r.status_code <= 299):
+        settings.print_opensearch_error(r, url)
         r.raise_for_status()
     indices = json.loads(r.text)
 
@@ -93,8 +91,8 @@ def delete_index(index: str):
     if r.status_code == 404:
         return
     else:
-        if 200 <= r.status_code <= 299:
-            pprint(r.json())
+        if not (200 <= r.status_code <= 299):
+            settings.print_opensearch_error(r, url)
             r.raise_for_status()
         print(f"deleted index `{index}`")
 
