@@ -2,8 +2,6 @@ import argparse
 import json
 import sys
 
-from pprint import pprint
-
 import requests
 
 from .create_collection_index import update_alias_for_collection
@@ -16,8 +14,8 @@ def move_index_to_prod(collection_id: str):
     """
     url = f"{settings.ENDPOINT}/_alias/rikolti-stg"
     r = requests.get(url=url, auth=settings.get_auth())
-    if 200 <= r.status_code <= 299:
-        pprint(r.json())
+    if not (200 <= r.status_code <= 299):
+        settings.print_opensearch_error(r, url)
         r.raise_for_status()
     indices = json.loads(r.text)
     indices_for_collection = [

@@ -17,8 +17,8 @@ def bulk_add(records: list, index: str):
     headers = {"Content-Type": "application/json"}
 
     r = requests.post(url, headers=headers, data=data, auth=settings.get_auth())
-    if 200 <= r.status_code <= 299:
-        pprint(r.json())
+    if not (200 <= r.status_code <= 299):
+        settings.print_opensearch_error(r, url)
         r.raise_for_status()
 
     bulk_resp = r.json()
