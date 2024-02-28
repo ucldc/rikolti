@@ -37,7 +37,7 @@ def fetch_collection_task(
         )
 
     try:
-        send_log_to_sqs(context['task_instance'], asdict(fetched_collection))
+        send_log_to_sqs(context, asdict(fetched_collection))
     except Exception as e:
         print(f"Failed to send log to SQS: {e}")
 
