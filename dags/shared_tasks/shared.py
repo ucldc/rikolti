@@ -42,19 +42,26 @@ def batched(list_to_batch, batch_size):
     return batches
 
 
-def send_log_to_sqs(task_instance, task_message):
+def send_log_to_sqs(context, task_message):
     """
     Send a log message to a SQS FIFO queue for a specific job.
     :param queue_url: URL of the SQS FIFO queue
     :param job_id: Identifier for the job to keep log order within the job
     :param log_message: Dictionary containing the log message
     """
+    task_instance = context['task_instance']
     log_message = {
+        # dag and dag run identification
         'dag_id': task_instance.dag_id, 
         'dag_run_id': task_instance.dag_run.run_id,
+        'logical_date': task_instance.dag_run.logical_date.isoformat(),
+        # task identification
         'task_id': task_instance.task_id,
         'try_number': task_instance.try_number,
+        # dag and task parameters
         'dag_run_conf': task_instance.dag_run.conf,
+        'task_params': task_instance.xcom_pull(task_ids=task_instance.task_id),
+        # rikolti specific message
         'rikolti_message': task_message
     }
     message_body = json.dumps(log_message)
