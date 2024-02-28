@@ -6,6 +6,7 @@ import requests
 
 from .create_collection_index import update_alias_for_collection
 from . import settings
+from .utils import print_opensearch_error
 
 
 def move_index_to_prod(collection_id: str):
@@ -15,7 +16,7 @@ def move_index_to_prod(collection_id: str):
     url = f"{settings.ENDPOINT}/_alias/rikolti-stg"
     r = requests.get(url=url, auth=settings.get_auth())
     if not (200 <= r.status_code <= 299):
-        settings.print_opensearch_error(r, url)
+        print_opensearch_error(r, url)
         r.raise_for_status()
     indices = json.loads(r.text)
     indices_for_collection = [

@@ -5,6 +5,7 @@ from pprint import pprint
 import requests
 
 from . import settings
+from .utils import print_opensearch_error
 from .index_templates.record_index_config import RECORD_INDEX_CONFIG
 from rikolti.utils.versions import (
     get_merged_page_content, get_with_content_urls_page_content)
@@ -18,7 +19,7 @@ def bulk_add(records: list, index: str):
 
     r = requests.post(url, headers=headers, data=data, auth=settings.get_auth())
     if not (200 <= r.status_code <= 299):
-        settings.print_opensearch_error(r, url)
+        print_opensearch_error(r, url)
         r.raise_for_status()
 
     bulk_resp = r.json()
