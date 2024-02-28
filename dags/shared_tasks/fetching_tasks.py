@@ -18,7 +18,20 @@ def create_vernacular_version_task(collection) -> str:
     return create_vernacular_version(collection.get('collection_id'))
 
 
-@task(task_id="fetch_collection")
+def fetching_failure_callback(context):
+    rikolti_message = {
+        'error': True,
+        'exception': context['exception']
+    }
+    try:
+        send_log_to_sqs(context, rikolti_message)
+    except Exception as e:
+        print(f"Failed to send log to SQS: {e}")
+
+
+@task(
+        task_id="fetch_collection",
+        on_failure_callback=fetching_failure_callback)
 def fetch_collection_task(
     collection: dict, vernacular_version: str, **context) -> list[list[str]]:
     """
@@ -68,8 +81,8 @@ def fetching_tasks(collection: Optional[dict] = None):
 logger = logging.getLogger("airflow.task")
 
 
-@task(task_id="fetch_endpoint")
-def fetch_endpoint_task(endpoint, params=None):
+@task(task_id="fetch_endpoint", on_failure_callback=fetching_failure_callback)
+def fetch_endpoint_task(endpoint, params=None, **context):
     """
     3433: [
             {
@@ -100,6 +113,14 @@ def fetch_endpoint_task(endpoint, params=None):
 
     if not fetched_versions:
         raise ValueError("No collections successfully fetched, exiting.")
+
+    try:
+        send_log_to_sqs(context, {
+            'fetched_versions': fetched_versions,
+            'errored_collections': errored_collections
+        })
+    except Exception as e:
+        print(f"Failed to send log to SQS: {e}")
 
     return fetched_versions
 
