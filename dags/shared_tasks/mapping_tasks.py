@@ -1,27 +1,35 @@
 import json
+import math
 import os
-import requests
 import sys
 import traceback
 
+from dataclasses import asdict
+from itertools import chain
 from typing import Union, Optional
 
 from airflow.decorators import task, task_group
 
 from urllib.parse import urlparse
 
+from rikolti.dags.shared_tasks.shared import batched
+from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
+from rikolti.dags.shared_tasks.shared import send_log_to_sqs
 from rikolti.metadata_mapper.lambda_function import map_page
+from rikolti.metadata_mapper.lambda_function import MappedPageStatus
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
+from rikolti.metadata_mapper.lambda_shepherd import print_map_status
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
-from rikolti.metadata_mapper.map_registry_collections import registry_endpoint
-from rikolti.metadata_mapper.map_registry_collections import print_map_status
+from rikolti.metadata_mapper.map_registry_collections import validate_endpoint
+from rikolti.metadata_mapper.map_registry_collections import ValidationReportStatus
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.utils.versions import create_mapped_version
-from rikolti.utils.versions import get_mapped_pages
 from rikolti.utils.versions import get_version
 
-@task(task_id="create_mapped_version")
-def create_mapped_version_task(collection, vernacular_page_batches) -> str:
+@task(task_id="create_mapped_version",
+      on_failure_callback=notify_rikolti_failure)
+def create_mapped_version_task(
+    collection, vernacular_page_batches, **context) -> str:
     """
     vernacular pages is a list of lists of the filepaths of the vernacular
     metadata relative to the collection id, ex: [
@@ -38,85 +46,102 @@ def create_mapped_version_task(collection, vernacular_page_batches) -> str:
         raise ValueError(
             f"Vernacular version not found in {vernacular_page}")
     mapped_data_version = create_mapped_version(vernacular_version)
+    send_log_to_sqs(context, mapped_data_version)
     return mapped_data_version
 
 
 # max_active_tis_per_dag - setting on the task to restrict how many
 # instances can be running at the same time, *across all DAG runs*
-@task(task_id="map_page")
+@task(task_id="map_page",
+      on_failure_callback=notify_rikolti_failure)
 def map_page_task(
     vernacular_page_batch: Union[str,list[str]],
     collection: dict,
-    mapped_data_version: str):
+    mapped_data_version: str,
+    **context) -> list[dict]:
     """
-    vernacular_page_batches is a list of filepaths relative to the collection id, ex:
-        [ 3433/vernacular_metadata_2023-01-01T00:00:00/data/1 ]
-    or:
+    vernacular_page_batch: a list of vernacular page filepaths, ex:
         [
             3433/vernacular_metadata_2023-01-01T00:00:00/data/1,
             3433/vernacular_metadata_2023-01-01T00:00:00/data/2
         ]
-    mapped_data_version is a path relative to the collection id, ex:
+    collection: a dict representation of a collection
+    mapped_data_version: a version path, ex:
         3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/
-    returns a dictionary with the following keys:
-        status: success
-        num_records_mapped: int
-        page_exceptions: TODO
-        mapped_page_path|None: str, ex:
-            3433/vernacular_metadata_2023-01-01T00:00:00/mapped_metadata_2023-01-01T00:00:00/1.jsonl
+
+    returns:
+        a list of MappedPageStatus objects as dictionaries
     """
     collection_id = collection.get('id')
     if not collection_id or not mapped_data_version:
-        return False
+        return []
 
-    mapped_pages = []
+    mapped_page_statuses = []
     for vernacular_page in vernacular_page_batch:
-        mapped_page = map_page(
+        mapped_page_status = map_page(
             collection_id, vernacular_page, mapped_data_version, collection)
-        mapped_pages.append(mapped_page)
-    return mapped_pages
+        mapped_page_statuses.append(asdict(mapped_page_status))
+    send_log_to_sqs(context, mapped_page_statuses)
+    return mapped_page_statuses
 
 
-@task(task_id="get_mapping_status")
-def get_mapping_status_task(collection: dict, mapped_status_batches: list) -> list[str]:
+@task(task_id="get_mapping_status",
+      on_failure_callback=notify_rikolti_failure)
+def get_mapping_status_task(
+    collection: dict, mapped_status_batches: list, **context) -> list[str]:
     """
-    mapped_status_batches is a list of a list of dicts with the following keys:
-        status: success
-        num_records_mapped: int
-        page_exceptions: TODO
-        mapped_page_path: str|None, ex:
-            3433/vernacular_metadata_v1/mapped_metadata_v1/1.jsonl
-    returns a list of strings, ex:
-        [
-            "[3433/vernacular_metadata_v1/mapped_metadata_v1/1.jsonl]",
-            "[3433/vernacular_metadata_v1/mapped_metadata_v1/2.jsonl]",
-            "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
-        ]
+    collection:
+        a dict representation of a collection
+    mapped_status_batches:
+        a list of a batch of MappedPageStatus objects as dictionaries
+
+    returns:
+        a list of str representations of a batch (list) of mapped page paths
+        ex:
+            [
+                "[3433/vernacular_metadata_v1/mapped_metadata_v1/1.jsonl]",
+                "[3433/vernacular_metadata_v1/mapped_metadata_v1/2.jsonl]",
+                "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
+            ]
     """
-    mapped_statuses = []
-    mapped_page_batches = []
-    for mapped_status_batch in mapped_status_batches:
-        mapped_statuses.extend(mapped_status_batch)
-        mapped_page_batch = [
-            mapped_status['mapped_page_path'] for mapped_status in mapped_status_batch
-            if mapped_status['mapped_page_path']]
-        mapped_page_batches.append(json.dumps(mapped_page_batch))
+    mapped_page_statuses = [MappedPageStatus(**page_status) for page_status in
+                            chain.from_iterable(mapped_status_batches)]
 
-    mapping_status = get_mapping_status(collection, mapped_statuses)
-    print_map_status(collection, mapping_status)
+    mapped_collection = get_mapping_status(collection, mapped_page_statuses)
+    print_map_status(collection, mapped_collection)
+    send_log_to_sqs(context, asdict(mapped_collection))
 
-    mapped_version = get_version(
-        collection['id'], mapping_status['mapped_page_paths'][0])
     print(
         "Review mapped data at: https://rikolti-data.s3.us-west-2."
-        f"amazonaws.com/index.html#{mapped_version.rstrip('/')}/data/"
+        "amazonaws.com/index.html#"
+        f"{mapped_collection.version.rstrip('/')}/data/"
     )
 
-    return mapped_page_batches
+    batch_size = math.ceil(len(mapped_collection.filepaths) / 1024)
+    return batched(mapped_collection.filepaths, batch_size)
 
 
-@task(task_id="validate_collection")
-def validate_collection_task(collection_id: int, mapped_page_batches: list[str]) -> str:
+def print_s3_link(version_page, mapped_version):
+    # create a link to the file in the logs
+    data_root = os.environ.get("MAPPED_DATA", "file:///tmp").rstrip('/')
+    if data_root.startswith('s3'):
+        s3_path = urlparse(f"{data_root}/{version_page}")
+        bucket = s3_path.netloc
+        print(
+            "Download validation report at: "
+            f"https://{bucket}.s3.amazonaws.com{s3_path.path}"
+        )
+        print(
+            f"Review collection data at: "
+            f"https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
+            f"#{mapped_version.rstrip('/')}/data/"
+        )
+
+
+@task(task_id="validate_collection",
+      on_failure_callback=notify_rikolti_failure)
+def validate_collection_task(
+    collection_id: int, mapped_page_batches: list[str], **context) -> str:
     """
     mapped_page_batches is a list of str representations of lists of mapped
     page paths, ex:
@@ -126,32 +151,23 @@ def validate_collection_task(collection_id: int, mapped_page_batches: list[str])
         "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
     ]
     """
-    mapped_metadata_pages = []
-    for mapped_page_batch in mapped_page_batches:
-        mapped_metadata_pages.extend(json.loads(mapped_page_batch))
-
-    parent_pages = [path for path in mapped_metadata_pages if 'children' not in path]
+    mapped_page_batches = [json.loads(batch) for batch in mapped_page_batches]
+    mapped_pages = list(chain.from_iterable(mapped_page_batches))
+    mapped_pages = [path for path in mapped_pages if 'children' not in path]
 
     num_rows, version_page = create_collection_validation_csv(
-        collection_id, parent_pages)
+        collection_id, mapped_pages)
+
+    status = ValidationReportStatus(
+        filepath=version_page,
+        num_validation_errors=num_rows,
+        mapped_version=get_version(collection_id, mapped_pages[0])
+    )
 
     print(f"Output {num_rows} rows to {version_page}")
+    print_s3_link(version_page, get_version(collection_id, mapped_pages[0]))
 
-    # create a link to the file in the logs
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
-    if data_root.startswith('s3'):
-        s3_path = urlparse(f"{data_root.rstrip('/')}/{version_page}")
-        bucket = s3_path.netloc
-        print(
-            "Download validation report at: "
-            f"https://{bucket}.s3.amazonaws.com{s3_path.path}"
-        )
-        mapped_version = get_version(collection_id, parent_pages[0])
-        print(
-            f"Review collection data at: "
-            f"https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
-            f"#{mapped_version.rstrip('/')}/data/"
-        )
+    send_log_to_sqs(context, asdict(status))
 
     return version_page
 
@@ -177,101 +193,51 @@ def mapping_tasks(
     return mapped_page_batches
 
 
-@task(task_id="map_endpoint")
-def map_endpoint_task(endpoint, fetched_versions, params=None):
+@task(task_id="map_endpoint", on_failure_callback=notify_rikolti_failure)
+def map_endpoint_task(endpoint, fetched_versions, params=None, **context):
     if not fetched_versions:
         raise ValueError("No fetched versions provided to map")
 
     limit = params.get('limit', None) if params else None
-    mapper_job_results = map_endpoint(endpoint, fetched_versions, limit)
+    mapped_collections = map_endpoint(endpoint, fetched_versions, limit)
     mapped_versions = {}
-    for mapper_job_result in mapper_job_results:
-        mapped_version = get_version(
-            mapper_job_result['collection_id'],
-            mapper_job_result['mapped_page_paths'][0]
-        )
+    for collection_id, mapped_collection_status in mapped_collections.items():
         print(
-            "Review mapped data at: https://rikolti-data.s3.us-west-2."
-            f"amazonaws.com/index.html#{mapped_version.rstrip('/')}/data/"
+            f"Review mapped data at: {mapped_collection_status.data_link}"
         )
-        mapped_versions[mapper_job_result['collection_id']] = mapped_version
+        mapped_versions[collection_id] = mapped_collection_status.version
 
+    send_log_to_sqs(context, mapped_collections)
     return mapped_versions
 
 
-@task(task_id="validate_endpoint")
-def validate_endpoint_task(url, mapped_versions, params=None):
+@task(task_id="validate_endpoint", on_failure_callback=notify_rikolti_failure)
+def validate_endpoint_task(url, mapped_versions, params=None, **context):
     if not mapped_versions:
         raise ValueError("No mapped versions provided to validate")
 
     limit = params.get('limit', None) if params else None
 
-    response = requests.get(url=url)
-    response.raise_for_status()
-    total = response.json().get('meta', {}).get('total_count', 1)
-    progress = 0
-    if not limit:
-        limit = total
-    limit = int(limit)
+    validations = validate_endpoint(url, mapped_versions, limit)
 
-    print(f">>> Validating {limit}/{total} collections described at {url}")
+    for validation_status in validations.values():
+        if not validation_status.error:
+            print_s3_link(
+                validation_status.filepath, validation_status.mapped_version)
 
-    collections = {}
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
-
-    errored_collections = {}
-
-    for collection in registry_endpoint(url):
-        collection_id = collection['collection_id']
-        progress = progress + 1
-        print(f"{collection_id:<6} Validating collection")
-
-        mapped_version = mapped_versions.get(str(collection_id))
-        try:
-            mapped_pages = get_mapped_pages(mapped_version)
-        except (FileNotFoundError, ValueError) as e:
-            print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
-            errored_collections[collection_id] = e
-            continue
-
-        try:
-            num_rows, version_page = create_collection_validation_csv(
-                collection_id, mapped_pages)
-        except Exception as e:
-            print(f"{collection_id:<6}: {e}", file=sys.stderr)
-            errored_collections[collection_id] = e
-            continue
-
-        collections[collection_id] = {
-            'csv': version_page,
-            'mapped_version': mapped_version,
-            'data_uri': f"{data_root.rstrip('/')}/{version_page}"
-        }
-        print(f"Output {num_rows} rows to {version_page}")
-
-        if limit and progress >= limit:
-            break
-
-    if data_root.startswith('s3'):
-        for collection in collections.values():
-            s3_path = urlparse(collection['data_uri'])
-            bucket = s3_path.netloc
-            print(
-                "Download validation report at: "
-                f"https://{bucket}.s3.amazonaws.com{s3_path.path}"
-            )
-            print(
-                f"Review collection data at: "
-                f"https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
-                f"#{collection['mapped_version'].rstrip('/')}/data/"
-            )
-
+    errored_collections = {
+        cid: status for cid, status in validations.items()
+        if status.error and status.exception
+    }
     if len(errored_collections) > 0:
         print("-" * 60, file=sys.stderr)
         header = ' Validation Errors '
         print(f"{header:-^60}", file=sys.stderr)
         print("-" * 60, file=sys.stderr)
-    for collection_id, e in errored_collections.items():
+    for collection_id, status in errored_collections.items():
+        e = status.exception
+        if not e:
+            continue
         collection_error_header = f" Collection {collection_id}: {e} "
         print(f"{collection_error_header:>^60}", file=sys.stderr)
         traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)
@@ -282,9 +248,14 @@ def validate_endpoint_task(url, mapped_versions, params=None):
         print(f"please validate manually: {list(errored_collections.keys())}")
         print("*" * 60)
 
-    if not len(collections):
+    if not len(errored_collections) == len(validations):
         print("-", file=sys.stderr)
         raise ValueError("No collections successfully validated, exiting.")
 
-    return [collection['csv'] for collection in collections.values()]
+    send_log_to_sqs(context, validations)
+    return [
+        validation_status.filepath
+        for validation_status in validations.values() 
+        if validation_status.filepath
+    ]
 

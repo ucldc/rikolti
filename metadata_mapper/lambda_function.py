@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+from dataclasses import dataclass
 from typing import Union
 from urllib.parse import parse_qs, urlparse
 
@@ -74,24 +75,42 @@ def run_enrichments(records, collection, enrichment_set, page_filename):
     return records
 
 
+@dataclass(frozen=True, eq=True)
+class MappedPageStatus:
+    status: str
+    num_mapped_records: int
+    exceptions: dict
+    mapped_page_path: Union[str, None]
+    # ex: 3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
+
+
+def group_page_exceptions(mapped_records: list[Record]):
+    group_page_exceptions = {}
+    page_exceptions = {
+        rec.legacy_couch_db_id: rec.enrichment_report
+        for rec in mapped_records if rec.enrichment_report
+    }
+    if page_exceptions:
+        # Group like lists of enrichment chain errors
+        for couch_id, reports in page_exceptions.items():
+            report = " | ".join(reports)
+            group_page_exceptions.setdefault(report, []).append(couch_id)
+    return group_page_exceptions
+
+
 def map_page(
         collection_id: int,
         vernacular_page_path: str,
         mapped_data_version: str,
         collection: Union[dict, str]
-):
+) -> MappedPageStatus:
     """
     vernacular_page_path is a filepath relative to the collection id, ex:
         3433/vernacular_metadata_v1/data/1
     mapped_data_version is a version path relative to the collection id, ex:
         3433/vernacular_metadata_v1/mapped_metadata_v1/
 
-    returns a dict with the following keys:
-        status: success
-        num_records_mapped: int
-        page_exceptions: TODO
-        mapped_page_path: str|None, ex:
-            3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
+    returns a MappedPageStatus
     """
     if isinstance(collection, str):
         collection = json.loads(collection)
@@ -110,12 +129,7 @@ def map_page(
             f"No source vernacular records found for {collection_id} "
             f"page {vernacular_page_path}."
             )
-        return {
-            'status': 'success',
-            'num_records_mapped': 0,
-            'page_exceptions': {},
-            'mapped_page_path': None,
-        }
+        return MappedPageStatus('success', 0, {}, None)
 
     source_metadata_records = run_enrichments(
         source_metadata_records, collection, 'rikolti__pre_mapping', page_filename)
@@ -133,17 +147,6 @@ def map_page(
         mapped_records = [record.solr_updater() for record in mapped_records]
     mapped_records = [record.remove_none_values() for record in mapped_records]
 
-    group_page_exceptions = {}
-    page_exceptions = {
-        rec.legacy_couch_db_id: rec.enrichment_report
-        for rec in mapped_records if rec.enrichment_report
-    }
-    if page_exceptions:
-        # Group like lists of enrichment chain errors
-        for couch_id, reports in page_exceptions.items():
-            report = " | ".join(reports)
-            group_page_exceptions.setdefault(report, []).append(couch_id)
-
     # some enrichments had previously happened at ingest into Solr
     # TODO: these are just two, investigate further
     # mapped_records = [record.add_sort_title() for record in mapped_records]
@@ -156,12 +159,12 @@ def map_page(
         json.dumps(mapped_metadata, ensure_ascii=False),
         page_filename, mapped_data_version)
 
-    return {
-        'status': 'success',
-        'num_records_mapped': len(mapped_metadata),
-        'page_exceptions': group_page_exceptions,
-        'mapped_page_path': mapped_page_path,
-    }
+    return MappedPageStatus(
+        'success',
+        len(mapped_metadata),
+        group_page_exceptions(mapped_records),
+        mapped_page_path
+    )
 
 
 if __name__ == "__main__":
@@ -180,14 +183,14 @@ if __name__ == "__main__":
     parser.add_argument('collection', help='json collection metadata from registry')
 
     args = parser.parse_args(sys.argv[1:])
-    mapped_page = map_page(args.collection_id, args.page_path, args.mapped_data_path,
+    mapped_page_status = map_page(args.collection_id, args.page_path, args.mapped_data_path,
                            args.collection)
 
-    print(f"{mapped_page.get('num_records_mapped')} records mapped")
+    print(f"{mapped_page_status.num_mapped_records} records mapped")
     print(
         f"mapped page at {os.environ.get('MAPPED_DATA')}/"
-        f"{mapped_page.get('mapped_page_path')}")
+        f"{mapped_page_status.mapped_page_path}")
 
-    for report, couch_ids in mapped_page.get('exceptions', {}).items():
+    for report, couch_ids in mapped_page_status.exceptions.items():
         print(f"{len(couch_ids)} records report enrichments errors: {report}")
         print(f"check the following ids for issues: {couch_ids}")
