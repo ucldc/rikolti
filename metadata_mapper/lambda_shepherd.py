@@ -3,10 +3,11 @@ import sys
 
 import requests
 
+from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from . import validate_mapping
-from .lambda_function import map_page
+from .lambda_function import map_page, MappedPageStatus
 from .mappers.mapper import Record
 from rikolti.utils.versions import (
     get_most_recent_vernacular_version, get_vernacular_pages,
@@ -40,42 +41,113 @@ def check_for_missing_enrichments(collection):
     return not_yet_implemented
 
 
-def get_mapping_status(collection, mapped_pages):
+@dataclass
+class MappedCollectionStatus:
+    status: str
+    num_mapped_records: int
+    num_mapped_pages: int
+    missing_enrichments: list[str]
+    exceptions: dict
+    filepaths: list[str]
+    version: str
+    data_link: str
+
+
+def get_mapping_status(
+        collection,
+        mapped_page_statuses: list[MappedPageStatus]) -> MappedCollectionStatus:
     """
-    mapped_pages is a list of dicts with the following keys:
-        status: success
-        num_records_mapped: int
-        page_exceptions: TODO
-        mapped_page_path: str|None, ex:
-            3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
-    returns a dict, one of the keys is mapped_page_paths:
-        mapped_page_paths: ex: [
-            3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl,
-            3433/vernacular_metadata_v1/mapped_metadata_v1/data/2.jsonl,
-            3433/vernacular_metadata_v1/mapped_metadata_v1/data/3.jsonl
-        ]
+    mapped_pages is a list of MappedPageStatus objects
+    returns a MappedCollectionStatus
     """
-    count = sum([page['num_records_mapped'] for page in mapped_pages])
-    page_count = len(mapped_pages)
-    collection_exceptions = [page.get('page_exceptions', {}) for page in mapped_pages]
+    num_mapped_records = sum([s.num_mapped_records for s in mapped_page_statuses])
+    exceptions = [s.exceptions for s in mapped_page_statuses]
 
     group_exceptions = {}
-    for page_exceptions in collection_exceptions:
+    for page_exceptions in exceptions:
         for exception, couch_ids in page_exceptions.items():
             group_exceptions.setdefault(exception, []).extend(couch_ids)
 
-    return {
-        'status': 'success',
-        'collection_id': collection.get('id'),
-        'pre_mapping': collection.get('rikolti__pre_mapping'),
-        'enrichments': collection.get('rikolti__enrichments'),
-        'missing_enrichments': check_for_missing_enrichments(collection),
-        'count': count,
-        'page_count': page_count,
-        'group_exceptions': group_exceptions,
-        'mapped_page_paths': [page['mapped_page_path'] for page in mapped_pages
-            if page['mapped_page_path']],
-    }
+    for mapped_page_status in mapped_page_statuses:
+        if mapped_page_status.mapped_page_path:
+            version = get_version(
+                collection['collection_id'],
+                mapped_page_status.mapped_page_path
+            )
+            break
+
+    return MappedCollectionStatus(
+        'success',
+        num_mapped_records,
+        len(mapped_page_statuses),
+        check_for_missing_enrichments(collection),
+        group_exceptions,
+        [page.mapped_page_path for page in mapped_page_statuses
+            if page.mapped_page_path],
+        version,
+        (
+            "https://rikolti-data.s3.us-west-2.amazonaws.com/index.html#"
+            f"{version.rstrip('/')}/data/"
+        )
+    )
+
+
+def print_map_status(collection, map_result: MappedCollectionStatus):
+    collection_id = collection['collection_id']
+    pre_mapping = collection.get('rikolti__pre_mapping')
+    enrichments = collection.get('rikolti__enrichments')
+
+    if len(pre_mapping) > 0:
+        print(
+            f"{collection_id:<6}: {'pre-mapping enrichments':<24}: "
+            f"\"{pre_mapping}\""
+        )
+
+    if len(enrichments) > 0:
+        print(
+            f"{collection_id:<6}, {'post-mapping enrichments':<24}: "
+            f"\"{enrichments}\""
+        )
+
+    missing_enrichments = map_result.missing_enrichments or []
+    if len(missing_enrichments) > 0:
+        print(
+            f"{collection_id:<6}, {'missing enrichments':<24}: "
+            f"\"{missing_enrichments}\""
+        )
+    exceptions = map_result.exceptions or {}
+    if len(exceptions) > 0:
+        for exception, couch_ids in exceptions.items():
+            print(
+                f"{collection_id:<6}, {'enrichment errors':<24}: "
+                f"{len(couch_ids)} items: \"{exception}\""
+            )
+            print(
+                f"{collection_id:<6}, {'enrichment error records':24}: "
+                f"{len(couch_ids)} items: \"{couch_ids}\""
+            )
+
+    # "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
+    success = 'success' if map_result.status == 'success' else 'error'
+
+    extent = map_result.num_mapped_records
+    diff = extent - collection['solr_count']
+    diff_items_label = ""
+    if diff > 0:
+        diff_items_label = 'new items'
+    elif diff < 0:
+        diff_items_label = 'lost items'
+    else:
+        diff_items_label = 'same extent'
+
+    map_report_row = (
+        f"{collection_id:<6}, {success:9}, {extent:>6} items, "
+        f"{collection['solr_count']:>6} solr items, "
+        f"{str(diff) + ' ' + diff_items_label + ',':>16} "
+        f"solr count last updated: {collection['solr_last_updated']}"
+    )
+    print(map_report_row)
+
 
 def map_collection(collection_id, vernacular_version=None, validate=False):
     # This is a functional duplicate of rikolti.d*gs.mapper_d*g.mapper_d*g
@@ -113,20 +185,21 @@ def map_collection(collection_id, vernacular_version=None, validate=False):
             )
             continue
 
-    collection_stats = get_mapping_status(collection, mapped_pages)
+    mapped_collection = get_mapping_status(collection, mapped_pages)
+    print_map_status(collection, mapped_collection)
 
     if validate:
         opts = validate if isinstance(validate, dict) else {}
         num_rows, file_location = (
             validate_mapping.create_collection_validation_csv(
                 collection_id,
-                collection_stats['mapped_page_paths'],
+                mapped_collection.filepaths,
                 **opts
             )
         )
         print(f"Output {num_rows} rows to {file_location}")
 
-    return collection_stats
+    return mapped_collection
 
 
 if __name__ == "__main__":
@@ -139,14 +212,14 @@ if __name__ == "__main__":
     parser.add_argument('vernacular_version', help='relative path describing a vernacular version, ex: 3433/vernacular_data_version_1/')
     args = parser.parse_args(sys.argv[1:])
     mapped_collection = map_collection(args.collection_id, args.vernacular_version, args.validate)
-    missing_enrichments = mapped_collection.get('missing_enrichments')
+    missing_enrichments = mapped_collection.missing_enrichments
     if len(missing_enrichments) > 0:
         print(
             f"{args.collection_id}, missing enrichments, ",
             f"ALL, -, -, {missing_enrichments}"
         )
 
-    exceptions = mapped_collection.get('exceptions', {})
+    exceptions = mapped_collection.exceptions
     for report, couch_ids in exceptions.items():
         print(f"{len(couch_ids)} records report enrichments errors: {report}")
         print(f"check the following ids for issues: {couch_ids}")
