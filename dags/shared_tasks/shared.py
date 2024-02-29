@@ -76,13 +76,27 @@ def send_log_to_sqs(context, task_message):
     }
 
     sqs = boto3.client('sqs', **aws_credentials)
-    response = sqs.send_message(
-        QueueUrl="https://sqs.us-west-2.amazonaws.com/777968769372/RikoltiEvents.fifo",
-        MessageBody=message_body,
-        MessageGroupId=task_instance.dag_run.run_id,  # Ensure messages are ordered within this dag run
-        MessageDeduplicationId=str(hash(message_body))  # Simple deduplication ID
-    )
+    try:
+        response = sqs.send_message(
+            QueueUrl="https://sqs.us-west-2.amazonaws.com/777968769372/RikoltiEvents.fifo",
+            MessageBody=message_body,
+            MessageGroupId=task_instance.dag_run.run_id,  # Ensure messages are ordered within this dag run
+            MessageDeduplicationId=str(hash(message_body))  # Simple deduplication ID
+        )
+    except Exception as e:
+        raise Exception(f"Failed to send message to SQS: {e}")
     print(f"Message sent to SQS with Message ID: {response['MessageId']}")
+
+
+def notify_rikolti_failure(context):
+    rikolti_message = {
+        'error': True,
+        'exception': context['exception']
+    }
+    try:
+        send_log_to_sqs(context, rikolti_message)
+    except Exception as e:
+        print(f"Failed to send log to SQS: {e}")
 
 
 @task(task_id="make_registry_endpoint")
