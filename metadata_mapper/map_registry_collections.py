@@ -9,7 +9,7 @@ import requests
 
 from .lambda_shepherd import MappedCollectionStatus
 from .lambda_shepherd import map_collection
-from validate_mapping import create_collection_validation_csv
+from .validate_mapping import create_collection_validation_csv
 from rikolti.utils.versions import get_mapped_pages
 
 logger = logging.getLogger(__name__)
