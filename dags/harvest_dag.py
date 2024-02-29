@@ -8,6 +8,8 @@ from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks.shared import get_registry_data_task
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
+from rikolti.dags.shared_tasks.shared import notify_dag_success
+from rikolti.dags.shared_tasks.shared import notify_dag_failure
 from rikolti.dags.shared_tasks.shared import send_log_to_sqs
 from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
 from rikolti.dags.shared_tasks.mapping_tasks  import mapping_tasks
@@ -87,6 +89,8 @@ def merge_any_child_records_task(version, **context):
         'collection_id': Param(None, description="Collection ID to harvest"),
     },
     tags=["rikolti"],
+    on_failure_callback=notify_dag_failure,
+    on_success_callback=notify_dag_success,
 )
 def harvest():
 

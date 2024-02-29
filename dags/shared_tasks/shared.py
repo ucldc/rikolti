@@ -93,10 +93,21 @@ def notify_rikolti_failure(context):
         'error': True,
         'exception': context['exception']
     }
-    try:
-        send_log_to_sqs(context, rikolti_message)
-    except Exception as e:
-        print(f"Failed to send log to SQS: {e}")
+    send_log_to_sqs(context, rikolti_message)
+
+
+def notify_dag_success(context):
+    rikolti_message = {'dag_complete': True}
+    send_log_to_sqs(context, rikolti_message)
+
+
+def notify_dag_failure(context):
+    rikolti_message = {
+        'dag_complete': False,
+        'error': True,
+        'exception': context['exception']
+    }
+    send_log_to_sqs(context, rikolti_message)
 
 
 @task(task_id="make_registry_endpoint")
