@@ -7,6 +7,8 @@ from airflow.models.param import Param
 
 
 from rikolti.dags.shared_tasks.shared import get_registry_data_task
+from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
+from rikolti.dags.shared_tasks.shared import send_log_to_sqs
 from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
 from rikolti.dags.shared_tasks.mapping_tasks  import mapping_tasks
 from rikolti.dags.shared_tasks.content_harvest_tasks import content_harvesting_tasks
@@ -31,18 +33,22 @@ def get_child_thumbnail(child_records):
         if child.get("thumbnail"):
             return child.get("thumbnail")
 
-@task(task_id="merge_any_child_records")
-def merge_any_child_records_task(version):
+@task(task_id="merge_any_child_records", 
+      on_failure_callback=notify_rikolti_failure)
+def merge_any_child_records_task(version, **context):
     with_content_urls_pages = get_with_content_urls_pages(version)
 
     # Recurse through the record's children (if any)
     child_directories = get_child_directories(version)
     if not child_directories:
+        send_log_to_sqs(context, {'records_with_children': None})
         return with_content_urls_pages
 
     merged_version = create_merged_version(version)
-    parent_pages = [page for page in with_content_urls_pages if 'children' not in page]
+    parent_pages = [page for page in with_content_urls_pages 
+                    if 'children' not in page]
     merged_pages = []
+    child_count_by_record = {}
     for page_path in parent_pages:
         parent_records = get_with_content_urls_page_content(page_path)
         for record in parent_records:
@@ -54,6 +60,7 @@ def merge_any_child_records_task(version):
                 f"{page_path}: {len(child_records)} children found of "
                 f"record {calisphere_id}."
             )
+            child_count_by_record[calisphere_id] = len(child_records)
             record['children'] = child_records
             # if the parent doesn't have a thumbnail, grab one from children
             if not record.get('thumbnail'):
@@ -67,6 +74,7 @@ def merge_any_child_records_task(version):
                 merged_version
             )
         )
+    send_log_to_sqs(context, {'records_with_children': child_count_by_record})
     return merged_pages
 
 
