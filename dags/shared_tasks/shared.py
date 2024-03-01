@@ -8,12 +8,19 @@ from airflow.decorators import task
 
 from urllib.parse import urlparse
 
-def send_event_to_sns(context, task_message):
+def send_event_to_sns(context: dict, task_message: dict):
     """
-    Send a log message to a SQS FIFO queue for a specific job.
-    :param queue_url: URL of the SQS FIFO queue
-    :param job_id: Identifier for the job to keep log order within the job
-    :param log_message: Dictionary containing the log message
+    Send a log message to an SNS topic for a specific job.
+
+    Args:
+        context (dict): Airflow's context dictionary:
+            https://docs.astronomer.io/learn/airflow-context
+            https://airflow.apache.org/docs/apache-airflow/2.0.0/concepts.html#accessing-current-context
+            https://composed.blog/airflow/execute-context
+        task_message (dict): Dictionary containing the task's specific message
+    
+    Returns:
+        None
     """
     task_instance = context['task_instance']
     log_message = {
