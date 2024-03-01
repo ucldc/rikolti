@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 from rikolti.dags.shared_tasks.shared import batched
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
-from rikolti.dags.shared_tasks.shared import send_log_to_sns
+from rikolti.dags.shared_tasks.shared import send_event_to_sns
 from rikolti.metadata_mapper.lambda_function import map_page
 from rikolti.metadata_mapper.lambda_function import MappedPageStatus
 from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
@@ -46,7 +46,7 @@ def create_mapped_version_task(
         raise ValueError(
             f"Vernacular version not found in {vernacular_page}")
     mapped_data_version = create_mapped_version(vernacular_version)
-    send_log_to_sns(context, mapped_data_version)
+    send_event_to_sns(context, mapped_data_version)
     return mapped_data_version
 
 
@@ -80,7 +80,7 @@ def map_page_task(
         mapped_page_status = map_page(
             collection_id, vernacular_page, mapped_data_version, collection)
         mapped_page_statuses.append(asdict(mapped_page_status))
-    send_log_to_sns(context, mapped_page_statuses)
+    send_event_to_sns(context, mapped_page_statuses)
     return mapped_page_statuses
 
 
@@ -108,7 +108,7 @@ def get_mapping_status_task(
 
     mapped_collection = get_mapping_status(collection, mapped_page_statuses)
     print_map_status(collection, mapped_collection)
-    send_log_to_sns(context, asdict(mapped_collection))
+    send_event_to_sns(context, asdict(mapped_collection))
 
     print(
         "Review mapped data at: https://rikolti-data.s3.us-west-2."
@@ -167,7 +167,7 @@ def validate_collection_task(
     print(f"Output {num_rows} rows to {version_page}")
     print_s3_link(version_page, get_version(collection_id, mapped_pages[0]))
 
-    send_log_to_sns(context, asdict(status))
+    send_event_to_sns(context, asdict(status))
 
     return version_page
 
@@ -207,7 +207,7 @@ def map_endpoint_task(endpoint, fetched_versions, params=None, **context):
         )
         mapped_versions[collection_id] = mapped_collection_status.version
 
-    send_log_to_sns(context, mapped_collections)
+    send_event_to_sns(context, mapped_collections)
     return mapped_versions
 
 
@@ -252,7 +252,7 @@ def validate_endpoint_task(url, mapped_versions, params=None, **context):
         print("-", file=sys.stderr)
         raise ValueError("No collections successfully validated, exiting.")
 
-    send_log_to_sns(context, validations)
+    send_event_to_sns(context, validations)
     return [
         validation_status.filepath
         for validation_status in validations.values() 
