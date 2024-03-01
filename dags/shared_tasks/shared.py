@@ -8,7 +8,7 @@ from airflow.decorators import task
 
 from urllib.parse import urlparse
 
-def send_log_to_sns(context, task_message):
+def send_event_to_sns(context, task_message):
     """
     Send a log message to a SQS FIFO queue for a specific job.
     :param queue_url: URL of the SQS FIFO queue
@@ -46,12 +46,12 @@ def notify_rikolti_failure(context):
         'error': True,
         'exception': context['exception']
     }
-    send_log_to_sns(context, rikolti_message)
+    send_event_to_sns(context, rikolti_message)
 
 
 def notify_dag_success(context):
     rikolti_message = {'dag_complete': True}
-    send_log_to_sns(context, rikolti_message)
+    send_event_to_sns(context, rikolti_message)
 
 
 def notify_dag_failure(context):
@@ -60,7 +60,7 @@ def notify_dag_failure(context):
         'error': True,
         'exception': context['exception']
     }
-    send_log_to_sns(context, rikolti_message)
+    send_event_to_sns(context, rikolti_message)
 
 
 @task(multiple_outputs=True, 
@@ -87,7 +87,7 @@ def get_registry_data_task(params=None, **context):
     fetchdata_resp.raise_for_status()
     registry_data['registry_fetchdata'] = fetchdata_resp.json()
 
-    send_log_to_sns(context, registry_data)
+    send_event_to_sns(context, registry_data)
 
     return registry_data
 

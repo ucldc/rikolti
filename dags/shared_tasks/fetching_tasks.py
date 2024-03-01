@@ -6,7 +6,7 @@ from dataclasses import asdict
 
 from airflow.decorators import task, task_group
 
-from rikolti.dags.shared_tasks.shared import batched, send_log_to_sns
+from rikolti.dags.shared_tasks.shared import batched, send_event_to_sns
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
 from rikolti.metadata_fetcher.lambda_function import fetch_collection
 from rikolti.metadata_fetcher.lambda_function import print_fetched_collection_report
@@ -18,7 +18,7 @@ from rikolti.utils.versions import create_vernacular_version
 def create_vernacular_version_task(collection, **context) -> str:
     # returns: '3433/vernacular_metadata_v1/'
     version = create_vernacular_version(collection.get('collection_id'))
-    send_log_to_sns(context, {'vernacular_version': version})
+    send_event_to_sns(context, {'vernacular_version': version})
     return version
 
 
@@ -42,7 +42,7 @@ def fetch_collection_task(
             f"{fetched_collection.filepaths}"
         )
 
-    send_log_to_sns(context, asdict(fetched_collection))
+    send_event_to_sns(context, asdict(fetched_collection))
 
     print(f"Successfully fetched collection {collection['collection_id']}")
     print_fetched_collection_report(collection, fetched_collection)
@@ -104,7 +104,7 @@ def fetch_endpoint_task(endpoint, params=None, **context):
     if not fetched_versions:
         raise ValueError("No collections successfully fetched, exiting.")
 
-    send_log_to_sns(context, {
+    send_event_to_sns(context, {
         'fetched_versions': fetched_versions,
         'errored_collections': errored_collections
     })
