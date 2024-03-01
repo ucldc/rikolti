@@ -1,7 +1,7 @@
 from airflow.decorators import task
 
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
-from rikolti.dags.shared_tasks.shared import send_log_to_sqs
+from rikolti.dags.shared_tasks.shared import send_log_to_sns
 from rikolti.record_indexer.create_collection_index import create_index_name
 from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.create_collection_index import delete_index
@@ -21,7 +21,7 @@ def create_stage_index_task(
     except Exception as e:
         delete_index(index_name)
         raise e
-    send_log_to_sqs(context, {'index_name': index_name})
+    send_log_to_sns(context, {'index_name': index_name})
     return index_name
 
 

@@ -10,7 +10,7 @@ from rikolti.dags.shared_tasks.shared import get_registry_data_task
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
 from rikolti.dags.shared_tasks.shared import notify_dag_success
 from rikolti.dags.shared_tasks.shared import notify_dag_failure
-from rikolti.dags.shared_tasks.shared import send_log_to_sqs
+from rikolti.dags.shared_tasks.shared import send_log_to_sns
 from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
 from rikolti.dags.shared_tasks.mapping_tasks  import mapping_tasks
 from rikolti.dags.shared_tasks.content_harvest_tasks import content_harvesting_tasks
@@ -43,7 +43,7 @@ def merge_any_child_records_task(version, **context):
     # Recurse through the record's children (if any)
     child_directories = get_child_directories(version)
     if not child_directories:
-        send_log_to_sqs(context, {'records_with_children': None})
+        send_log_to_sns(context, {'records_with_children': None})
         return with_content_urls_pages
 
     merged_version = create_merged_version(version)
@@ -76,7 +76,7 @@ def merge_any_child_records_task(version, **context):
                 merged_version
             )
         )
-    send_log_to_sqs(context, {'records_with_children': child_count_by_record})
+    send_log_to_sns(context, {'records_with_children': child_count_by_record})
     return merged_pages
 
 

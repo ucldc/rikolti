@@ -8,7 +8,7 @@ from airflow.decorators import task
 
 from urllib.parse import urlparse
 
-def send_log_to_sqs(context, task_message):
+def send_log_to_sns(context, task_message):
     """
     Send a log message to a SQS FIFO queue for a specific job.
     :param queue_url: URL of the SQS FIFO queue
@@ -17,40 +17,26 @@ def send_log_to_sqs(context, task_message):
     """
     task_instance = context['task_instance']
     log_message = {
-        # dag and dag run identification
         'dag_id': task_instance.dag_id, 
         'dag_run_id': task_instance.dag_run.run_id,
         'logical_date': task_instance.dag_run.logical_date.isoformat(),
-        # task identification
         'task_id': task_instance.task_id,
         'try_number': task_instance.try_number,
         'map_index': task_instance.map_index,
-        # dag and task parameters
         'dag_run_conf': task_instance.dag_run.conf,
+        # TODO: this doesn't actually work to get the task parameters
         # 'task_params': task_instance.xcom_pull(task_ids=task_instance.task_id),
-        # rikolti specific message
         'rikolti_message': task_message
     }
     message_body = json.dumps(log_message)
 
-    # these are example credentials, replace with an added statement 
-    # on the MWAA Execution Role Policy
-    aws_credentials = {
-        "aws_access_key_id": "",
-        "aws_secret_access_key": "",
-        "aws_session_token": "",
-        "region_name": "us-west-2"
-    }
-
-    sqs = boto3.client('sqs', **aws_credentials)
+    sns = boto3.client('sns')
     try:
-        response = sqs.send_message(
-            QueueUrl="https://sqs.us-west-2.amazonaws.com/777968769372/RikoltiEvents.fifo",
-            MessageBody=message_body,
-            MessageGroupId=task_instance.dag_run.run_id,  # Ensure messages are ordered within this dag run
-            MessageDeduplicationId=str(hash(message_body))  # Simple deduplication ID
+        response = sns.publish(
+            TopicArn="arn:aws:sns:us-west-2:777968769372:RikoltiEvents",
+            Message=message_body
         )
-        print(f"Message sent to SQS with Message ID: {response['MessageId']}")
+        print(f"Message sent to SNS with Message ID: {response['MessageId']}")
     except Exception as e:
         print(f"Failed to send message to SQS: {e}")
 
@@ -60,12 +46,12 @@ def notify_rikolti_failure(context):
         'error': True,
         'exception': context['exception']
     }
-    send_log_to_sqs(context, rikolti_message)
+    send_log_to_sns(context, rikolti_message)
 
 
 def notify_dag_success(context):
     rikolti_message = {'dag_complete': True}
-    send_log_to_sqs(context, rikolti_message)
+    send_log_to_sns(context, rikolti_message)
 
 
 def notify_dag_failure(context):
@@ -74,7 +60,7 @@ def notify_dag_failure(context):
         'error': True,
         'exception': context['exception']
     }
-    send_log_to_sqs(context, rikolti_message)
+    send_log_to_sns(context, rikolti_message)
 
 
 @task(multiple_outputs=True, 
@@ -101,7 +87,7 @@ def get_registry_data_task(params=None, **context):
     fetchdata_resp.raise_for_status()
     registry_data['registry_fetchdata'] = fetchdata_resp.json()
 
-    send_log_to_sqs(context, registry_data)
+    send_log_to_sns(context, registry_data)
 
     return registry_data
 
