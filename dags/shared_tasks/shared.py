@@ -8,40 +8,6 @@ from airflow.decorators import task
 
 from urllib.parse import urlparse
 
-
-@task(multiple_outputs=True, task_id="get_registry_data")
-def get_registry_data_task(params=None):
-    if not params or not params.get('collection_id'):
-        raise ValueError("Collection ID not found in params")
-    collection_id = params.get('collection_id')
-
-    resp = requests.get(
-        "https://registry.cdlib.org/api/v1/"
-        f"rikolticollection/{collection_id}/?format=json"
-    )
-    resp.raise_for_status()
-    registry_data = resp.json()
-
-    # TODO: remove the rikoltifetcher registry endpoint and restructure
-    # the fetch_collection function to accept a rikolticollection resource.
-    fetchdata_resp = requests.get(
-        "https://registry.cdlib.org/api/v1/"
-        f"rikoltifetcher/{collection_id}/?format=json"
-    )
-    fetchdata_resp.raise_for_status()
-    registry_data['registry_fetchdata'] = fetchdata_resp.json()
-
-    return registry_data
-
-
-# TODO: in python3.12 we can use itertools.batched
-def batched(list_to_batch, batch_size):
-    batches = []
-    for i in range(0, len(list_to_batch), batch_size):
-        batches.append(list_to_batch[i:i+batch_size])
-    return batches
-
-
 def send_log_to_sqs(context, task_message):
     """
     Send a log message to a SQS FIFO queue for a specific job.
@@ -58,9 +24,10 @@ def send_log_to_sqs(context, task_message):
         # task identification
         'task_id': task_instance.task_id,
         'try_number': task_instance.try_number,
+        'map_index': task_instance.map_index,
         # dag and task parameters
         'dag_run_conf': task_instance.dag_run.conf,
-        'task_params': task_instance.xcom_pull(task_ids=task_instance.task_id),
+        # 'task_params': task_instance.xcom_pull(task_ids=task_instance.task_id),
         # rikolti specific message
         'rikolti_message': task_message
     }
@@ -83,9 +50,9 @@ def send_log_to_sqs(context, task_message):
             MessageGroupId=task_instance.dag_run.run_id,  # Ensure messages are ordered within this dag run
             MessageDeduplicationId=str(hash(message_body))  # Simple deduplication ID
         )
+        print(f"Message sent to SQS with Message ID: {response['MessageId']}")
     except Exception as e:
-        raise Exception(f"Failed to send message to SQS: {e}")
-    print(f"Message sent to SQS with Message ID: {response['MessageId']}")
+        print(f"Failed to send message to SQS: {e}")
 
 
 def notify_rikolti_failure(context):
@@ -108,6 +75,43 @@ def notify_dag_failure(context):
         'exception': context['exception']
     }
     send_log_to_sqs(context, rikolti_message)
+
+
+@task(multiple_outputs=True, 
+      task_id="get_registry_data", 
+      on_failure_callback=notify_rikolti_failure)
+def get_registry_data_task(params=None, **context):
+    if not params or not params.get('collection_id'):
+        raise ValueError("Collection ID not found in params")
+    collection_id = params.get('collection_id')
+
+    resp = requests.get(
+        "https://registry.cdlib.org/api/v1/"
+        f"rikolticollection/{collection_id}/?format=json"
+    )
+    resp.raise_for_status()
+    registry_data = resp.json()
+
+    # TODO: remove the rikoltifetcher registry endpoint and restructure
+    # the fetch_collection function to accept a rikolticollection resource.
+    fetchdata_resp = requests.get(
+        "https://registry.cdlib.org/api/v1/"
+        f"rikoltifetcher/{collection_id}/?format=json"
+    )
+    fetchdata_resp.raise_for_status()
+    registry_data['registry_fetchdata'] = fetchdata_resp.json()
+
+    send_log_to_sqs(context, registry_data)
+
+    return registry_data
+
+
+# TODO: in python3.12 we can use itertools.batched
+def batched(list_to_batch, batch_size):
+    batches = []
+    for i in range(0, len(list_to_batch), batch_size):
+        batches.append(list_to_batch[i:i+batch_size])
+    return batches
 
 
 @task(task_id="make_registry_endpoint")
