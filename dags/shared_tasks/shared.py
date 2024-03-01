@@ -38,9 +38,10 @@ def send_event_to_sns(context: dict, task_message: dict):
     message_body = json.dumps(log_message)
 
     sns = boto3.client('sns')
+    topic_arn = os.environ.get('RIKOLTI_EVENTS_SNS_TOPIC', '')
     try:
         response = sns.publish(
-            TopicArn="arn:aws:sns:us-west-2:777968769372:RikoltiEvents",
+            TopicArn=topic_arn,
             Message=message_body
         )
         print(f"Message sent to SNS with Message ID: {response['MessageId']}")
