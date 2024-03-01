@@ -75,7 +75,6 @@ def map_page_task(
     collection_id = collection.get('id')
     if not collection_id or not mapped_data_version:
         return []
-
     mapped_page_statuses = []
     for vernacular_page in vernacular_page_batch:
         mapped_page_status = map_page(
@@ -118,7 +117,8 @@ def get_mapping_status_task(
     )
 
     batch_size = math.ceil(len(mapped_collection.filepaths) / 1024)
-    return batched(mapped_collection.filepaths, batch_size)
+    batched_mapped_pages = batched(mapped_collection.filepaths, batch_size)
+    return [json.dumps(batch) for batch in batched_mapped_pages]
 
 
 def print_s3_link(version_page, mapped_version):
