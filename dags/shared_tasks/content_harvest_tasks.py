@@ -47,4 +47,5 @@ def content_harvesting_tasks(
                 pages=mapped_page_batches
             )
     )
+    content_harvest_task.set_upstream(with_content_urls_version)
     return with_content_urls_version, content_harvest_task
