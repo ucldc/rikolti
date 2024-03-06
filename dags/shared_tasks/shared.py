@@ -23,18 +23,21 @@ def send_event_to_sns(context: dict, task_message: dict):
     Returns:
         None
     """
+    base_url = context['conf'].get('webserver', 'BASE_URL')
     dag_run = context['dag_run']
     log_message = {
+        'version': os.environ.get('RIKOLTI_EVENT_VERSION', '1.0'),
         'dag_id': dag_run.dag_id,
         'dag_run_id': dag_run.run_id,
         'logical_date': dag_run.logical_date.isoformat(),
         'dag_run_conf': dag_run.conf,
+        'host': base_url
     }
     task_instance = context.get('task_instance')
     if task_instance:
         log_message.update({
             'task_id': task_instance.task_id,
-            'try_number': task_instance.try_number,
+            'try_number': task_instance.prev_attempted_tries,
             'map_index': task_instance.map_index,
             # TODO: this doesn't actually work to get the task parameters
             # 'task_params': task_instance.xcom_pull(task_ids=task_instance.task_id),
