@@ -22,19 +22,23 @@ def send_event_to_sns(context: dict, task_message: dict):
     Returns:
         None
     """
-    task_instance = context['task_instance']
+    dag_run = context['dag_run']
     log_message = {
-        'dag_id': task_instance.dag_id, 
-        'dag_run_id': task_instance.dag_run.run_id,
-        'logical_date': task_instance.dag_run.logical_date.isoformat(),
-        'task_id': task_instance.task_id,
-        'try_number': task_instance.try_number,
-        'map_index': task_instance.map_index,
-        'dag_run_conf': task_instance.dag_run.conf,
-        # TODO: this doesn't actually work to get the task parameters
-        # 'task_params': task_instance.xcom_pull(task_ids=task_instance.task_id),
-        'rikolti_message': task_message
+        'dag_id': dag_run.dag_id,
+        'dag_run_id': dag_run.run_id,
+        'logical_date': dag_run.logical_date.isoformat(),
+        'dag_run_conf': dag_run.conf,
     }
+    task_instance = context.get('task_instance')
+    if task_instance:
+        log_message.update({
+            'task_id': task_instance.task_id,
+            'try_number': task_instance.try_number,
+            'map_index': task_instance.map_index,
+            # TODO: this doesn't actually work to get the task parameters
+            # 'task_params': task_instance.xcom_pull(task_ids=task_instance.task_id),
+        })
+    log_message['rikolti_message'] = task_message
     message_body = json.dumps(log_message)
 
     sns = boto3.client('sns')
