@@ -1,6 +1,7 @@
 import boto3
 import os
 import json
+import traceback
 
 import requests
 
@@ -54,9 +55,16 @@ def send_event_to_sns(context: dict, task_message: dict):
 
 
 def notify_rikolti_failure(context):
+    exception = context['exception']
+    tb_as_str_list = traceback.format_exception(
+        type(exception), exception, exception.__traceback__)
+    exc_as_str_list = traceback.format_exception_only(
+        type(exception), exception)
+
     rikolti_message = {
         'error': True,
-        'exception': context['exception']
+        'exception': '\n'.join(exc_as_str_list),
+        'traceback': ''.join(tb_as_str_list)
     }
     send_event_to_sns(context, rikolti_message)
 
@@ -70,7 +78,7 @@ def notify_dag_failure(context):
     rikolti_message = {
         'dag_complete': False,
         'error': True,
-        'exception': context['exception']
+        'reason': context.get('reason', 'Unknown reason')
     }
     send_event_to_sns(context, rikolti_message)
 
