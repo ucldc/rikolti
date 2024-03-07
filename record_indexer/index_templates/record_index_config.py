@@ -49,6 +49,7 @@ RECORD_INDEX_CONFIG = {
                 "id": {"type": "keyword"},
                 "campus_name": {"type": "keyword"},
                 "campus_data": {"type": "keyword"},
+                "campus_url": {"type": "keyword"},
                 "collection_name": {"type": "keyword"},
                 "collection_data": {"type": "keyword"},
                 "collection_url": {"type": "keyword"},
