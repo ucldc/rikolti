@@ -2,6 +2,7 @@ import hashlib
 import os
 from typing import Optional
 
+from PIL import Image
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
@@ -87,6 +88,16 @@ def harvest_record_content(
 
         # this means we're taking an md5 of the source content,
         # not the thumbnail derivative. 
+
+        # TODO let's add a get_or_cache function, maybe even a cache class?
+        # it would handle either getting thumbnail data from the cahce or 
+        # downloading thumb src, processing any needed derivatives, uploading
+        # to s3, and adding thumbnail data to the cache? ex: 
+        # downloaded = Cache('cache url')
+        # downloaded.get_or_cache(md5, **thumbnail_src_data)
+        # this would encapsulate writes/reads from the cache, making it easier
+        # to reason about the cache itself. 
+
         md5 = download_cache.get(thumbnail_content.src_url)
         if not md5 and os.path.exists(tmp_thumb_filepath):
             # this could lead to a random namespace collision if two files
@@ -100,23 +111,28 @@ def harvest_record_content(
             content_s3_filepath = upload_content(
                 tmp_thumb_filepath, f"thumbnails/{collection_id}/{md5}"
             )
+            dimensions = Image.open(tmp_thumb_filepath).size
         elif thumbnail_content.src_mime_type == 'application/pdf':
             derivative_filepath = derivatives.pdf_to_thumb(tmp_thumb_filepath)
             content_s3_filepath = upload_content(
                 derivative_filepath, f"thumbnails/{collection_id}/{md5}"
             )
+            dimensions = Image.open(derivative_filepath).size
         elif thumbnail_content.src_mime_type == 'video/mp4':
             derivative_filepath = derivatives.video_to_thumb(tmp_thumb_filepath)
             content_s3_filepath = upload_content(
                 derivative_filepath, f"thumbnails/{collection_id}/{md5}"
             )
+            dimensions = Image.open(derivative_filepath).size
         else:
             content_s3_filepath = None
+            dimensions = None
 
         if content_s3_filepath:
             record['thumbnail'] = {
                 'mimetype': thumbnail_content.dest_mime_type,
-                'path': content_s3_filepath
+                'path': content_s3_filepath,
+                'dimensions': dimensions
             }
     if tmp_media_filepath and os.path.exists(tmp_media_filepath):
         os.remove(tmp_media_filepath)
