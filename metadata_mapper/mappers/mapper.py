@@ -1522,11 +1522,9 @@ class Record(ABC, object):
             solr_doc['media_source'] = record.get('media_source', {})
             solr_doc['thumbnail_source'] = record.get('isShownBy', {})
 
-            campuses = [
-                campus for c in collections for campus in c.get('campus', [])
-            ]
+            campuses = [campus for r in repos for campus in r.get('campus', [])]
             if campuses:
-                solr_doc['campus_url'] = [c['id'] for c in campuses]
+                solr_doc['campus_url'] = [str(c['id']) for c in campuses]
                 solr_doc['campus_name'] = [c['name'] for c in campuses]
                 solr_doc['campus_data'] = [f"{c['id']}::{c['name']}"
                                            for c in campuses]

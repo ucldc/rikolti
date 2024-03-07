@@ -890,8 +890,17 @@ default_validatable_fields: list[dict[str, Any]] = [
     },
     {
         "field": "campus_data",
-        "validations": [Validator.content_match],
-        "level": ValidationLogLevel.WARNING
+        "validations": [
+                        Validator.registry_qualified_content_match(0, 'campus'),
+                        Validator.verify_type(Validator.list_of(str))
+                        ],
+    },
+    {
+        "field": "campus_url",
+        "validations": [
+                        Validator.registry_qualified_content_match(0, 'campus'),
+                        Validator.verify_type(Validator.list_of(str))
+                        ]
     },
     # TODO: Add date range validation with date range fields
     # {
