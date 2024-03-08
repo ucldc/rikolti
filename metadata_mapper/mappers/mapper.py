@@ -1434,7 +1434,7 @@ class Record(ABC, object):
                     collection['name'],
                     default_missing='~collection unknown',
                     missing_equivalents=[])
-                sort_string = ':'.join((sort_name, collection['name'],
+                sort_string = '::'.join((sort_name, collection['name'],
                                         str(collection['id'])))
                 return sort_string
 
