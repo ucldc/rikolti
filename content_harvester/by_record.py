@@ -9,7 +9,7 @@ from requests.adapters import HTTPAdapter, Retry
 from urllib.parse import urlparse
 
 from . import settings
-from .content_types import Media, Thumbnail
+from .content_types import Media, Thumbnail, check_media_mimetype
 from . import derivatives
 
 from rikolti.utils.storage import upload_file
@@ -32,138 +32,118 @@ def configure_http_session() -> requests.Session:
 def harvest_record_content(
             record: dict,
             collection_id,
-            mapped_page_path,
             rikolti_mapper_type: Optional[str] = None,
-            download_cache: Optional[dict] = None,
             ) -> dict:
 
     # Weird how we have to use username/pass to hit this endpoint
     # but we have to use auth token to hit API endpoint
-    src_auth = None
+    request = {}
     if rikolti_mapper_type == 'nuxeo.nuxeo':
-        src_auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
-
-    # download cache is a src_url: md5 hash
-    if not download_cache:
-        download_cache = {}
-
-    # calisphere_id = record.get('calisphere-id')
-    media = record.get('media_source')
-    thumbnail = record.get('thumbnail_source', record.get('is_shown_by'))
-    if isinstance(thumbnail, str):
-        record['thumbnail_source'] = {'url': thumbnail}
-        thumbnail = {'url': thumbnail}
+        request = {'auth': (settings.NUXEO_USER, settings.NUXEO_PASS)}
 
     http = configure_http_session()
 
+    downloaded_urls = {}        # downloaded is a src_url: filepath dict
+
     # get media first, sometimes media is used for thumbnail
-    tmp_media_filepath = None
+    media = Media(record.get('media_source', {}))
     if media:
-        media_content = Media(media)
-        tmp_media_filepath = f"/tmp/{media_content.src_filename}"
+        request.update({'url': media.src_url})
 
-        # this means we're taking an md5 of the source content,
-        # not the thumbnail derivative. 
-        md5 = download_content(media_content.src_url, http, tmp_media_filepath, src_auth)
-        download_cache[media_content.src_url] = md5
+        downloaded_md5 = download_content(request, http, media.tmp_filepath)
+        if downloaded_md5:
+            downloaded_urls[media.src_url] = (media.tmp_filepath, downloaded_md5)
 
-        if media_content.src_nuxeo_type == 'SampleCustomPicture':
-            Media.check_mimetype(media_content.src_mime_type)
-            derivative_filepath = derivatives.make_jp2(tmp_media_filepath)
-            dest_path = f"jp2/{collection_id}/{os.path.basename(derivative_filepath)}"
-            media_s3_filepath = upload_content(derivative_filepath, dest_path)
-        else:
-            dest_path = f"media/{collection_id}/{media_content.src_filename}"
-            media_s3_filepath = upload_content(tmp_media_filepath, dest_path)
+        if media.src_nuxeo_type == 'SampleCustomPicture' and downloaded_md5:
+            check_media_mimetype(media.src_mime_type)
+            derivative_filepath = derivatives.make_jp2(media.tmp_filepath)
+            basename = os.path.basename(derivative_filepath)
+            record['media'] = {
+                'mimetype': 'image/jp2',
+                'path': upload_content(
+                    derivative_filepath, f"jp2/{collection_id}/{basename}")
+            }
+        elif downloaded_md5:
+            record['media'] = {
+                'mimetype': media.src_mime_type,
+                'path': upload_content(
+                    media.tmp_filepath, 
+                    f"media/{collection_id}/{media.src_filename}"
+                )
+            }
 
-        record['media'] = {
-            'mimetype': media_content.dest_mime_type,
-            'path': media_s3_filepath
-        }
+    # backwards compatibility
+    thumbnail_src = record.get('thumbnail_source', record.get('is_shown_by'))
+    if isinstance(thumbnail_src, str):
+        thumbnail_src = {'url': thumbnail_src}
+        record['thumbnail_source'] = thumbnail_src
 
-    tmp_thumb_filepath = None
+    thumbnail = Thumbnail(thumbnail_src or {})
     if thumbnail:
-        thumbnail_content = Thumbnail(thumbnail)
-        tmp_thumb_filepath = f"/tmp/{thumbnail_content.src_filename}"
+        if downloaded_urls.get(thumbnail.src_url):
+            thumbnail.tmp_filepath, downloaded_md5 = (
+                downloaded_urls[thumbnail.src_url])
+        else:
+            request.update({'url': thumbnail.src_url})
+            downloaded_md5 = download_content(request, http, thumbnail.tmp_filepath)
 
-        # this means we're taking an md5 of the source content,
-        # not the thumbnail derivative. 
-
-        # TODO let's add a get_or_cache function, maybe even a cache class?
-        # it would handle either getting thumbnail data from the cahce or 
-        # downloading thumb src, processing any needed derivatives, uploading
-        # to s3, and adding thumbnail data to the cache? ex: 
-        # downloaded = Cache('cache url')
-        # downloaded.get_or_cache(md5, **thumbnail_src_data)
-        # this would encapsulate writes/reads from the cache, making it easier
-        # to reason about the cache itself. 
-
-        md5 = download_cache.get(thumbnail_content.src_url)
-        if not md5 and os.path.exists(tmp_thumb_filepath):
-            # this could lead to a random namespace collision if two files
-            # in the same collection/same page/same worker batch
-            # happen to have the same tmp_filepath (derived from src_filename)
-            md5 = hashlib.md5(open(tmp_thumb_filepath, 'rb').read()).hexdigest()
-        if not md5:
-            md5 = download_content(thumbnail_content.src_url, http, tmp_thumb_filepath, src_auth)
-
-        if thumbnail_content.src_mime_type == 'image/jpeg':
+        if downloaded_md5 and thumbnail.src_mime_type == 'image/jpeg':
             content_s3_filepath = upload_content(
-                tmp_thumb_filepath, f"thumbnails/{collection_id}/{md5}"
+                thumbnail.tmp_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
             )
-            dimensions = Image.open(tmp_thumb_filepath).size
-        elif thumbnail_content.src_mime_type == 'application/pdf':
-            derivative_filepath = derivatives.pdf_to_thumb(tmp_thumb_filepath)
+            dimensions = Image.open(thumbnail.tmp_filepath).size
+        elif downloaded_md5 and thumbnail.src_mime_type == 'application/pdf':
+            derivative_filepath = derivatives.pdf_to_thumb(thumbnail.tmp_filepath)
+            md5 = hashlib.md5(open(derivative_filepath, 'rb').read()).hexdigest()
             content_s3_filepath = upload_content(
                 derivative_filepath, f"thumbnails/{collection_id}/{md5}"
             )
             dimensions = Image.open(derivative_filepath).size
-        elif thumbnail_content.src_mime_type == 'video/mp4':
-            derivative_filepath = derivatives.video_to_thumb(tmp_thumb_filepath)
+        elif downloaded_md5 and thumbnail.src_mime_type == 'video/mp4':
+            derivative_filepath = derivatives.video_to_thumb(thumbnail.tmp_filepath)
+            md5 = hashlib.md5(open(derivative_filepath, 'rb').read()).hexdigest()
             content_s3_filepath = upload_content(
                 derivative_filepath, f"thumbnails/{collection_id}/{md5}"
             )
             dimensions = Image.open(derivative_filepath).size
         else:
             content_s3_filepath = None
-            dimensions = None
 
         if content_s3_filepath:
             record['thumbnail'] = {
-                'mimetype': thumbnail_content.dest_mime_type,
+                'mimetype': 'image/jpeg',
                 'path': content_s3_filepath,
                 'dimensions': dimensions
             }
-    if tmp_media_filepath and os.path.exists(tmp_media_filepath):
-        os.remove(tmp_media_filepath)
-    if tmp_thumb_filepath and os.path.exists(tmp_thumb_filepath):
-        os.remove(tmp_thumb_filepath)
+    if media and os.path.exists(media.tmp_filepath):
+        os.remove(media.tmp_filepath)
+        downloaded_urls.pop(media.src_url, None)
+    if thumbnail and os.path.exists(thumbnail.tmp_filepath):
+        os.remove(thumbnail.tmp_filepath)
+        downloaded_urls.pop(thumbnail.src_url, None)
 
     return record
 
 
-def download_content(url: str, 
-                http,
+def download_content(request: dict, http,
                 destination_file: str, 
-                src_auth: Optional[tuple[str, str]] = None, 
                 cache: Optional[dict] = None
             ):
     '''
         download source file to local disk
     '''
-    if src_auth and urlparse(url).scheme != 'https':
+    url = request['url']
+    if request.get('auth') and urlparse(url).scheme != 'https':
         raise Exception(f"Basic auth not over https is a bad idea! {url}")
 
     if not cache:
         cache = {}
     cached_data = cache.get(url, {})
 
-    request = {
-        "url": url,
-        "auth": src_auth,
+    request.update({
         "stream": True,
         "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
-    }
+    })
     if cached_data:
         request['headers'] = {
             'If-None-Match': cached_data.get('If-None-Match'),
@@ -172,7 +152,11 @@ def download_content(url: str,
         request['headers'] = {k:v for k,v in request['headers'].items() if v}
 
     response = http.get(**request)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"Error downloading {url}: {e}")
+        return None
 
     # short-circuit here
     if response.status_code == 304: # 304 - not modified
@@ -192,7 +176,7 @@ def download_content(url: str,
         'md5': md5
     }
     cache_updates = {k:v for k,v in cache_updates.items() if v}
-    cache['url'] = cached_data.update(cache_updates)
+    cache[url] = cached_data.update(cache_updates)
 
     return md5
 
