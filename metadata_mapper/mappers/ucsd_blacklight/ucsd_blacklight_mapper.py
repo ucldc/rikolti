@@ -1,6 +1,7 @@
 import json
+import requests
 from ..mapper import Record, Validator, Vernacular
-from typing import Any
+from typing import Any, Optional
 
 
 class UcsdBlacklightMapper(Record):
@@ -40,41 +41,121 @@ class UcsdBlacklightMapper(Record):
         id = self.source_metadata.get('id')
         return f"{self.BASE_URL}{id}"
 
-    def map_is_shown_by(self) -> [None, str]:
+    def new_map_is_shown_by(self) -> Optional[str]:
         """
-        TODO: handle complex objects (this todo from legacy mapper)
+        This replaces the for..else control flow of the legacy mapper 
+        (replicated by CIC below) for a sequence of if/elses that is 
+        maybe slightly more inefficient but a bit more readable. 
+
+        It also gets rid of the "temp fix", which if I read it correctly,
+        always sets the preferred_file to "1_3.jpg" as a fallback, regardless
+        of the metadata available. 
+
+        This "temp fix" was implemented by Mark 8 years ago:
+        https://github.com/calisphere-legacy-harvester/dpla-ingestion/commit/069d6ef6a5ff9c39d562d5e67e80e57faae77294
+
+        I suspect it is why many items are throwing 404s in the content
+        harvester. Let's slot this in after doing some of the investigation work
+        implemented below in this same commit. If our invalid is_shown_by urls
+        are all due to the 1_3.jpg fallback, we shouldn't see any new print
+        statements in UCSD Blacklight logs. If there are any valid 1_3.jpg urls,
+        or any metadata described invalid urls, then we should see information
+        about both those cases printed to the logs.
         """
-        matches = ["image-preview", "image-service"]
-        break_matches = ["image-service"]
+        approved_uses = ["image-preview", "image-service"]
+        preferred_uses = ["image-service"]
+        preferred_file = None
 
-        file_id = None
-        for file in self.source_metadata.get("files_tesim", []):
-            use = file.get("use")
-            if use in matches:
-                file_id = file.get("id")
-            if use in break_matches:
-                break
-        else:
-            for file in self.source_metadata.get("component_1_files_tesim", []):
-                use = file.get("use")
-                if use in matches:
-                    file_id = "1_" + file.get("id")
-                if use in break_matches:
-                    break
+        parent_files = self.source_metadata.get("files_tesim", [])
+        component_1_files = self.source_metadata.get(
+            "component_1_files_tesim", [])
 
-            # TODO: this is temp fix, but will help (this todo from legacy mapper)
-            if not file_id:
-                file_id = "1_3.jpg"
+        # first try to get image-service from parent files
+        filtered = [f for f in parent_files if f.get('use') in preferred_uses]
+        preferred_file = filtered[0].get('id') if filtered else None
 
-        if not file_id:
+        # then try to get image-service from component 1 files
+        if not preferred_file:
+            filtered = [f for f in component_1_files if f.get('use') in preferred_uses]
+            preferred_file = f"1_{filtered[0].get('id')}" if filtered else None
+        
+        # then try to get image-preview from parent files
+        if not preferred_file:
+            filtered = [f for f in parent_files if f.get('use') in approved_uses]
+            preferred_file = filtered[0].get('id') if filtered else None
+
+        # then try to get image-preview from component 1 files
+        if not preferred_file: 
+            filtered = [f for f in component_1_files if f.get('use') in approved_uses]
+            preferred_file = f"1_{filtered[0].get('id')}" if filtered else None
+        
+        if not preferred_file:
             return None
 
         id = self.source_metadata.get("id")
-        return f"{self.BASE_URL}{id}/_{file_id}"
+        return f"{self.BASE_URL}{id}/_{preferred_file}"
+
+    def map_is_shown_by(self) -> Optional[str]:
+        """
+        TODO: handle complex objects (this todo from legacy mapper)
+        """
+        approved_uses = ["image-preview", "image-service"]
+        preferred_uses = ["image-service"]
+
+        files_tesim = self.source_metadata.get("files_tesim", [])
+        component_1_files_tesim = self.source_metadata.get(
+            "component_1_files_tesim", [])
+
+        preferred_file = None
+        for file in files_tesim:
+            use = file.get("use")
+            if use in approved_uses:
+                preferred_file = file.get("id")
+            if use in preferred_uses:
+                break
+        else:
+            for file in component_1_files_tesim:
+                use = file.get("use")
+                if use in approved_uses:
+                    preferred_file = "1_" + file.get("id")
+                if use in preferred_uses:
+                    break
+
+            # TODO: this is temp fix, but will help (this todo from legacy mapper)
+            if not preferred_file:
+                preferred_file = "1_3.jpg"
+
+        if not preferred_file:
+            return None
+
+        id = self.source_metadata.get("id")
+        url = f"{self.BASE_URL}{id}/_{preferred_file}"
+
+        # add this head request to check if the url is valid
+        resp = requests.head(url)
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError:
+            if preferred_file != "1_3.jpg":
+                print(
+                    f"Invalid is_shown_by url, url: {url}, "
+                    f"file: {preferred_file}, record: {id}"
+                )
+            return None
+
+        if preferred_file == "1_3.jpg":
+            print(
+                f"Valid use of 1_3.jpg url: {url}, file: {preferred_file},"
+                f"record: {id}\n  No file with approved uses({approved_uses}) "
+                f"in parent or component:\n  parent_files: {files_tesim}\n  "
+                f"component_1_files: {component_1_files_tesim}"
+            )
+
+        return url
 
     @property
     def relationship(self) -> str:
-        return self.source_metadata.get("relationship_json_tesim")[0]
+        return self.source_metadata.get("relationship_json_tesim",[])[0]
 
     def map_description(self) -> list:
         descriptions = []
