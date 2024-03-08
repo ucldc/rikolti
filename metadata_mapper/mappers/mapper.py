@@ -1470,6 +1470,10 @@ class Record(ABC, object):
                 'repository_name': [repo['name'] for repo in repos],
                 'repository_data': [compose_repo_data(repo) for repo in repos],
 
+                # harvesting fields
+                'fetcher_type': [c['harvest_type'] for c in collections],
+                'mapper_type': [c['rikolti_mapper_type'] for c in collections],
+
                 # source resource fields
                 'alternative_title': filter_blank_values(
                     record.get('alternativeTitle')),

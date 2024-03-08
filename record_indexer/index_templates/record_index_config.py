@@ -59,6 +59,8 @@ RECORD_INDEX_CONFIG = {
                 "repository_url": {"type": "keyword"},
                 "rights_uri": {"type": "keyword"},
                 "url_item": {"type": "keyword"},
+                "fetcher_type": {"type": "keyword"},
+                "mapper_type": {"type": "keyword"},
 
                 "sort_date_start": {"type": "date"},
                 "sort_date_end": {"type": "date"},
