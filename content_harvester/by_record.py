@@ -27,6 +27,18 @@ def configure_http_session() -> requests.Session:
     return http
 
 
+# type Organization should actually be type CustomFile.
+# Adding workaround for now.
+NUXEO_MEDIA_TYPE_MAP = {
+    "SampleCustomPicture": "image",
+    "CustomAudio": "audio",
+    "CustomVideo": "video",
+    "CustomFile": "file",
+    "Organization": "file",
+    "CustomThreeD": "3d"
+}
+
+
 # returns content = {thumbnail, media, children} where children
 # is an array of the self-same content dictionary
 def harvest_record_content(
@@ -61,7 +73,8 @@ def harvest_record_content(
             record['media'] = {
                 'mimetype': 'image/jp2',
                 'path': upload_content(
-                    derivative_filepath, f"jp2/{collection_id}/{basename}")
+                    derivative_filepath, f"jp2/{collection_id}/{basename}"),
+                'format': NUXEO_MEDIA_TYPE_MAP.get(media.src_nuxeo_type)
             }
         elif downloaded_md5:
             record['media'] = {
@@ -69,7 +82,8 @@ def harvest_record_content(
                 'path': upload_content(
                     media.tmp_filepath, 
                     f"media/{collection_id}/{media.src_filename}"
-                )
+                ),
+                'format': NUXEO_MEDIA_TYPE_MAP.get(media.src_nuxeo_type)
             }
 
     # backwards compatibility
