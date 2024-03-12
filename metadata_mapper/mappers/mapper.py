@@ -967,7 +967,8 @@ class Record(ABC, object):
             'id': collection['id'],
             'name': collection['name'],
             'repository': collection['repository'],
-            'harvest_type': collection['harvest_type']
+            'harvest_type': collection['harvest_type'],
+            'rikolti_mapper_type': collection['rikolti_mapper_type']
         }]
         self.mapped_data['stateLocatedIn'] = [{'name': 'California'}]
         return self
