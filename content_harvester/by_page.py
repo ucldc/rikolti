@@ -31,7 +31,6 @@ def harvest_page_content(
         record_with_content = harvest_record_content(
             record,
             collection_id,
-            mapped_page_path,
             rikolti_mapper_type
         )
         if not record_with_content.get('thumbnail'):
