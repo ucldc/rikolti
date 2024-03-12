@@ -1,15 +1,14 @@
+from urllib.parse import urlparse
 
 class Media(object):
     def __init__(self, content_src):
         self.src_url = content_src.get('url')
-        self.src_filename = content_src.get(
-            'filename',
-            list(
-                filter(
-                    lambda x: bool(x), content_src.get('url', '').split('/')
-                )
-            )[-1]
-        )
+
+        url_path = urlparse(content_src.get('url', '')).path
+        path_parts = [p for p in url_path.split('/') if p]
+        basename = path_parts[-1] if path_parts else None
+
+        self.src_filename = content_src.get('filename', basename)
         self.src_mime_type = content_src.get('mimetype')
         self.src_nuxeo_type = content_src.get('nuxeo_type')
         self.tmp_filepath = f"/tmp/{self.src_filename}"
@@ -20,14 +19,12 @@ class Media(object):
 class Thumbnail(object):
     def __init__(self, content_src):
         self.src_url = content_src.get('url')
-        self.src_filename = content_src.get(
-            'filename',
-            list(
-                filter(
-                    lambda x: bool(x), content_src.get('url', '').split('/')
-                )
-            )[-1]
-        )
+
+        url_path = urlparse(content_src.get('url', '')).path
+        path_parts = [p for p in url_path.split('/') if p]
+        basename = path_parts[-1] if path_parts else None
+
+        self.src_filename = content_src.get('filename', basename)
         self.src_mime_type = content_src.get('mimetype', 'image/jpeg')
         self.tmp_filepath = f"/tmp/{self.src_filename}"
     
