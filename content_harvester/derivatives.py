@@ -15,12 +15,14 @@ def subprocess_exception_handler(func):
             return func(*args, **kwargs)
         except subprocess.CalledProcessError as e:
             print(
-                f"{func.__name__} command failed: {e.cmd}\n"
+                "--------------------------------\n"
+                f"ERROR: {func.__name__} command failed: {e.cmd}\n"
                 f"returncode was: {e.returncode}\n"
-                f"output was: {e.output}"
+                f"output was: \n{e.output.decode('utf-8')}\n"
+                "--------------------------------\n"
             )
-            raise(e)
-            # return None
+            # raise(e)
+            return None
     return wrapper
 
 

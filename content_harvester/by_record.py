@@ -69,13 +69,14 @@ def harvest_record_content(
         if media.src_nuxeo_type == 'SampleCustomPicture' and downloaded_md5:
             check_media_mimetype(media.src_mime_type)
             derivative_filepath = derivatives.make_jp2(media.tmp_filepath)
-            basename = os.path.basename(derivative_filepath)
-            record['media'] = {
-                'mimetype': 'image/jp2',
-                'path': upload_content(
-                    derivative_filepath, f"jp2/{collection_id}/{basename}"),
-                'format': NUXEO_MEDIA_TYPE_MAP.get(media.src_nuxeo_type)
-            }
+            if derivative_filepath:
+                basename = os.path.basename(derivative_filepath)
+                record['media'] = {
+                    'mimetype': 'image/jp2',
+                    'path': upload_content(
+                        derivative_filepath, f"jp2/{collection_id}/{basename}"),
+                    'format': NUXEO_MEDIA_TYPE_MAP.get(media.src_nuxeo_type)
+                }
         elif downloaded_md5:
             record['media'] = {
                 'mimetype': media.src_mime_type,
@@ -101,6 +102,8 @@ def harvest_record_content(
             request.update({'url': thumbnail.src_url})
             downloaded_md5 = download_content(request, http, thumbnail.tmp_filepath)
 
+        content_s3_filepath = None
+        dimensions = None
         if downloaded_md5 and thumbnail.src_mime_type == 'image/jpeg':
             content_s3_filepath = upload_content(
                 thumbnail.tmp_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
@@ -108,20 +111,22 @@ def harvest_record_content(
             dimensions = Image.open(thumbnail.tmp_filepath).size
         elif downloaded_md5 and thumbnail.src_mime_type == 'application/pdf':
             derivative_filepath = derivatives.pdf_to_thumb(thumbnail.tmp_filepath)
-            md5 = hashlib.md5(open(derivative_filepath, 'rb').read()).hexdigest()
-            content_s3_filepath = upload_content(
-                derivative_filepath, f"thumbnails/{collection_id}/{md5}"
-            )
-            dimensions = Image.open(derivative_filepath).size
+            if derivative_filepath:
+                md5 = hashlib.md5(
+                    open(derivative_filepath, 'rb').read()).hexdigest()
+                content_s3_filepath = upload_content(
+                    derivative_filepath, f"thumbnails/{collection_id}/{md5}"
+                )
+                dimensions = Image.open(derivative_filepath).size
         elif downloaded_md5 and thumbnail.src_mime_type == 'video/mp4':
             derivative_filepath = derivatives.video_to_thumb(thumbnail.tmp_filepath)
-            md5 = hashlib.md5(open(derivative_filepath, 'rb').read()).hexdigest()
-            content_s3_filepath = upload_content(
-                derivative_filepath, f"thumbnails/{collection_id}/{md5}"
-            )
-            dimensions = Image.open(derivative_filepath).size
-        else:
-            content_s3_filepath = None
+            if derivative_filepath:
+                md5 = hashlib.md5(
+                    open(derivative_filepath, 'rb').read()).hexdigest()
+                content_s3_filepath = upload_content(
+                    derivative_filepath, f"thumbnails/{collection_id}/{md5}"
+                )
+                dimensions = Image.open(derivative_filepath).size
 
         if content_s3_filepath:
             record['thumbnail'] = {
