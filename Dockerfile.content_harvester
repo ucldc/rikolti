@@ -7,6 +7,14 @@ RUN apt-get update -qq && apt-get install -y libtiff-tools ffmpeg ghostscript
 # so we need to comment out this line in the the policy
 RUN sed -i 's/<policy domain="coder" rights="none" pattern="PDF" \/>/<!--<policy domain="coder" rights="none" pattern="PDF" \/>-->/' /etc/ImageMagick-6/policy.xml
 
+# increase the disk space from 1GB to 8GB for harvesting very large images:
+# https://github.com/ucldc/rikolti/issues/818
+RUN sed -i 's/<policy domain="resource" name="disk" value="1GiB" \/>/<policy domain="resource" name="disk" value="8GiB" \/>/' /etc/ImageMagick-6/policy.xml
+
+# increase the max width from 16KP to 30KP for harvesting very long images:
+# https://github.com/ucldc/rikolti/issues/817
+RUN sed -i 's/<policy domain="resource" name="width" value="16KP" \/>/<policy domain="resource" name="width" value="30KP" \/>/' /etc/ImageMagick-6/policy.xml
+
 WORKDIR /
 
 COPY content_harvester/requirements.txt ./
