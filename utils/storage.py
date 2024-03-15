@@ -45,7 +45,7 @@ def list_dirs(data_uri: str, recursive=False, **kwargs) -> list[str]:
             Delimiter='/'
         )
         keys = [
-            obj['Prefix'][len(data.path):-1] 
+            obj['Prefix'][len(data.path)-1:-1]
             for obj in s3_objects.get('CommonPrefixes', [])
             if obj['Prefix'][len(data.path):-1] != ''
         ]
@@ -111,8 +111,8 @@ def list_s3_pages(data: DataStorage, recursive: bool=True, **kwargs) -> list:
 
     if not recursive:
         # prune deeper branches
-        prefix = f"s3://{data.bucket}/{data.path}"
-        leaf_regex = re.escape(prefix) + r"^\/?[\w!'_.*()-]+\/?$"
+        prefix = f"s3://{data.bucket}{data.path}"
+        leaf_regex = re.escape(prefix) + r"\/?[\w!'_.*()-]+\/?$"
         keys = [key for key in keys if re.match(leaf_regex, key)]
 
     return keys
