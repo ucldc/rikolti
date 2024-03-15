@@ -94,8 +94,8 @@ def get_mapping_status(
 
 def print_map_status(collection, map_result: MappedCollectionStatus):
     collection_id = collection['collection_id']
-    pre_mapping = collection.get('rikolti__pre_mapping')
-    enrichments = collection.get('rikolti__enrichments')
+    pre_mapping = collection.get('rikolti__pre_mapping', [])
+    enrichments = collection.get('rikolti__enrichments', [])
 
     if len(pre_mapping) > 0:
         print(
