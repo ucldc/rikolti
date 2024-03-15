@@ -40,6 +40,7 @@ RECORD_INDEX_CONFIG = {
                 "type": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
 
                 "sort_title": {"type": "text", "analyzer": "keyword_lowercase_trim"},
+                "facet_decade": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
 
                 "description": {"type": "text"},
                 "provenance": {"type": "text"},

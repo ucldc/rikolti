@@ -17,6 +17,7 @@ class CalisphereSolrRecord(Record):
             "coverage": self.source_metadata.get("coverage", None),
             "creator": self.source_metadata.get("creator", None),
             "date": self.source_metadata.get("date", None),
+            "facet_decade": self.source_metadata.get('facet_decade', None),
             "extent": self.source_metadata.get("extent", None),
             "format": self.source_metadata.get("format", None),
             "genre": self.source_metadata.get("genre", None),
