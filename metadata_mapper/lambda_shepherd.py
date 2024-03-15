@@ -97,13 +97,13 @@ def print_map_status(collection, map_result: MappedCollectionStatus):
     pre_mapping = collection.get('rikolti__pre_mapping', [])
     enrichments = collection.get('rikolti__enrichments', [])
 
-    if len(pre_mapping) > 0:
+    if pre_mapping and len(pre_mapping) > 0:
         print(
             f"{collection_id:<6}: {'pre-mapping enrichments':<24}: "
             f"\"{pre_mapping}\""
         )
 
-    if len(enrichments) > 0:
+    if enrichments and len(enrichments) > 0:
         print(
             f"{collection_id:<6}, {'post-mapping enrichments':<24}: "
             f"\"{enrichments}\""
