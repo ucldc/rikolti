@@ -796,6 +796,11 @@ default_validatable_fields: list[dict[str, Any]] = [
         "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
+        "field": "facet_decade",
+        "validations": [Validator.content_match],
+        "level": ValidationLogLevel.WARNING,
+    },
+    {
         "field": "description",
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING
