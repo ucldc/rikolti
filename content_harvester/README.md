@@ -39,11 +39,15 @@ You can bypass uploading to s3 by setting `WITH_CONTENT_URL_DATA = "file://<loca
 # Local Development
 
 From inside the rikolti folder:
+
 ```
 docker build -f Dockerfile.content_harvester -t rikolti/content_harvester .
 cd content_harvester
 docker compose run --entrypoint "python3 -m content_harvester.by_registry_endpoint" --rm content_harvester https://registry.cdlib.org/api/v1/rikoltimapper/26147/?format=json
 ```
+
+> If you've previously authenticated to Amazon ECR Public, if your auth token has expired you may receive an authentication error when attempting to do unauthenticated docker pulls from Amazon ECR Public. To resolve this issue, it may be necessary to run docker logout public.ecr.aws to avoid the error. This will result in an unauthenticated pull. For more information, see Authentication issues.
+[https://docs.aws.amazon.com/AmazonECR/latest/public/public-registries.html#public-registry-concepts](https://docs.aws.amazon.com/AmazonECR/latest/public/public-registries.html#public-registry-concepts)
 
 `--entrypoint "python3 -m content_harvester.by_registry_endpoint"` overwrites the default `content_harvester.by_page` entrypoint.
 `--rm` flag removes the container after run.
