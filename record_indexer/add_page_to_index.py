@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 
 from pprint import pprint
 
@@ -80,15 +81,13 @@ def add_page(version_page: str, index: str):
         records = get_with_content_urls_page_content(version_page)
 
     expected_fields = get_expected_fields()
-    flag_removed_fields = {}
+    removed_fields_report = defaultdict(list)
     for record in records:
         removed_fields = remove_unexpected_fields(record, expected_fields)
         calisphere_id = record.get("calisphere-id", None)
         for field in removed_fields:
-            if field in flag_removed_fields:
-                flag_removed_fields[field].append(calisphere_id)
-            else:
-                flag_removed_fields[field] = [calisphere_id]
+            removed_fields_report[field].append(calisphere_id)
+
 
     bulk_add(records, index)
 
@@ -96,7 +95,7 @@ def add_page(version_page: str, index: str):
         f"added {len(records)} records to index `{index}` from "
         f"page `{version_page}`"
     )
-    for field, calisphere_ids in flag_removed_fields.items():
+    for field, calisphere_ids in removed_fields_report.items():
         if len(calisphere_ids) != len(records):
             print(
                 f"    {len(calisphere_ids)} items had {field} "
