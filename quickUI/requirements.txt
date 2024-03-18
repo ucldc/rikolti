@@ -1,6 +1,6 @@
 asgiref==3.2.10
 certifi==2023.7.22
-Django==3.2.24
+Django==3.2.25
 elasticsearch==7.9.1
 pytz==2020.1
 sqlparse==0.4.4
