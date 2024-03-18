@@ -64,6 +64,15 @@ def remove_unexpected_fields(record: dict, expected_fields: list):
             removed_fields.append(field)
             record.pop(field)
 
+    # TODO: not sure if we want to qualify field names with the parent id
+    parent_id = record.get('calisphere-id')
+    for child in record.get('children', []):
+        removed_fields_from_child = remove_unexpected_fields(
+            child, expected_fields)
+        removed_fields += [
+            f"{parent_id}[{field}]" for field in removed_fields_from_child
+        ]
+
     return removed_fields
 
 
