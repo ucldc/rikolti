@@ -68,6 +68,7 @@ def get_mapping_status(
         for exception, couch_ids in page_exceptions.items():
             group_exceptions.setdefault(exception, []).extend(couch_ids)
 
+    version = None
     for mapped_page_status in mapped_page_statuses:
         if mapped_page_status.mapped_page_path:
             version = get_version(
@@ -75,6 +76,11 @@ def get_mapping_status(
                 mapped_page_status.mapped_page_path
             )
             break
+
+    if not version:
+        raise ValueError(
+            f"Could not determine version from {mapped_page_statuses}"
+        )
 
     return MappedCollectionStatus(
         'success',
