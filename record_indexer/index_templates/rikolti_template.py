@@ -25,6 +25,24 @@ def main():
     # child schema == record schema, except without the "children" field
     child_schema = copy.deepcopy(record_schema)
     del child_schema["children"]
+
+    # create nested alias fields
+    del child_schema["collection_id"]
+    del child_schema["campus_id"]
+    del child_schema["repository_id"]
+    child_schema["children.collection_id"] = {
+        "path": "children.collection_url",
+        "type": "alias"
+    }
+    child_schema["children.campus_id"] = {
+        "path": "children.campus_url",
+        "type": "alias"
+    }
+    child_schema["children.repository_id"] = {
+        "path": "children.repository_url",
+        "type": "alias"
+    }
+
     record_schema["children"]["properties"] = child_schema
 
     # create index template
