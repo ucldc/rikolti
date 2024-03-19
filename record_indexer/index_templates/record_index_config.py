@@ -70,7 +70,8 @@ RECORD_INDEX_CONFIG = {
                     "properties": {
                         "media_filepath": {"type": "keyword"},
                         "mimetype": {"type": "keyword"},
-                        "path": {"type": "keyword"}
+                        "path": {"type": "keyword"},
+                        "format": {"type": "keyword"},
                     }
                 },
                 "media_source": {
