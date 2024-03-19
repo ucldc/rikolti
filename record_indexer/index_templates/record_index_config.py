@@ -51,13 +51,16 @@ RECORD_INDEX_CONFIG = {
                 "campus_name": {"type": "keyword"},
                 "campus_data": {"type": "keyword"},
                 "campus_url": {"type": "keyword"},
+                "campus_id": {"type": "alias", "path": "campus_url"},
                 "collection_name": {"type": "keyword"},
                 "collection_data": {"type": "keyword"},
                 "collection_url": {"type": "keyword"},
+                "collection_id": {"type": "alias", "path": "collection_url"},
                 "sort_collection_data": {"type": "keyword"},
                 "repository_name": {"type": "keyword"},
                 "repository_data": {"type": "keyword"},
                 "repository_url": {"type": "keyword"},
+                "repository_id": {"type": "alias", "path": "repository_url"},
                 "rights_uri": {"type": "keyword"},
                 "url_item": {"type": "keyword"},
                 "fetcher_type": {"type": "keyword"},
@@ -68,34 +71,16 @@ RECORD_INDEX_CONFIG = {
 
                 "media": {
                     "properties": {
-                        "media_filepath": {"type": "keyword"},
                         "mimetype": {"type": "keyword"},
                         "path": {"type": "keyword"},
                         "format": {"type": "keyword"},
                     }
                 },
-                "media_source": {
-                    "properties": {
-                        "filename": {"type": "keyword"},
-                        "mimetype": {"type": "keyword"},
-                        "nuxeo_type": {"type": "keyword"},
-                        "url": {"type": "keyword"}
-                    }
-                },
                 "thumbnail": {
                     "properties": {
                         "mimetype": {"type": "keyword"},
-                        "thumbnail_filepath": {"type": "keyword"},
                         "path": {"type": "keyword"},
                         "dimensions": {"type": "keyword"}
-                    }
-                },
-                "thumbnail_source": {
-                    "properties": {
-                        "filename": {"type": "keyword"},
-                        "mimetype": {"type": "keyword"},
-                        "nuxeo_type": {"type": "keyword"},
-                        "url": {"type": "keyword"}
                     }
                 },
 
