@@ -43,27 +43,26 @@ class CalisphereSolrRecord(Record):
             "campus_name": self.source_metadata.get("campus_name", None),
             "campus_data": self.source_metadata.get("campus_data", None),
             "campus_url": self.parse_url_for_id(
-                self.source_metadata.get("campus_url", None)),
+                self.source_metadata.get("campus_url", [])),
             "collection_name": self.source_metadata.get("collection_name", None),
             "collection_data": self.source_metadata.get("collection_data", None),
             "collection_url": self.parse_url_for_id(
-                self.source_metadata.get("collection_url", None)),
+                self.source_metadata.get("collection_url", [])),
             "sort_collection_data": self.source_metadata.get("sort_collection_data", None),
             "repository_name": self.source_metadata.get("repository_name", None),
             "repository_data": self.source_metadata.get("repository_data", None),
             "repository_url": self.parse_url_for_id(
-                self.source_metadata.get("repository_url", None)),
+                self.source_metadata.get("repository_url", [])),
             "rights_uri": self.source_metadata.get("rights_uri", None),
             "sort_date_start": self.source_metadata.get("sort_date_start", None),
             "sort_date_end": self.source_metadata.get("sort_date_end", None),
         }
     
-    def parse_url_for_id(self, url_field: str) -> str:
-        if url_field:
-            return url_field.split("/")[-1]
+    def parse_url_for_id(self, url_values: list[str]) -> list[str]:
+        return [url_value.split('/')[-1] for url_value in url_values]
 
     def map_calisphere_id(self):
-        harvest_id = self.source_metadata.get('harvest_id_s')
+        harvest_id = self.source_metadata['harvest_id_s']
         return harvest_id.split("--")[1]
 
     def map_thumbnail_source(self):
