@@ -48,7 +48,7 @@ class CalisphereSolrRecord(Record):
             "collection_data": self.source_metadata.get("collection_data", None),
             "collection_url": self.parse_url_for_id(
                 self.source_metadata.get("collection_url", [])),
-            "sort_collection_data": self.source_metadata.get("sort_collection_data", None),
+            "sort_collection_data": self.map_sort_collection_data(),
             "repository_name": self.source_metadata.get("repository_name", None),
             "repository_data": self.source_metadata.get("repository_data", None),
             "repository_url": self.parse_url_for_id(
@@ -57,7 +57,11 @@ class CalisphereSolrRecord(Record):
             "sort_date_start": self.source_metadata.get("sort_date_start", None),
             "sort_date_end": self.source_metadata.get("sort_date_end", None),
         }
-    
+
+    def map_sort_collection_data(self):
+        data_values = self.source_metadata.get("sort_collection_data", [])
+        return [dv.replace(':', '::') for dv in data_values if '::' not in dv]
+
     def parse_url_for_id(self, url_values: list[str]) -> list[str]:
         return [url_value.split('/')[-1] for url_value in url_values]
 
