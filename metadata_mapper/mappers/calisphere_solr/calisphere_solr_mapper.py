@@ -41,17 +41,20 @@ class CalisphereSolrRecord(Record):
             "transcription": self.source_metadata.get("transcription", None),
             "id": self.source_metadata.get("id", None),
             "campus_name": self.source_metadata.get("campus_name", None),
-            "campus_data": self.source_metadata.get("campus_data", None),
-            "campus_url": self.parse_url_for_id(
+            "campus_data": self.map_data_field(
+                self.source_metadata.get("campus_data", None)),
+            "campus_url": self.parse_urls_for_ids(
                 self.source_metadata.get("campus_url", [])),
             "collection_name": self.source_metadata.get("collection_name", None),
-            "collection_data": self.source_metadata.get("collection_data", None),
-            "collection_url": self.parse_url_for_id(
+            "collection_data": self.map_data_field(
+                self.source_metadata.get("collection_data", None)),
+            "collection_url": self.parse_urls_for_ids(
                 self.source_metadata.get("collection_url", [])),
             "sort_collection_data": self.map_sort_collection_data(),
             "repository_name": self.source_metadata.get("repository_name", None),
-            "repository_data": self.source_metadata.get("repository_data", None),
-            "repository_url": self.parse_url_for_id(
+            "repository_data": self.map_data_field(
+                self.source_metadata.get("repository_data", None)),
+            "repository_url": self.parse_urls_for_ids(
                 self.source_metadata.get("repository_url", [])),
             "rights_uri": self.source_metadata.get("rights_uri", None),
             "sort_date_start": self.source_metadata.get("sort_date_start", None),
@@ -62,8 +65,17 @@ class CalisphereSolrRecord(Record):
         data_values = self.source_metadata.get("sort_collection_data", [])
         return [dv.replace(':', '::') for dv in data_values if '::' not in dv]
 
-    def parse_url_for_id(self, url_values: list[str]) -> list[str]:
-        return [url_value.split('/')[-1] for url_value in url_values]
+    def map_data_field(self, data_value_list):
+        for i, data_value in enumerate(data_value_list):
+            data_parts = data_value.split('::')
+            for j, data_part in enumerate(data_parts):
+                if data_part.startswith('http'):
+                    data_parts[j] = self.parse_urls_for_ids([data_part])[0]
+            data_value_list[i] = '::'.join(data_parts)
+        return data_value_list
+
+    def parse_urls_for_ids(self, url_values: list[str]) -> list[str]:
+        return [url_value.rstrip('/').split('/')[-1] for url_value in url_values]
 
     def map_calisphere_id(self):
         harvest_id = self.source_metadata['harvest_id_s']
