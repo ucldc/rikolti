@@ -1,3 +1,6 @@
+import os
+import json
+
 from airflow.decorators import task
 
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
@@ -6,6 +9,7 @@ from rikolti.record_indexer.create_collection_index import create_index_name
 from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
+from rikolti.utils.versions import get_version
 
 @task(task_id="create_stage_index", on_failure_callback=notify_rikolti_failure)
 def create_stage_index_task(
@@ -21,6 +25,19 @@ def create_stage_index_task(
     except Exception as e:
         delete_index(index_name)
         raise e
+
+    version = get_version(collection_id, version_pages[0])
+    dashboard_query = {"query": {
+        "bool": {"filter": {"terms": {"collection_url": [collection_id]}}}
+    }}
+    print(
+        f"\n\nReview indexed records at: https://rikolti-data.s3.us-west-2."
+        f"amazonaws.com/index.html#{version.rstrip('/')}/data/ \n\n"
+        f"Or on opensearch at: {os.environ.get('RIKOLTI_ES_ENDPOINT')}"
+        "/_dashboards/app/dev_tools#/console with query:\n"
+        f"{json.dumps(dashboard_query, indent=2)}\n\n\n"
+    )
+
     send_event_to_sns(context, {'index_name': index_name})
     return index_name
 
