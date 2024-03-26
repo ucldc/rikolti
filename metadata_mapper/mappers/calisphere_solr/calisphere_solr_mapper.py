@@ -10,6 +10,9 @@ class CalisphereSolrRecord(Record):
         return {
             "calisphere-id": self.map_calisphere_id(),
             "is_shown_at": self.source_metadata.get("url_item"),
+            "url_item": self.source_metadata.get("url_item"),
+            "fetcher_type": ["calisphere_solr"],
+            "mapper_type": ["calisphere_solr.calisphere_solr"],
             "thumbnail_source": self.map_thumbnail_source(),
             "title": self.source_metadata.get("title"),
             "alternative_title": self.source_metadata.get("alternative_title", None),
