@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 from PIL import Image
+from PIL import UnidentifiedImageError
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
@@ -108,7 +109,18 @@ def harvest_record_content(
             content_s3_filepath = upload_content(
                 thumbnail.tmp_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
             )
-            dimensions = Image.open(thumbnail.tmp_filepath).size
+            try:
+                dimensions = Image.open(thumbnail.tmp_filepath).size
+            except UnidentifiedImageError as e:
+                raise Exception(
+                    f"PIL.UnidentifiedImageError for calisphere-id "
+                    f"{record['calisphere-id']}: {e}"
+                )
+            except Image.DecompressionBombError as e:
+                raise Exception(
+                    f"PIL.Image.DecompressionBombError for calisphere-id "
+                    f"{record['calisphere-id']}: {e}"
+                )
         elif downloaded_md5 and thumbnail.src_mime_type == 'application/pdf':
             derivative_filepath = derivatives.pdf_to_thumb(thumbnail.tmp_filepath)
             if derivative_filepath:
