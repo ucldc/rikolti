@@ -109,18 +109,8 @@ def harvest_record_content(
             content_s3_filepath = upload_content(
                 thumbnail.tmp_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
             )
-            try:
-                dimensions = Image.open(thumbnail.tmp_filepath).size
-            except UnidentifiedImageError as e:
-                raise Exception(
-                    f"PIL.UnidentifiedImageError for calisphere-id "
-                    f"{record['calisphere-id']}: {e}"
-                )
-            except Image.DecompressionBombError as e:
-                raise Exception(
-                    f"PIL.Image.DecompressionBombError for calisphere-id "
-                    f"{record['calisphere-id']}: {e}"
-                )
+            dimensions = get_dimensions(thumbnail.tmp_filepath, record['calisphere-id'])
+
         elif downloaded_md5 and thumbnail.src_mime_type == 'application/pdf':
             derivative_filepath = derivatives.pdf_to_thumb(thumbnail.tmp_filepath)
             if derivative_filepath:
@@ -129,7 +119,7 @@ def harvest_record_content(
                 content_s3_filepath = upload_content(
                     derivative_filepath, f"thumbnails/{collection_id}/{md5}"
                 )
-                dimensions = Image.open(derivative_filepath).size
+                dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
         elif downloaded_md5 and thumbnail.src_mime_type == 'video/mp4':
             derivative_filepath = derivatives.video_to_thumb(thumbnail.tmp_filepath)
             if derivative_filepath:
@@ -138,7 +128,7 @@ def harvest_record_content(
                 content_s3_filepath = upload_content(
                     derivative_filepath, f"thumbnails/{collection_id}/{md5}"
                 )
-                dimensions = Image.open(derivative_filepath).size
+                dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
 
         if content_s3_filepath:
             record['thumbnail'] = {
@@ -155,6 +145,19 @@ def harvest_record_content(
 
     return record
 
+def get_dimensions(filepath: str, calisphere_id: str) -> str:
+    try:
+        return Image.open(filepath).size
+    except UnidentifiedImageError as e:
+        raise Exception(
+            f"PIL.UnidentifiedImageError for calisphere-id "
+            f"{calisphere_id}: {e}"
+        )
+    except Image.DecompressionBombError as e:
+        raise Exception(
+            f"PIL.Image.DecompressionBombError for calisphere-id "
+            f"{calisphere_id}: {e}"
+        )
 
 def download_content(request: dict, http,
                 destination_file: str, 
