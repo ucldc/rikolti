@@ -250,7 +250,6 @@ class NuxeoFetcher(Fetcher):
             for i, folder in enumerate(folder_resp.json().get('entries', [])):
                 page_prefix.append(f"f{i}")
                 pages.extend(self.get_pages_of_records(folder, page_prefix))
-                pages.extend(self.folder_traversal(folder, page_prefix))
                 page_prefix.pop()
 
             page_prefix.pop()
