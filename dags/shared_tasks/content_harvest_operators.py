@@ -77,6 +77,14 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                             {
                                 "name": "NUXEO_PASS",
                                 "value": os.environ.get("NUXEO_PASS")
+                            },
+                            {
+                                "name": "AWS_RETRY_MODE",
+                                "value": "standard"
+                            },
+                            {
+                                "name": "AWS_MAX_ATTEMPTS",
+                                "value": "10"
                             }
                         ]
                     }
