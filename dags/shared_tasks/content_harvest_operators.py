@@ -96,6 +96,8 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
             "awslogs_stream_prefix": "ecs/rikolti-content_harvester",
             "reattach": True,
             "number_logs_exception": 100,
+            "waiter_delay": 10,
+            "waiter_max_attempts": 100
         }
         args.update(kwargs)
         super().__init__(**args)
