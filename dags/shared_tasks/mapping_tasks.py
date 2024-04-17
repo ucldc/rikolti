@@ -116,7 +116,7 @@ def get_mapping_status_task(
         f"{mapped_collection.version.rstrip('/')}/data/"
     )
 
-    batch_size = math.ceil(len(mapped_collection.filepaths) / 1024)
+    batch_size = math.ceil(len(mapped_collection.filepaths) / 50)
     batched_mapped_pages = batched(mapped_collection.filepaths, batch_size)
     return [json.dumps(batch) for batch in batched_mapped_pages]
 
