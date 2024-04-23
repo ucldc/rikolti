@@ -37,7 +37,7 @@ class CalisphereSolrRecord(Record):
             "spatial": self.source_metadata.get("spatial", None),
             "subject": self.source_metadata.get("subject", None),
             "temporal": self.source_metadata.get("temporal", None),
-            "type": self.source_metadata.get("type", None),
+            "type": [t.lower() for t in self.source_metadata.get("type", [])],
             "sort_title": self.source_metadata.get("sort_title", None),
             "description": self.source_metadata.get("description", None),
             "provenance": self.source_metadata.get("provenance", None),
