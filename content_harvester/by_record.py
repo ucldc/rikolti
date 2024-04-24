@@ -105,7 +105,7 @@ def harvest_record_content(
 
         content_s3_filepath = None
         dimensions = None
-        if downloaded_md5 and thumbnail.src_mime_type == 'image/jpeg':
+        if downloaded_md5 and thumbnail.src_mime_type in ['image/jpeg', 'image/png']:
             content_s3_filepath = upload_content(
                 thumbnail.tmp_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
             )
