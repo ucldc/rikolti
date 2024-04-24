@@ -46,6 +46,24 @@ Note that the index creation code enforces the existence of one stage index at a
 #### Delete old index
 This happens during index creation (see step 4. above).
 
+## OpenSearch index record updates
+An option for updating records that are already in the OpenSearch index is to use the [`update by query` API](https://opensearch.org/docs/latest/api-reference/document-apis/update-by-query/). For example, we wanted to update records in `rikolti-stg` to make the value of `type` lowercase. Here is the query that we issued to update `Text` to `text`. Since it was a quick one-off update, we simply issued this in the OpenSearch Dashboard API console:
+
+```
+POST rikolti-stg/_update_by_query
+{
+  "query": {
+    "term": {
+      "type.raw": "Text"
+    }
+  },
+  "script": {
+    "source": "ctx._source.type = ctx._source.type[0].toLowerCase()",
+    "lang": "painless"
+  }
+}
+```
+
 
 
 
