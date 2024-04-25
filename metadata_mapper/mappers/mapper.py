@@ -1493,7 +1493,9 @@ class Record(ABC, object):
                 'rights': filter_blank_values(record.get('rights')),
                 'rights_uri': filter_blank_values(record.get('rightsURI')),
                 'title': filter_blank_values(record.get('title')),
-                'type': [t.lower() for t in filter_blank_values(record.get('type', []))],
+                'type': [t.lower() for t in filter_blank_values(record.get('type', []))]
+                    if isinstance(record.get('type'), list)
+                    else record.get('type', '').lower(),
                 'provenance': filter_blank_values(record.get('provenance')),
                 'spatial': filter_blank_values(record.get('spatial')),
                 'coverage': filter_blank_values(record.get('spatial')),
