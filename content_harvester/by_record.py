@@ -120,7 +120,7 @@ def harvest_record_content(
                     derivative_filepath, f"thumbnails/{collection_id}/{md5}"
                 )
                 dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
-        elif downloaded_md5 and thumbnail.src_mime_type == 'video/mp4':
+        elif downloaded_md5 and thumbnail.src_mime_type in ['video/mp4','video/quicktime']:
             derivative_filepath = derivatives.video_to_thumb(thumbnail.tmp_filepath)
             if derivative_filepath:
                 md5 = hashlib.md5(
