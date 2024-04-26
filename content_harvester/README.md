@@ -24,9 +24,9 @@ If `thumbnail_source` is a string, the content harvester assumes the string to b
 
 The Content Harvester will fetch a file from `thumbnail_source['url']` to the content harvester's local filesystem (if the very same file hasn't already been fetched and stored there via the media harvesting process). 
 
-If `thumbnail_source['mimetype']` is provided and is `application/pdf`, the content harvester will create a thumbnail derivative of the first page using ImageMagick. If `thumbnail_source['mimetype']` is provided and is `video/mp4`, ffprobe is used to find the center timestamp of the video, and ffmpeg is used to get the frame at the center timestamp. If `thumbnail_source['mimetype']` is provided, and is not `application/pdf`, `video/mp4` or `image/jpeg`, the content harvester will raise an UnsupportedMimetype error. 
+If `thumbnail_source['mimetype']` is provided and is `application/pdf`, the content harvester will create a thumbnail derivative of the first page using ImageMagick. If `thumbnail_source['mimetype']` is provided and is `video/mp4` or `video/quicktime`, ffprobe is used to find the center timestamp of the video, and ffmpeg is used to get the frame at the center timestamp. If `thumbnail_source['mimetype']` is provided, and is not `application/pdf`, `video/mp4`, `video/quicktime`, `image/jpeg`, or `image/png`, the content harvester will raise an UnsupportedMimetype error.
 
-The content harvester uploads either the original fetched thumbnail or (in the case of pdfs and video files) the produced derivative from the content harvester's local file system to s3 at an s3 path that includes `thumbnail_source['filename']`. Finally, the content harvester updates the metadata record with a `thumbnail` field: a dictionary with the keys `mimetype` (string - currently always `image/jpeg`), and `thumbnail_filepath` (string - an s3 location). 
+The content harvester uploads either the original fetched thumbnail or (in the case of pdfs and video files) the produced derivative from the content harvester's local file system to s3 at an s3 path that includes `thumbnail_source['filename']`. Finally, the content harvester updates the metadata record with a `thumbnail` field: a dictionary with the keys `mimetype` (string - currently always `image/jpeg` or `image/png`), and `thumbnail_filepath` (string - an s3 location).
 
 # Child Metadata Records
 

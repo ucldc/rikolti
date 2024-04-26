@@ -178,6 +178,7 @@ type_map = {
     "audio/x-wav": "sound",
     "image/jpeg": "image",
     "video/mp4": "moving image",
+    "video/quicktime": "moving image",
     "video mp4 file": "moving image",
     "sound mp3 file": "sound",
     "streaming media": "interactive resource",
