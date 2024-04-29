@@ -57,6 +57,7 @@ def harvest_record_content(
     http = configure_http_session()
 
     downloaded_urls = {}        # downloaded is a src_url: filepath dict
+    derivative_filepath = None
 
     # get media first, sometimes media is used for thumbnail
     media = Media(record.get('media_source', {}))
@@ -142,6 +143,8 @@ def harvest_record_content(
     if thumbnail and os.path.exists(thumbnail.tmp_filepath):
         os.remove(thumbnail.tmp_filepath)
         downloaded_urls.pop(thumbnail.src_url, None)
+    if derivative_filepath and os.path.exists(derivative_filepath):
+        os.remove(derivative_filepath)
 
     return record
 
