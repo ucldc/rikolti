@@ -238,12 +238,12 @@ class NuxeoFetcher(Fetcher):
             raise(e)
         return response
 
-    def folder_traversal(self, folder: dict, page_prefix: list):
+    def folder_traversal(self, root_folder: dict, page_prefix: list):
         folder_page_count = 0
         more_pages_of_folders = True
         pages = []
         while more_pages_of_folders:
-            folder_resp = self.get_page_of_folders(folder, folder_page_count)
+            folder_resp = self.get_page_of_folders(root_folder, folder_page_count)
             more_pages_of_folders = folder_resp.json().get('isNextPageAvailable')
             page_prefix.append(f"fp{folder_page_count}")
 
@@ -253,6 +253,7 @@ class NuxeoFetcher(Fetcher):
                 page_prefix.pop()
 
             page_prefix.pop()
+            folder_page_count += 1
         return pages
 
     def fetch_page(self) -> list[FetchedPageStatus]:
