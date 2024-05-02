@@ -3,6 +3,7 @@ RECORD_INDEX_CONFIG = {
     "template": {
         "settings": {
             "number_of_shards": 1,
+            "number_of_replicas": 1,
             "analysis": {
                 "analyzer": {
                     "keyword_lowercase_trim": {
