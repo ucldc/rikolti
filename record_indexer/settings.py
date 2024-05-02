@@ -17,4 +17,4 @@ def get_auth():
 ENDPOINT = os.environ.get("RIKOLTI_ES_ENDPOINT", False)
 if ENDPOINT:
     ENDPOINT = ENDPOINT.rstrip("/")
-INDEX_RETENTION = os.environ.get("INDEX_RETENTION", 1)
+INDEX_RETENTION = os.environ.get("INDEX_RETENTION", 0)

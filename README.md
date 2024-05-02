@@ -209,7 +209,7 @@ In order to run the indexer code, make sure the following variables are set:
 
 ```
 export RIKOLTI_ES_ENDPOINT= # ask for endpoint url
-export INDEX_RETENTION=1
+export INDEX_RETENTION=0
 ```
 
 Also make sure to set your temporary AWS credentials and the region so that the mwaa-local-runner container can authenticate when talking to the OpenSearch API:
