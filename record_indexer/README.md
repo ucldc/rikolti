@@ -2,6 +2,8 @@
 
 To create the [index template](https://www.elastic.co/guide/en/elasticsearch/reference/7.9/index-templates.html) for rikolti:
 
+Make sure that RIKOLTI_ES_ENDPOINT is set in your environment.
+
 ```
 python index_templates/rikolti_template.py
 ```
