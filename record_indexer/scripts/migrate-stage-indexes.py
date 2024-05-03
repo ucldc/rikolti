@@ -16,12 +16,15 @@ def print_opensearch_error(r: requests.Response, url: str):
         print(f"Response: {r.text}")
 
 def main():
+    # the source of the data, e.g. https://search-domain-name-abcdefg12345.us-west-2.es.amazonaws.com
     source_endpoint = os.environ.get("SOURCE_ENDPOINT")
+    # the target for the data, e.g. https://search-domain-name-abcdefg12345.us-west-2.es.amazonaws.com
     target_endpoint = os.environ.get("TARGET_ENDPOINT")
     headers = {"Content-Type": "application/json"}
+    # username and password for authenticating to OpenSearch domains (assumed to be the same for both source and target)
     auth = (os.environ.get("OPENSEARCH_USER"), os.environ.get("OPENSEARCH_PASS"))
 
-    # Get list of indices to migrate
+    # Get list of indices aliased to `rikolti-stg`
     url = f"{source_endpoint}/_alias/rikolti-stg"
     r = requests.get(url, auth=auth)
     r.raise_for_status()
