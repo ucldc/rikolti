@@ -102,15 +102,24 @@ def harvest_record_content(
                 downloaded_urls[thumbnail.src_url])
         else:
             request.update({'url': thumbnail.src_url})
-            downloaded_md5 = download_content(request, http, thumbnail.tmp_filepath)
+            downloaded_md5 = download_content(
+                request, http, thumbnail.tmp_filepath)
 
         content_s3_filepath = None
         dimensions = None
         if downloaded_md5 and thumbnail.src_mime_type in ['image/jpeg', 'image/png']:
             content_s3_filepath = upload_content(
-                thumbnail.tmp_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
+                thumbnail.tmp_filepath,
+                f"thumbnails/{collection_id}/{downloaded_md5}"
             )
-            dimensions = get_dimensions(thumbnail.tmp_filepath, record['calisphere-id'])
+            try:
+                dimensions = get_dimensions(
+                    thumbnail.tmp_filepath, record['calisphere-id'])
+            except Exception as e:
+                print(
+                    f"Error getting dimensions for {record['calisphere-id']}: "
+                    f"{e}, continuing..."
+                )
 
         elif downloaded_md5 and thumbnail.src_mime_type == 'application/pdf':
             derivative_filepath = derivatives.pdf_to_thumb(thumbnail.tmp_filepath)
@@ -148,7 +157,7 @@ def harvest_record_content(
 
     return record
 
-def get_dimensions(filepath: str, calisphere_id: str) -> str:
+def get_dimensions(filepath: str, calisphere_id: str) -> tuple[int, int]:
     try:
         return Image.open(filepath).size
     except UnidentifiedImageError as e:
