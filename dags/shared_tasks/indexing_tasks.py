@@ -27,7 +27,6 @@ def create_stage_index_task(
         delete_index(index_name)
         raise e
 
-
     version = get_version(collection_id, version_pages[0])
     dashboard_query = {"query": {
         "bool": {"filter": {"terms": {"collection_url": [collection_id]}}}
@@ -55,7 +54,25 @@ def update_stage_index_for_collection_task(
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
 
-    update_stage_index_for_collection(collection_id, version_pages)
+    try:
+        update_stage_index_for_collection(collection_id, version_pages)
+    except Exception as e:
+        # TODO: implement some rollback exception handling?
+        raise e
+
+    version = get_version(collection_id, version_pages[0])
+    dashboard_query = {"query": {
+        "bool": {"filter": {"terms": {"collection_url": [collection_id]}}}
+    }}
+    print(
+        f"\n\nReview indexed records at: https://rikolti-data.s3.us-west-2."
+        f"amazonaws.com/index.html#{version.rstrip('/')}/data/ \n\n"
+        f"Or on opensearch at: {os.environ.get('RIKOLTI_ES_ENDPOINT')}"
+        "/_dashboards/app/dev_tools#/console with query:\n"
+        f"{json.dumps(dashboard_query, indent=2)}\n\n\n"
+    )
+
+    send_event_to_sns(context, {'record_indexer_success': 'success'})
 
 @task(task_id="move_index_to_prod")
 def move_index_to_prod_task(collection: dict):
