@@ -5,8 +5,14 @@ import sys
 
 import requests
 
+from ..utils import print_opensearch_error
+
 def main():
-    ''' combine all indices aliased to `rikolti-stg` into one large index '''
+    '''
+        One-off script to combine all indices aliased to `rikolti-stg`
+        into one large index
+    '''
+    # Set these variables in your environment as a one-off before running this script
     endpoint = os.environ.get("OPENSEARCH_ENDPOINT")
     auth = (os.environ.get("OPENSEARCH_USER"), os.environ.get("OPENSEARCH_PASS"))
     version = datetime.today().strftime("%Y%m%d%H%M%S")
@@ -34,8 +40,9 @@ def main():
         headers = {"Content-Type": "application/json"}
 
         r = requests.post(url, headers=headers, data=json.dumps(data), auth=auth)
-        print(f"{r.json()}\n")
-        r.raise_for_status()
+        if not (200 <= r.status_code <= 299):
+            print_opensearch_error(r, url)
+            r.raise_for_status()
 
         count += 1
     
