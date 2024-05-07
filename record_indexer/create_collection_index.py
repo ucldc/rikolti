@@ -108,7 +108,7 @@ def create_new_index(collection_id: str, version_pages: list[str], index_name: s
     for version_page in version_pages:
         add_page(version_page, index_name)
 
-    update_alias_for_collection("rikolti-stg", collection_id, index_name)
+    update_alias_for_collection(settings.STAGE_ALIAS, collection_id, index_name)
 
     delete_old_collection_indices(collection_id)
 

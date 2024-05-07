@@ -13,7 +13,7 @@ def move_index_to_prod(collection_id: str):
     """
     Add current rikolti-stg index to rikolti-prd alias
     """
-    url = f"{settings.ENDPOINT}/_alias/rikolti-stg"
+    url = f"{settings.ENDPOINT}/_alias/{settings.STAGE_ALIAS}"
     r = requests.get(url=url, auth=settings.get_auth())
     if not (200 <= r.status_code <= 299):
         print_opensearch_error(r, url)
@@ -30,13 +30,13 @@ def move_index_to_prod(collection_id: str):
     elif len(indices_for_collection) > 1:
         print(
             f"{collection_id}: More than one index associated with "
-            f"`rikolti-stg` alias: `{indices_for_collection}`"
+            f"`{settings.STAGE_ALIAS}` alias: `{indices_for_collection}`"
         )
         return
     elif len(indices_for_collection) < 1:
         print(
             f"{collection_id}: Cannot find any indices associated with "
-            f"`rikolti-stg` alias"
+            f"`{settings.STAGE_ALIAS}` alias"
         )
         return
 
