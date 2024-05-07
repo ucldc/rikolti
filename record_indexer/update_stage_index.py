@@ -20,7 +20,9 @@ def get_index_for_alias(alias: str):
     # for now, there should be only one index per alias (stage, prod)
     url = f"{settings.ENDPOINT}/_alias/{alias}"
     r = requests.get(url, auth=settings.get_auth())
-    r.raise_for_status()
+    if not (200 <= r.status_code <= 299):
+        print_opensearch_error(r, url)
+        r.raise_for_status()
     aliased_indices = [key for key in r.json().keys()]
     if len(aliased_indices) != 1:
         raise ValueError(
