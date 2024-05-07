@@ -18,7 +18,7 @@ from rikolti.utils.versions import (
     get_child_directories, get_with_content_urls_pages,
     get_with_content_urls_page_content, get_child_pages,
     create_merged_version, put_merged_page)
-from rikolti.dags.shared_tasks.indexing_tasks import create_stage_index_task
+from rikolti.dags.shared_tasks.indexing_tasks import update_stage_index_for_collection_task
 
 
 def get_child_records(version, parent_id) -> list:
@@ -101,7 +101,7 @@ def harvest():
         collection, mapped_page_batches)
     merged_pages = merge_any_child_records_task(with_content_urls_version)
     merged_pages.set_upstream(content_harvest_task)
-    stage_index = create_stage_index_task(collection, merged_pages)  # noqa F841
+    update_stage_index_for_collection_task(collection, merged_pages)
 
 
 harvest()
