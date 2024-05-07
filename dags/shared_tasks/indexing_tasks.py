@@ -9,6 +9,7 @@ from rikolti.record_indexer.create_collection_index import create_index_name
 from rikolti.record_indexer.create_collection_index import create_new_index
 from rikolti.record_indexer.create_collection_index import delete_index
 from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
+from rikolti.record_indexer.update_stage_index import update_stage_index_for_collection
 from rikolti.utils.versions import get_version
 
 @task(task_id="create_stage_index", on_failure_callback=notify_rikolti_failure)
@@ -26,6 +27,7 @@ def create_stage_index_task(
         delete_index(index_name)
         raise e
 
+
     version = get_version(collection_id, version_pages[0])
     dashboard_query = {"query": {
         "bool": {"filter": {"terms": {"collection_url": [collection_id]}}}
@@ -41,6 +43,19 @@ def create_stage_index_task(
     send_event_to_sns(context, {'index_name': index_name})
     return index_name
 
+# this task has the same task_id as create_stage_index_task() so that we don't
+# break the Airflow history with the transition between using that task
+# and this one as the last step in the harvest_dag
+@task(task_id="create_stage_index", on_failure_callback=notify_rikolti_failure)
+def update_stage_index_for_collection_task(
+    collection: dict, version_pages: list[str], **context):
+
+    collection_id = collection.get('id')
+    if not collection_id:
+        raise ValueError(
+            f"Collection ID not found in collection metadata: {collection}")
+
+    update_stage_index_for_collection(collection_id, version_pages)
 
 @task(task_id="move_index_to_prod")
 def move_index_to_prod_task(collection: dict):
