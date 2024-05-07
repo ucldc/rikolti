@@ -237,6 +237,8 @@ class NuxeoRecord(Record):
         # if it's a SampleCustomPicture, overwrite thumbnail location
         # URL with Nuxeo thumbnail url (see legacy logic for why this
         # comes after thumbnail_source = self.map_media_source())
+        # not sure what this means, but here's the legacy logic: 
+        # https://github.com/ucldc/harvester/blob/b42846bf9d869e6f75dbb0b9f9e0e30273d3d35c/harvester/fetcher/nuxeo_fetcher.py#L79
         if (source_type == 'SampleCustomPicture'):
             # Rikolti Logic:
             picture_views = self.source_metadata.get("picture:views")
@@ -252,7 +254,11 @@ class NuxeoRecord(Record):
                     'nuxeo_type': source_type
                 }
             else:
-                print(json.dumps(picture_views))
+                print(
+                    f"No medium view thumbnail available for "
+                    f"{self.original_metadata.get('uid')}. Available views: " +
+                    json.dumps(picture_views)
+                )
             # Legacy Logic:
             # uid = self.original_metadata.get('uid', '')
             # thumbnail_source['url'] = (
@@ -262,6 +268,10 @@ class NuxeoRecord(Record):
             # thumbnail_source['mimetype'] = 'image/jpeg'
             # thumbnail_source['filename'] = (
             #     thumbnail_source['filename'].split('.')[0] + '.jpg')
+
+            # if the thumbnail is Nuxeo's placeholder image, don't use it
+            if thumbnail_source and thumbnail_source.get('filename') == 'empty_picture.png':
+                thumbnail_source = None
 
         return thumbnail_source
 
