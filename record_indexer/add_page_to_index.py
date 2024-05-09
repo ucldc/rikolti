@@ -30,8 +30,12 @@ def bulk_add(records: list, index: str):
         for bulk_item in bulk_resp.get('items'):
             for action, action_resp in bulk_item.items():
                 if 'error' in action_resp:
-                    error_reasons.append(action_resp['error'].get('reason'))
-                    errors.append(bulk_item)
+                    if action_resp['error'].get('type') == 'version_conflict_engine_exception':
+                        print(f"WARNING - document already exists; not creating.\n {bulk_item}")
+                        pprint(action_resp['error'].get('reason'))
+                    else:
+                        error_reasons.append(action_resp['error'].get('reason'))
+                        errors.append(bulk_item)
 
         error_reasons = list(set(error_reasons))
         if len(error_reasons) > 1:
