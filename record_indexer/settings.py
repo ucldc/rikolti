@@ -19,4 +19,3 @@ if ENDPOINT:
     ENDPOINT = ENDPOINT.rstrip("/")
 INDEX_RETENTION = os.environ.get("INDEX_RETENTION", 0)
 STAGE_ALIAS = os.environ.get("RIKOLTI_ES_STAGE_ALIAS")
-STAGE_ALIAS_COMBINED = os.environ.get("RIKOLTI_ES_ALIAS_STAGE_COMBINED") # we only need this during the transition from one collection per index --> all collections in a single combined index

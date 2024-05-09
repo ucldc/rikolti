@@ -7,7 +7,7 @@ from .utils import print_opensearch_error
 
 def update_stage_index_for_collection(collection_id: str, version_pages: list[str]):
     ''' update stage index with a new set of collection records '''
-    index = get_index_for_alias(settings.STAGE_ALIAS_COMBINED)
+    index = get_index_for_alias(settings.STAGE_ALIAS)
 
     # delete existing records
     delete_collection_records_from_index(collection_id, index)
