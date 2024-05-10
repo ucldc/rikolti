@@ -108,10 +108,6 @@ def harvest_record_content(
         content_s3_filepath = None
         dimensions = None
         if downloaded_md5 and thumbnail.src_mime_type in ['image/jpeg', 'image/png']:
-            content_s3_filepath = upload_content(
-                thumbnail.tmp_filepath,
-                f"thumbnails/{collection_id}/{downloaded_md5}"
-            )
             try:
                 dimensions = get_dimensions(
                     thumbnail.tmp_filepath, record['calisphere-id'])
@@ -120,7 +116,11 @@ def harvest_record_content(
                     f"Error getting dimensions for {record['calisphere-id']}: "
                     f"{e}, continuing..."
                 )
-
+            else:
+                content_s3_filepath = upload_content(
+                    thumbnail.tmp_filepath,
+                    f"thumbnails/{collection_id}/{downloaded_md5}"
+                )
         elif downloaded_md5 and thumbnail.src_mime_type == 'application/pdf':
             derivative_filepath = derivatives.pdf_to_thumb(thumbnail.tmp_filepath)
             if derivative_filepath:
