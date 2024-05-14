@@ -37,11 +37,21 @@ def get_awsvpc_config():
             awsvpcConfig['securityGroups'].append(output['OutputValue'])
     return awsvpcConfig
 
+def extract_prefix_from_pages(pages: str):
+    """
+    determine the common prefix for page filepaths
+    return prefix and list of pages with prefix removed
+    """
+    pages = json.loads(pages)
+    prefix = os.path.commonprefix(pages)
+    pages = [path.removeprefix(prefix) for path in pages]
+    return prefix, json.dumps(pages)
 
 class ContentHarvestEcsOperator(EcsRunTaskOperator):
     def __init__(self, collection_id=None, with_content_urls_version=None, pages=None, mapper_type=None, **kwargs):
         container_name = "rikolti-content_harvester"
 
+        prefix, pages = extract_prefix_from_pages(pages)
         args = {
             "cluster": "rikolti-ecs-cluster",
             "launch_type": "FARGATE",
@@ -55,7 +65,8 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                             f"{collection_id}",
                             pages,
                             with_content_urls_version,
-                            mapper_type
+                            mapper_type,
+                            prefix
                         ],
                         "environment": [
                             {
@@ -174,6 +185,7 @@ class ContentHarvestDockerOperator(DockerOperator):
         else:
             content_root = "file:///rikolti_content"
 
+        prefix, pages = extract_prefix_from_pages(pages)
         args = {
             "image": f"{container_image}:{container_version}",
             "container_name": container_name,
@@ -181,7 +193,8 @@ class ContentHarvestDockerOperator(DockerOperator):
                 f"{collection_id}",
                 pages,
                 with_content_urls_version,
-                mapper_type
+                mapper_type,
+                prefix
             ],
             "network_mode": "bridge",
             "auto_remove": 'force',
