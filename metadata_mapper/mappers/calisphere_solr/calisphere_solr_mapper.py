@@ -66,7 +66,26 @@ class CalisphereSolrRecord(Record):
 
     def map_sort_collection_data(self):
         data_values = self.source_metadata.get("sort_collection_data", [])
-        return [dv.replace(':', '::') for dv in data_values if '::' not in dv]
+        data_value_list = [
+            dv.replace(':', '::') for dv in data_values if '::' not in dv]
+
+        # removes urls from sort_collection_data fields, like map_data_field
+        # does, but in this case, due to irregular delimiters in the source
+        # data and the normalization done above, sometimes http:// turns into
+        # http::
+        for i, data_value in enumerate(data_value_list):
+            data_parts = data_value.split('::')
+            for j, data_part in enumerate(data_parts):
+                if data_part == "http" or data_part == "https":
+                    data_parts.pop(j)
+                if (
+                    data_part.startswith('http') or
+                    data_part.startswith('//registry.cdlib.org')
+                ):
+                    data_parts[j] = self.parse_urls_for_ids([data_part])[0]
+            data_value_list[i] = '::'.join(data_parts)
+
+        return data_value_list
 
     def map_data_field(self, data_value_list):
         for i, data_value in enumerate(data_value_list):
