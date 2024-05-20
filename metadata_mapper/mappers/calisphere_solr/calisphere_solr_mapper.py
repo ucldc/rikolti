@@ -53,7 +53,8 @@ class CalisphereSolrRecord(Record):
                 self.source_metadata.get("collection_data", [])),
             "collection_url": self.parse_urls_for_ids(
                 self.source_metadata.get("collection_url", [])),
-            "sort_collection_data": self.map_sort_collection_data(),
+            "sort_collection_data": self.map_sort_collection_data(
+                self.source_metadata.get("sort_collection_data", [])),
             "repository_name": self.source_metadata.get("repository_name", None),
             "repository_data": self.map_data_field(
                 self.source_metadata.get("repository_data", [])),
@@ -64,28 +65,43 @@ class CalisphereSolrRecord(Record):
             "sort_date_end": self.source_metadata.get("sort_date_end", None),
         }
 
-    def map_sort_collection_data(self):
-        data_values = self.source_metadata.get("sort_collection_data", [])
-        data_value_list = [
-            dv.replace(':', '::') for dv in data_values if '::' not in dv]
+    def map_sort_collection_data(self, sort_collection_data):
+        """sort collection data uses two delimiters, '::' and ':'
+            [ "sortable name::Display Name::registry url" ]
+            [ "sortable name:Display Name:registry url" ]
 
-        # removes urls from sort_collection_data fields, like map_data_field
-        # does, but in this case, due to irregular delimiters in the source
-        # data and the normalization done above, sometimes http:// turns into
-        # http::
-        for i, data_value in enumerate(data_value_list):
-            data_parts = data_value.split('::')
-            for j, data_part in enumerate(data_parts):
-                if data_part == "http" or data_part == "https":
-                    data_parts.pop(j)
-                if (
-                    data_part.startswith('http') or
-                    data_part.startswith('//registry.cdlib.org')
-                ):
-                    data_parts[j] = self.parse_urls_for_ids([data_part])[0]
-            data_value_list[i] = '::'.join(data_parts)
+        the sortable name can never include instances of ':'
+        the display name can include zero or more instances of ':'
+        the registry url always includes exactly one instance of ':' -
+        after http in http://registry.cdlib.org/api/v1/...
+        """
+        tri_part_datas = []
 
-        return data_value_list
+        for data in sort_collection_data:
+            if '::' in data:
+                tri_part_datas.extend(self.map_data_field([data]))
+                continue
+
+            # split multi-part data on the ':'
+            multi_part_data = data.split(':')
+            if len(multi_part_data) < 4:
+                raise ValueError(
+                    f"malformed sort_collection_data: {sort_collection_data}")
+
+            # parse tri-part data from multi-part data
+            # (':' is a terrible delimiter)
+            sortable_name = multi_part_data[0]
+            display_name = ':'.join(multi_part_data[1:-2])
+            registry_url = ':'.join(multi_part_data[-2:])
+
+            # calculate collection id
+            collection_id = self.parse_urls_for_ids([registry_url])[0]
+
+            # join tri-part data with better delimiter '::')
+            tri_part_datas.append("::".join(
+                [sortable_name, display_name, collection_id]))
+
+        return tri_part_datas
 
     def map_data_field(self, data_value_list):
         for i, data_value in enumerate(data_value_list):
