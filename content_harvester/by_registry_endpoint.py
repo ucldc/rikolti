@@ -4,19 +4,7 @@ import requests
 
 from .by_collection import harvest_collection_content
 from rikolti.utils.versions import get_most_recent_mapped_version
-
-def registry_endpoint(url):
-    page = url
-    while page:
-        response = requests.get(url=page)
-        response.raise_for_status()
-        page = response.json().get('meta', {}).get('next', None)
-        if page:
-            page = f"https://registry.cdlib.org{page}"
-
-        collections = response.json().get('objects', [response.json()])
-        for collection in collections:
-            yield collection
+from rikolti.utils.registry_client import registry_endpoint
 
 
 def harvest_endpoint(url, limit=None):

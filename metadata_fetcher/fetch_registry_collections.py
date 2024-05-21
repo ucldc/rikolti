@@ -6,21 +6,9 @@ import requests
 
 from . import lambda_function
 from rikolti.utils.versions import create_vernacular_version
+from rikolti.utils.registry_client import registry_endpoint
 
 logger = logging.getLogger(__name__)
-
-def registry_endpoint(url):
-    page = url
-    while page:
-        response = requests.get(url=page)
-        response.raise_for_status()
-        page = response.json().get('meta', {}).get('next', None)
-        if page:
-            page = f"https://registry.cdlib.org{page}"
-
-        collections = response.json().get('objects', [response.json()])
-        for collection in collections:
-            yield collection
 
 
 def fetch_endpoint(
