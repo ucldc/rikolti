@@ -11,22 +11,9 @@ from .lambda_shepherd import MappedCollectionStatus
 from .lambda_shepherd import map_collection
 from .validate_mapping import create_collection_validation_csv
 from rikolti.utils.versions import get_mapped_pages
+from rikolti.utils.registry_client import registry_endpoint
 
 logger = logging.getLogger(__name__)
-
-
-def registry_endpoint(url):
-    page = url
-    while page:
-        response = requests.get(url=page)
-        response.raise_for_status()
-        page = response.json().get('meta', {}).get('next', None)
-        if page:
-            page = f"https://registry.cdlib.org{page}"
-
-        collections = response.json().get('objects', [response.json()])
-        for collection in collections:
-            yield collection
 
 
 def map_endpoint(url, fetched_versions, limit=None) -> dict[int, MappedCollectionStatus]:
