@@ -86,7 +86,7 @@ def main():
 
     # add new index to rikolti-stg alias
     url = f"{settings.ENDPOINT}/_aliases"
-    data = {"actions": [{"add": {"index": index, "alias": alias}}]}
+    data = {"actions": [{"add": {"index": destination_index, "alias": alias}}]}
     r = requests.post(
         url, 
         headers=headers,
@@ -96,7 +96,7 @@ def main():
     if not (200 <= r.status_code <= 299):
         print_opensearch_error(r, url)
         r.raise_for_status()
-    print(f"added index `{index}` to alias `{alias}`")
+    print(f"added index `{destination_index}` to alias `{alias}`")
 
 if __name__ == "__main__":
     main()
