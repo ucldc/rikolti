@@ -1,6 +1,10 @@
+from urllib.parse import urlparse, parse_qs
 import requests
 
 def registry_endpoint(url):
+    if parse_qs(urlparse(url).query).get('format') != ['json']:
+        raise KeyError("registry_client requires urls with format=json")
+
     page = url
     while page:
         response = requests.get(url=page)
