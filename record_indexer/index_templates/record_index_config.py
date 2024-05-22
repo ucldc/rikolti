@@ -5,9 +5,8 @@ RECORD_INDEX_CONFIG = {
             "number_of_shards": 1,
             "number_of_replicas": 1,
             "analysis": {
-                "analyzer": {
-                    "keyword_lowercase_trim": {
-                        "tokenizer": "keyword",
+                "normalizer": {
+                    "lowercase_trim": {
                         "filter": ["trim", "lowercase"]
                     }
                 }
@@ -40,7 +39,7 @@ RECORD_INDEX_CONFIG = {
                 "temporal": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
                 "type": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
 
-                "sort_title": {"type": "text", "analyzer": "keyword_lowercase_trim"},
+                "sort_title": {"type": "keyword", "normalizer": "lowercase_trim"},
                 "facet_decade": {"type": "text", "fields": {"raw": {"type": "keyword"}}},
 
                 "description": {"type": "text"},
