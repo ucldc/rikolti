@@ -8,112 +8,117 @@ import time
 from ..utils import print_opensearch_error
 from .. import settings
 
-def get_aliased_indexes(alias):
-    '''
-    get the names of all indexes currently aliased to `alias`
-    '''
-    url = f"{settings.ENDPOINT}/_alias/{alias}"
-    resp = requests.get(url, auth=settings.get_auth())
-    resp.raise_for_status()
-    aliased_indices = [key for key in resp.json().keys()]
-    if len(aliased_indices) != 1:
-        raise ValueError(
-            f"Alias `{alias}` has {len(aliased_indices)} aliased indices. "
-            "There should be 1."
+class OpensearchClient(object):
+    def __init__(self, endpoint, auth):
+        self.endpoint = endpoint
+        self.auth = auth
+
+    def get_aliased_indexes(self, alias):
+        '''
+        get the names of all indexes currently aliased to `alias`
+        '''
+        url = f"{self.endpoint}/_alias/{alias}"
+        resp = requests.get(url, auth=self.auth)
+        resp.raise_for_status()
+        aliased_indices = [key for key in resp.json().keys()]
+        if len(aliased_indices) != 1:
+            raise ValueError(
+                f"Alias `{alias}` has {len(aliased_indices)} aliased indices. "
+                "There should be 1."
+            )
+        else:
+            return aliased_indices
+
+
+    def reindex(self, source_index, destination_index):
+        '''
+        reindex all records from `source_index` into `destination_index`
+        '''
+        url = f"{self.endpoint}/_reindex"
+        data = {
+            "source": {"index": source_index},
+            "dest": {"index": destination_index}
+        }
+        print(f"Reindexing `{source_index}` into `{destination_index}`")
+        resp = requests.post(
+            url,
+            headers={"Content-Type": "application/json"},
+            auth=self.auth,
+            params={"wait_for_completion": "false"},
+            data=json.dumps(data)
         )
-    else:
-        return aliased_indices
+        if not (200 <= resp.status_code <= 299):
+            print_opensearch_error(resp, f"{self.endpoint}/_reindex")
+            resp.raise_for_status()
+        return resp.json()['task']
 
 
-def reindex(source_index, destination_index):
-    '''
-    reindex all records from `source_index` into `destination_index`
-    '''
-    url = f"{settings.ENDPOINT}/_reindex"
-    data = {
-        "source": {"index": source_index},
-        "dest": {"index": destination_index}
-    }
-    print(f"Reindexing `{source_index}` into `{destination_index}`")
-    resp = requests.post(
-        url,
-        headers={"Content-Type": "application/json"},
-        auth=settings.get_auth(),
-        params={"wait_for_completion": "false"},
-        data=json.dumps(data)
-    )
-    if not (200 <= resp.status_code <= 299):
-        print_opensearch_error(resp, f"{settings.ENDPOINT}/_reindex")
-        resp.raise_for_status()
-    return resp.json()['task']
+    def remove_alias(self, index, alias):
+        '''
+        remove `index` from `alias`
+        '''
+        url = f"{self.endpoint}/_aliases"
+        data = {
+            "actions": [
+                {"remove": {
+                    "indices": index, 
+                    "alias": alias
+                }}
+            ]
+        }
+        resp = requests.post(
+            url,
+            headers={"Content-Type": "application/json"},
+            auth=self.auth,
+            data=json.dumps(data)
+        )
+        if not (200 <= resp.status_code <= 299):
+            print_opensearch_error(resp, url)
+            resp.raise_for_status()
+        
+        print(resp.json())
+        print(f"removed `{index}` from alias `{alias}`")
+        return resp.json()
 
 
-def remove_alias(index, alias):
-    '''
-    remove `index` from `alias`
-    '''
-    url = f"{settings.ENDPOINT}/_aliases"
-    data = {
-        "actions": [
-            {"remove": {
-                "indices": index, 
-                "alias": alias
-            }}
-        ]
-    }
-    resp = requests.post(
-        url,
-        headers={"Content-Type": "application/json"},
-        auth=settings.get_auth(),
-        data=json.dumps(data)
-    )
-    if not (200 <= resp.status_code <= 299):
-        print_opensearch_error(resp, url)
-        resp.raise_for_status()
-    
-    print(resp.json())
-    print(f"removed `{index}` from alias `{alias}`")
-    return resp.json()
+    def add_alias(self, index, alias):
+        '''
+        add `index` to `alias`
+        '''
+        url = f"{self.endpoint}/_aliases"
+        data = {
+            "actions": [
+                {"add": {
+                    "index": index, 
+                    "alias": alias
+                }}
+            ]
+        }
+        resp = requests.post(
+            url,
+            headers={"Content-Type": "application/json"},
+            auth=self.auth,
+            data=json.dumps(data)
+        )
+        if not (200 <= resp.status_code <= 299):
+            print_opensearch_error(resp, url)
+            resp.raise_for_status()
+
+        print(f"added index `{index}` to alias `{alias}`")
+        return resp.json()
 
 
-def add_alias(index, alias):
-    '''
-    add `index` to `alias`
-    '''
-    url = f"{settings.ENDPOINT}/_aliases"
-    data = {
-        "actions": [
-            {"add": {
-                "index": index, 
-                "alias": alias
-            }}
-        ]
-    }
-    resp = requests.post(
-        url,
-        headers={"Content-Type": "application/json"},
-        auth=settings.get_auth(),
-        data=json.dumps(data)
-    )
-    if not (200 <= resp.status_code <= 299):
-        print_opensearch_error(resp, url)
-        resp.raise_for_status()
+    def get_task(self, task_id):
+        '''
+        poll the task API until the task with `task_id` is complete
+        '''
+        url = f"{self.endpoint}/_tasks/{task_id}"
+        resp = requests.get(url, auth=self.auth)
+        if not (200 <= resp.status_code <= 299):
+            print_opensearch_error(resp, url)
+            resp.raise_for_status()
 
-    print(f"added index `{index}` to alias `{alias}`")
-    return resp.json()
-
-
-def get_task(task_id):
-    '''
-    poll the task API until the task with `task_id` is complete
-    '''
-    url = f"{settings.ENDPOINT}/_tasks/{task_id}"
-    resp = requests.get(url, auth=settings.get_auth())
-    if not (200 <= resp.status_code <= 299):
-        print_opensearch_error(resp, url)
-        resp.raise_for_status()
-
-    return resp.json()
+        return resp.json()
 
 
 def main():
@@ -135,26 +140,30 @@ def main():
     '''
 
     alias = "rikolti-stg"
-    auth = settings.get_auth()
+    os_client = OpensearchClient(settings.ENDPOINT, settings.get_auth())
 
     # get name of index currently aliased to rikolti-stg
-    source_index = get_aliased_indexes(alias)[0]
+    source_index = os_client.get_aliased_indexes(alias)[0]
 
     # create new index name
     version = datetime.today().strftime("%Y%m%d%H%M%S")
     destination_index = f"rikolti-stg-{version}"
 
     # reindex
-    task_id = reindex(source_index, destination_index)
+    task_id = os_client.reindex(source_index, destination_index)
 
     # poll task API until reindexing is complete
-    task_state = get_task(task_id)
+    task_state = os_client.get_task(task_id)
     while not task_state.get('completed'):
         time.sleep(5)
-        task_state = get_task(task_id)
+        task_state = os_client.get_task(task_id)
+    
+    print("Reindexing complete")
 
-    removal_json_resp = remove_alias(source_index, alias)
-    add_json_resp = add_alias(destination_index, alias)
+    removal_json_resp = os_client.remove_alias(source_index, alias)
+    add_json_resp = os_client.add_alias(destination_index, alias)
+    print(removal_json_resp)
+    print(add_json_resp)
 
 if __name__ == "__main__":
     main()
