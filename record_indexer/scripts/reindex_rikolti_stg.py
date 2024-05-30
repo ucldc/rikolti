@@ -50,6 +50,7 @@ class OpensearchClient(object):
         if not (200 <= resp.status_code <= 299):
             print_opensearch_error(resp, f"{self.endpoint}/_reindex")
             resp.raise_for_status()
+        print(resp.json()['task'])
         return resp.json()['task']
 
 
