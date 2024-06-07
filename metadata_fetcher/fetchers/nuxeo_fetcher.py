@@ -92,8 +92,10 @@ class NuxeoFetcher(Fetcher):
         )
         query = recursive_object_nxql
 
+        # using the @search endpoint results in components being out of order
+        # in the response for some objects
         request = {
-            'url': "https://nuxeo.cdlib.org/Nuxeo/site/api/v1/path/@search",
+            'url': "https://nuxeo.cdlib.org/Nuxeo/site/api/v1/search/lang/NXQL/execute",
             'headers': self.nuxeo_request_headers,
             'params': {
                 'pageSize': '100',
