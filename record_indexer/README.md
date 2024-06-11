@@ -5,7 +5,7 @@ To create the [index template](https://www.elastic.co/guide/en/elasticsearch/ref
 Make sure that RIKOLTI_ES_ENDPOINT is set in your environment.
 
 ```
-python index_templates/rikolti_template.py
+python -m record_indexer.index_templates.rikolti_template
 ```
 
 This creates a template that will be used whenever an index with name matching `rikolti*` is added to the cluster.
