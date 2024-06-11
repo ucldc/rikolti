@@ -7,10 +7,9 @@ import requests
 from ..utils import print_opensearch_error
 from .. import settings
 
-def main(collection_id):
-    alias = "rikolti-stg"
 
-    # get name of index currently aliased to rikolti-stg
+def delete_collection(collection_id, alias):
+    # get name of index currently aliased to alias
     url = f"{settings.ENDPOINT}/_alias/{alias}"
     r = requests.get(url, auth=settings.get_auth())
     r.raise_for_status()
@@ -43,10 +42,11 @@ def main(collection_id):
         r.raise_for_status()
     print(r.json())   
 
-    
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("collection_id", help="Registry ID of collection to delete")
     args = parser.parse_args()
-    main(args.collection_id)
+    delete_collection(args.collection_id, "rikolti-stg")
+
     sys.exit()
