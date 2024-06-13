@@ -67,6 +67,9 @@ class Fetcher(object):
             f"[{self.collection_id}]: fetching page {self.write_page} "
             f"at {page.get('url')}"
         )
+        if 'url' not in page:
+            raise InvalidHarvestEndpoint(
+                f"[{self.collection_id}]: invalid harvest endpoint")
         try:
             response = requests.get(**page)
             response.raise_for_status()
