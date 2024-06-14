@@ -12,6 +12,9 @@ from rikolti.utils.versions import create_vernacular_version, get_version
 logger = logging.getLogger(__name__)
 
 def import_fetcher(harvest_type):
+    if harvest_type == "emuseum":
+        harvest_type = "ems"
+
     fetcher_module = importlib.import_module(
         f".fetchers.{harvest_type}_fetcher", package=__package__)
     fetcher_module_words = harvest_type.split('_')
