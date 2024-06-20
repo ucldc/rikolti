@@ -5,7 +5,6 @@ from airflow.decorators import task
 
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
 from rikolti.dags.shared_tasks.shared import send_event_to_sns
-from rikolti.record_indexer.move_index_to_prod import move_index_to_prod
 from rikolti.record_indexer.update_stage_index import update_stage_index_for_collection
 from rikolti.utils.versions import get_version
 
@@ -37,11 +36,3 @@ def update_stage_index_for_collection_task(
     )
 
     send_event_to_sns(context, {'record_indexer_success': 'success'})
-
-@task(task_id="move_index_to_prod")
-def move_index_to_prod_task(collection: dict):
-    collection_id = collection.get('id')
-    if not collection_id:
-        raise ValueError(
-            f"Collection ID not found in collection metadata: {collection}")
-    move_index_to_prod(collection_id)
