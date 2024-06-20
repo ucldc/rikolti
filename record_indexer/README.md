@@ -18,12 +18,6 @@ Create a new index for a collection and add it to the `rikolti-stg` alias:
 python -m record_indexer.create_collection_index <collection_id>
 ```
 
-Add the current stage index for a collection to the `rikolti-prd` alias:
-
-```
-python -m record_indexer.move_index_to_prod <collection_id>
-```
-
 ## Indexer development using aws-mwaa-local-runner
 
 See the Rikolti README page section on [Airflow Development](https://github.com/ucldc/rikolti/#airflow-development). In particular, make sure that indexer-related env vars are set as described there.
