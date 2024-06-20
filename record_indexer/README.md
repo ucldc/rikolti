@@ -12,11 +12,7 @@ This creates a template that will be used whenever an index with name matching `
 
 ## Run indexer from command line
 
-Create a new index for a collection and add it to the `rikolti-stg` alias:
-
-```
-python -m record_indexer.create_collection_index <collection_id>
-```
+TODO: We don't currently support running the indexer from the command line
 
 ## Indexer development using aws-mwaa-local-runner
 
