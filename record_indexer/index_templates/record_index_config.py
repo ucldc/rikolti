@@ -96,6 +96,13 @@ RECORD_INDEX_CONFIG = {
                 "url_item": {"type": "keyword"},
                 "fetcher_type": {"type": "keyword"},
                 "mapper_type": {"type": "keyword"},
+                "rikolti": {
+                    "properties": {
+                        "indexed_at": {"type": "date"},
+                        "version_path": {"type": "keyword"},
+                        "page": {"type": "keyword"},
+                    }
+                },
 
                 "sort_date_start": {"type": "date"},
                 "sort_date_end": {"type": "date"},

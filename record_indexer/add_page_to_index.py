@@ -93,7 +93,7 @@ def get_expected_fields():
     return expected_fields
 
 
-def add_page(version_page: str, index: str):
+def add_page(version_page: str, index: str, rikolti_data: dict):
     if 'merged' in version_page:
         records = get_merged_page_content(version_page)
     else:
@@ -107,6 +107,8 @@ def add_page(version_page: str, index: str):
         for field in removed_fields:
             removed_fields_report[field].append(calisphere_id)
 
+        record['rikolti'] = dict(record.get('rikolti', {}), **rikolti_data)
+        record['rikolti']['page'] = version_page.split('/')[-1]
 
     bulk_add(records, index)
 
