@@ -5,7 +5,7 @@ from airflow.decorators import task
 
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
 from rikolti.dags.shared_tasks.shared import send_event_to_sns
-from rikolti.record_indexer.update_stage_index import update_stage_index_for_collection
+from rikolti.record_indexer.index_collection import index_collection
 from rikolti.utils.versions import get_version
 
 @task(task_id="create_stage_index", on_failure_callback=notify_rikolti_failure)
@@ -18,7 +18,7 @@ def update_stage_index_for_collection_task(
             f"Collection ID not found in collection metadata: {collection}")
 
     try:
-        update_stage_index_for_collection(collection_id, version_pages)
+        index_collection("rikolti-stg", collection_id, version_pages)
     except Exception as e:
         # TODO: implement some rollback exception handling?
         raise e
