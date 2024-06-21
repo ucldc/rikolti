@@ -22,7 +22,6 @@ def get_auth():
     return AWSV4SignerAuth(
         credentials, os.environ.get("AWS_REGION", "us-west-2"))
 
-
-ENDPOINT = os.environ.get("OPENSEARCH_ENDPOINT", False)
+ENDPOINT = os.environ.get("OPENSEARCH_ENDPOINT")
 if ENDPOINT:
     ENDPOINT = ENDPOINT.rstrip("/")

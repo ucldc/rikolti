@@ -5,9 +5,12 @@ from .add_page_to_index import add_page
 from . import settings
 from .utils import print_opensearch_error
 
-def update_stage_index_for_collection(collection_id: str, version_pages: list[str]):
-    ''' update stage index with a new set of collection records '''
-    index = get_index_for_alias("rikolti-stg")
+
+def index_collection(alias: str, collection_id: str, version_pages: list[str]):
+    '''
+    find 1 index at alias and update it with records from version_pages
+    '''
+    index = get_index_for_alias(alias)
 
     # delete existing records
     delete_collection_records_from_index(collection_id, index)
