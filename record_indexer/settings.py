@@ -6,11 +6,11 @@ from opensearchpy import AWSV4SignerAuth
 
 load_dotenv()
 
-es_user = os.environ.get("RIKOLTI_ES_USER")
-es_pass = os.environ.get("RIKOLTI_ES_PASS")
+es_user = os.environ.get("OPENSEARCH_USER")
+es_pass = os.environ.get("OPENSEARCH_PASS")
 
 def verify_certs():
-    return not os.environ.get("RIKOLTI_ES_IGNORE_TLS", False)
+    return not os.environ.get("OPENSEARCH_IGNORE_TLS", False)
 
 def get_auth():
     if es_user and es_pass:
@@ -23,7 +23,6 @@ def get_auth():
         credentials, os.environ.get("AWS_REGION", "us-west-2"))
 
 
-ENDPOINT = os.environ.get("RIKOLTI_ES_ENDPOINT", False)
+ENDPOINT = os.environ.get("OPENSEARCH_ENDPOINT", False)
 if ENDPOINT:
     ENDPOINT = ENDPOINT.rstrip("/")
-STAGE_ALIAS = os.environ.get("RIKOLTI_ES_STAGE_ALIAS")

@@ -208,7 +208,7 @@ export MOUNT_CODEBASE=<path to rikolti, for example: /Users/awieliczka/Projects/
 In order to run the indexer code, make sure the following variables are set:
 
 ```
-export RIKOLTI_ES_ENDPOINT= # ask for endpoint url
+export OPENSEARCH_ENDPOINT= # ask for endpoint url
 ```
 
 Also make sure to set your temporary AWS credentials and the region so that the mwaa-local-runner container can authenticate when talking to the OpenSearch API:
