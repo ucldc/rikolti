@@ -19,7 +19,11 @@ def update_stage_index_for_collection(collection_id: str, version_pages: list[st
 def get_index_for_alias(alias: str):
     # for now, there should be only one index per alias (stage, prod)
     url = f"{settings.ENDPOINT}/_alias/{alias}"
-    r = requests.get(url, auth=settings.get_auth())
+    r = requests.get(
+        url,
+        auth=settings.get_auth(),
+        verify=settings.verify_certs()
+    )
     if not (200 <= r.status_code <= 299):
         print_opensearch_error(r, url)
         r.raise_for_status()
@@ -43,7 +47,12 @@ def delete_collection_records_from_index(collection_id: str, index: str):
     }
 
     r = requests.post(
-        url=url, data=json.dumps(data), headers=headers, auth=settings.get_auth())
+        url=url,
+        data=json.dumps(data),
+        headers=headers,
+        auth=settings.get_auth(),
+        verify=settings.verify_certs()
+    )
     if not (200 <= r.status_code <= 299):
         print_opensearch_error(r, url)
         r.raise_for_status()
