@@ -5,10 +5,10 @@ printf "\n\n>>> Creating the 'rikolti-dev-index' index\n"
 curl -X PUT "https://localhost:9200/rikolti-dev-index" -ku admin:Rikolti_05
 
 printf "\n\n>>> Creating the 'rikolti' template\n"
-export RIKOLTI_ES_ENDPOINT=https://localhost:9200/
-export RIKOLTI_ES_USER=admin
-export RIKOLTI_ES_PASS="Rikolti_05"
-export RIKOLTI_ES_IGNORE_TLS=True
+export OPENSEARCH_ENDPOINT=https://localhost:9200/
+export OPENSEARCH_USER=admin
+export OPENSEARCH_PASS="Rikolti_05"
+export OPENSEARCH_IGNORE_TLS=True
 python -m record_indexer.index_templates.rikolti_template
 
 printf "\n>>> Creating the 'rikolti-stg' alias\n"

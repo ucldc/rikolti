@@ -30,7 +30,7 @@ def update_stage_index_for_collection_task(
     print(
         f"\n\nReview indexed records at: https://rikolti-data.s3.us-west-2."
         f"amazonaws.com/index.html#{version.rstrip('/')}/data/ \n\n"
-        f"Or on opensearch at: {os.environ.get('RIKOLTI_ES_ENDPOINT')}"
+        f"Or on opensearch at: {os.environ.get('OPENSEARCH_ENDPOINT')}"
         "/_dashboards/app/dev_tools#/console with query:\n"
         f"{json.dumps(dashboard_query, indent=2)}\n\n\n"
     )
