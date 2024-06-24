@@ -36,7 +36,6 @@ def get_version_pages(params=None):
 def index_collection_to_stage_dag():
     collection = get_registry_data_task()
     version_pages = get_version_pages()
-    index_name = update_stage_index_for_collection_task(
-        collection, version_pages)  # noqa F841
+    index_name = update_stage_index_for_collection_task(collection, version_pages)  # noqa F841
 
 index_collection_to_stage_dag()
