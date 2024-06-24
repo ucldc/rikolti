@@ -87,7 +87,7 @@ class NuxeoFetcher(Fetcher):
         recursive_object_nxql = (
             "SELECT * FROM SampleCustomPicture, CustomFile, "
             "CustomVideo, CustomAudio, CustomThreeD "
-            f"WHERE ecm:path STARTSWITH '{record['path']}' "
+            f"WHERE ecm:ancestorId = '{record['uid']}' "
             "AND ecm:isTrashed = 0 ORDER BY ecm:pos"
         )
         query = recursive_object_nxql
