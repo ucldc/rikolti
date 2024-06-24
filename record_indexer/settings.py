@@ -26,5 +26,4 @@ def get_auth():
 ENDPOINT = os.environ.get("RIKOLTI_ES_ENDPOINT", False)
 if ENDPOINT:
     ENDPOINT = ENDPOINT.rstrip("/")
-INDEX_RETENTION = os.environ.get("INDEX_RETENTION", 0)
 STAGE_ALIAS = os.environ.get("RIKOLTI_ES_STAGE_ALIAS")
