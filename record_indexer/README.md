@@ -32,23 +32,37 @@ export OPENSEARCH_PASS=Rikolti_05
 export OPENSEARCH_IGNORE_TLS=True
 ```
 
-**To use this OpenSearch docker container with mwaa-local-runner, set the previous values and the below endpoint in dags/startup.sh:**
+**To connect to this OpenSearch docker container from mwaa-local-runner, set the previous values and the below endpoint in dags/startup.sh:**
 
 ```
 export OPENSEARCH_ENDPOINT=https://host.docker.internal:9200/
 ```
 
+**To use this OpenSearch docker container from your host machine, set the previous values and the below endpoint in env.local:**
+
+```
+export OPENSEARCH_ENDPOINT=https://localhost:9200/
+```
+
 ## Initializing an OpenSearch instance to work with Rikolti
 
-Create an index template for rikolti:
-
 Make sure that OPENSEARCH_ENDPOINT and the relevant authentication is set in your environment.
+
+1. Create an index template for rikolti:
 
 ```
 python -m record_indexer.index_templates.rikolti_template
 ```
 
 This creates a record template that will be used for adding documents to any index with name matching `rikolti*` is added to the cluster.
+
+2. Create an index and add it to the alias `rikolti-stg`
+
+```
+python -m record_indexer.initialize.add_rikolti-stg_index
+```
+
+This creates an empty index named `rikolti-<current timestamp>` (enforcing the use of the rikolti_template for all records indexed into it) and assigns it to the alias `rikolti-stg`. 
 
 ## Running the Record Indexer
 
@@ -59,6 +73,8 @@ TODO: We don't currently support running the indexer from the command line
 See the Rikolti README page section on [Airflow Development](https://github.com/ucldc/rikolti/#airflow-development). In particular, make sure that indexer-related env vars are set as described there.
 
 ## Index lifecycle
+
+TODO: this section is all pretty defunct now; update documentation
 
 The lifecycle of an index is as follows:
 
