@@ -52,6 +52,7 @@ def main():
         headers={"Content-Type": "application/json"},
         data=json.dumps(RECORD_INDEX_CONFIG),
         auth=settings.get_auth(),
+        verify=settings.verify_certs()
     )
     if not (200 <= r.status_code <= 299):
         print_opensearch_error(r, url)
