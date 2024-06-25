@@ -29,12 +29,26 @@ def update_stage_index_for_collection_task(
     }}
     hr = f"\n{'-'*40}\n"
     end = f"\n{'~'*40}\n"
+    s3_url = (
+        "https://rikolti-data.s3.us-west-2.amazonaws.com/index.html#"
+        f"{version}/data/"
+    )
+    opensearch_url = (
+        f"{os.environ.get('OPENSEARCH_ENDPOINT')}/_dashboards/app/"
+        "dev_tools#/console"
+    )
+    calisphere_url = (
+        f"https://calisphere-stage.cdlib.org/collections/{collection_id}/"
+    )
     print(
-        f"{hr}Review indexed records at: \n https://rikolti-data.s3.us-west-2."
-        f"amazonaws.com/index.html#{version.rstrip('/')}/data/ \n\n"
-        f"Or on opensearch at: {os.environ.get('OPENSEARCH_ENDPOINT')}"
-        "/_dashboards/app/dev_tools#/console with query:\n"
-        f"{json.dumps(dashboard_query, indent=2)}{end}"
+        f"{hr}Review indexed records at:\n {s3_url}\n\n"
+        f"On opensearch at:\n {opensearch_url}\nwith query:\n"
+        f"{json.dumps(dashboard_query, indent=2)}\n\n"
+        f"On calisphere-stage at:\n {calisphere_url}\n{end}"
+    )
+    print(
+        f"{hr}Successfully published version:\n {version}\nto the "
+        f"stage index{end}"
     )
 
     send_event_to_sns(context, {'record_indexer_success': 'success'})
