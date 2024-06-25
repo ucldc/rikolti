@@ -113,16 +113,24 @@ def index_page(version_page: str, index: str, rikolti_data: dict):
 
     bulk_add(records, index)
 
-    print(
-        f"added {len(records)} records to index `{index}` from "
-        f"page `{version_page}`"
+    start = "\n" + "-"*40 + "\n"
+    end = "\n" + "~"*40 + "\n"
+
+    message = (
+        f"{start}Indexed {len(records)} records to index `{index}` from "
+        f"page `{version_page}`\n"
     )
     for field, calisphere_ids in removed_fields_report.items():
         if len(calisphere_ids) != len(records):
-            print(
-                f"    {len(calisphere_ids)} items had {field} "
-                f"removed: `{calisphere_ids}`"
+            message += (
+                f"{' '*5}{len(calisphere_ids)} items had {field} "
+                f"removed: `{calisphere_ids}`\n"
             )
         else:
-            print(f"    all {len(records)} records had {field} field removed")
+            message += (
+                f"{' '*5}all {len(records)} records had {field} field "
+                "removed\n"
+            )
+    message += end
+    print(message)
 
