@@ -25,6 +25,7 @@ def main():
     # child schema == record schema, except without the "children" field
     child_schema = copy.deepcopy(record_schema)
     del child_schema["children"]
+    del child_schema["rikolti"]
 
     # create nested alias fields
     del child_schema["collection_id"]
