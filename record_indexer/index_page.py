@@ -93,7 +93,7 @@ def get_expected_fields():
     return expected_fields
 
 
-def add_page(version_page: str, index: str, rikolti_data: dict):
+def index_page(version_page: str, index: str, rikolti_data: dict):
     if 'merged' in version_page:
         records = get_merged_page_content(version_page)
     else:

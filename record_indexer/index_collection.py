@@ -2,7 +2,7 @@ import json
 import requests
 from datetime import datetime
 
-from .add_page_to_index import add_page
+from .index_page import index_page
 from . import settings
 from .utils import print_opensearch_error
 from rikolti.utils.versions import get_version
@@ -22,7 +22,7 @@ def index_collection(alias: str, collection_id: str, version_pages: list[str]):
 
     # add pages of records to index
     for version_page in version_pages:
-        add_page(version_page, index, rikolti_data)
+        index_page(version_page, index, rikolti_data)
 
     # delete existing records
     delete_collection_records_from_index(collection_id, index, version_path)
