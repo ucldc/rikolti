@@ -103,6 +103,18 @@ def delete_collection_records_from_index(
         'aggregations', {}).get('version_paths', {}).get('buckets')
 
     if num_outdated_records > 0:
+        hr = "\n" + "-"*40 + "\n"
+        end = "\n" + "~"*40 + "\n"
+        message = (
+            f"{hr}> Deleting {num_outdated_records} outdated record(s) from "
+            f"collection {collection_id} in `{index}` index.\n"
+            f"{'records':>8}: outdated versions\n"
+        )
+        for v in oudated_versions:
+            message += (f"{v.get('doc_count'):>8}: {v.get('key')}\n")
+        message += f"New indexed documents have version: {version_path}{end}"
+        print(message)
+
         url = f"{settings.ENDPOINT}/{index}/_delete_by_query"
         r = requests.post(
             url=url,
@@ -114,7 +126,7 @@ def delete_collection_records_from_index(
         if not (200 <= r.status_code <= 299):
             print_opensearch_error(r, url)
             r.raise_for_status()
-        print(f"deleted records with collection_id `{collection_id}` from index `{index}`")
+        print(f"{hr}> Deletion results:\n{json.dumps(r.json(), indent=2)}{end}")
     else:
         print(f"No outdated records found for collection {collection_id} in `{index}` index.")
 

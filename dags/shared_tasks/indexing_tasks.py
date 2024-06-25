@@ -27,12 +27,14 @@ def update_stage_index_for_collection_task(
     dashboard_query = {"query": {
         "bool": {"filter": {"terms": {"collection_url": [collection_id]}}}
     }}
+    hr = f"\n{'-'*40}\n"
+    end = f"\n{'~'*40}\n"
     print(
-        f"\n\nReview indexed records at: https://rikolti-data.s3.us-west-2."
+        f"{hr}Review indexed records at: \n https://rikolti-data.s3.us-west-2."
         f"amazonaws.com/index.html#{version.rstrip('/')}/data/ \n\n"
         f"Or on opensearch at: {os.environ.get('OPENSEARCH_ENDPOINT')}"
         "/_dashboards/app/dev_tools#/console with query:\n"
-        f"{json.dumps(dashboard_query, indent=2)}\n\n\n"
+        f"{json.dumps(dashboard_query, indent=2)}{end}"
     )
 
     send_event_to_sns(context, {'record_indexer_success': 'success'})
