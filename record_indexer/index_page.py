@@ -22,6 +22,7 @@ def bulk_add(records: list, index: str):
         url,
         headers=headers,
         data=data,
+        params={"refresh": "true"},
         auth=settings.get_auth(),
         verify=settings.verify_certs()
     )
@@ -60,7 +61,7 @@ def build_bulk_request_body(records: list, index: str):
     for record in records:
         doc_id = record.get("id")
 
-        action = {"create": {"_index": index, "_id": doc_id}}
+        action = {"index": {"_index": index, "_id": doc_id}}
 
         body += f"{json.dumps(action)}\n{json.dumps(record)}\n"
 
