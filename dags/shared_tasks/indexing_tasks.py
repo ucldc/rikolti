@@ -51,4 +51,8 @@ def update_stage_index_for_collection_task(
         f"stage index{end}"
     )
 
-    send_event_to_sns(context, {'record_indexer_success': 'success'})
+    send_event_to_sns(context, {
+        'record_indexer_success': 'success', 
+        'version': version, 
+        'index': 'rikolti-stg'
+    })
