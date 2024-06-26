@@ -56,10 +56,10 @@ python -m record_indexer.index_templates.rikolti_template
 
 This creates a record template that will be used for adding documents to any index with name matching `rikolti*` is added to the cluster.
 
-2. Create an index and add it to the alias `rikolti-stg`
+2. Create an initial stage and prod indexes and add the aliases `rikolti-stg` and `rikolti-prd` to each respectively: 
 
 ```
-python -m record_indexer.initialize.add_rikolti-stg_index
+python -m record_indexer.initialize.indices_and_aliases
 ```
 
 This creates an empty index named `rikolti-<current timestamp>` (enforcing the use of the rikolti_template for all records indexed into it) and assigns it to the alias `rikolti-stg`. 
