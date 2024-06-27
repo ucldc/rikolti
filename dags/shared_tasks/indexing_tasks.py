@@ -5,20 +5,18 @@ from airflow.decorators import task
 
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
 from rikolti.dags.shared_tasks.shared import send_event_to_sns
-from rikolti.record_indexer.update_stage_index import update_stage_index_for_collection
-from rikolti.utils.versions import get_version
+from rikolti.record_indexer.index_collection import index_collection
+from rikolti.utils.versions import (
+    get_version, get_merged_pages, get_with_content_urls_pages)
 
-@task(task_id="create_stage_index", on_failure_callback=notify_rikolti_failure)
-def update_stage_index_for_collection_task(
-    collection: dict, version_pages: list[str], **context):
-
+def index_collection_task(alias, collection, version_pages, context):
     collection_id = collection.get('id')
     if not collection_id:
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
 
     try:
-        update_stage_index_for_collection(collection_id, version_pages)
+        index_collection(alias, collection_id, version_pages)
     except Exception as e:
         # TODO: implement some rollback exception handling?
         raise e
@@ -27,12 +25,71 @@ def update_stage_index_for_collection_task(
     dashboard_query = {"query": {
         "bool": {"filter": {"terms": {"collection_url": [collection_id]}}}
     }}
+    hr = f"\n{'-'*40}\n"
+    end = f"\n{'~'*40}\n"
+    s3_url = (
+        "https://rikolti-data.s3.us-west-2.amazonaws.com/index.html#"
+        f"{version}/data/"
+    )
+    opensearch_url = (
+        f"{os.environ.get('OPENSEARCH_ENDPOINT', '').rstrip('/')}/"
+        "_dashboards/app/dev_tools#/console"
+    )
+    calisphere_url = f"/collections/{collection_id}/"
+    print(alias)
+    if alias == 'rikolti-prd':
+        calisphere_url = f"https://calisphere.org{calisphere_url}"
+    else:
+        calisphere_url = f"https://calisphere-stage.cdlib.org{calisphere_url}"
+
     print(
-        f"\n\nReview indexed records at: https://rikolti-data.s3.us-west-2."
-        f"amazonaws.com/index.html#{version.rstrip('/')}/data/ \n\n"
-        f"Or on opensearch at: {os.environ.get('OPENSEARCH_ENDPOINT')}"
-        "/_dashboards/app/dev_tools#/console with query:\n"
-        f"{json.dumps(dashboard_query, indent=2)}\n\n\n"
+        f"{hr}Review indexed records at:\n {s3_url}\n\n"
+        f"On opensearch at:\n {opensearch_url}\nwith query:\n"
+        f"GET /{alias}/_search\n"
+        f"{json.dumps(dashboard_query, indent=2)}\n\n"
+        f"On calisphere at:\n {calisphere_url}\n{end}"
+    )
+    verbed = "published" if alias == 'rikolti-prd' else "staged"
+    print(
+        f"{hr}Successfully {verbed} version:\n {version}\nto the "
+        f"`{alias}` index{end}"
     )
 
-    send_event_to_sns(context, {'record_indexer_success': 'success'})
+    send_event_to_sns(context, {
+        'record_indexer_success': 'success', 
+        'version': version, 
+        'index': alias
+    })
+
+@task(task_id="get_version_pages")
+def get_version_pages(params=None):
+    if not params or not params.get('version'):
+        raise ValueError("Version path not found in params")
+    version = params.get('version')
+
+    if 'merged' in version:
+        version_pages = get_merged_pages(version)
+    else:
+        version_pages = get_with_content_urls_pages(version)
+
+    return version_pages
+
+
+@task(
+        task_id="create_stage_index", 
+        on_failure_callback=notify_rikolti_failure,
+        pool="rikolti_opensearch_pool")
+def stage_collection_task(
+    collection: dict, version_pages: list[str], **context):
+
+    index_collection_task("rikolti-stg", collection, version_pages, context)
+
+
+@task(
+        task_id="publish_collection", 
+        on_failure_callback=notify_rikolti_failure,
+        pool="rikolti_opensearch_pool")
+def publish_collection_task(
+    collection: dict, version_pages: list[str], **context):
+
+    index_collection_task("rikolti-prd", collection, version_pages, context)

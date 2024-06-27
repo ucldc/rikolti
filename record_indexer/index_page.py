@@ -22,6 +22,7 @@ def bulk_add(records: list, index: str):
         url,
         headers=headers,
         data=data,
+        params={"refresh": "true"},
         auth=settings.get_auth(),
         verify=settings.verify_certs()
     )
@@ -60,7 +61,7 @@ def build_bulk_request_body(records: list, index: str):
     for record in records:
         doc_id = record.get("id")
 
-        action = {"create": {"_index": index, "_id": doc_id}}
+        action = {"index": {"_index": index, "_id": doc_id}}
 
         body += f"{json.dumps(action)}\n{json.dumps(record)}\n"
 
@@ -93,7 +94,7 @@ def get_expected_fields():
     return expected_fields
 
 
-def add_page(version_page: str, index: str):
+def index_page(version_page: str, index: str, rikolti_data: dict):
     if 'merged' in version_page:
         records = get_merged_page_content(version_page)
     else:
@@ -107,19 +108,29 @@ def add_page(version_page: str, index: str):
         for field in removed_fields:
             removed_fields_report[field].append(calisphere_id)
 
+        record['rikolti'] = dict(record.get('rikolti', {}), **rikolti_data)
+        record['rikolti']['page'] = version_page.split('/')[-1]
 
     bulk_add(records, index)
 
-    print(
-        f"added {len(records)} records to index `{index}` from "
-        f"page `{version_page}`"
+    start = "\n" + "-"*40 + "\n"
+    end = "\n" + "~"*40 + "\n"
+
+    message = (
+        f"{start}Indexed {len(records)} records to index `{index}` from "
+        f"page `{version_page}`\n"
     )
     for field, calisphere_ids in removed_fields_report.items():
         if len(calisphere_ids) != len(records):
-            print(
-                f"    {len(calisphere_ids)} items had {field} "
-                f"removed: `{calisphere_ids}`"
+            message += (
+                f"{' '*5}{len(calisphere_ids)} items had {field} "
+                f"removed: `{calisphere_ids}`\n"
             )
         else:
-            print(f"    all {len(records)} records had {field} field removed")
+            message += (
+                f"{' '*5}all {len(records)} records had {field} field "
+                "removed\n"
+            )
+    message += end
+    print(message)
 

@@ -30,7 +30,7 @@ class OpensearchClient(object):
             return aliased_indices
 
 
-    def reindex(self, source_index, destination_index):
+    def reindex(self, source_index, destination_index, script=None):
         '''
         reindex all records from `source_index` into `destination_index`
         '''
@@ -39,6 +39,8 @@ class OpensearchClient(object):
             "source": {"index": source_index},
             "dest": {"index": destination_index}
         }
+        if script:
+            data['script'] = {"source": script, "lang": "painless"}
         print(f"Reindexing `{source_index}` into `{destination_index}`")
         resp = requests.post(
             url,
