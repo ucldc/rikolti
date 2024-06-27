@@ -205,19 +205,23 @@ If you would like to mount your own codebase to the content_harvester container 
 export MOUNT_CODEBASE=<path to rikolti, for example: /Users/awieliczka/Projects/rikolti>
 ```
 
-In order to run the indexer code, make sure the following variables are set:
+In order to run the indexer code against an AWS hosted OpenSearch, make sure the following variables are set in startup.sh:
 
 ```
 export OPENSEARCH_ENDPOINT= # ask for endpoint url
-```
-
-Also make sure to set your temporary AWS credentials and the region so that the mwaa-local-runner container can authenticate when talking to the OpenSearch API:
-
-```
 export AWS_ACCESS_KEY_ID=
 export AWS_SECRET_ACCESS_KEY=
 export AWS_SESSION_TOKEN=
 export AWS_REGION=us-west-2
+```
+
+If using a local Docker container to run a dev OpenSearch, set the following variables in startup.sh:
+
+```
+export OPENSEARCH_ENDPOINT=https://host.docker.internal:9200/
+export OPENSEARCH_USER=admin
+export OPENSEARCH_PASS="Rikolti_05"
+export OPENSEARCH_IGNORE_TLS=True
 ```
 
 Finally, from inside the aws-mwaa-local-runner repo, run `./mwaa-local-env build-image` to build the docker image, and `./mwaa-local-env start` to start the mwaa local environment.
