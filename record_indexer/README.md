@@ -6,9 +6,13 @@ Records must adhere strictly to the fields specified [our index template](index_
 
 Our `record_indexer` component is designed to remove any fields that are not in our index template. The `record_indexer` indexes records by collection into indicies identified by aliases. 
 
-## Configuring the Record Indexer - AWS and Docker Options
+## Configuring the Record Indexer
 
-The Record Indexer indexes records by hitting the configured `OPENSEARCH_ENDPOINT` - the API endpoint for an opensearch instance. Rikolti supports authenticating against an AWS hosted OpenSearch endpoint (via IAM permissioning and/or `AWS_*` environment variables) or using basic auth against a dev OpenSearch Docker container
+The Record Indexer indexes records by hitting the configured `OPENSEARCH_ENDPOINT` - the API endpoint for an opensearch instance. 
+
+Rikolti requires that all requests made to the OpenSearch API via Airflow be pooled in order to throttle concurrent reindexing requests. All Airflow tasks making requests to the OpenSearch index have `pool="rikolti_opensearch_pool"`. These tasks will not run in your Airflow instance until you create the pool using the Airflow UI, by navigating to Admin > Pools, then creating a new pool called `rikolti_opensearch_pool` with at least 1 Slot. 
+
+Rikolti supports authenticating against an AWS hosted OpenSearch endpoint (via IAM permissioning and/or `AWS_*` environment variables) or using basic auth against a dev OpenSearch Docker container. 
 
 ### AWS Hosted OpenSearch
 If you're trying to set up the record_indexer to communicate with an AWS hosted OpenSearch instance, set the `OPENSEARCH_ENDPOINT` to the AWS-provided endpoint. Make sure your machine or your AWS account has access, and, if relevant, set the following environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_REGION`.
@@ -46,6 +50,8 @@ export OPENSEARCH_ENDPOINT=https://localhost:9200/
 
 ## Initializing an OpenSearch instance to work with Rikolti
 
+These initialization instructions must be run for either a new AWS Hosted OpenSearch domain, or a new local Docker Container. 
+
 Make sure that OPENSEARCH_ENDPOINT and the relevant authentication is set in your environment.
 
 1. Create an index template for rikolti:
@@ -62,7 +68,9 @@ This creates a record template that will be used for adding documents to any ind
 python -m record_indexer.initialize.indices_and_aliases
 ```
 
-This creates an empty index named `rikolti-<current timestamp>` (enforcing the use of the rikolti_template for all records indexed into it) and assigns it to the alias `rikolti-stg`. 
+This creates 2 empty indexes named `rikolti-<current timestamp>` (enforcing the use of the rikolti_template for all records indexed into it) and assigns it to the alias `rikolti-stg` or `rikolti-prd`, respectively. 
+
+You can provide your own index name by using `-s`, `--stg-name` or `-p`, `--prd-name` options. The script will prefix whatever name you provide with `rikolti-`. 
 
 ## Running the Record Indexer
 

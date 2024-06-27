@@ -32,21 +32,22 @@ def index_collection_task(alias, collection, version_pages, context):
         f"{version}/data/"
     )
     opensearch_url = (
-        f"{os.environ.get('OPENSEARCH_ENDPOINT')}/_dashboards/app/"
-        "dev_tools#/console"
+        f"{os.environ.get('OPENSEARCH_ENDPOINT', '').rstrip('/')}/"
+        "_dashboards/app/dev_tools#/console"
     )
     calisphere_url = f"/collections/{collection_id}/"
+    print(alias)
     if alias == 'rikolti-prd':
-        calisphere_url = f"https://calisphere.org/{calisphere_url}"
+        calisphere_url = f"https://calisphere.org{calisphere_url}"
     else:
-        calisphere_url = f"https://calisphere-stage.cdlib.org/{calisphere_url}"
+        calisphere_url = f"https://calisphere-stage.cdlib.org{calisphere_url}"
 
     print(
         f"{hr}Review indexed records at:\n {s3_url}\n\n"
         f"On opensearch at:\n {opensearch_url}\nwith query:\n"
         f"GET /{alias}/_search\n"
         f"{json.dumps(dashboard_query, indent=2)}\n\n"
-        f"On calisphere-stage at:\n {calisphere_url}\n{end}"
+        f"On calisphere at:\n {calisphere_url}\n{end}"
     )
     verbed = "published" if alias == 'rikolti-prd' else "staged"
     print(
@@ -74,14 +75,20 @@ def get_version_pages(params=None):
     return version_pages
 
 
-@task(task_id="create_stage_index", on_failure_callback=notify_rikolti_failure)
+@task(
+        task_id="create_stage_index", 
+        on_failure_callback=notify_rikolti_failure,
+        pool="rikolti_opensearch_pool")
 def stage_collection_task(
     collection: dict, version_pages: list[str], **context):
 
     index_collection_task("rikolti-stg", collection, version_pages, context)
 
 
-@task(task_id="publish_collection", on_failure_callback=notify_rikolti_failure)
+@task(
+        task_id="publish_collection", 
+        on_failure_callback=notify_rikolti_failure,
+        pool="rikolti_opensearch_pool")
 def publish_collection_task(
     collection: dict, version_pages: list[str], **context):
 
