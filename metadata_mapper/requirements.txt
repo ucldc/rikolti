@@ -4,3 +4,7 @@ lxml
 sickle
 MarkupSafe
 python-dotenv
+faker
+pytest
+pytest-assume
+requests-mock

@@ -1,5 +1,6 @@
 services:
   python:
+    container_name: rikolti
     build:
       context: ./
       dockerfile: ./Dockerfile.dev
