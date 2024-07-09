@@ -68,7 +68,7 @@ RECORD_INDEX_CONFIG = {
                 "spatial": {"type": "text", "analyzer": "asciifolded_english", "fields": {"raw": {"type": "keyword"}}},
                 "subject": {"type": "text", "analyzer": "asciifolded_english", "fields": {"raw": {"type": "keyword"}}},
                 "temporal": {"type": "text", "analyzer": "asciifolded_english", "fields": {"raw": {"type": "keyword"}}},
-                "type": {"type": "text", "analyzer": "asciifolded_english", "fields": {"raw": {"type": "keyword"}}},
+                "type": {"type": "text", "analyzer": "asciifolded_english", "fields": {"raw": {"type": "keyword", "normalizer": "lowercase_trim"}}},
 
                 "sort_title": {"type": "keyword", "normalizer": "lowercase_trim"},
                 "facet_decade": {"type": "text", "analyzer": "asciifolded_english", "fields": {"raw": {"type": "keyword"}}},
