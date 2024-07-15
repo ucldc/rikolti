@@ -9,18 +9,20 @@ assignees: ''
 
 ## Collection details
 - Collection Registry URL: 
-- OAI endpoint: 
+- Endpoint: 
+- Preview on -stage: 
 
 ## Communications
 - Freshdesk thread URL: 
 
 ## Request type
+[Select all that apply]
 - [ ] New collection harvest
 - [ ] Re-harvest whole collection (on request)
 - [ ] Re-harvest metadata only (on request)
 - [ ] Scheduled recurring harvests
-- [ ] Delete whole collection (on request)
-- [ ] Item record removals
+- [ ] Delete whole collection (remove from publication)
+- [ ] Item record removals (remove from publication)
 - [ ] OAC METS replacement
 - [ ] Redirects needed
 - [ ] Other
@@ -28,4 +30,4 @@ assignees: ''
 Notes:
 
 ## Harvesting request details
-[copy/paste from forms]
+[copy/paste from webform request]
