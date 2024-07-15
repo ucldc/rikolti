@@ -7,7 +7,7 @@ class ValidationMode(Enum):
 
     class Mode(ABC):
         def compare(self, one: Any, two: Any) -> bool:
-            if type(one) == type(two):
+            if type(one) is type(two):
                 type_str = type(one).__name__
                 fn = getattr(self, f"{type_str}_compare")
                 return fn(one, two)
