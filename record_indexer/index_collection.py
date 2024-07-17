@@ -1,7 +1,7 @@
 import json
 import requests
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from .index_page import index_page
 from . import settings
@@ -81,6 +81,52 @@ def get_outdated_versions(index:str, query: dict[str, Any]):
     return r.json()
 
 
+def delete_by_query(index: str, data: dict[str, Any]):
+    url = f"{settings.ENDPOINT}/{index}/_delete_by_query"
+    r = requests.post(
+        url=url,
+        data=json.dumps(data),
+        headers={"Content-Type": "application/json"},
+        auth=settings.get_auth(),
+        verify=settings.verify_certs()
+    )
+    if not (200 <= r.status_code <= 299):
+        print_opensearch_error(r, url)
+        r.raise_for_status()
+    return r
+
+
+def delete_collection(collection_id: str, index: str):
+    data = {
+        "query": {
+            "term": {"collection_id": collection_id}
+        }
+    }
+
+    versions_to_delete = get_outdated_versions(index, data)
+    num_records = versions_to_delete.get('hits', {}).get('total', {}).get('value', 0)
+    versions = versions_to_delete.get('aggregations', {}).get('version_paths', {}).get('buckets', [])
+
+    if num_records > 0:
+        hr = "\n" + "-"*40 + "\n"
+        end = "\n" + "~"*40 + "\n"
+        message = (
+            f"{hr}> Deleting {num_records} record(s) from collection "
+            f"{collection_id} in `{index}` index.\n"
+            f"{'records':>8}: versions\n"
+        )
+        for v in versions:
+            message += (f"{v.get('doc_count'):>8}: {v.get('key')}\n")
+        print(message)
+
+        r = delete_by_query(index, data)
+        print(f"{hr}> Deletion results:\n{json.dumps(r.json(), indent=2)}{end}")
+    else:
+        print(f"No records found for collection {collection_id} in `{index}` index.")
+
+    return versions
+
+
 def delete_collection_records_from_index(
         collection_id: str, index: str, version_path: str):
     """
@@ -115,17 +161,7 @@ def delete_collection_records_from_index(
         message += f"New indexed documents have version: {version_path}{end}"
         print(message)
 
-        url = f"{settings.ENDPOINT}/{index}/_delete_by_query"
-        r = requests.post(
-            url=url,
-            data=json.dumps(data),
-            headers={"Content-Type": "application/json"},
-            auth=settings.get_auth(),
-            verify=settings.verify_certs()
-        )
-        if not (200 <= r.status_code <= 299):
-            print_opensearch_error(r, url)
-            r.raise_for_status()
+        r = delete_by_query(index, data)
         print(f"{hr}> Deletion results:\n{json.dumps(r.json(), indent=2)}{end}")
     else:
         print(f"No outdated records found for collection {collection_id} in `{index}` index.")
