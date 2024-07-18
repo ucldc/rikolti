@@ -1,7 +1,7 @@
 import json
 import requests
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from .index_page import index_page
 from . import settings
