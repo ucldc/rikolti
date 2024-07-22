@@ -537,6 +537,15 @@ class Record(ABC, object):
     def enrich_earliest_date(self):
         """
         Called 2794 times, never with any arguments
+
+        TODO: self.mapped_data is not guaranteed to be a dictionary,
+        according to pylance. Rather than wrap this in an
+        if isinstance(self.mapped_data, dict), I've added type: ignore
+
+        self.mapped_data is always a dictionary and should always be a
+        dictionary, so directionally, I'd rather resolve this by
+        figuring out why pylance thinks it could be otherwise and adding
+        clarity there.
         """
         if "date" not in self.mapped_data:
             return self
@@ -548,6 +557,29 @@ class Record(ABC, object):
             self.mapped_data['date']                            # type: ignore
         )
 
+        return self
+
+    def enrich_date(self, prop="sourceResource/temporal"):
+        """
+        called 2,749 times with no arguments
+        called 1,003 times with prop=sourceResource/date
+            this is actually a duplicate of enrich_earliest_date, which
+            calls the same functions with an implicit prop="sourceResource/date"
+            there are only 3 collections that have enrich_date&prop=sourceResource/date
+            but DO NOT have a duplicative enrich_earliest_date call:
+            - 354: Adams (Peggy H.) papers
+            - 17210: Pierce (C.C.) Photographic Collection
+            - 26092: Bartlett (Adelbert) Papers
+
+        TODO: see comment in enrich_earliest_date regarding type: ignore
+        """
+        prop = prop.split('/')[-1]  # remove sourceResource
+        date_values = self.mapped_data.get(prop)                # type: ignore
+        self.mapped_data[prop] = convert_dates(date_values)     # type: ignore
+        check_date_format(
+            self.mapped_data['calisphere-id'],                  # type: ignore
+            self.mapped_data[prop]                              # type: ignore
+        )
         return self
 
     def enrich_location(self, prop=["sourceResource/spatial"]):
