@@ -71,7 +71,7 @@ def delete_collection_task(alias, collection, context):
             f"Collection ID not found in collection metadata: {collection}")
 
     try:
-        deleted_versions = delete_collection(alias, collection_id)
+        deleted_versions = delete_collection(collection_id, alias)
     except Exception as e:
         # TODO: implement some rollback exception handling?
         raise e
