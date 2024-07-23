@@ -88,7 +88,7 @@ def delete_collection_task(alias, collection, context):
     print(f"{hr}Review collection on calisphere at: \n {calisphere_url}\n{end}")
     verbed = "unpublished" if alias == 'rikolti-prd' else "unstaged"
     print(
-        f"{hr}Successfully {verbed} versions {', '.join(deleted_versions)} "
+        f"{hr}Successfully {verbed} versions {deleted_versions} "
         f"from the `{alias}` index{end}"
     )
 
