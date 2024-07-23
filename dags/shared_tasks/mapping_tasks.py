@@ -21,8 +21,8 @@ from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.lambda_shepherd import print_map_status
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import validate_endpoint
-# from rikolti.metadata_mapper.map_registry_collections import ValidationReportStatus
-# from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
+from rikolti.metadata_mapper.map_registry_collections import ValidationReportStatus
+from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.utils.versions import create_mapped_version
 from rikolti.utils.versions import get_version
 
@@ -151,36 +151,42 @@ def validate_collection_task(
         "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
     ]
     """
-    send_event_to_sns(context, {
-        "validation": "skipped", 
-        "collection_id": collection_id,
-        "mapped_page_batches": mapped_page_batches
-    })
-    return (
-        f"Skipping validation of {mapped_page_batches} for {collection_id} "
-        "until we can re-implement validator to compare against OpenSearch "
-        "data."
+    validate = bool(
+        os.environ.get("UCLDC_SOLR_URL") and 
+        os.environ.get("UCLDC_COUCH_URL")
     )
+    if validate:
+        mapped_page_batches = [json.loads(batch) for batch in mapped_page_batches]
+        mapped_pages = list(chain.from_iterable(mapped_page_batches))
+        mapped_pages = [path for path in mapped_pages if 'children' not in path]
 
-    # mapped_page_batches = [json.loads(batch) for batch in mapped_page_batches]
-    # mapped_pages = list(chain.from_iterable(mapped_page_batches))
-    # mapped_pages = [path for path in mapped_pages if 'children' not in path]
+        num_rows, version_page = create_collection_validation_csv(
+            collection_id, mapped_pages)
 
-    # num_rows, version_page = create_collection_validation_csv(
-    #     collection_id, mapped_pages)
+        status = ValidationReportStatus(
+            filepath=version_page,
+            num_validation_errors=num_rows,
+            mapped_version=get_version(collection_id, mapped_pages[0])
+        )
 
-    # status = ValidationReportStatus(
-    #     filepath=version_page,
-    #     num_validation_errors=num_rows,
-    #     mapped_version=get_version(collection_id, mapped_pages[0])
-    # )
+        print(f"Output {num_rows} rows to {version_page}")
+        print_s3_link(version_page, get_version(collection_id, mapped_pages[0]))
 
-    # print(f"Output {num_rows} rows to {version_page}")
-    # print_s3_link(version_page, get_version(collection_id, mapped_pages[0]))
+        send_event_to_sns(context, asdict(status))
 
-    # send_event_to_sns(context, asdict(status))
+        return version_page
 
-    # return version_page
+    else:
+        send_event_to_sns(context, {
+            "validation": "skipped", 
+            "collection_id": collection_id,
+            "mapped_page_batches": mapped_page_batches
+        })
+        return (
+            f"Skipping validation of {mapped_page_batches} for {collection_id} "
+            "until we can re-implement validator to compare against OpenSearch "
+            "data."
+        )
 
 
 @task_group(group_id='mapping')

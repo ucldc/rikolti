@@ -10,6 +10,7 @@ from typing import Any, Callable, Optional
 
 from markupsafe import Markup
 
+from .date_enrichments import convert_dates, check_date_format
 from ..utilities import returns_callable
 from ..validator.validation_log import ValidationLog  # noqa: F401
 from ..validator.validator import Validator
@@ -38,7 +39,7 @@ class Record(ABC, object):
     validator = Validator
 
     def __init__(self, collection_id: int, record: dict[str, Any]):
-        self.mapped_data = None
+        self.mapped_data = {}
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
         # TODO: pre_mapped_data is a stop gap to accomodate
@@ -57,7 +58,7 @@ class Record(ABC, object):
         Returns: dict
         """
         supermaps = [
-            super(c, self).UCLDC_map()
+            super(c, self).UCLDC_map()                    # type: ignore
             for c in list(reversed(type(self).__mro__))
             if hasattr(super(c, self), "UCLDC_map")
         ]
@@ -84,9 +85,11 @@ class Record(ABC, object):
         """
         return {}
 
-    # Validation
-    def validate(self, comparison_data: dict) -> ValidationLog:
-        return self.validator.validate(self.mapped_metadata, comparison_data)
+    # Validation TODO: Tim stubbed this out in early validator work,
+    # validate's signature has changed since then, though, and
+    # Record.validator is unassigned
+    # def validate(self, comparison_data: dict) -> ValidationLog:
+    #     return self.validator.validate(self.mapped_metadata, comparison_data)
 
     # Mapper Helpers
     @returns_callable
@@ -529,6 +532,54 @@ class Record(ABC, object):
         dest_values = [substitution_dict.get(v, v) for v in src_values]
         self.mapped_data[dest] = dest_values
 
+        return self
+
+    def enrich_earliest_date(self):
+        """
+        Called 2794 times, never with any arguments
+
+        TODO: self.mapped_data is not guaranteed to be a dictionary,
+        according to pylance. Rather than wrap this in an
+        if isinstance(self.mapped_data, dict), I've added type: ignore
+
+        self.mapped_data is always a dictionary and should always be a
+        dictionary, so directionally, I'd rather resolve this by
+        figuring out why pylance thinks it could be otherwise and adding
+        clarity there.
+        """
+        if "date" not in self.mapped_data:
+            return self
+
+        date_values = self.mapped_data.get('date')              # type: ignore
+        self.mapped_data['date'] = convert_dates(date_values)   # type: ignore
+        check_date_format(
+            self.mapped_data['calisphere-id'],                  # type: ignore
+            self.mapped_data['date']                            # type: ignore
+        )
+
+        return self
+
+    def enrich_date(self, prop="sourceResource/temporal"):
+        """
+        called 2,749 times with no arguments
+        called 1,003 times with prop=sourceResource/date
+            this is actually a duplicate of enrich_earliest_date, which
+            calls the same functions with an implicit prop="sourceResource/date"
+            there are only 3 collections that have enrich_date&prop=sourceResource/date
+            but DO NOT have a duplicative enrich_earliest_date call:
+            - 354: Adams (Peggy H.) papers
+            - 17210: Pierce (C.C.) Photographic Collection
+            - 26092: Bartlett (Adelbert) Papers
+
+        TODO: see comment in enrich_earliest_date regarding type: ignore
+        """
+        prop = prop.split('/')[-1]  # remove sourceResource
+        date_values = self.mapped_data.get(prop)                # type: ignore
+        self.mapped_data[prop] = convert_dates(date_values)     # type: ignore
+        check_date_format(
+            self.mapped_data['calisphere-id'],                  # type: ignore
+            self.mapped_data[prop]                              # type: ignore
+        )
         return self
 
     def enrich_location(self, prop=["sourceResource/spatial"]):

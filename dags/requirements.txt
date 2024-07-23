@@ -4,6 +4,7 @@ opensearch-py
 requests
 sickle
 python-dotenv
+timelib
 apache-airflow-providers-docker
 apache-airflow-providers-google
 apache-airflow-providers-amazon
