@@ -30,13 +30,13 @@ class SamveraRecord(OaiRecord):
 class SamveraValidator(Validator):
     def setup(self):
         self.add_validatable_fields([
-            {
-                "field": "is_shown_at",
-                "validations": [
-                    SamveraValidator.replace_ursus_with_digital,
-                    Validator.verify_type(str)
-                ]
-            },
+            # {
+            #     "field": "is_shown_at",
+            #     "validations": [
+            #         SamveraValidator.replace_ursus_with_digital,
+            #         Validator.verify_type(str)
+            #     ]
+            # },
             {
                 "field": "contributor",
                 "validations": [SamveraValidator.contributor_match],
