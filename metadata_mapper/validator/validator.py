@@ -2,6 +2,7 @@ import itertools
 import re
 import urllib.parse
 from typing import Any, Callable, Union, Optional
+from datetime import datetime
 
 from .validation_log import ValidationLog, ValidationLogLevel
 from .validation_mode import ValidationMode
@@ -305,6 +306,22 @@ class Validator:
         if not validation_def["validation_mode"].value.compare(
             rikolti_value, comparison_value):
             return "Content mismatch"
+
+    @staticmethod
+    def date_match(validation_def: dict, rikolti_value: Any,
+                     comparison_value: Any) -> Union[str, None]:
+        """
+        Validates that the content of the provided values are identical
+        iso format dates
+        """
+        if comparison_value:
+            comparison_value = datetime.fromisoformat(
+                comparison_value.replace('Z', '+00:00'))
+        if rikolti_value:
+            rikolti_value = datetime.fromisoformat(
+                rikolti_value.replace('Z', '+00:00'))
+        if not comparison_value == rikolti_value:
+            return "Date mismatch"
 
     @staticmethod
     def registry_qualified_content_match(qualified_part: int,
@@ -800,6 +817,7 @@ default_validatable_fields: list[dict[str, Any]] = [
         "field": "facet_decade",
         "validations": [Validator.content_match],
         "level": ValidationLogLevel.WARNING,
+        "validation_mode": ValidationMode.ORDER_INSENSITIVE_IF_LIST
     },
     {
         "field": "description",
@@ -909,16 +927,16 @@ default_validatable_fields: list[dict[str, Any]] = [
                         ]
     },
     # TODO: Add date range validation with date range fields
-    # {
-    #     "field": "sort_date_start",
-    #     "validations": [Validator.content_match],
-    #     "level": ValidationLogLevel.WARNING
-    # },
-    # {
-    #     "field": "sort_date_end",
-    #     "validations": [Validator.content_match],
-    #     "level": ValidationLogLevel.WARNING
-    # },
+    {
+        "field": "sort_date_start",
+        "validations": [Validator.date_match],
+        "level": ValidationLogLevel.WARNING
+    },
+    {
+        "field": "sort_date_end",
+        "validations": [Validator.date_match],
+        "level": ValidationLogLevel.WARNING
+    },
 ]
 
 Validator.validatable_fields = default_validatable_fields
