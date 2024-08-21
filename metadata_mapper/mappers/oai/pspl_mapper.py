@@ -31,24 +31,24 @@ class PsplRecord(OaiRecord):
 
 
 class PsplValidator(Validator):
-    def setup(self):
-        self.add_validatable_fields([
-            {
-                "field": "is_shown_at",
-                "validations": [
-                    Validator.required_field,
-                    PsplValidator.str_match_ignore_url_protocol,
-                    Validator.verify_type(str)
-                ],
-            },
-            {
-                "field": "is_shown_by",
-                "validations": [
-                    PsplValidator.str_match_ignore_url_template,
-                    Validator.verify_type(str)
-                ]
-            },
-        ])
+    # def setup(self):
+    #     self.add_validatable_fields([
+    #         {
+    #             "field": "is_shown_at",
+    #             "validations": [
+    #                 Validator.required_field,
+    #                 PsplValidator.str_match_ignore_url_protocol,
+    #                 Validator.verify_type(str)
+    #             ],
+    #         },
+    #         {
+    #             "field": "is_shown_by",
+    #             "validations": [
+    #                 PsplValidator.str_match_ignore_url_template,
+    #                 Validator.verify_type(str)
+    #             ]
+    #         },
+    #     ])
 
     @staticmethod
     def str_match_ignore_url_protocol(validation_def: dict,

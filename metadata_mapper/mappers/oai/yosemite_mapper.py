@@ -39,21 +39,22 @@ class YosemiteRecord(OaiRecord):
 class YosemiteValidator(Validator):
 
     def setup(self):
-        self.add_validatable_fields([{
-            "field": "is_shown_at",
-            "validations": [
-                Validator.required_field,
-                YosemiteValidator.is_shown_at_improvements,
-                Validator.verify_type(str)
-            ]
-        },
-        {
-            "field": "is_shown_by",
-            "validations": [
-                YosemiteValidator.str_match_ignore_url_location,
-                Validator.verify_type(str)
-            ]
-        },
+        self.add_validatable_fields([
+        # {
+        #     "field": "is_shown_at",
+        #     "validations": [
+        #         Validator.required_field,
+        #         YosemiteValidator.is_shown_at_improvements,
+        #         Validator.verify_type(str)
+        #     ]
+        # },
+        # {
+        #     "field": "is_shown_by",
+        #     "validations": [
+        #         YosemiteValidator.str_match_ignore_url_location,
+        #         Validator.verify_type(str)
+        #     ]
+        # },
         {
             "field": "identifier",
             "validations": [

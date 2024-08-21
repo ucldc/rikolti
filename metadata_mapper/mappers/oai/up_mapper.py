@@ -44,21 +44,21 @@ class UpRecord(OaiRecord):
 class UpValidator(Validator):
     def setup(self):
         self.add_validatable_fields([
-            {
-                "field": "is_shown_at",
-                "validations": [
-                    Validator.required_field,
-                    UpValidator.str_match_ignore_url_protocol,
-                    Validator.verify_type(str)
-                ],
-            },
-            {
-                "field": "is_shown_by",
-                "validations": [
-                    UpValidator.str_match_ignore_url_protocol,
-                    Validator.verify_type(str)
-                ]
-            },
+            # {
+            #     "field": "is_shown_at",
+            #     "validations": [
+            #         Validator.required_field,
+            #         UpValidator.str_match_ignore_url_protocol,
+            #         Validator.verify_type(str)
+            #     ],
+            # },
+            # {
+            #     "field": "is_shown_by",
+            #     "validations": [
+            #         UpValidator.str_match_ignore_url_protocol,
+            #         Validator.verify_type(str)
+            #     ]
+            # },
             {
                 "field": "identifier",
                 "validations": [

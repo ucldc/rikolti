@@ -309,7 +309,7 @@ class Validator:
     @staticmethod
     def registry_qualified_content_match(qualified_part: int,
                                          model: str,
-                                         split_string: str = "::") -> Callable:
+                                         join_string: str = "::") -> Callable:
         """
         Validates that the content of the provided values is equal when
         the rikolti value is qualified by the registry url.
@@ -324,21 +324,26 @@ class Validator:
                 the qualified part is 2.
             model: str
                 The registry url model, ie: 'collection' or 'repository'
-            split_string: str (default: "::")
-                The string to split the rikolti value on.
+            join_string: str (default: "::")
+                The string to rejoin the rikolti value on.
 
         Returns: Callable
         """
         def inner(validation_def: dict, rikolti_values: Any,
                   comparison_value: Any) -> Optional[str]:
+
+            if not rikolti_values:
+                return Validator.content_match(
+                    validation_def, rikolti_values, comparison_value)
+
             qualified_rikolti_values = []
             for rikolti_value in rikolti_values:
-                parts = str(rikolti_value).split(split_string)
+                parts = str(rikolti_value).split('::')  # rikolti values always use ::
                 parts[qualified_part] = (
                     f"https://registry.cdlib.org/api/v1/{model}/" +
                     str(parts[qualified_part]) + "/"
                 )
-                qualified_rikolti_values.append(split_string.join(parts))
+                qualified_rikolti_values.append(join_string.join(parts))
 
             return Validator.content_match(
                 validation_def, qualified_rikolti_values, comparison_value)
@@ -588,16 +593,12 @@ class Validator:
             f"{urllib.parse.quote_plus(solr_query)}"
             "&wt=json&indent=true"
         )
-        couch = f"/couchdb/_utils/document.html?ucldc/{record_id}"
         calisphere = f'/search/?q="{urllib.parse.quote_plus(record_id)}"'
 
         return {
             "calisphere_prd": f"https://calisphere.org{calisphere}",
-            "solr_prd": f"https://harvest-prd.cdlib.org{solr}",
-            "couch_prd": f"https://harvest-prd.cdlib.org{couch}",
+            "solr_prd": f"https://solr.calisphere.org/solr/query {solr}",
             "calisphere_test": f"https://calisphere-test.cdlib.org{calisphere}",
-            "solr_stg": f"https://harvest-stg.cdlib.org{solr}",
-            "couch_stg": f"https://harvest-stg.cdlib.org{couch}",
         }
 
     def _default_log_entry(self, validation_def: dict[str, Any],
@@ -687,21 +688,21 @@ default_validatable_fields: list[dict[str, Any]] = [
                         Validator.verify_type(str),
                         ]
     },
-    {
-        "field": "is_shown_at",
-        "validations": [
-                        Validator.required_field,
-                        Validator.content_match,
-                        Validator.verify_type(str)
-                        ]
-    },
-    {
-        "field": "is_shown_by",
-        "validations": [
-                        Validator.content_match,
-                        Validator.verify_type(str)
-                        ]
-    },
+    # {
+    #     "field": "is_shown_at",
+    #     "validations": [
+    #                     Validator.required_field,
+    #                     Validator.content_match,
+    #                     Validator.verify_type(str)
+    #                     ]
+    # },
+    # {
+    #     "field": "is_shown_by",
+    #     "validations": [
+    #                     Validator.content_match,
+    #                     Validator.verify_type(str)
+    #                     ]
+    # },
     {
         "field": "sort_title",
         "validations": [

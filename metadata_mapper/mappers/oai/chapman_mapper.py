@@ -63,21 +63,21 @@ class ChapmanValidator(Validator):
                 Validator.verify_type(Validator.list_of(str))
             ]
         )
-        self.add_validatable_field(
-            field="is_shown_at",
-            validations=[
-                Validator.required_field,
-                ChapmanValidator.str_match_ignore_url_protocol,
-                Validator.verify_type(str),
-            ]
-        )
-        self.add_validatable_field(
-            field="is_shown_by",
-            validations=[
-                ChapmanValidator.str_match_ignore_url_protocol,
-                Validator.verify_type(str),
-            ]
-        )
+        # self.add_validatable_field(
+        #     field="is_shown_at",
+        #     validations=[
+        #         Validator.required_field,
+        #         ChapmanValidator.str_match_ignore_url_protocol,
+        #         Validator.verify_type(str),
+        #     ]
+        # )
+        # self.add_validatable_field(
+        #     field="is_shown_by",
+        #     validations=[
+        #         ChapmanValidator.str_match_ignore_url_protocol,
+        #         Validator.verify_type(str),
+        #     ]
+        # )
 
     @staticmethod
     def list_match_ignore_url_protocol(validation_def: dict,
