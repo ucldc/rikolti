@@ -573,6 +573,8 @@ class Record(ABC, object):
 
         TODO: see comment in enrich_earliest_date regarding type: ignore
         """
+        if isinstance(prop, list):
+            prop = prop[0]
         prop = prop.split('/')[-1]  # remove sourceResource
         date_values = self.mapped_data.get(prop)                # type: ignore
         self.mapped_data[prop] = convert_dates(date_values)     # type: ignore
@@ -1368,7 +1370,7 @@ class Record(ABC, object):
             facet_decade_set = set()  # don't repeat values
             for decade in facet_decades:
                 facet_decade_set.add(decade)
-            return
+            return list(facet_decade_set)
 
         def facet_decade(date_string):
             """ process string and return array of decades """
@@ -1395,8 +1397,6 @@ class Record(ABC, object):
                 for date_value in dates:
                     try:
                         facet_decades = get_facet_decades(date_value)
-                        if facet_decades and len(facet_decades) == 1:
-                            facet_decades = facet_decades[0]
                         return facet_decades
                     except AttributeError as e:
                         print(
@@ -1603,15 +1603,15 @@ class Record(ABC, object):
                 dates_start = sorted(filter(None, dates_start))
 
                 start_date = \
-                    dates_start[0].strftime("%Y-%m-%d") if dates_start else None
+                    dates_start[0].isoformat() if dates_start else None
 
                 dates_end = [make_datetime(dt.get("end"))
                              for dt in date_source
                              if isinstance(dt, dict) and dt.get("end")]
                 dates_end = sorted(filter(None, dates_end))
 
-                # TODO: should this actually be the last date?
-                end_date = dates_end[0].strftime("%Y-%m-%d") if dates_end else None
+                # TODO: should this actually be the last date?, dates_end[-1]
+                end_date = dates_end[0].isoformat() if dates_end else None
 
                 # fill in start_date == end_date if only one exists
                 start_date = end_date if not start_date else start_date

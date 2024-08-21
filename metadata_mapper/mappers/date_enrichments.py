@@ -125,7 +125,10 @@ def clean_date(date):
                                             # replace "ca" and "ca." with ""
                                             # remove any spaces around "ca" or "ca."
     ]
-    if "circa" not in date and "century" not in date:
+    if (
+        "circa" not in date and "century" not in date and 
+        "dec" not in date and "Dec" not in date
+    ):
         regex.append((r"\s*c\.?\s*", ""))
     for pattern, replacement in regex:
         date = re.sub(pattern, replacement, date)
@@ -301,10 +304,16 @@ def is_year_range_list(date_values):
         len(date_values) > 1
 
 def convert_dates(date_values):
+    if not date_values:
+        return
+
     if isinstance(date_values, dict):  # already filled in, probably by mapper
         return
     if isinstance(date_values, list):  # remove duplicate values in list
-        date_values = list(set(date_values))
+        if any(isinstance(v, dict) for v in date_values):
+            return date_values
+        else:
+            date_values = list(set(date_values))
     if isinstance(date_values, str):   # convert to list if string
         date_values = [date_values]
 
@@ -335,22 +344,26 @@ def convert_dates(date_values):
     return dates
 
 
-def check_date_format(record_id, date_value_dict):
+def check_date_format(record_id, date_value_list):
     """Checks that the begin and end dates are in the proper format, 
     and if not, sets them to None"""
-    for key, value in date_value_dict.items():
-        if value and key != "displayDate":
-            try:
-                ymd = [int(s) for s in value.split("-")]
-            except ValueError as e:
-                print(f"Invalid date.{key}: {value} - {e} for {record_id}")
-                date_value_dict[key] = None
+    if not date_value_list:
+        return
 
-            year = ymd[0]
-            month = ymd[1] if len(ymd) > 1 else 1
-            day = ymd[2] if len(ymd) > 2 else 1
-            try:
-                datetime.datetime(year=year, month=month, day=day)
-            except ValueError as e:
-                print(f"Invalid date.{key}: {value} - {e} for {record_id}")
-                date_value_dict[key] = None
+    for date_value_dict in date_value_list:
+        for key, value in date_value_dict.items():
+            if value and key != "displayDate":
+                try:
+                    ymd = [int(s) for s in value.split("-")]
+                except ValueError as e:
+                    print(f"Invalid date.{key}: {value} - {e} for {record_id}")
+                    date_value_dict[key] = None
+
+                year = ymd[0]
+                month = ymd[1] if len(ymd) > 1 else 1
+                day = ymd[2] if len(ymd) > 2 else 1
+                try:
+                    datetime.datetime(year=year, month=month, day=day)
+                except ValueError as e:
+                    print(f"Invalid date.{key}: {value} - {e} for {record_id}")
+                    date_value_dict[key] = None
