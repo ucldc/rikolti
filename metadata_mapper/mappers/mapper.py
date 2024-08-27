@@ -4,13 +4,13 @@ import json
 import os
 import re
 from abc import ABC
-from datetime import date, datetime
-from datetime import timezone
 from typing import Any, Callable, Optional
+import traceback
 
 from markupsafe import Markup
 
 from .date_enrichments import convert_dates, check_date_format
+from .solr_updater_helpers import make_sort_dates, unpack_display_date, get_facet_decades
 from ..utilities import returns_callable
 from ..validator.validation_log import ValidationLog  # noqa: F401
 from ..validator.validator import Validator
@@ -145,10 +145,11 @@ class Record(ABC, object):
         func: Callable = getattr(self, enrichment_function_name)
         try:
             return func(**kwargs)
-        except Exception:
+        except Exception as e:
+            print(f"ENRICHMENT ERROR: {traceback.format_exc()}")
             raise Exception(f"ENRICHMENT ERROR for enrichment: `{enrichment_function_name}` "
                 f"with kwargs: `{str(kwargs)}` "
-                )
+            )
 
     def select_id(self, prop: list[str]):
         """
@@ -1342,49 +1343,6 @@ class Record(ABC, object):
                 items_not_blank = [i for i in items if i]
             return items_not_blank
 
-        def unpack_display_date(date_obj):
-            '''Unpack a couchdb date object'''
-            if not isinstance(date_obj, list):
-                date_obj = [date_obj]
-
-            dates = []
-            for dt in date_obj:
-                if isinstance(dt, dict):
-                    displayDate = dt.get('displayDate', None)
-                elif isinstance(dt, str):
-                    displayDate = dt
-                else:
-                    displayDate = None
-                dates.append(displayDate)
-            return dates
-
-        def get_facet_decades(date_value):
-            '''Return set of decade string for given date structure.
-            date is a dict with a "displayDate" key.
-            '''
-            if isinstance(date_value, dict):
-                facet_decades = facet_decade(
-                    date_value.get('displayDate', ''))
-            else:
-                facet_decades = facet_decade(str(date_value))
-            facet_decade_set = set()  # don't repeat values
-            for decade in facet_decades:
-                facet_decade_set.add(decade)
-            return list(facet_decade_set)
-
-        def facet_decade(date_string):
-            """ process string and return array of decades """
-            year = date.today().year
-            pattern = re.compile(r'(?<!\d)(\d{4})(?!\d)')
-            matches = [int(match) for match in re.findall(pattern, date_string)]
-            matches = list(filter(lambda a: a >= 1000, matches))
-            matches = list(filter(lambda a: a <= year, matches))
-            if not matches:
-                return ['unknown']
-            start = (min(matches) // 10) * 10
-            end = max(matches) + 1
-            return map('{0}s'.format, range(start, end, 10))
-
         def add_facet_decade(record):
             '''Add the facet_decade field to the solr_doc dictionary
             If no date field in sourceResource, pass fake value to set
@@ -1597,26 +1555,7 @@ class Record(ABC, object):
                 date_source = record.get('date', None)
                 if not isinstance(date_source, list):
                     date_source = [date_source]
-                dates_start = [make_datetime(dt.get("begin"))
-                               for dt in date_source
-                               if isinstance(dt, dict) and dt.get("begin")]
-                dates_start = sorted(filter(None, dates_start))
-
-                start_date = \
-                    dates_start[0].isoformat() if dates_start else None
-
-                dates_end = [make_datetime(dt.get("end"))
-                             for dt in date_source
-                             if isinstance(dt, dict) and dt.get("end")]
-                dates_end = sorted(filter(None, dates_end))
-
-                # TODO: should this actually be the last date?, dates_end[-1]
-                end_date = dates_end[0].isoformat() if dates_end else None
-
-                # fill in start_date == end_date if only one exists
-                start_date = end_date if not start_date else start_date
-                end_date = start_date if not end_date else end_date
-
+                start_date, end_date = make_sort_dates(date_source)
                 solr_doc['sort_date_start'] = start_date
                 solr_doc['sort_date_end'] = end_date
 
@@ -1660,28 +1599,6 @@ class Record(ABC, object):
             keys.sort()
 
             return {i: solr_doc[i] for i in keys}
-
-        def make_datetime(date_string):
-            date_time = None
-
-            #  This matches YYYY or YYYY-MM-DD
-            match = re.match(
-                r"^(?P<year>[0-9]{4})"
-                r"(-(?P<month>[0-9]{1,2})"
-                r"-(?P<day>[0-9]{1,2}))?$", date_string)
-            if match:
-                year = int(match.group("year"))
-                month = int(match.group("month") or 1)
-                day = int(match.group("day") or 1)
-                date_time = datetime(year, month, day, tzinfo=timezone.utc)
-
-                try:
-                    date_time = datetime(year, month, day, tzinfo=timezone.utc)
-                except Exception as e:
-                    print(f"Error making datetime: {e}")
-                    pass
-
-            return date_time
 
         def check_nuxeo_media(record):
             '''Check that the media_json and jp2000 exist for a given solr doc.
