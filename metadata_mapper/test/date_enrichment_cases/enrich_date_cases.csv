@@ -1,0 +1,718 @@
+collection_id | function | input | output
+7007 | convert_dates | date_values=[] | converted_dates=None
+12680 | convert_dates | date_values=None | converted_dates=None
+12680 | convert_dates | date_values=[{'end': '1916', 'begin': '1856', 'displayDate': '1856 - 1916'}] | converted_dates=[{'end': '1916', 'begin': '1856', 'displayDate': '1856 - 1916'}]
+12680 | convert_dates | date_values=None | converted_dates=None
+12680 | convert_dates | date_values=[{'end': '1912', 'begin': '1858', 'displayDate': '1858 - 1912'}] | converted_dates=[{'end': '1912', 'begin': '1858', 'displayDate': '1858 - 1912'}]
+12680 | convert_dates | date_values=None | converted_dates=None
+12680 | convert_dates | date_values=[{'end': '1912', 'begin': '1874', 'displayDate': '1874 - 1912'}] | converted_dates=[{'end': '1912', 'begin': '1874', 'displayDate': '1874 - 1912'}]
+26156 | convert_dates | date_values=None | converted_dates=None
+26156 | convert_dates | date_values=[{'end': '1940', 'begin': '1930', 'displayDate': 'between 1930 and 1940'}] | converted_dates=[{'end': '1940', 'begin': '1930', 'displayDate': 'between 1930 and 1940'}]
+26156 | convert_dates | date_values=[{'end': '1940', 'begin': '1930', 'displayDate': ''}] | converted_dates=[{'end': '1940', 'begin': '1930', 'displayDate': ''}]
+26296 | convert_dates | date_values=None | converted_dates=None
+26654 | convert_dates | date_values=[] | converted_dates=None
+26880 | convert_dates | date_values=[] | converted_dates=None
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-08-01 to 2020-01-28'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-08-01 to 2020-01-28'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2013-09-01 to 2017-08-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2013-09-01 to 2017-08-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-06-28 to 2021-08-20'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-06-28 to 2021-08-20'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-01-13 to 2021-08-28'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-01-13 to 2021-08-28'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-07-01 to 2016-07-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-07-01 to 2016-07-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2020-12-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2020-12-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2014-10 to 2015-02'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2014-10 to 2015-02'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2022-12-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2022-12-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2016-09-13 to 2018-01-28'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2016-09-13 to 2018-01-28'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-06 to 2019-08'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-06 to 2019-08'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021-01-01 to 2022-03-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021-01-01 to 2022-03-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021-03-19 to 2022-02-17'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021-03-19 to 2022-02-17'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of data collection: 2017-05-01 to 2017-08-15 Time period of data analysis: 2017-05-01 to 2017-11-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of data collection: 2017-05-01 to 2017-08-15 Time period of data analysis: 2017-05-01 to 2017-11-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014 to 2014'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014 to 2014'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-08 to 2020-04'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-08 to 2020-04'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-06-01 to 2020-06-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-06-01 to 2020-06-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2006-12 to 2017-03'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2006-12 to 2017-03'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-08-01 to 2018-04-20'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-08-01 to 2018-04-20'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2020-02-01 to 2022-12-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2020-02-01 to 2022-12-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2018'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2018'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-07-01 to 2016-10-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-07-01 to 2016-10-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-10-01 to 2021-07-20'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-10-01 to 2021-07-20'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-01-13 to 2021-05-28'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-01-13 to 2021-05-28'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2015 to 2019'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2015 to 2019'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of data collection: 2016-11-01 to 2017-04-01, Time period of data analysis: 2017-04-01 to 2017-10-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of data collection: 2016-11-01 to 2017-04-01, Time period of data analysis: 2017-04-01 to 2017-10-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'June 2016 to December 2016'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'June 2016 to December 2016'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-04-08 to 2020-07-02'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-04-08 to 2020-07-02'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2015-09-23 to 2021-04-05'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2015-09-23 to 2021-04-05'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-06-01 to 2020-11-17'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-06-01 to 2020-11-17'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2022-10 to 2023-07'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2022-10 to 2023-07'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of data collection: 2017-03 to 2018-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of data collection: 2017-03 to 2018-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021-03-01 to 2023-05-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021-03-01 to 2023-05-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2020-06-01 to 2022-12-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2020-06-01 to 2022-12-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-10-01 to 2018-10-13'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-10-01 to 2018-10-13'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2016-01-11 to 2018-07-24'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2016-01-11 to 2018-07-24'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-01-01 to 2019-07-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-01-01 to 2019-07-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-12-01 to 2020-01-15'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-12-01 to 2020-01-15'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-06-01 to 2020-10-06'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-06-01 to 2020-10-06'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-09-01 to 2018-01-26'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2017-09-01 to 2018-01-26'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-02-01 to 2020-03-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-02-01 to 2020-03-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-11-01 to 2020-08-21'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-11-01 to 2020-08-21'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2019-01-19 to 2019-05-20'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2019-01-19 to 2019-05-20'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-04-01 to 2016-01-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-04-01 to 2016-01-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2010-06-01 to 2021-05-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2010-06-01 to 2021-05-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-07-01 to 2016-07-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-07-01 to 2016-07-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2022-07-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2022-07-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021-01-01 to 2022-04-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021-01-01 to 2022-04-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-12-23 to 2021-02-28'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2019-12-23 to 2021-02-28'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018 to 2019'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018 to 2019'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-08-01 to 2019-09-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-08-01 to 2019-09-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021 to 2023'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2021 to 2023'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-08-01 to 2019-09-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-08-01 to 2019-09-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of data collection: 2016-09-22 to 2019-11-22'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of data collection: 2016-09-22 to 2019-11-22'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-04-01 to 2020-01-20'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-04-01 to 2020-01-20'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-01-01 to 2016-09-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2014-01-01 to 2016-09-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-10-01 to 2021-01-20'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2018-10-01 to 2021-01-20'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2015-09-01 to 2016-11-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': 'Time period of project: 2015-09-01 to 2016-11-01'}]
+26993 | convert_dates | date_values=None | converted_dates=None
+26993 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2015-07-01 to 2018-04-01'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2015-07-01 to 2018-04-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-03-06', 'begin': '1969-03-06', 'displayDate': '1969-03-06'}] | converted_dates=[{'end': '1969-03-06', 'begin': '1969-03-06', 'displayDate': '1969-03-06'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-10-31', 'begin': '1967-10-31', 'displayDate': '1967-10-31'}] | converted_dates=[{'end': '1967-10-31', 'begin': '1967-10-31', 'displayDate': '1967-10-31'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-09-01', 'begin': '1971-05-01', 'displayDate': 'Summer 1971'}] | converted_dates=[{'end': '1971-09-01', 'begin': '1971-05-01', 'displayDate': 'Summer 1971'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1966-01-01', 'displayDate': 'late 1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1966-01-01', 'displayDate': 'late 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-12-31', 'begin': '1964-01-01', 'displayDate': '1964'}] | converted_dates=[{'end': '1964-12-31', 'begin': '1964-01-01', 'displayDate': '1964'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-05-20', 'begin': '1964-05-20', 'displayDate': '1964-05-20'}] | converted_dates=[{'end': '1964-05-20', 'begin': '1964-05-20', 'displayDate': '1964-05-20'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-02-22', 'begin': '1971-02-22', 'displayDate': '1971-02-22'}] | converted_dates=[{'end': '1971-02-22', 'begin': '1971-02-22', 'displayDate': '1971-02-22'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-02-07', 'begin': '1970-02-07', 'displayDate': '1970-02-07'}] | converted_dates=[{'end': '1970-02-07', 'begin': '1970-02-07', 'displayDate': '1970-02-07'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-02-26', 'begin': '1965-02-26', 'displayDate': '1965-02-26'}] | converted_dates=[{'end': '1965-02-26', 'begin': '1965-02-26', 'displayDate': '1965-02-26'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-02-08', 'begin': '1967-02-08', 'displayDate': '1967-02-08'}] | converted_dates=[{'end': '1967-02-08', 'begin': '1967-02-08', 'displayDate': '1967-02-08'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-01-18', 'begin': '1970-01-18', 'displayDate': '1970-01-18'}] | converted_dates=[{'end': '1970-01-18', 'begin': '1970-01-18', 'displayDate': '1970-01-18'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-01-02', 'begin': '1963-11-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1965-01-02', 'begin': '1963-11-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-02-08', 'begin': '1970-02-08', 'displayDate': '1970-02-08'}] | converted_dates=[{'end': '1970-02-08', 'begin': '1970-02-08', 'displayDate': '1970-02-08'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-02-01', 'begin': '1970-02-01', 'displayDate': '1970-02-01'}] | converted_dates=[{'end': '1970-02-01', 'begin': '1970-02-01', 'displayDate': '1970-02-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-04-18', 'begin': '1970-04-18', 'displayDate': '1970-04-18'}] | converted_dates=[{'end': '1970-04-18', 'begin': '1970-04-18', 'displayDate': '1970-04-18'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-05-12', 'begin': '1966-05-12', 'displayDate': '1966-05-12'}] | converted_dates=[{'end': '1966-05-12', 'begin': '1966-05-12', 'displayDate': '1966-05-12'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-05-24', 'begin': '1971-05-24', 'displayDate': '1971-05-24'}] | converted_dates=[{'end': '1971-05-24', 'begin': '1971-05-24', 'displayDate': '1971-05-24'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': '1963'}] | converted_dates=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': '1963'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-05-29', 'begin': '1969-05-29', 'displayDate': '1969-05-29'}] | converted_dates=[{'end': '1969-05-29', 'begin': '1969-05-29', 'displayDate': '1969-05-29'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-02-21', 'begin': '1968-02-21', 'displayDate': '1968-02-21'}] | converted_dates=[{'end': '1968-02-21', 'begin': '1968-02-21', 'displayDate': '1968-02-21'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-02-28', 'begin': '1970-02-01', 'displayDate': 'February 1970'}] | converted_dates=[{'end': '1970-02-28', 'begin': '1970-02-01', 'displayDate': 'February 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-10-18', 'begin': '1967-10-18', 'displayDate': '1967-10-18'}] | converted_dates=[{'end': '1967-10-18', 'begin': '1967-10-18', 'displayDate': '1967-10-18'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-08-22', 'begin': '1963-08-22', 'displayDate': '1963-08-22'}] | converted_dates=[{'end': '1963-08-22', 'begin': '1963-08-22', 'displayDate': '1963-08-22'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-07-14', 'begin': '1965-07-14', 'displayDate': '1965-07-14'}] | converted_dates=[{'end': '1965-07-14', 'begin': '1965-07-14', 'displayDate': '1965-07-14'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-11-22', 'begin': '1967-11-22', 'displayDate': '1967-11-22'}] | converted_dates=[{'end': '1967-11-22', 'begin': '1967-11-22', 'displayDate': '1967-11-22'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1969-12-01', 'displayDate': 'December 1969'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1969-12-01', 'displayDate': 'December 1969'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-01-03', 'begin': '1969-12-27', 'displayDate': '1969-12-27 and 1970-01-03'}] | converted_dates=[{'end': '1970-01-03', 'begin': '1969-12-27', 'displayDate': '1969-12-27 and 1970-01-03'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-06-10', 'begin': '1964-06-10', 'displayDate': '1964-06-10'}] | converted_dates=[{'end': '1964-06-10', 'begin': '1964-06-10', 'displayDate': '1964-06-10'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-07-31', 'begin': '1971-07-01', 'displayDate': 'July 1971'}] | converted_dates=[{'end': '1971-07-31', 'begin': '1971-07-01', 'displayDate': 'July 1971'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-03-08', 'begin': '1970-03-07', 'displayDate': '1970-03-07 and 1970-03-08'}] | converted_dates=[{'end': '1970-03-08', 'begin': '1970-03-07', 'displayDate': '1970-03-07 and 1970-03-08'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-06', 'begin': '1969-12-06', 'displayDate': '1969-12-06'}] | converted_dates=[{'end': '1969-12-06', 'begin': '1969-12-06', 'displayDate': '1969-12-06'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': '1970'}] | converted_dates=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': '1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-08-12', 'begin': '1964-08-12', 'displayDate': '1964-08-12'}] | converted_dates=[{'end': '1964-08-12', 'begin': '1964-08-12', 'displayDate': '1964-08-12'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1965-01-01', 'displayDate': '1965'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1965-01-01', 'displayDate': '1965'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-01-17', 'begin': '1968-01-17', 'displayDate': '1968-01-17'}] | converted_dates=[{'end': '1968-01-17', 'begin': '1968-01-17', 'displayDate': '1968-01-17'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-02-21', 'begin': '1970-02-14', 'displayDate': '1970-02-14 to 1970-02-21'}] | converted_dates=[{'end': '1970-02-21', 'begin': '1970-02-14', 'displayDate': '1970-02-14 to 1970-02-21'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-02-14', 'begin': '1971-02-14', 'displayDate': '1971-02-14'}] | converted_dates=[{'end': '1971-02-14', 'begin': '1971-02-14', 'displayDate': '1971-02-14'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-01-03', 'begin': '1968-01-03', 'displayDate': '1968-01-03'}] | converted_dates=[{'end': '1968-01-03', 'begin': '1968-01-03', 'displayDate': '1968-01-03'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-10-22', 'begin': '1966-10-22', 'displayDate': '1966-10-22'}] | converted_dates=[{'end': '1966-10-22', 'begin': '1966-10-22', 'displayDate': '1966-10-22'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': '1963'}] | converted_dates=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': '1963'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-04-08', 'begin': '1970-04-08', 'displayDate': '1970-04-08'}] | converted_dates=[{'end': '1970-04-08', 'begin': '1970-04-08', 'displayDate': '1970-04-08'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-12-31', 'begin': '1971-01-01', 'displayDate': 'circa 1970'}] | converted_dates=[{'end': '1971-12-31', 'begin': '1971-01-01', 'displayDate': 'circa 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-04-24', 'begin': '1968-04-24', 'displayDate': '1968-04-24'}] | converted_dates=[{'end': '1968-04-24', 'begin': '1968-04-24', 'displayDate': '1968-04-24'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-05-12', 'begin': '1966-05-12', 'displayDate': '1966-05-12'}] | converted_dates=[{'end': '1966-05-12', 'begin': '1966-05-12', 'displayDate': '1966-05-12'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-08-12', 'begin': '1963-08-09', 'displayDate': 'August 1963'}] | converted_dates=[{'end': '1963-08-12', 'begin': '1963-08-09', 'displayDate': 'August 1963'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-02-14', 'begin': '1968-02-14', 'displayDate': '1968-02-14'}] | converted_dates=[{'end': '1968-02-14', 'begin': '1968-02-14', 'displayDate': '1968-02-14'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-05-24', 'begin': '1970-05-23', 'displayDate': 'May 23-24, 1970'}] | converted_dates=[{'end': '1970-05-24', 'begin': '1970-05-23', 'displayDate': 'May 23-24, 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-12-31', 'begin': '1964-01-01', 'displayDate': 'circa 1964'}] | converted_dates=[{'end': '1964-12-31', 'begin': '1964-01-01', 'displayDate': 'circa 1964'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': '1970'}] | converted_dates=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': '1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-03-07', 'begin': '1968-03-07', 'displayDate': '1968-03-07'}] | converted_dates=[{'end': '1968-03-07', 'begin': '1968-03-07', 'displayDate': '1968-03-07'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-07-31', 'begin': '1971-07-01', 'displayDate': 'July 1971'}] | converted_dates=[{'end': '1971-07-31', 'begin': '1971-07-01', 'displayDate': 'July 1971'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-08-24', 'begin': '1964-08-24', 'displayDate': '1964-08-24'}] | converted_dates=[{'end': '1964-08-24', 'begin': '1964-08-24', 'displayDate': '1964-08-24'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-12-06', 'begin': '1968-12-06', 'displayDate': '1968-12-06'}] | converted_dates=[{'end': '1968-12-06', 'begin': '1968-12-06', 'displayDate': '1968-12-06'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-11-05', 'begin': '1963-11-05', 'displayDate': '1963-11-05'}] | converted_dates=[{'end': '1963-11-05', 'begin': '1963-11-05', 'displayDate': '1963-11-05'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-06-07', 'begin': '1967-06-07', 'displayDate': '1967-06-07'}] | converted_dates=[{'end': '1967-06-07', 'begin': '1967-06-07', 'displayDate': '1967-06-07'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-10-27', 'begin': '1966-10-27', 'displayDate': '1966-10-27'}] | converted_dates=[{'end': '1966-10-27', 'begin': '1966-10-27', 'displayDate': '1966-10-27'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1969-01-01', 'displayDate': 'circa 1969'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1969-01-01', 'displayDate': 'circa 1969'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-03-01', 'begin': '1970-03-01', 'displayDate': '1970-03-01'}] | converted_dates=[{'end': '1970-03-01', 'begin': '1970-03-01', 'displayDate': '1970-03-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-10-27', 'begin': '1965-10-27', 'displayDate': '1965-10-27'}] | converted_dates=[{'end': '1965-10-27', 'begin': '1965-10-27', 'displayDate': '1965-10-27'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-03-02', 'begin': '1967-03-02', 'displayDate': '1967-03-02'}] | converted_dates=[{'end': '1967-03-02', 'begin': '1967-03-02', 'displayDate': '1967-03-02'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-09-27', 'begin': '1967-09-27', 'displayDate': '1967-09-27'}] | converted_dates=[{'end': '1967-09-27', 'begin': '1967-09-27', 'displayDate': '1967-09-27'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-01-01', 'begin': '1970-12-01', 'displayDate': 'circa Christmas 1970'}] | converted_dates=[{'end': '1971-01-01', 'begin': '1970-12-01', 'displayDate': 'circa Christmas 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-01-25', 'begin': '1970-01-25', 'displayDate': '1970-01-25'}] | converted_dates=[{'end': '1970-01-25', 'begin': '1970-01-25', 'displayDate': '1970-01-25'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-07-20', 'begin': '1965-07-20', 'displayDate': '1965-07-20'}] | converted_dates=[{'end': '1965-07-20', 'begin': '1965-07-20', 'displayDate': '1965-07-20'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-02-15', 'begin': '1965-02-15', 'displayDate': '1965-02-15'}] | converted_dates=[{'end': '1965-02-15', 'begin': '1965-02-15', 'displayDate': '1965-02-15'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-03-04', 'begin': '1968-03-04', 'displayDate': '1968-03-04'}] | converted_dates=[{'end': '1968-03-04', 'begin': '1968-03-04', 'displayDate': '1968-03-04'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-12-31', 'begin': '1971-01-01', 'displayDate': 'circa 1970'}] | converted_dates=[{'end': '1971-12-31', 'begin': '1971-01-01', 'displayDate': 'circa 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '', 'begin': '1970-05-24', 'displayDate': '1970-05-24'}] | converted_dates=[{'end': '', 'begin': '1970-05-24', 'displayDate': '1970-05-24'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-12-31', 'begin': '1966-01-01', 'displayDate': 'circa 1966'}] | converted_dates=[{'end': '1966-12-31', 'begin': '1966-01-01', 'displayDate': 'circa 1966'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-12-31', 'begin': '1971-01-01', 'displayDate': 'circa 1971'}] | converted_dates=[{'end': '1971-12-31', 'begin': '1971-01-01', 'displayDate': 'circa 1971'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-04-14', 'begin': '1966-04-14', 'displayDate': '1966-04-14'}] | converted_dates=[{'end': '1966-04-14', 'begin': '1966-04-14', 'displayDate': '1966-04-14'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-12-31', 'begin': '1964-01-01', 'displayDate': '1964'}] | converted_dates=[{'end': '1964-12-31', 'begin': '1964-01-01', 'displayDate': '1964'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-11-17', 'begin': '1961-11-17', 'displayDate': 'Friday, November 17, 1961 or 1967'}] | converted_dates=[{'end': '1967-11-17', 'begin': '1961-11-17', 'displayDate': 'Friday, November 17, 1961 or 1967'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-12-14', 'begin': '1964-12-14', 'displayDate': '1964-12-14'}] | converted_dates=[{'end': '1964-12-14', 'begin': '1964-12-14', 'displayDate': '1964-12-14'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-10-31', 'begin': '1965-10-01', 'displayDate': 'October 1965'}] | converted_dates=[{'end': '1965-10-31', 'begin': '1965-10-01', 'displayDate': 'October 1965'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-12-16', 'begin': '1967-12-16', 'displayDate': '1967-12-16'}] | converted_dates=[{'end': '1967-12-16', 'begin': '1967-12-16', 'displayDate': '1967-12-16'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-06-09', 'begin': '1966-06-09', 'displayDate': '1966-06-09'}] | converted_dates=[{'end': '1966-06-09', 'begin': '1966-06-09', 'displayDate': '1966-06-09'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1969-01-01', 'displayDate': '1969'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1969-01-01', 'displayDate': '1969'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-03-29', 'begin': '1967-03-29', 'displayDate': '1967-03-29'}] | converted_dates=[{'end': '1967-03-29', 'begin': '1967-03-29', 'displayDate': '1967-03-29'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-01-24', 'begin': '1970-01-24', 'displayDate': '1970-01-24'}] | converted_dates=[{'end': '1970-01-24', 'begin': '1970-01-24', 'displayDate': '1970-01-24'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1960-12-31', 'begin': '1960-12-01', 'displayDate': 'December 1960'}] | converted_dates=[{'end': '1960-12-31', 'begin': '1960-12-01', 'displayDate': 'December 1960'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-10-04', 'begin': '1967-10-04', 'displayDate': '1967-10-04'}] | converted_dates=[{'end': '1967-10-04', 'begin': '1967-10-04', 'displayDate': '1967-10-04'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': 'circa 1963'}] | converted_dates=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': 'circa 1963'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1961-05-03', 'begin': '1961-05-03', 'displayDate': '1961-05-03'}] | converted_dates=[{'end': '1961-05-03', 'begin': '1961-05-03', 'displayDate': '1961-05-03'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-08-31', 'begin': '1959-05-01', 'displayDate': 'Summer 1959 and 1963'}] | converted_dates=[{'end': '1963-08-31', 'begin': '1959-05-01', 'displayDate': 'Summer 1959 and 1963'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': 'circa 1970'}] | converted_dates=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': 'circa 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-07-31', 'begin': '1971-07-01', 'displayDate': 'July 1971'}] | converted_dates=[{'end': '1971-07-31', 'begin': '1971-07-01', 'displayDate': 'July 1971'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-01-15', 'begin': '1970-12-15', 'displayDate': '1970-12-25'}] | converted_dates=[{'end': '1971-01-15', 'begin': '1970-12-15', 'displayDate': '1970-12-25'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-07-13', 'begin': '1965-07-13', 'displayDate': '1965-07-13'}] | converted_dates=[{'end': '1965-07-13', 'begin': '1965-07-13', 'displayDate': '1965-07-13'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-12-02', 'begin': '1964-12-02', 'displayDate': '1964-12-02'}] | converted_dates=[{'end': '1964-12-02', 'begin': '1964-12-02', 'displayDate': '1964-12-02'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-01-10', 'begin': '1968-01-10', 'displayDate': '1968-01-10'}] | converted_dates=[{'end': '1968-01-10', 'begin': '1968-01-10', 'displayDate': '1968-01-10'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-03-01', 'begin': '1969-03-01', 'displayDate': '1969-03-01'}] | converted_dates=[{'end': '1969-03-01', 'begin': '1969-03-01', 'displayDate': '1969-03-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-04-17', 'begin': '1963-04-17', 'displayDate': '1963-04-17'}] | converted_dates=[{'end': '1963-04-17', 'begin': '1963-04-17', 'displayDate': '1963-04-17'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': '1970'}] | converted_dates=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': '1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-05-10', 'begin': '1967-05-10', 'displayDate': '1967-05-10'}] | converted_dates=[{'end': '1967-05-10', 'begin': '1967-05-10', 'displayDate': '1967-05-10'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-12-01', 'begin': '1970-12-01', 'displayDate': '1970-12-01'}] | converted_dates=[{'end': '1970-12-01', 'begin': '1970-12-01', 'displayDate': '1970-12-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-05-22', 'begin': '1964-05-22', 'displayDate': '1964-05-22'}] | converted_dates=[{'end': '1964-05-22', 'begin': '1964-05-22', 'displayDate': '1964-05-22'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-01-29', 'begin': '1969-01-29', 'displayDate': '1969-01-29'}] | converted_dates=[{'end': '1969-01-29', 'begin': '1969-01-29', 'displayDate': '1969-01-29'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': '1970'}] | converted_dates=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': '1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-12-21', 'begin': '1966-12-21', 'displayDate': '1966-12-21'}] | converted_dates=[{'end': '1966-12-21', 'begin': '1966-12-21', 'displayDate': '1966-12-21'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-10-19', 'begin': '1971-10-19', 'displayDate': '1971-10-19'}] | converted_dates=[{'end': '1971-10-19', 'begin': '1971-10-19', 'displayDate': '1971-10-19'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-03-06', 'begin': '1967-03-06', 'displayDate': '1967-03-06'}] | converted_dates=[{'end': '1967-03-06', 'begin': '1967-03-06', 'displayDate': '1967-03-06'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-10-13', 'begin': '1966-10-13', 'displayDate': '1966-10-13'}] | converted_dates=[{'end': '1966-10-13', 'begin': '1966-10-13', 'displayDate': '1966-10-13'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-11-03', 'begin': '1970-11-03', 'displayDate': '1970-11-03'}] | converted_dates=[{'end': '1970-11-03', 'begin': '1970-11-03', 'displayDate': '1970-11-03'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-02-01', 'begin': '1967-02-01', 'displayDate': '1967-02-01'}] | converted_dates=[{'end': '1967-02-01', 'begin': '1967-02-01', 'displayDate': '1967-02-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-05-31', 'begin': '1967-05-31', 'displayDate': '1967-05-31'}] | converted_dates=[{'end': '1967-05-31', 'begin': '1967-05-31', 'displayDate': '1967-05-31'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-10-31', 'begin': '1966-10-01', 'displayDate': 'October 1966'}] | converted_dates=[{'end': '1966-10-31', 'begin': '1966-10-01', 'displayDate': 'October 1966'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1979-12-31', 'begin': '1970-01-01', 'displayDate': '1970s'}] | converted_dates=[{'end': '1979-12-31', 'begin': '1970-01-01', 'displayDate': '1970s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-05-31', 'begin': '1967-09-01', 'displayDate': 'Fall 1967, Spring 1968'}] | converted_dates=[{'end': '1968-05-31', 'begin': '1967-09-01', 'displayDate': 'Fall 1967, Spring 1968'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-09-01', 'begin': '1965-09-01', 'displayDate': '1965-09-01'}] | converted_dates=[{'end': '1965-09-01', 'begin': '1965-09-01', 'displayDate': '1965-09-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-01-17', 'begin': '1970-01-17', 'displayDate': '1970-01-17'}] | converted_dates=[{'end': '1970-01-17', 'begin': '1970-01-17', 'displayDate': '1970-01-17'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-05-03', 'begin': '1970-05-02', 'displayDate': 'May 2-3, 1970'}] | converted_dates=[{'end': '1970-05-03', 'begin': '1970-05-02', 'displayDate': 'May 2-3, 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-02-28', 'begin': '1970-02-28', 'displayDate': '1970-02-28'}] | converted_dates=[{'end': '1970-02-28', 'begin': '1970-02-28', 'displayDate': '1970-02-28'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-04-04', 'begin': '1970-03-28', 'displayDate': '1970-03-28 and 1970-04-04'}] | converted_dates=[{'end': '1970-04-04', 'begin': '1970-03-28', 'displayDate': '1970-03-28 and 1970-04-04'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-10-23', 'begin': '1964-10-23', 'displayDate': '1964-10-23'}] | converted_dates=[{'end': '1964-10-23', 'begin': '1964-10-23', 'displayDate': '1964-10-23'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-09-30', 'begin': '1967-09-01', 'displayDate': 'September 1967'}] | converted_dates=[{'end': '1967-09-30', 'begin': '1967-09-01', 'displayDate': 'September 1967'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-10-31', 'begin': '1965-10-01', 'displayDate': 'October 1965'}] | converted_dates=[{'end': '1965-10-31', 'begin': '1965-10-01', 'displayDate': 'October 1965'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-11-30', 'begin': '1966-11-30', 'displayDate': '1966-11-30'}] | converted_dates=[{'end': '1966-11-30', 'begin': '1966-11-30', 'displayDate': '1966-11-30'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-09-20', 'begin': '1966-09-20', 'displayDate': '1966-09-20'}] | converted_dates=[{'end': '1966-09-20', 'begin': '1966-09-20', 'displayDate': '1966-09-20'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-11-29', 'begin': '1965-11-29', 'displayDate': '1965-11-29'}] | converted_dates=[{'end': '1965-11-29', 'begin': '1965-11-29', 'displayDate': '1965-11-29'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}] | converted_dates=[{'end': '1965-12-31', 'begin': '1960-01-01', 'displayDate': 'early 1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-12-27', 'begin': '1967-12-27', 'displayDate': '1967-12-27'}] | converted_dates=[{'end': '1967-12-27', 'begin': '1967-12-27', 'displayDate': '1967-12-27'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-09-29', 'begin': '1966-09-29', 'displayDate': '1966-09-29'}] | converted_dates=[{'end': '1966-09-29', 'begin': '1966-09-29', 'displayDate': '1966-09-29'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-12-31', 'begin': '1966-01-01', 'displayDate': 'circa 1966'}] | converted_dates=[{'end': '1966-12-31', 'begin': '1966-01-01', 'displayDate': 'circa 1966'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-05-17', 'begin': '1966-05-17', 'displayDate': '1966-05-17'}] | converted_dates=[{'end': '1966-05-17', 'begin': '1966-05-17', 'displayDate': '1966-05-17'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-09-30', 'begin': '1971-09-01', 'displayDate': 'September 1971'}] | converted_dates=[{'end': '1971-09-30', 'begin': '1971-09-01', 'displayDate': 'September 1971'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-05-01', 'begin': '1968-05-01', 'displayDate': '1968-05-01'}] | converted_dates=[{'end': '1968-05-01', 'begin': '1968-05-01', 'displayDate': '1968-05-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1961-12-31', 'begin': '1961-01-01', 'displayDate': 'circa 1961'}] | converted_dates=[{'end': '1961-12-31', 'begin': '1961-01-01', 'displayDate': 'circa 1961'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1960-12-31', 'begin': '1960-01-01', 'displayDate': '1960'}] | converted_dates=[{'end': '1960-12-31', 'begin': '1960-01-01', 'displayDate': '1960'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-01-10', 'begin': '1969-01-10', 'displayDate': '1969-01-10'}] | converted_dates=[{'end': '1969-01-10', 'begin': '1969-01-10', 'displayDate': '1969-01-10'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1961-07-29', 'begin': '1961-07-29', 'displayDate': '1961-07-29'}] | converted_dates=[{'end': '1961-07-29', 'begin': '1961-07-29', 'displayDate': '1961-07-29'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-09-13', 'begin': '1967-09-13', 'displayDate': '1967-09-13'}] | converted_dates=[{'end': '1967-09-13', 'begin': '1967-09-13', 'displayDate': '1967-09-13'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-12-31', 'begin': '1963-05-01', 'displayDate': 'circa 1964 and 1963-05-01'}] | converted_dates=[{'end': '1964-12-31', 'begin': '1963-05-01', 'displayDate': 'circa 1964 and 1963-05-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': '1963'}] | converted_dates=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': '1963'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-03-19', 'begin': '1969-03-19', 'displayDate': '1969-03-19'}] | converted_dates=[{'end': '1969-03-19', 'begin': '1969-03-19', 'displayDate': '1969-03-19'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-06-22', 'begin': '1965-06-22', 'displayDate': '1965-06-22'}] | converted_dates=[{'end': '1965-06-22', 'begin': '1965-06-22', 'displayDate': '1965-06-22'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1962-02-04', 'begin': '1962-02-04', 'displayDate': '1962-02-04'}] | converted_dates=[{'end': '1962-02-04', 'begin': '1962-02-04', 'displayDate': '1962-02-04'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-02-28', 'begin': '1970-02-28', 'displayDate': '1970-02-28'}] | converted_dates=[{'end': '1970-02-28', 'begin': '1970-02-28', 'displayDate': '1970-02-28'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-12-31', 'begin': '1966-01-01', 'displayDate': 'circa 1966'}] | converted_dates=[{'end': '1966-12-31', 'begin': '1966-01-01', 'displayDate': 'circa 1966'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-05-31', 'begin': '1970-03-01', 'displayDate': 'Spring 1970'}] | converted_dates=[{'end': '1970-05-31', 'begin': '1970-03-01', 'displayDate': 'Spring 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-12-26', 'begin': '1963-12-26', 'displayDate': '1963-12-26'}] | converted_dates=[{'end': '1963-12-26', 'begin': '1963-12-26', 'displayDate': '1963-12-26'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-12-01', 'begin': '1965-12-01', 'displayDate': '1965-12-01'}] | converted_dates=[{'end': '1965-12-01', 'begin': '1965-12-01', 'displayDate': '1965-12-01'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-05-15', 'begin': '1964-05-15', 'displayDate': '1964-05-15'}] | converted_dates=[{'end': '1964-05-15', 'begin': '1964-05-15', 'displayDate': '1964-05-15'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1972-02-28', 'begin': '1972-02-01', 'displayDate': 'February 1972'}] | converted_dates=[{'end': '1972-02-28', 'begin': '1972-02-01', 'displayDate': 'February 1972'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-01-31', 'begin': '1970-01-31', 'displayDate': '1970-01-31'}] | converted_dates=[{'end': '1970-01-31', 'begin': '1970-01-31', 'displayDate': '1970-01-31'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-05-19', 'begin': '1966-05-19', 'displayDate': '1966-05-19'}] | converted_dates=[{'end': '1966-05-19', 'begin': '1966-05-19', 'displayDate': '1966-05-19'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1960-04-26', 'begin': '1960-04-26', 'displayDate': '1960-04-26'}] | converted_dates=[{'end': '1960-04-26', 'begin': '1960-04-26', 'displayDate': '1960-04-26'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-01-18', 'begin': '1967-01-18', 'displayDate': '1967-01-18'}] | converted_dates=[{'end': '1967-01-18', 'begin': '1967-01-18', 'displayDate': '1967-01-18'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': 'circa 1970'}] | converted_dates=[{'end': '1970-12-31', 'begin': '1970-01-01', 'displayDate': 'circa 1970'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-12-16', 'begin': '1964-12-16', 'displayDate': '1964-12-16'}] | converted_dates=[{'end': '1964-12-16', 'begin': '1964-12-16', 'displayDate': '1964-12-16'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': 'May 30 (year unknown)'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': 'May 30 (year unknown)'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1962-07-11', 'begin': '1962-06-30', 'displayDate': '1962-06-30 and 1962-07-11'}] | converted_dates=[{'end': '1962-07-11', 'begin': '1962-06-30', 'displayDate': '1962-06-30 and 1962-07-11'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-11-08', 'begin': '1967-11-08', 'displayDate': '1967-11-08'}] | converted_dates=[{'end': '1967-11-08', 'begin': '1967-11-08', 'displayDate': '1967-11-08'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1971-05-27', 'begin': '1971-05-27', 'displayDate': '1971-05-27'}] | converted_dates=[{'end': '1971-05-27', 'begin': '1971-05-27', 'displayDate': '1971-05-27'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': '1963'}] | converted_dates=[{'end': '1963-12-31', 'begin': '1963-01-01', 'displayDate': '1963'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1964-02-25', 'begin': '1964-02-25', 'displayDate': '1964-02-25'}] | converted_dates=[{'end': '1964-02-25', 'begin': '1964-02-25', 'displayDate': '1964-02-25'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-05-10', 'begin': '1970-05-10', 'displayDate': '1970-05-10'}] | converted_dates=[{'end': '1970-05-10', 'begin': '1970-05-10', 'displayDate': '1970-05-10'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1970-03-22', 'begin': '1970-03-14', 'displayDate': '1970-03-14 and 1970-03-22'}] | converted_dates=[{'end': '1970-03-22', 'begin': '1970-03-14', 'displayDate': '1970-03-14 and 1970-03-22'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}] | converted_dates=[{'end': '1969-12-31', 'begin': '1960-01-01', 'displayDate': '1960s'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-12-14', 'begin': '1966-12-14', 'displayDate': '1966-12-14'}] | converted_dates=[{'end': '1966-12-14', 'begin': '1966-12-14', 'displayDate': '1966-12-14'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1966-04-05', 'begin': '1966-04-05', 'displayDate': '1966-04-05'}] | converted_dates=[{'end': '1966-04-05', 'begin': '1966-04-05', 'displayDate': '1966-04-05'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1968-04-04', 'begin': '1968-04-04', 'displayDate': '1968-04-04'}] | converted_dates=[{'end': '1968-04-04', 'begin': '1968-04-04', 'displayDate': '1968-04-04'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1967-03-02', 'begin': '1967-03-02', 'displayDate': '1967-03-02'}] | converted_dates=[{'end': '1967-03-02', 'begin': '1967-03-02', 'displayDate': '1967-03-02'}]
+26998 | convert_dates | date_values=None | converted_dates=None
+26998 | convert_dates | date_values=[{'end': '1965-07-21', 'begin': '1965-07-21', 'displayDate': '1965-07-21'}] | converted_dates=[{'end': '1965-07-21', 'begin': '1965-07-21', 'displayDate': '1965-07-21'}]
+27178 | convert_dates | date_values=[] | converted_dates=None
+27283 | convert_dates | date_values=None | converted_dates=None
+27393 | convert_dates | date_values=None | converted_dates=None
+27393 | convert_dates | date_values=[{'begin': '1964-06', 'end': '1964-06', 'displayDate': '1964 June'}] | converted_dates=[{'begin': '1964-06', 'end': '1964-06', 'displayDate': '1964 June'}]
+27393 | convert_dates | date_values=[{'begin': '1920', 'end': '1920', 'displayDate': '1920'}] | converted_dates=[{'begin': '1920', 'end': '1920', 'displayDate': '1920'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1975', 'end': '1975', 'displayDate': '1975'}] | converted_dates=[{'begin': '1975', 'end': '1975', 'displayDate': '1975'}]
+27393 | convert_dates | date_values=[{'begin': '1975', 'end': '1975', 'displayDate': '1975'}] | converted_dates=[{'begin': '1975', 'end': '1975', 'displayDate': '1975'}]
+27393 | convert_dates | date_values=[{'begin': '1940', 'end': '1949', 'displayDate': 'ca.1940s'}] | converted_dates=[{'begin': '1940', 'end': '1949', 'displayDate': 'ca.1940s'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}] | converted_dates=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}]
+27393 | convert_dates | date_values=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}] | converted_dates=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}]
+27393 | convert_dates | date_values=[{'begin': '1918', 'end': '1918', 'displayDate': '1918'}] | converted_dates=[{'begin': '1918', 'end': '1918', 'displayDate': '1918'}]
+27393 | convert_dates | date_values=[{'begin': '1920', 'end': '1929', 'displayDate': 'ca.1920s'}] | converted_dates=[{'begin': '1920', 'end': '1929', 'displayDate': 'ca.1920s'}]
+27393 | convert_dates | date_values=[{'begin': '1920', 'end': '1929', 'displayDate': 'ca.1920s'}] | converted_dates=[{'begin': '1920', 'end': '1929', 'displayDate': 'ca.1920s'}]
+27393 | convert_dates | date_values=[{'begin': '1920', 'end': '1929', 'displayDate': 'ca.1920s'}] | converted_dates=[{'begin': '1920', 'end': '1929', 'displayDate': 'ca.1920s'}]
+27393 | convert_dates | date_values=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}] | converted_dates=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}]
+27393 | convert_dates | date_values=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}] | converted_dates=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}]
+27393 | convert_dates | date_values=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}] | converted_dates=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}]
+27393 | convert_dates | date_values=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}] | converted_dates=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}]
+27393 | convert_dates | date_values=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}] | converted_dates=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}]
+27393 | convert_dates | date_values=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}] | converted_dates=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}] | converted_dates=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}]
+27393 | convert_dates | date_values=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}] | converted_dates=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}]
+27393 | convert_dates | date_values=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}] | converted_dates=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}]
+27393 | convert_dates | date_values=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}] | converted_dates=[{'begin': '1958-07', 'end': '1958-07', 'displayDate': '1958 July'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}] | converted_dates=[{'begin': '1958-06', 'end': '1958-06', 'displayDate': '1958 June'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': '1956 October'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': '1956 October'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': '1956 October'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': '1956 October'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': '1956 October'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': '1956 October'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': '1956 October'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': '1956 October'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': '1956 October'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': '1956 October'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': '1956 October'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': '1956 October'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': '1956 October'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': '1956 October'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': '1956 October'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': '1956 October'}]
+27393 | convert_dates | date_values=[{'begin': '1959', 'end': '1960', 'displayDate': '1959-1960'}] | converted_dates=[{'begin': '1959', 'end': '1960', 'displayDate': '1959-1960'}]
+27393 | convert_dates | date_values=[{'begin': '1957', 'end': '1957', 'displayDate': '1957'}] | converted_dates=[{'begin': '1957', 'end': '1957', 'displayDate': '1957'}]
+27393 | convert_dates | date_values=[{'begin': '1957', 'end': '1957', 'displayDate': '1957'}] | converted_dates=[{'begin': '1957', 'end': '1957', 'displayDate': '1957'}]
+27393 | convert_dates | date_values=[{'begin': '2000', 'end': '2009', 'displayDate': 'ca.2000s'}] | converted_dates=[{'begin': '2000', 'end': '2009', 'displayDate': 'ca.2000s'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}] | converted_dates=[{'begin': None, 'end': None, 'displayDate': 'Unknown'}]
+27393 | convert_dates | date_values=[{'begin': '1927', 'end': '1927', 'displayDate': '1927'}] | converted_dates=[{'begin': '1927', 'end': '1927', 'displayDate': '1927'}]
+27393 | convert_dates | date_values=[{'begin': '1914', 'end': '1914', 'displayDate': '1914'}] | converted_dates=[{'begin': '1914', 'end': '1914', 'displayDate': '1914'}]
+27393 | convert_dates | date_values=[{'begin': '1952', 'end': '1952', 'displayDate': '1952'}] | converted_dates=[{'begin': '1952', 'end': '1952', 'displayDate': '1952'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1936', 'end': '1936', 'displayDate': '1936'}] | converted_dates=[{'begin': '1936', 'end': '1936', 'displayDate': '1936'}]
+27393 | convert_dates | date_values=[{'begin': '1936', 'end': '1936', 'displayDate': '1936'}] | converted_dates=[{'begin': '1936', 'end': '1936', 'displayDate': '1936'}]
+27393 | convert_dates | date_values=[{'begin': '1900', 'end': '1909', 'displayDate': 'ca.1900s'}] | converted_dates=[{'begin': '1900', 'end': '1909', 'displayDate': 'ca.1900s'}]
+27393 | convert_dates | date_values=[{'begin': '1890', 'end': '1899', 'displayDate': 'ca.1890s'}] | converted_dates=[{'begin': '1890', 'end': '1899', 'displayDate': 'ca.1890s'}]
+27393 | convert_dates | date_values=[{'begin': '1896', 'end': '1896', 'displayDate': '1896'}] | converted_dates=[{'begin': '1896', 'end': '1896', 'displayDate': '1896'}]
+27393 | convert_dates | date_values=[{'begin': '1910', 'end': '1920', 'displayDate': '1910-1920'}] | converted_dates=[{'begin': '1910', 'end': '1920', 'displayDate': '1910-1920'}]
+27393 | convert_dates | date_values=[{'begin': '1963', 'end': '1963', 'displayDate': '1963'}] | converted_dates=[{'begin': '1963', 'end': '1963', 'displayDate': '1963'}]
+27393 | convert_dates | date_values=[{'begin': '1930', 'end': '1939', 'displayDate': 'ca.1930s'}] | converted_dates=[{'begin': '1930', 'end': '1939', 'displayDate': 'ca.1930s'}]
+27393 | convert_dates | date_values=[{'begin': '1963', 'end': '1963', 'displayDate': '1963'}] | converted_dates=[{'begin': '1963', 'end': '1963', 'displayDate': '1963'}]
+27393 | convert_dates | date_values=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}] | converted_dates=[{'begin': '1950', 'end': '1959', 'displayDate': 'ca.1950s'}]
+27393 | convert_dates | date_values=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}] | converted_dates=[{'begin': '1960', 'end': '1969', 'displayDate': 'ca.1960s'}]
+27393 | convert_dates | date_values=[{'begin': '1918', 'end': '1918', 'displayDate': '1918'}] | converted_dates=[{'begin': '1918', 'end': '1918', 'displayDate': '1918'}]
+27479 | convert_dates | date_values=None | converted_dates=None
+27479 | convert_dates | date_values=[{'end': '2018-06-23', 'begin': '2018-04-01', 'displayDate': 'April 1, 2018 to June 23, 2018'}] | converted_dates=[{'end': '2018-06-23', 'begin': '2018-04-01', 'displayDate': 'April 1, 2018 to June 23, 2018'}]
+27479 | convert_dates | date_values=[{'end': '2017-06-02', 'begin': '2017-06-02', 'displayDate': 'June 2, 2017'}] | converted_dates=[{'end': '2017-06-02', 'begin': '2017-06-02', 'displayDate': 'June 2, 2017'}]
+27479 | convert_dates | date_values=[{'end': '2020-03-05', 'begin': '2020-03-05', 'displayDate': 'March 5, 2020'}] | converted_dates=[{'end': '2020-03-05', 'begin': '2020-03-05', 'displayDate': 'March 5, 2020'}]
+27479 | convert_dates | date_values=[{'end': '2017-05-10', 'begin': '2017-05-10', 'displayDate': 'May 10, 2017'}] | converted_dates=[{'end': '2017-05-10', 'begin': '2017-05-10', 'displayDate': 'May 10, 2017'}]
+27479 | convert_dates | date_values=[{'end': '2019-09-05', 'begin': '2019-09-05', 'displayDate': 'September 5, 2019'}] | converted_dates=[{'end': '2019-09-05', 'begin': '2019-09-05', 'displayDate': 'September 5, 2019'}]
+27479 | convert_dates | date_values=[{'end': '2019-11-22', 'begin': '2019-11-22', 'displayDate': 'November 22, 2019'}] | converted_dates=[{'end': '2019-11-22', 'begin': '2019-11-22', 'displayDate': 'November 22, 2019'}]
+27479 | convert_dates | date_values=[{'end': '2017-05-25', 'begin': '2017-05-25', 'displayDate': 'May 25, 2017'}] | converted_dates=[{'end': '2017-05-25', 'begin': '2017-05-25', 'displayDate': 'May 25, 2017'}]
+27479 | convert_dates | date_values=[{'end': '2018-09-24', 'begin': '2018-09-24', 'displayDate': 'September 24, 2018'}] | converted_dates=[{'end': '2018-09-24', 'begin': '2018-09-24', 'displayDate': 'September 24, 2018'}]
+27521 | convert_dates | date_values=None | converted_dates=None
+27524 | convert_dates | date_values=None | converted_dates=None
+27871 | convert_dates | date_values=None | converted_dates=None
+27871 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '1993-01-01 to 2016-12-31'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '1993-01-01 to 2016-12-31'}]
+28095 | convert_dates | date_values=None | converted_dates=None
+28170 | convert_dates | date_values=None | converted_dates=None
+28170 | convert_dates | date_values=None | converted_dates=None
+28170 | convert_dates | date_values=None | converted_dates=None
+28170 | convert_dates | date_values=None | converted_dates=None
+28170 | convert_dates | date_values=None | converted_dates=None
+28174 | convert_dates | date_values=None | converted_dates=None
+28183 | convert_dates | date_values=None | converted_dates=None
+28183 | convert_dates | date_values=None | converted_dates=None
+28183 | convert_dates | date_values=None | converted_dates=None
+28215 | convert_dates | date_values=None | converted_dates=None
+28215 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2014 to 2017'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2014 to 2017'}]
+28218 | convert_dates | date_values=None | converted_dates=None
+28218 | convert_dates | date_values=[{'end': '', 'begin': '', 'displayDate': '2019-02-01 to 2019-03-01 and 2020-01-24 to 2020-03-16'}] | converted_dates=[{'end': '', 'begin': '', 'displayDate': '2019-02-01 to 2019-03-01 and 2020-01-24 to 2020-03-16'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1987-12', 'begin': '1982-01', 'displayDate': 'circa 1982'}] | converted_dates=[{'end': '1987-12', 'begin': '1982-01', 'displayDate': 'circa 1982'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1983-12', 'begin': '1982-01', 'displayDate': 'circa 1982'}] | converted_dates=[{'end': '1983-12', 'begin': '1982-01', 'displayDate': 'circa 1982'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1971-12', 'begin': '1971-01', 'displayDate': '1971'}] | converted_dates=[{'end': '1971-12', 'begin': '1971-01', 'displayDate': '1971'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1990-12', 'begin': '1975-01', 'displayDate': 'between 1975 and 1990'}] | converted_dates=[{'end': '1990-12', 'begin': '1975-01', 'displayDate': 'between 1975 and 1990'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1978-01', 'begin': '1978-01', 'displayDate': '1978 January 12'}] | converted_dates=[{'end': '1978-01', 'begin': '1978-01', 'displayDate': '1978 January 12'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1990-12', 'begin': '1980-01', 'displayDate': 'circa 1985'}] | converted_dates=[{'end': '1990-12', 'begin': '1980-01', 'displayDate': 'circa 1985'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1983-12', 'begin': '1980-01', 'displayDate': 'circa 1982'}] | converted_dates=[{'end': '1983-12', 'begin': '1980-01', 'displayDate': 'circa 1982'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1983-02', 'begin': '1983-02', 'displayDate': '1983 February 16'}] | converted_dates=[{'end': '1983-02', 'begin': '1983-02', 'displayDate': '1983 February 16'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1982-03', 'begin': '1982-03', 'displayDate': '1982 March 3'}] | converted_dates=[{'end': '1982-03', 'begin': '1982-03', 'displayDate': '1982 March 3'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1983-11', 'begin': '1983-11', 'displayDate': '1983 November 2'}] | converted_dates=[{'end': '1983-11', 'begin': '1983-11', 'displayDate': '1983 November 2'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1982-05', 'begin': '1982-05', 'displayDate': 'May 1982'}] | converted_dates=[{'end': '1982-05', 'begin': '1982-05', 'displayDate': 'May 1982'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1986-10', 'begin': '1986-10', 'displayDate': '1986 October 15'}] | converted_dates=[{'end': '1986-10', 'begin': '1986-10', 'displayDate': '1986 October 15'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1972-12', 'begin': '1971-01', 'displayDate': '1971-1972'}] | converted_dates=[{'end': '1972-12', 'begin': '1971-01', 'displayDate': '1971-1972'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1985-04', 'begin': '1985-04', 'displayDate': '1985 April 16'}] | converted_dates=[{'end': '1985-04', 'begin': '1985-04', 'displayDate': '1985 April 16'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1970-12', 'begin': '1940-01', 'displayDate': 'Between 1940 and 1970'}] | converted_dates=[{'end': '1970-12', 'begin': '1940-01', 'displayDate': 'Between 1940 and 1970'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1985-05', 'begin': '1985-05', 'displayDate': '1985 May 23'}] | converted_dates=[{'end': '1985-05', 'begin': '1985-05', 'displayDate': '1985 May 23'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1985-05', 'begin': '1985-05', 'displayDate': 'May 1985'}] | converted_dates=[{'end': '1985-05', 'begin': '1985-05', 'displayDate': 'May 1985'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1985-05', 'begin': '1985-05', 'displayDate': '1985 May 28'}] | converted_dates=[{'end': '1985-05', 'begin': '1985-05', 'displayDate': '1985 May 28'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1990-12', 'begin': '1980-01', 'displayDate': 'circa 1985'}] | converted_dates=[{'end': '1990-12', 'begin': '1980-01', 'displayDate': 'circa 1985'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1985-12', 'begin': '1975-01', 'displayDate': 'circa 1980'}] | converted_dates=[{'end': '1985-12', 'begin': '1975-01', 'displayDate': 'circa 1980'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1999-11', 'begin': '1999-11', 'displayDate': '1999 November 18'}] | converted_dates=[{'end': '1999-11', 'begin': '1999-11', 'displayDate': '1999 November 18'}]
+28261 | convert_dates | date_values=None | converted_dates=None
+28261 | convert_dates | date_values=[{'end': '1987-12', 'begin': '1982-01', 'displayDate': 'circa 1982'}] | converted_dates=[{'end': '1987-12', 'begin': '1982-01', 'displayDate': 'circa 1982'}]
+7007 | convert_dates | date_values=[] | converted_dates=None
+27523 | convert_dates | date_values=None | converted_dates=None
+27414 | convert_dates | date_values=[] | converted_dates=None
+23407 | convert_dates | date_values=[] | converted_dates=None
+28120 | convert_dates | date_values=None | converted_dates=None
