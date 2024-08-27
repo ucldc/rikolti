@@ -232,8 +232,8 @@ def parse_date_or_range(date_str):
             # wordy date like "mid 11th century AH/AD 17th century (Mughal)"
             date_str = date_str.replace(" ", "")
             date_str = date_str.split(delim)
-            begin = delim.join(date_str[:len(date_str) / 2])
-            end = delim.join(date_str[len(date_str) / 2:])
+            begin = delim.join(date_str[:len(date_str) // 2])
+            end = delim.join(date_str[len(date_str) // 2:])
 
             # Check if month in begin or end
             m1 = re.sub(r"[-\d/]", "", begin)
