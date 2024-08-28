@@ -1,4 +1,4 @@
-collection_id | function | date_source argument | start_date return value | end_date return value
+collection_id | function | date_source | start_date | end_date
 12680 | make_sort_dates | date_source=[{'end': '1916', 'begin': '1856', 'displayDate': '1856 - 1916'}] | start_date='1856-01-01T00:00:00+00:00' | end_date='1916-01-01T00:00:00+00:00'
 12680 | make_sort_dates | date_source=[{'end': '1912', 'begin': '1858', 'displayDate': '1858 - 1912'}] | start_date='1858-01-01T00:00:00+00:00' | end_date='1912-01-01T00:00:00+00:00'
 12680 | make_sort_dates | date_source=[{'end': '1912', 'begin': '1874', 'displayDate': '1874 - 1912'}] | start_date='1874-01-01T00:00:00+00:00' | end_date='1912-01-01T00:00:00+00:00'

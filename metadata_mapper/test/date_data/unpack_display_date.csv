@@ -1,4 +1,4 @@
-collection_id | function | input | output
+collection_id | function | date_obj | dates
 7007 | unpack_display_date | date_obj=[None] | dates=[None]
 7007 | unpack_display_date | date_obj=[None] | dates=[None]
 12680 | unpack_display_date | date_obj=[{'end': '1916', 'begin': '1856', 'displayDate': '1856 - 1916'}] | dates=['1856 - 1916']
