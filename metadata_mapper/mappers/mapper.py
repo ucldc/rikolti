@@ -552,11 +552,24 @@ class Record(ABC, object):
             return self
 
         date_values = self.mapped_data.get('date')              # type: ignore
-        self.mapped_data['date'] = convert_dates(date_values)   # type: ignore
+        converted_dates = convert_dates(date_values)
+        self.mapped_data['date'] = converted_dates              # type: ignore
         check_date_format(
             self.mapped_data['calisphere-id'],                  # type: ignore
             self.mapped_data['date']                            # type: ignore
         )
+
+        # uncomment these lines to add dates to test data:
+        # test_data_path = os.path.join(
+        #     os.path.dirname(os.path.abspath(__file__)), "test", "date_data",
+        #     f"{self.collection_id}_enrich_earliest_date.csv"
+        # )
+        # with(open(test_data_path, "a") as test_data):
+        #     print(
+        #         f"{self.collection_id} | convert_dates | "
+        #         f"{date_values=} | {converted_dates=}",
+        #         file=test_data
+        #     )
 
         return self
 
@@ -578,11 +591,26 @@ class Record(ABC, object):
             prop = prop[0]
         prop = prop.split('/')[-1]  # remove sourceResource
         date_values = self.mapped_data.get(prop)                # type: ignore
-        self.mapped_data[prop] = convert_dates(date_values)     # type: ignore
+        converted_dates = convert_dates(date_values)
+        self.mapped_data[prop] = converted_dates                # type: ignore
+
         check_date_format(
             self.mapped_data['calisphere-id'],                  # type: ignore
             self.mapped_data[prop]                              # type: ignore
         )
+
+        # uncomment these lines to add dates to test data:
+        # test_data_path = os.path.join(
+        #     os.path.dirname(os.path.abspath(__file__)), "test", "date_data",
+        #     f"{self.collection_id}_enrich_date.csv"
+        # )
+        # with(open(test_data_path, "a") as test_data):
+        #     print(
+        #         f"{self.collection_id} | convert_dates | "
+        #         f"{date_values=} | {converted_dates=}",
+        #         file=test_data
+        #     )
+
         return self
 
     def enrich_location(self, prop=["sourceResource/spatial"]):
@@ -1355,6 +1383,20 @@ class Record(ABC, object):
                 for date_value in dates:
                     try:
                         facet_decades = get_facet_decades(date_value)
+
+                        # uncomment these lines to add dates to test data:
+                        # test_data_path = os.path.join(
+                        #     os.path.dirname(os.path.abspath(__file__)), 
+                        #     "test", "date_data",
+                        #     f"{self.collection_id}_add_facet_decade.csv"
+                        # )
+                        # with(open(test_data_path, "a") as test_data):
+                        #     print(
+                        #         f"{self.collection_id} | get_facet_decades | "
+                        #         f"{date_value=} | {facet_decades=} | {dates=}",
+                        #         file=test_data
+                        #     )
+
                         return facet_decades
                     except AttributeError as e:
                         print(
@@ -1535,6 +1577,27 @@ class Record(ABC, object):
                     record.get('location'))
             }
 
+            # uncomment these lines to add dates to test data:
+            # test_data_path = os.path.join(
+            #     os.path.dirname(os.path.abspath(__file__)), "test",
+            #     "date_data", f"{self.collection_id}_unpack_display_date.csv"
+            # )
+            # with(open(test_data_path, "a") as test_data):
+            #     date_obj = record.get('date')
+            #     dates = unpack_display_date(date_obj)
+            #     print(
+            #         f"{self.collection_id} | unpack_display_date | "
+            #         f"{date_obj=} | {dates=}",
+            #         file=test_data
+            #     )
+            #     date_obj = record.get('temporal')
+            #     dates = unpack_display_date(date_obj)
+            #     print(
+            #         f"{self.collection_id} | unpack_display_date | "
+            #         f"{date_obj=} | {dates=}",
+            #         file=test_data
+            #     )
+
             solr_doc['media_source'] = record.get('media_source', {})
             solr_doc['thumbnail_source'] = record.get('isShownBy', {})
 
@@ -1556,6 +1619,19 @@ class Record(ABC, object):
                 if not isinstance(date_source, list):
                     date_source = [date_source]
                 start_date, end_date = make_sort_dates(date_source)
+
+                # uncomment these lines to add dates to test data:
+                # test_data_path = os.path.join(
+                #     os.path.dirname(os.path.abspath(__file__)), "test",
+                #     "date_data", f"{self.collection_id}_sort_dates.csv"
+                # )
+                # with(open(test_data_path, "a") as test_data):
+                #     print(
+                #         f"{self.collection_id} | make_sort_dates | "
+                #         f"{date_source=} | {start_date=} | {end_date=}",
+                #         file=test_data
+                #     )
+
                 solr_doc['sort_date_start'] = start_date
                 solr_doc['sort_date_end'] = end_date
 
