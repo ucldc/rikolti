@@ -146,7 +146,7 @@ class Record(ABC, object):
         try:
             return func(**kwargs)
         except Exception as e:
-            print(f"ENRICHMENT ERROR: {traceback.format_exc()}")
+            print(f"ENRICHMENT ERROR: {e}\n{traceback.format_exc()}")
             raise Exception(f"ENRICHMENT ERROR for enrichment: `{enrichment_function_name}` "
                 f"with kwargs: `{str(kwargs)}` "
             )

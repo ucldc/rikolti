@@ -63,7 +63,8 @@ def robust_date_parser(d):
     """
     # Function for a formatted date string, since datetime.datetime.strftime()
     # only works with years >= 1900.
-    return_date = lambda d: "%d-%02d-%02d" % (d.year, d.month, d.day)
+    def return_date(d):
+        return "%d-%02d-%02d" % (d.year, d.month, d.day)
 
     # Check for EDTF timestamp first, because it is simple.
     if edtf_date_and_time.match(d):

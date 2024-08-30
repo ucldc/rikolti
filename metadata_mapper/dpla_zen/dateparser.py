@@ -214,7 +214,7 @@ def add_template(template=None, month_table=None, regex=None):
             raise TypeError("Must specify one of 'template' or 'regex'")
         pattern = template_to_pattern(template, month_table)
     else:
-        raise NotImplemented
+        raise NotImplementedError
         if template is not None:
             raise TypeError("Must not specify both 'template' and 'regex'")
         pattern = DatePattern(re.compile(regex, re.X), month_table)
