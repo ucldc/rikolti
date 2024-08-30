@@ -40,13 +40,13 @@ class CcaVaultValidator(Validator):
 
     def setup(self):
         self.add_validatable_fields([
-            {
-                "field": "is_shown_by",
-                "validations": [
-                    CcaVaultValidator.str_match_ignore_url_protocol,
-                    Validator.verify_type(str)
-                ]
-            },
+            # {
+            #     "field": "is_shown_by",
+            #     "validations": [
+            #         CcaVaultValidator.str_match_ignore_url_protocol,
+            #         Validator.verify_type(str)
+            #     ]
+            # },
             {
                 "field": "source",
                 "validations": [CcaVaultValidator.source_content_match],

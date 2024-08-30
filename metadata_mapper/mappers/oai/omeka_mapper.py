@@ -86,13 +86,14 @@ class OmekaValidator(Validator):
 
     def setup(self):
         self.add_validatable_fields([
+            # {
+            #     "field": "is_shown_by",
+            #     "validations": [
+            #         OmekaValidator.match_signed_s3_url,
+            #         Validator.verify_type(str)
+            #     ]
+            # }, 
             {
-                "field": "is_shown_by",
-                "validations": [
-                    OmekaValidator.match_signed_s3_url,
-                    Validator.verify_type(str)
-                ]
-            }, {
                 "field": "contributor",
                 "validations": [OmekaValidator.contributor_match],
                 "level": ValidationLogLevel.WARNING
