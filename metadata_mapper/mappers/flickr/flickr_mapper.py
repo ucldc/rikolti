@@ -130,14 +130,14 @@ class FlickrRecord(Record):
 
 
 class FlickrValidator(Validator):
-    def setup(self):
-        self.add_validatable_field(
-            field="is_shown_by",
-            validations=[
-                Validator.verify_type(str),
-                FlickrValidator.content_match_regex
-            ]
-        )
+    # def setup(self):
+    #     self.add_validatable_field(
+    #         field="is_shown_by",
+    #         validations=[
+    #             Validator.verify_type(str),
+    #             FlickrValidator.content_match_regex
+    #         ]
+    #     )
 
     @staticmethod
     def content_match_regex(validation_def: dict, rikolti_value: Any,

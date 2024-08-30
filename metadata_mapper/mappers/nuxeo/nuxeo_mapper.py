@@ -277,11 +277,11 @@ class NuxeoRecord(Record):
 
 
 class NuxeoValidator(Validator):
-    def setup(self):
-        self.add_validatable_field(field="is_shown_by", validations=[
-            NuxeoValidator.is_shown_by_validation,
-            Validator.verify_type(str)
-        ])
+    # def setup(self):
+    #     self.add_validatable_field(field="is_shown_by", validations=[
+    #         NuxeoValidator.is_shown_by_validation,
+    #         Validator.verify_type(str)
+    #     ])
 
     @staticmethod
     def is_shown_by_validation(validation_def: dict,

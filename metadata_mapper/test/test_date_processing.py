@@ -8,7 +8,7 @@ rikolti_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..
 if rikolti_path not in sys.path:
     sys.path.append(rikolti_path)
 
-from rikolti.metadata_mapper.mappers.solr_updater_helpers import (
+from rikolti.metadata_mapper.mappers.solr_updater_helpers import (          # noqa: E402
     get_facet_decades, unpack_display_date, make_sort_dates)                # noqa: E402
 from rikolti.metadata_mapper.mappers.date_enrichments import convert_dates  # noqa: E402
 
