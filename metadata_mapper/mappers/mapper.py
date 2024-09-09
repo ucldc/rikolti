@@ -39,7 +39,7 @@ class Record(ABC, object):
     validator = Validator
 
     def __init__(self, collection_id: int, record: dict[str, Any]):
-        self.mapped_data = {}
+        self.mapped_data: dict = {}
         self.collection_id: int = collection_id
         self.source_metadata: dict = record
         # TODO: pre_mapped_data is a stop gap to accomodate
@@ -58,7 +58,7 @@ class Record(ABC, object):
         Returns: dict
         """
         supermaps = [
-            super(c, self).UCLDC_map()                    # type: ignore
+            super(c, self).UCLDC_map()
             for c in list(reversed(type(self).__mro__))
             if hasattr(super(c, self), "UCLDC_map")
         ]
@@ -538,25 +538,16 @@ class Record(ABC, object):
     def enrich_earliest_date(self):
         """
         Called 2794 times, never with any arguments
-
-        TODO: self.mapped_data is not guaranteed to be a dictionary,
-        according to pylance. Rather than wrap this in an
-        if isinstance(self.mapped_data, dict), I've added type: ignore
-
-        self.mapped_data is always a dictionary and should always be a
-        dictionary, so directionally, I'd rather resolve this by
-        figuring out why pylance thinks it could be otherwise and adding
-        clarity there.
         """
         if "date" not in self.mapped_data:
             return self
 
-        date_values = self.mapped_data.get('date')              # type: ignore
+        date_values = self.mapped_data.get('date')
         converted_dates = convert_dates(date_values)
-        self.mapped_data['date'] = converted_dates              # type: ignore
+        self.mapped_data['date'] = converted_dates
         check_date_format(
-            self.mapped_data['calisphere-id'],                  # type: ignore
-            self.mapped_data['date']                            # type: ignore
+            self.mapped_data['calisphere-id'],
+            self.mapped_data['date']
         )
 
         # uncomment these lines to add dates to test data:
@@ -584,19 +575,17 @@ class Record(ABC, object):
             - 354: Adams (Peggy H.) papers
             - 17210: Pierce (C.C.) Photographic Collection
             - 26092: Bartlett (Adelbert) Papers
-
-        TODO: see comment in enrich_earliest_date regarding type: ignore
         """
         if isinstance(prop, list):
             prop = prop[0]
         prop = prop.split('/')[-1]  # remove sourceResource
-        date_values = self.mapped_data.get(prop)                # type: ignore
+        date_values = self.mapped_data.get(prop)
         converted_dates = convert_dates(date_values)
-        self.mapped_data[prop] = converted_dates                # type: ignore
+        self.mapped_data[prop] = converted_dates
 
         check_date_format(
-            self.mapped_data['calisphere-id'],                  # type: ignore
-            self.mapped_data[prop]                              # type: ignore
+            self.mapped_data['calisphere-id'],
+            self.mapped_data[prop]
         )
 
         # uncomment these lines to add dates to test data:
