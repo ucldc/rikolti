@@ -39,6 +39,16 @@ NUXEO_MEDIA_TYPE_MAP = {
 }
 
 
+def get_url_basename(url: str) -> Optional[str]:
+    """
+    For a given url, return the basename of the path, handling any
+    query parameters or fragments.
+    """
+    url_path = urlparse(url).path
+    url_path_parts = [p for p in url_path.split('/') if p]
+    return url_path_parts[-1] if url_path_parts else None
+
+
 # returns content = {thumbnail, media, children} where children
 # is an array of the self-same content dictionary
 def harvest_record_content(
@@ -61,12 +71,7 @@ def harvest_record_content(
     # get media first, sometimes media is used for thumbnail
     media_source = record.get('media_source', {})
 
-    media_source_url_path = urlparse(media_source.get('url', '')).path
-    media_source_url_path_parts = [
-        p for p in media_source_url_path.split('/') if p]
-    media_source_url_basename = (
-        media_source_url_path_parts[-1]
-        if media_source_url_path_parts else None)
+    media_source_url_basename = get_url_basename(media_source.get('url', ''))
     media_tmp_filepath = (
         f"/tmp/{media_source.get('filename', media_source_url_basename)}")
 
@@ -106,14 +111,9 @@ def harvest_record_content(
 
     thumbnail_src = thumbnail_src or {}
 
-    tumbnail_src_url_path = urlparse(thumbnail_src.get('url', '')).path
-    thumbnail_src_url_path_parts = [
-        p for p in tumbnail_src_url_path.split('/') if p]
-    thumbnail_src_url_basename = (
-        thumbnail_src_url_path_parts[-1] 
-        if thumbnail_src_url_path_parts else None)
     thumbnail_tmp_filepath = (
-        f"/tmp/{thumbnail_src.get('filename', thumbnail_src_url_basename)}")
+        f"/tmp/{thumbnail_src.get('filename', 
+                                  get_url_basename(thumbnail_src.get('url', '')))}")
 
     if thumbnail_src.get('url'):
         if downloaded_urls.get(thumbnail_src.get('url')):
@@ -192,7 +192,7 @@ def get_dimensions(filepath: str, calisphere_id: str) -> tuple[int, int]:
 
 def download_content(request: dict, http,
                 destination_file: str, 
-                cache: Optional[dict] = None
+                resp_headers_cache: Optional[dict] = None
             ):
     '''
         download source file to local disk
@@ -201,9 +201,9 @@ def download_content(request: dict, http,
     if request.get('auth') and urlparse(url).scheme != 'https':
         raise Exception(f"Basic auth not over https is a bad idea! {url}")
 
-    if not cache:
-        cache = {}
-    cached_data = cache.get(url, {})
+    if not resp_headers_cache:
+        resp_headers_cache = {}
+    cached_data = resp_headers_cache.get(url, {})
 
     request.update({
         "stream": True,
@@ -241,28 +241,28 @@ def download_content(request: dict, http,
         'md5': md5
     }
     cache_updates = {k:v for k,v in cache_updates.items() if v}
-    cache[url] = cached_data.update(cache_updates)
+    resp_headers_cache[url] = cached_data.update(cache_updates)
 
     return md5
 
 
-def upload_content(filepath: str, destination: str, cache: Optional[dict] = None) -> str:
+def upload_content(filepath: str, destination: str, md5_cache: Optional[dict] = None) -> str:
     '''
         upload file to CONTENT_ROOT
     '''
-    if not cache:
-        cache = {}
+    if not md5_cache:
+        md5_cache = {}
 
     filename = os.path.basename(destination)
-    if cache.get(filename, {}).get('path'):
-        return cache[filename]['path']
+    if md5_cache.get(filename, {}).get('path'):
+        return md5_cache[filename]['path']
 
     content_root = os.environ.get("CONTENT_ROOT", 'file:///tmp')
     content_path = f"{content_root.rstrip('/')}/{destination}"
     upload_file(filepath, content_path)
 
     # (mime, dimensions) = image_info(filepath)
-    cache[filename] = {
+    md5_cache[filename] = {
         # 'mime': mime,
         # 'dimensions': dimensions,
         'path': content_path
