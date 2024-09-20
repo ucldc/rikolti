@@ -158,17 +158,14 @@ def harvest_record_content(
                 }
 
     # backwards compatibility
-    thumbnail_src = record.get('thumbnail_source', record.get('is_shown_by'))
-    if isinstance(thumbnail_src, str):
-        thumbnail_src = {'url': thumbnail_src}
-        record['thumbnail_source'] = thumbnail_src
+    thumbnail_src = record.get('thumbnail_source', 
+                               {'url': record.get('is_shown_by', '')})
+    record['thumbnail_source'] = thumbnail_src
+    thumbnail_src_url = thumbnail_src.get('url')
+    thumbnail_destination_filename = thumbnail_src.get(
+        'filename', get_url_basename(thumbnail_src_url))
 
-    thumbnail_src = thumbnail_src or {}
-    thumbnail_src_url = thumbnail_src.get('url', '')
-    thumbnail_tmp_filepath = (
-        f"/tmp/{thumbnail_src.get('filename', get_url_basename(thumbnail_src_url))}")
-
-    if thumbnail_src.get('url'):
+    if thumbnail_src_url:
         thumbnail_metadata = download_thumbnail({
             'url': thumbnail_src_url, 
             'auth': auth
@@ -178,38 +175,39 @@ def harvest_record_content(
 
         content_s3_filepath = None
         dimensions = None
-        if downloaded_md5 and thumbnail_src.get('mimetype', 'image/jpeg') in ['image/jpeg', 'image/png']:
-            try:
-                dimensions = get_dimensions(
-                    thumbnail_tmp_filepath, record['calisphere-id'])
-            except Exception as e:
-                print(
-                    f"Error getting dimensions for {record['calisphere-id']}: "
-                    f"{e}, continuing..."
-                )
-            else:
-                content_s3_filepath = upload_content(
-                    thumbnail_tmp_filepath,
-                    f"thumbnails/{collection_id}/{downloaded_md5}"
-                )
-        elif downloaded_md5 and thumbnail_src.get('mimetype', 'image/jpeg') == 'application/pdf':
-            derivative_filepath = derivatives.pdf_to_thumb(thumbnail_tmp_filepath)
-            if derivative_filepath:
-                md5 = hashlib.md5(
-                    open(derivative_filepath, 'rb').read()).hexdigest()
-                content_s3_filepath = upload_content(
-                    derivative_filepath, f"thumbnails/{collection_id}/{md5}"
-                )
-                dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
-        elif downloaded_md5 and thumbnail_src.get('mimetype', 'image/jpeg') in ['video/mp4','video/quicktime']:
-            derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
-            if derivative_filepath:
-                md5 = hashlib.md5(
-                    open(derivative_filepath, 'rb').read()).hexdigest()
-                content_s3_filepath = upload_content(
-                    derivative_filepath, f"thumbnails/{collection_id}/{md5}"
-                )
-                dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
+        if thumbnail_tmp_filepath:
+            if thumbnail_src.get('mimetype', 'image/jpeg') in ['image/jpeg', 'image/png']:
+                try:
+                    dimensions = get_dimensions(
+                        thumbnail_tmp_filepath, record['calisphere-id'])
+                except Exception as e:
+                    print(
+                        f"Error getting dimensions for {record['calisphere-id']}: "
+                        f"{e}, continuing..."
+                    )
+                else:
+                    content_s3_filepath = upload_content(
+                        thumbnail_tmp_filepath,
+                        f"thumbnails/{collection_id}/{downloaded_md5}"
+                    )
+            elif thumbnail_src.get('mimetype', 'image/jpeg') == 'application/pdf':
+                derivative_filepath = derivatives.pdf_to_thumb(thumbnail_tmp_filepath)
+                if derivative_filepath:
+                    md5 = hashlib.md5(
+                        open(derivative_filepath, 'rb').read()).hexdigest()
+                    content_s3_filepath = upload_content(
+                        derivative_filepath, f"thumbnails/{collection_id}/{md5}"
+                    )
+                    dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
+            elif thumbnail_src.get('mimetype', 'image/jpeg') in ['video/mp4','video/quicktime']:
+                derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
+                if derivative_filepath:
+                    md5 = hashlib.md5(
+                        open(derivative_filepath, 'rb').read()).hexdigest()
+                    content_s3_filepath = upload_content(
+                        derivative_filepath, f"thumbnails/{collection_id}/{md5}"
+                    )
+                    dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
 
         if content_s3_filepath:
             record['thumbnail'] = {
