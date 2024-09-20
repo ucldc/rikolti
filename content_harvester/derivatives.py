@@ -97,3 +97,33 @@ def make_jp2(source_file_path):
     subprocess.check_output(process, stderr=subprocess.STDOUT)
     print(msg)
     return jp2_path
+
+
+class UnsupportedMimetype(Exception):
+    pass
+
+
+def check_media_mimetype(mimetype: str) -> None:
+    ''' do a basic pre-check on the object to see if we think it's
+    something know how to deal with '''
+    valid_types = [
+        'image/jpeg', 'image/gif', 'image/tiff', 'image/png',
+        'image/jp2', 'image/jpx', 'image/jpm'
+    ]
+
+    # see if we recognize this mime type
+    if mimetype in valid_types:
+        print(
+            f"Mime-type '{mimetype}' was pre-checked and recognized as "
+            "something we can try to convert."
+        )
+    elif mimetype in ['application/pdf']:
+        raise UnsupportedMimetype(
+            f"Mime-type '{mimetype}' was pre-checked and recognized as "
+            "something we don't want to convert."
+        )
+    else:
+        raise UnsupportedMimetype(
+            f"Mime-type '{mimetype}' was unrecognized. We don't know how "
+            "to deal with this"
+        )

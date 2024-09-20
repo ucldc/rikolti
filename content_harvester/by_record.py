@@ -10,7 +10,6 @@ from requests.adapters import HTTPAdapter, Retry
 from urllib.parse import urlparse
 
 from . import settings
-from .content_types import Media, Thumbnail, check_media_mimetype
 from . import derivatives
 
 from rikolti.utils.storage import upload_file
@@ -60,33 +59,43 @@ def harvest_record_content(
     derivative_filepath = None
 
     # get media first, sometimes media is used for thumbnail
-    media = Media(record.get('media_source', {}))
-    if media:
-        request.update({'url': media.src_url})
+    media_source = record.get('media_source', {})
 
-        downloaded_md5 = download_content(request, http, media.tmp_filepath)
+    media_source_url_path = urlparse(media_source.get('url', '')).path
+    media_source_url_path_parts = [
+        p for p in media_source_url_path.split('/') if p]
+    media_source_url_basename = (
+        media_source_url_path_parts[-1]
+        if media_source_url_path_parts else None)
+    media_tmp_filepath = (
+        f"/tmp/{media_source.get('filename', media_source_url_basename)}")
+
+    if media_source.get('url'):
+        request.update({'url': media_source.get('url')})
+
+        downloaded_md5 = download_content(request, http, media_tmp_filepath)
         if downloaded_md5:
-            downloaded_urls[media.src_url] = (media.tmp_filepath, downloaded_md5)
+            downloaded_urls[media_source.get('url')] = (media_tmp_filepath, downloaded_md5)
 
-        if media.src_nuxeo_type == 'SampleCustomPicture' and downloaded_md5:
-            check_media_mimetype(media.src_mime_type)
-            derivative_filepath = derivatives.make_jp2(media.tmp_filepath)
+        if media_source.get('nuxeo_type') == 'SampleCustomPicture' and downloaded_md5:
+            derivatives.check_media_mimetype(media_source.get('mimetype'))
+            derivative_filepath = derivatives.make_jp2(media_tmp_filepath)
             if derivative_filepath:
                 basename = os.path.basename(derivative_filepath)
                 record['media'] = {
                     'mimetype': 'image/jp2',
                     'path': upload_content(
                         derivative_filepath, f"jp2/{collection_id}/{basename}"),
-                    'format': NUXEO_MEDIA_TYPE_MAP.get(media.src_nuxeo_type)
+                    'format': NUXEO_MEDIA_TYPE_MAP.get(media_source.get('nuxeo_type'))
                 }
         elif downloaded_md5:
             record['media'] = {
-                'mimetype': media.src_mime_type,
+                'mimetype': media_source.get('mimetype'),
                 'path': upload_content(
-                    media.tmp_filepath, 
-                    f"media/{collection_id}/{media.src_filename}"
+                    media_tmp_filepath, 
+                    f"media/{collection_id}/{media_source.get('filename', media_source_url_basename)}"
                 ),
-                'format': NUXEO_MEDIA_TYPE_MAP.get(media.src_nuxeo_type)
+                'format': NUXEO_MEDIA_TYPE_MAP.get(media_source.get('nuxeo_type'))
             }
 
     # backwards compatibility
@@ -95,22 +104,32 @@ def harvest_record_content(
         thumbnail_src = {'url': thumbnail_src}
         record['thumbnail_source'] = thumbnail_src
 
-    thumbnail = Thumbnail(thumbnail_src or {})
-    if thumbnail:
-        if downloaded_urls.get(thumbnail.src_url):
-            thumbnail.tmp_filepath, downloaded_md5 = (
-                downloaded_urls[thumbnail.src_url])
+    thumbnail_src = thumbnail_src or {}
+
+    tumbnail_src_url_path = urlparse(thumbnail_src.get('url', '')).path
+    thumbnail_src_url_path_parts = [
+        p for p in tumbnail_src_url_path.split('/') if p]
+    thumbnail_src_url_basename = (
+        thumbnail_src_url_path_parts[-1] 
+        if thumbnail_src_url_path_parts else None)
+    thumbnail_tmp_filepath = (
+        f"/tmp/{thumbnail_src.get('filename', thumbnail_src_url_basename)}")
+
+    if thumbnail_src.get('url'):
+        if downloaded_urls.get(thumbnail_src.get('url')):
+            thumbnail_tmp_filepath, downloaded_md5 = (
+                downloaded_urls[thumbnail_src.get('url')])
         else:
-            request.update({'url': thumbnail.src_url})
+            request.update({'url': thumbnail_src.get('url')})
             downloaded_md5 = download_content(
-                request, http, thumbnail.tmp_filepath)
+                request, http, thumbnail_tmp_filepath)
 
         content_s3_filepath = None
         dimensions = None
-        if downloaded_md5 and thumbnail.src_mime_type in ['image/jpeg', 'image/png']:
+        if downloaded_md5 and thumbnail_src.get('mimetype', 'image/jpeg') in ['image/jpeg', 'image/png']:
             try:
                 dimensions = get_dimensions(
-                    thumbnail.tmp_filepath, record['calisphere-id'])
+                    thumbnail_tmp_filepath, record['calisphere-id'])
             except Exception as e:
                 print(
                     f"Error getting dimensions for {record['calisphere-id']}: "
@@ -118,11 +137,11 @@ def harvest_record_content(
                 )
             else:
                 content_s3_filepath = upload_content(
-                    thumbnail.tmp_filepath,
+                    thumbnail_tmp_filepath,
                     f"thumbnails/{collection_id}/{downloaded_md5}"
                 )
-        elif downloaded_md5 and thumbnail.src_mime_type == 'application/pdf':
-            derivative_filepath = derivatives.pdf_to_thumb(thumbnail.tmp_filepath)
+        elif downloaded_md5 and thumbnail_src.get('mimetype', 'image/jpeg') == 'application/pdf':
+            derivative_filepath = derivatives.pdf_to_thumb(thumbnail_tmp_filepath)
             if derivative_filepath:
                 md5 = hashlib.md5(
                     open(derivative_filepath, 'rb').read()).hexdigest()
@@ -130,8 +149,8 @@ def harvest_record_content(
                     derivative_filepath, f"thumbnails/{collection_id}/{md5}"
                 )
                 dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
-        elif downloaded_md5 and thumbnail.src_mime_type in ['video/mp4','video/quicktime']:
-            derivative_filepath = derivatives.video_to_thumb(thumbnail.tmp_filepath)
+        elif downloaded_md5 and thumbnail_src.get('mimetype', 'image/jpeg') in ['video/mp4','video/quicktime']:
+            derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
             if derivative_filepath:
                 md5 = hashlib.md5(
                     open(derivative_filepath, 'rb').read()).hexdigest()
@@ -146,12 +165,12 @@ def harvest_record_content(
                 'path': content_s3_filepath,
                 'dimensions': dimensions
             }
-    if media and os.path.exists(media.tmp_filepath):
-        os.remove(media.tmp_filepath)
-        downloaded_urls.pop(media.src_url, None)
-    if thumbnail and os.path.exists(thumbnail.tmp_filepath):
-        os.remove(thumbnail.tmp_filepath)
-        downloaded_urls.pop(thumbnail.src_url, None)
+    if media and os.path.exists(media_tmp_filepath):
+        os.remove(media_tmp_filepath)
+        downloaded_urls.pop(media_source.get('url'), None)
+    if thumbnail and os.path.exists(thumbnail_tmp_filepath):
+        os.remove(thumbnail_tmp_filepath)
+        downloaded_urls.pop(thumbnail_src.get('url'), None)
     if derivative_filepath and os.path.exists(derivative_filepath):
         os.remove(derivative_filepath)
 
