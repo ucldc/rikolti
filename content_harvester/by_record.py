@@ -15,6 +15,30 @@ from . import derivatives
 from rikolti.utils.storage import upload_file
 
 
+# an in-memory cache of what we have already downloaded to the worker
+# filesystem; this is a src_url: {filepath, md5} dict
+downloaded_urls = {}
+def conditional_download(download_function):
+    """
+    Decorator to conditionally download content based on whether we have
+    already downloaded it. This is useful for when we are downloading
+    the same content multiple times in a single run - for example, when
+    the media file is a PDF and the thumbnail file is a jpg derived from
+    the same PDF).
+    """
+    def wrapper(request):
+        cache_key = request['url']
+        cached_content_metadata = downloaded_urls[cache_key]
+        if cached_content_metadata:
+            return cached_content_metadata
+        else:
+            content_metadata = download_function(request)
+            if content_metadata:
+                downloaded_urls[cache_key] = content_metadata
+            return content_metadata
+    return wrapper
+
+
 def configure_http_session() -> requests.Session:
     http = requests.Session()
     retry_strategy = Retry(
@@ -25,7 +49,7 @@ def configure_http_session() -> requests.Session:
     http.mount("https://", adapter)
     http.mount("http://", adapter)
     return http
-
+http_session = configure_http_session()
 
 # type Organization should actually be type CustomFile.
 # Adding workaround for now.
@@ -49,11 +73,6 @@ def get_url_basename(url: str) -> Optional[str]:
     return url_path_parts[-1] if url_path_parts else None
 
 
-# an in-memory cache of what we have already downloaded to the worker
-# filesystem; this is a src_url: {filepath, md5} dict
-downloaded_urls = {}
-
-
 # returns content = {thumbnail, media, children} where children
 # is an array of the self-same content dictionary
 def harvest_record_content(
@@ -70,7 +89,6 @@ def harvest_record_content(
 
     http = configure_http_session()
 
-    downloaded_urls = {}        # downloaded is a src_url: filepath dict
     derivative_filepath = None
 
     # get media first, sometimes media is used for thumbnail
@@ -82,32 +100,33 @@ def harvest_record_content(
     if media_source_url:
         request.update({'url': media_source_url})
 
-        media_tmp_filepath, downloaded_md5 = download_media(request, http)
-        if media_tmp_filepath and downloaded_md5:
-            downloaded_urls[media_source_url] = (media_tmp_filepath, downloaded_md5)
-
-        if media_source.get('nuxeo_type') == 'SampleCustomPicture' and media_tmp_filepath:
-            derivatives.check_media_mimetype(media_source.get('mimetype'))
-            derivative_filepath = derivatives.make_jp2(media_tmp_filepath)
-            if derivative_filepath:
-                jp2_destination_filename = (
-                    f"{destination_filename.split('.')[0]}.jp2")
+        content_metadata = download_media(request=request)
+        if content_metadata:
+            (media_tmp_filepath, downloaded_md5) = content_metadata
+        
+        if media_tmp_filepath:
+            if media_source.get('nuxeo_type') == 'SampleCustomPicture':
+                derivatives.check_media_mimetype(media_source.get('mimetype'))
+                derivative_filepath = derivatives.make_jp2(media_tmp_filepath)
+                if derivative_filepath:
+                    jp2_destination_filename = (
+                        f"{destination_filename.split('.')[0]}.jp2")
+                    record['media'] = {
+                        'mimetype': 'image/jp2',
+                        'path': upload_content(
+                            derivative_filepath, 
+                            f"jp2/{collection_id}/{jp2_destination_filename}"),
+                        'format': NUXEO_MEDIA_TYPE_MAP.get(media_source.get('nuxeo_type'))
+                    }
+            else:
                 record['media'] = {
-                    'mimetype': 'image/jp2',
+                    'mimetype': media_source.get('mimetype'),
                     'path': upload_content(
-                        derivative_filepath, 
-                        f"jp2/{collection_id}/{jp2_destination_filename}"),
+                        media_tmp_filepath, 
+                        f"media/{collection_id}/{destination_filename}"
+                    ),
                     'format': NUXEO_MEDIA_TYPE_MAP.get(media_source.get('nuxeo_type'))
                 }
-        elif media_tmp_filepath:
-            record['media'] = {
-                'mimetype': media_source.get('mimetype'),
-                'path': upload_content(
-                    media_tmp_filepath, 
-                    f"media/{collection_id}/{destination_filename}"
-                ),
-                'format': NUXEO_MEDIA_TYPE_MAP.get(media_source.get('nuxeo_type'))
-            }
 
     # backwards compatibility
     thumbnail_src = record.get('thumbnail_source', record.get('is_shown_by'))
@@ -171,10 +190,10 @@ def harvest_record_content(
                 'path': content_s3_filepath,
                 'dimensions': dimensions
             }
-    if media_source_url and media_tmp_filepath and os.path.exists(media_tmp_filepath):
-        os.remove(media_tmp_filepath)
-        downloaded_urls.pop(media_source_url, None)
-    if thumbnail and os.path.exists(thumbnail_tmp_filepath):
+    # if media_tmp_filepath and os.path.exists(media_tmp_filepath):
+    #     os.remove(media_tmp_filepath)
+    #     downloaded_urls.pop(media_source_url, None)
+    if thumbnail_src.get('url') and os.path.exists(thumbnail_tmp_filepath):
         os.remove(thumbnail_tmp_filepath)
         downloaded_urls.pop(thumbnail_src.get('url'), None)
     if derivative_filepath and os.path.exists(derivative_filepath):
@@ -197,7 +216,8 @@ def get_dimensions(filepath: str, calisphere_id: str) -> tuple[int, int]:
         )
 
 
-def download_media(request: dict, http) -> tuple[Optional[str], Optional[str]]:
+@conditional_download
+def download_media(request: dict) -> Optional[tuple[str, str]]:
     '''
         download source file to local disk
     '''
@@ -210,12 +230,12 @@ def download_media(request: dict, http) -> tuple[Optional[str], Optional[str]]:
         "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
     })
 
-    response = http.get(**request)
+    response = http_session.get(**request)
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
         print(f"Error downloading {url}: {e}")
-        return None, None
+        return None
 
     local_destination = f"/tmp/{get_url_basename(request['url'])}"
     hasher = hashlib.new('md5')
@@ -225,7 +245,7 @@ def download_media(request: dict, http) -> tuple[Optional[str], Optional[str]]:
             f.write(block)
     md5 = hasher.hexdigest()
 
-    return local_destination, md5
+    return (local_destination, md5)
 
 
 def download_content(request: dict, http,
