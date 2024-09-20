@@ -39,6 +39,36 @@ def conditional_download(download_function):
     return wrapper
 
 
+def conditional_request(cached_responses):
+    """
+    Decorator to produce a conditional request based on whether we have
+    previously downloaded the content and stored etag and last-modified
+    response headers.
+    """
+    def inner_decorator(download_function):
+        def wrapper(request):
+            cache_key = request['url']
+            if cache_key in cached_responses:
+                cached_response = cached_responses[cache_key]
+            if cached_response:
+                request['header'] = cached_response['header']
+
+            response = download_function(request)
+            if response.status_code == 304:
+                return cached_response['content_metadata']
+            else:
+                # process response
+                content_metadata = {}
+                cached_responses[cache_key] = {
+                    'header': response.headers,
+                    'content_metadata': content_metadata
+                }
+                return content_metadata
+        return wrapper
+    return inner_decorator
+
+
+
 def configure_http_session() -> requests.Session:
     http = requests.Session()
     retry_strategy = Retry(
@@ -83,26 +113,25 @@ def harvest_record_content(
 
     # Weird how we have to use username/pass to hit this endpoint
     # but we have to use auth token to hit API endpoint
-    request = {}
+    auth = None
     if rikolti_mapper_type == 'nuxeo.nuxeo':
-        request = {'auth': (settings.NUXEO_USER, settings.NUXEO_PASS)}
-
-    http = configure_http_session()
+        auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
 
     derivative_filepath = None
 
     # get media first, sometimes media is used for thumbnail
     media_source = record.get('media_source', {})
     media_source_url = media_source.get('url')
-    destination_filename = media_source.get(
+    media_destination_filename = media_source.get(
         'filename', get_url_basename(media_source_url))
 
     if media_source_url:
-        request.update({'url': media_source_url})
-
-        content_metadata = download_media(request=request)
-        if content_metadata:
-            (media_tmp_filepath, downloaded_md5) = content_metadata
+        media_metadata = download_media({
+            'url': media_source_url,
+            'auth': auth
+        })
+        if media_metadata:
+            (media_tmp_filepath, _) = media_metadata
         
         if media_tmp_filepath:
             if media_source.get('nuxeo_type') == 'SampleCustomPicture':
@@ -110,7 +139,7 @@ def harvest_record_content(
                 derivative_filepath = derivatives.make_jp2(media_tmp_filepath)
                 if derivative_filepath:
                     jp2_destination_filename = (
-                        f"{destination_filename.split('.')[0]}.jp2")
+                        f"{media_destination_filename.split('.')[0]}.jp2")
                     record['media'] = {
                         'mimetype': 'image/jp2',
                         'path': upload_content(
@@ -123,7 +152,7 @@ def harvest_record_content(
                     'mimetype': media_source.get('mimetype'),
                     'path': upload_content(
                         media_tmp_filepath, 
-                        f"media/{collection_id}/{destination_filename}"
+                        f"media/{collection_id}/{media_destination_filename}"
                     ),
                     'format': NUXEO_MEDIA_TYPE_MAP.get(media_source.get('nuxeo_type'))
                 }
@@ -135,19 +164,17 @@ def harvest_record_content(
         record['thumbnail_source'] = thumbnail_src
 
     thumbnail_src = thumbnail_src or {}
-
+    thumbnail_src_url = thumbnail_src.get('url', '')
     thumbnail_tmp_filepath = (
-        f"/tmp/{thumbnail_src.get('filename', 
-                                  get_url_basename(thumbnail_src.get('url', '')))}")
+        f"/tmp/{thumbnail_src.get('filename', get_url_basename(thumbnail_src_url))}")
 
     if thumbnail_src.get('url'):
-        if downloaded_urls.get(thumbnail_src.get('url')):
-            thumbnail_tmp_filepath, downloaded_md5 = (
-                downloaded_urls[thumbnail_src.get('url')])
-        else:
-            request.update({'url': thumbnail_src.get('url')})
-            downloaded_md5 = download_content(
-                request, http, thumbnail_tmp_filepath)
+        thumbnail_metadata = download_thumbnail({
+            'url': thumbnail_src_url, 
+            'auth': auth
+        })
+        if thumbnail_metadata:
+            thumbnail_tmp_filepath, downloaded_md5 = thumbnail_metadata
 
         content_s3_filepath = None
         dimensions = None
@@ -248,8 +275,8 @@ def download_media(request: dict) -> Optional[tuple[str, str]]:
     return (local_destination, md5)
 
 
-def download_content(request: dict, http,
-                destination_file: str, 
+@conditional_download
+def download_thumbnail(request: dict,
                 resp_headers_cache: Optional[dict] = None
             ):
     '''
@@ -274,7 +301,7 @@ def download_content(request: dict, http,
         }
         request['headers'] = {k:v for k,v in request['headers'].items() if v}
 
-    response = http.get(**request)
+    response = http_session.get(**request)
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -285,8 +312,9 @@ def download_content(request: dict, http,
     if response.status_code == 304: # 304 - not modified
         return cached_data.get('md5')
 
+    local_destination = f"/tmp/{get_url_basename(request['url'])}"
     hasher = hashlib.new('md5')
-    with open(destination_file, 'wb') as f:
+    with open(local_destination, 'wb') as f:
         for block in response.iter_content(1024 * hasher.block_size):
             hasher.update(block)
             f.write(block)
@@ -301,7 +329,7 @@ def download_content(request: dict, http,
     cache_updates = {k:v for k,v in cache_updates.items() if v}
     resp_headers_cache[url] = cached_data.update(cache_updates)
 
-    return md5
+    return (local_destination, md5)
 
 
 def upload_content(filepath: str, destination: str, md5_cache: Optional[dict] = None) -> str:
