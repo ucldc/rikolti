@@ -171,12 +171,13 @@ def harvest_record_content(
             'auth': auth
         })
         if thumbnail_metadata:
-            thumbnail_tmp_filepath, downloaded_md5 = thumbnail_metadata
+            thumbnail_tmp_filepath, thumb_resp = thumbnail_metadata
 
         content_s3_filepath = None
         dimensions = None
         if thumbnail_tmp_filepath:
-            if thumbnail_src.get('mimetype', 'image/jpeg') in ['image/jpeg', 'image/png']:
+            if thumb_resp.get('Content-Type', 'image/jpeg') in ['image/jpeg', 'image/png']:
+                downloaded_md5 = thumb_resp.get('md5')
                 try:
                     dimensions = get_dimensions(
                         thumbnail_tmp_filepath, record['calisphere-id'])
@@ -190,7 +191,7 @@ def harvest_record_content(
                         thumbnail_tmp_filepath,
                         f"thumbnails/{collection_id}/{downloaded_md5}"
                     )
-            elif thumbnail_src.get('mimetype', 'image/jpeg') == 'application/pdf':
+            elif thumb_resp.get('Content-Type', 'image/jpeg') == 'application/pdf':
                 derivative_filepath = derivatives.pdf_to_thumb(thumbnail_tmp_filepath)
                 if derivative_filepath:
                     md5 = hashlib.md5(
@@ -199,7 +200,7 @@ def harvest_record_content(
                         derivative_filepath, f"thumbnails/{collection_id}/{md5}"
                     )
                     dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
-            elif thumbnail_src.get('mimetype', 'image/jpeg') in ['video/mp4','video/quicktime']:
+            elif thumb_resp.get('Content-Type', 'image/jpeg') in ['video/mp4','video/quicktime']:
                 derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
                 if derivative_filepath:
                     md5 = hashlib.md5(
@@ -294,8 +295,8 @@ def download_thumbnail(request: dict,
     })
     if cached_data:
         request['headers'] = {
-            'If-None-Match': cached_data.get('If-None-Match'),
-            'If-Modified-Since': cached_data.get('If-Modified-Since')
+            'If-None-Match': cached_data.get('ETag'),
+            'If-Modified-Since': cached_data.get('Last-Modified')
         }
         request['headers'] = {k:v for k,v in request['headers'].items() if v}
 
@@ -319,15 +320,15 @@ def download_thumbnail(request: dict,
     md5 = hasher.hexdigest()
 
     cache_updates = {
-        'If-None-Match': response.headers.get('ETag'),
-        'If-Modified-Since': response.headers.get('Last-Modified'),
-        'Mime-Type': response.headers.get('Content-type'),
+        'ETag': response.headers.get('ETag'),
+        'Last-Modified': response.headers.get('Last-Modified'),
+        'Content-Type': response.headers.get('Content-Type'),
         'md5': md5
     }
     cache_updates = {k:v for k,v in cache_updates.items() if v}
     resp_headers_cache[url] = cached_data.update(cache_updates)
 
-    return (local_destination, md5)
+    return (local_destination, cache_updates)
 
 
 def upload_content(filepath: str, destination: str, md5_cache: Optional[dict] = None) -> str:
