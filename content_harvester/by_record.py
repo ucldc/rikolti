@@ -176,8 +176,8 @@ def harvest_record_content(
         content_s3_filepath = None
         dimensions = None
         if thumbnail_tmp_filepath:
+            downloaded_md5 = thumb_resp.get('md5')
             if thumb_resp.get('Content-Type', 'image/jpeg') in ['image/jpeg', 'image/png']:
-                downloaded_md5 = thumb_resp.get('md5')
                 try:
                     dimensions = get_dimensions(
                         thumbnail_tmp_filepath, record['calisphere-id'])
@@ -194,19 +194,15 @@ def harvest_record_content(
             elif thumb_resp.get('Content-Type', 'image/jpeg') == 'application/pdf':
                 derivative_filepath = derivatives.pdf_to_thumb(thumbnail_tmp_filepath)
                 if derivative_filepath:
-                    md5 = hashlib.md5(
-                        open(derivative_filepath, 'rb').read()).hexdigest()
                     content_s3_filepath = upload_content(
-                        derivative_filepath, f"thumbnails/{collection_id}/{md5}"
+                        derivative_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
                     )
                     dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
             elif thumb_resp.get('Content-Type', 'image/jpeg') in ['video/mp4','video/quicktime']:
                 derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
                 if derivative_filepath:
-                    md5 = hashlib.md5(
-                        open(derivative_filepath, 'rb').read()).hexdigest()
                     content_s3_filepath = upload_content(
-                        derivative_filepath, f"thumbnails/{collection_id}/{md5}"
+                        derivative_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
                     )
                     dimensions = get_dimensions(derivative_filepath, record['calisphere-id'])
 
