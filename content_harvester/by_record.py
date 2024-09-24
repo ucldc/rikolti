@@ -112,6 +112,10 @@ class ContentRequest(object):
     def __eq__(self, other):
         return self.url == other.url
 
+    def __post_init__(self):
+        if self.auth and urlparse(self.url).scheme != 'https':
+            raise Exception(f"Basic auth not over https is a bad idea! {self.url}")
+
 
 @lru_cache(maxsize=10)
 def download_url(request: ContentRequest):
@@ -197,9 +201,6 @@ def create_media_component(
     '''
         download source file to local disk
     '''
-    url = request.url
-    if request.auth and urlparse(url).scheme != 'https':
-        raise Exception(f"Basic auth not over https is a bad idea! {url}")
     head_resp = http_session.head(**asdict(request))
 
     media_component = content_component_cache.get('|'.join([
@@ -210,10 +211,10 @@ def create_media_component(
         head_resp.headers.get('Last-Modified', '')]))
     if media_component:
         media_component['from-cache'] = True
-        print(f"Retrieved media component from cache for {url}")
+        print(f"Retrieved media component from cache for {request.url}")
         return media_component
 
-    media_dest_filename = media_source.get('filename', get_url_basename(url))
+    media_dest_filename = media_source.get('filename', get_url_basename(request.url))
 
     media_source_component = download_url(request)
     if not media_source_component:
@@ -262,14 +263,13 @@ def create_media_component(
     return media_component
 
 
-def create_thumbnail_component(collection_id, request: ContentRequest, thumb_src: dict[str, str], record_context) -> Optional[dict[str, str]]:
+def create_thumbnail_component(
+        collection_id, 
+        request: ContentRequest, 
+        thumb_src: dict[str, str], record_context) -> Optional[dict[str, str]]:
     '''
         download source file to local disk
     '''
-    url = request.url
-    if request.auth and urlparse(url).scheme != 'https':
-        raise Exception(f"Basic auth not over https is a bad idea! {url}")
-
     head_resp = http_session.head(**asdict(request))
     thumb_component = content_component_cache.get('|'.join([
         collection_id,
