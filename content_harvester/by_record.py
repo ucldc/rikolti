@@ -17,7 +17,7 @@ from . import derivatives
 
 from rikolti.utils.storage import upload_file
 
-content_component_cache = dict()
+persistent_cache = dict()
 in_memory_cache = dict()
 
 
@@ -171,6 +171,48 @@ def download_url(request: ContentRequest):
     }
 
 
+def content_component_cache(component_type):
+    """
+    decorator to cache content components in a persistent cache
+    don't love how this is implemented, but it's a start
+    for one, check_component_cache arguments seem pretty tightly
+    coupled to create_media_component and create_thumbnail_component
+    """
+    def inner(create_component):
+        def check_component_cache(
+                collection_id: str,
+                request: ContentRequest,
+                *args, **kwargs
+            ):
+            head_resp = http_session.head(**asdict(request))
+
+            component = persistent_cache.get('|'.join([
+                collection_id,
+                request.url,
+                component_type,
+                head_resp.headers.get('ETag', ''),
+                head_resp.headers.get('Last-Modified', '')]))
+
+            if component:
+                component['from-cache'] = True
+                print(f"Retrieved {component_type} component from cache for {request.url}")
+                return component
+            else:
+                component = create_component(collection_id, request, component_type)
+                persistent_cache['|'.join([
+                    collection_id,
+                    request.url,
+                    'media',
+                    head_resp.headers.get('Etag', ''),
+                    head_resp.headers.get('Last-Modified', '')
+                ])] = component
+                print(f"Created {component_type} component for {request.url}")
+                component['from-cache'] = False
+            return component
+        return check_component_cache
+    return inner
+
+
 def get_dimensions(
         filepath: str, 
         calisphere_id: str = 'not provided') -> Optional[tuple[int, int]]:
@@ -194,6 +236,7 @@ def get_dimensions(
         return None
 
 
+@content_component_cache('media')
 def create_media_component(
         collection_id, 
         request: ContentRequest, 
@@ -201,19 +244,6 @@ def create_media_component(
     '''
         download source file to local disk
     '''
-    head_resp = http_session.head(**asdict(request))
-
-    media_component = content_component_cache.get('|'.join([
-        collection_id,
-        request.url,
-        'media',
-        head_resp.headers.get('ETag', ''),
-        head_resp.headers.get('Last-Modified', '')]))
-    if media_component:
-        media_component['from-cache'] = True
-        print(f"Retrieved media component from cache for {request.url}")
-        return media_component
-
     media_dest_filename = media_source.get('filename', get_url_basename(request.url))
 
     media_source_component = download_url(request)
@@ -251,18 +281,10 @@ def create_media_component(
         'src_size': media_source_component['size'],
         'date_content_component_created': datetime.now().isoformat()
     })
-    content_component_cache['|'.join([
-        collection_id, 
-        request.url, 
-        'media', 
-        head_resp.headers.get('Etag', ''), 
-        head_resp.headers.get('Last-Modified', '')
-    ])] = media_component
-    print(f"Created media component for {request.url}")
-    media_component['from-cache'] = False
     return media_component
 
 
+@content_component_cache('thumbnail')
 def create_thumbnail_component(
         collection_id, 
         request: ContentRequest, 
@@ -270,18 +292,6 @@ def create_thumbnail_component(
     '''
         download source file to local disk
     '''
-    head_resp = http_session.head(**asdict(request))
-    thumb_component = content_component_cache.get('|'.join([
-        collection_id,
-        request.url,
-        'thumbnail',
-        head_resp.headers.get('ETag', ''),
-        head_resp.headers.get('Last-Modified', '')]))
-    if thumb_component:
-        thumb_component['from-cache'] = True
-        print(f"Retrieved thumbnail component from cache for {request.url}")
-        return thumb_component
-
     thumb_source_component = download_url(request)
     if not thumb_source_component:
         return None
@@ -323,15 +333,6 @@ def create_thumbnail_component(
         'src_size': thumb_source_component['size'],
         'date_content_component_created': datetime.now().isoformat()
     }
-    content_component_cache['|'.join([
-            collection_id, 
-            request.url, 
-            'thumbnail', 
-            head_resp.headers.get('Etag', ''), 
-            head_resp.headers.get('Last-Modified', '')
-        ])] = thumb_component
-    print(f"Created thumbnail component for {request.url}")
-    thumb_component['from-cache'] = False
     return thumb_component
 
 
