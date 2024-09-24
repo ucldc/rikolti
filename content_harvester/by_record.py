@@ -90,7 +90,12 @@ def harvest_record_content(
     thumbnail_src_url = thumbnail_src.get('url')
     if thumbnail_src_url:
         request = ContentRequest(media_source_url, auth)
-        record['thumbnail'] = create_thumbnail_component(collection_id, request, thumbnail_src, record['calisphere-id'])
+        record['thumbnail'] = create_thumbnail_component(
+            collection_id,
+            request,
+            thumbnail_src,
+            record['calisphere-id']
+        )
 
     return record
 
@@ -240,47 +245,52 @@ def get_dimensions(
 def create_media_component(
         collection_id, 
         request: ContentRequest, 
-        media_source: dict[str, str]) -> Optional[dict[str, str]]:
+        mapped_media_source: dict[str, str]
+    ) -> Optional[dict[str, Any]]:
     '''
         download source file to local disk
     '''
-    media_dest_filename = media_source.get('filename', get_url_basename(request.url))
+    media_dest_filename = mapped_media_source.get(
+        'filename', get_url_basename(request.url))
 
-    media_source_component = download_url(request)
-    if not media_source_component:
+    source_component = download_url(request)
+    if not source_component:
         return None
 
-    media_tmp_filepath = media_source_component['path']
-    media_component = dict()
-    if media_source.get('nuxeo_type') == 'SampleCustomPicture':
-        derivatives.check_media_mimetype(media_source.get('mimetype', ''))
+    media_tmp_filepath = source_component['path']
+    mapped_mimetype = mapped_media_source.get('mimetype')
+    mapped_nuxeotype = mapped_media_source.get('nuxeo_type')
+
+    if mapped_nuxeotype == 'SampleCustomPicture':
+        derivatives.check_media_mimetype(mapped_mimetype or '')
         derivative_filepath = derivatives.make_jp2(media_tmp_filepath)
         if derivative_filepath:
             jp2_destination_filename = (
                 f"{media_dest_filename.split('.')[0]}.jp2")
-            media_component = {
-                'mimetype': 'image/jp2',
-                'path': upload_content(
-                    derivative_filepath, 
-                    f"jp2/{collection_id}/{jp2_destination_filename}"),
-                'format': NUXEO_MEDIA_TYPE_MAP.get(media_source.get('nuxeo_type', ''))
-            }
+            content_s3_filepath = upload_content(
+                derivative_filepath, 
+                f"jp2/{collection_id}/{jp2_destination_filename}"
+            )
+            mimetype = 'image/jp2'
     else:
-        media_component = {
-            'mimetype': media_source.get('mimetype'),
-            'path': upload_content(
-                media_tmp_filepath, 
-                f"media/{collection_id}/{media_dest_filename}"
-            ),
-            'format': NUXEO_MEDIA_TYPE_MAP.get(media_source.get('nuxeo_type', ''))
-        }
+        content_s3_filepath = upload_content(
+            media_tmp_filepath, 
+            f"media/{collection_id}/{media_dest_filename}"
+        )
+        mimetype = mapped_mimetype
 
-    media_component.update({
-        'md5': media_source_component['md5'],
-        'src_content-type': media_source_component['Content-Type'],
-        'src_size': media_source_component['size'],
-        'date_content_component_created': datetime.now().isoformat()
-    })
+    media_component = {
+        'mimetype': mimetype,
+        'path': content_s3_filepath,
+        'format': NUXEO_MEDIA_TYPE_MAP.get(mapped_nuxeotype or ''),
+        'component_content_harvest_metadata': {
+            'md5': source_component['md5'],
+            'src_content-type': source_component['Content-Type'],
+            'mapped_mimetype': mapped_mimetype,
+            'src_size': source_component['size'],
+            'date_content_component_created': datetime.now().isoformat()
+        }
+    }
     return media_component
 
 
@@ -288,35 +298,37 @@ def create_media_component(
 def create_thumbnail_component(
         collection_id, 
         request: ContentRequest, 
-        thumb_src: dict[str, str], record_context) -> Optional[dict[str, str]]:
+        mapped_thumbnail_source: dict[str, str],
+        record_context: str
+    ) -> Optional[dict[str, Any]]:
     '''
         download source file to local disk
     '''
-    thumb_source_component = download_url(request)
-    if not thumb_source_component:
+    source_component = download_url(request)
+    if not source_component:
         return None
 
-    thumbnail_tmp_filepath = thumb_source_component['path']
-    thumbnail_md5 = thumb_source_component['md5']
-    thumb_src_mimetype = thumb_src.get('mimetype', 'image/jpeg')
+    thumbnail_tmp_filepath = source_component['path']
+    thumbnail_md5 = source_component['md5']
 
     content_s3_filepath = None
     dimensions = None
     downloaded_md5 = thumbnail_md5.get('md5')
-    if thumb_src_mimetype in ['image/jpeg', 'image/png']:
+    mapped_mimetype = mapped_thumbnail_source.get('mimetype', 'image/jpeg')
+    if mapped_mimetype in ['image/jpeg', 'image/png']:
         dimensions = get_dimensions(thumbnail_tmp_filepath, record_context)
         content_s3_filepath = upload_content(
             thumbnail_tmp_filepath,
             f"thumbnails/{collection_id}/{downloaded_md5}"
         )
-    elif thumb_src_mimetype == 'application/pdf':
+    elif mapped_mimetype == 'application/pdf':
         derivative_filepath = derivatives.pdf_to_thumb(thumbnail_tmp_filepath)
         if derivative_filepath:
             content_s3_filepath = upload_content(
                 derivative_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
-    elif thumb_src_mimetype in ['video/mp4','video/quicktime']:
+    elif mapped_mimetype in ['video/mp4','video/quicktime']:
         derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
         if derivative_filepath:
             content_s3_filepath = upload_content(
@@ -324,16 +336,19 @@ def create_thumbnail_component(
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
 
-    thumb_component = {
+    thumbnail_component = {
         'mimetype': 'image/jpeg',
         'path': content_s3_filepath,
         'dimensions': dimensions,
-        'md5': thumb_source_component['md5'],
-        'src_content-type': thumb_source_component['Content-Type'],
-        'src_size': thumb_source_component['size'],
-        'date_content_component_created': datetime.now().isoformat()
+        'component_content_harvest_metadata': {
+            'md5': source_component['md5'],
+            'src_content-type': source_component['Content-Type'],
+            'mapped_mimetype': mapped_thumbnail_source.get('mimetype'),
+            'src_size': source_component['size'],
+            'date_content_component_created': datetime.now().isoformat()
+        }
     }
-    return thumb_component
+    return thumbnail_component
 
 
 def upload_content(filepath: str, destination: str, md5_cache: Optional[dict] = None) -> str:
