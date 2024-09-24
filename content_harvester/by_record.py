@@ -1,7 +1,9 @@
 import hashlib
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
+from functools import lru_cache
+from dataclasses import dataclass, asdict
 
 from PIL import Image
 from PIL import UnidentifiedImageError
@@ -81,19 +83,93 @@ def harvest_record_content(
     media_source = record.get('media_source', {})
     media_source_url = media_source.get('url')
     if media_source_url:
-        request = {'url': media_source_url, 'auth': auth}
+        request = ContentRequest(media_source_url, auth)
         record['media'] = create_media_component(collection_id, request, media_source)
 
     thumbnail_src = record.get('thumbnail_source', get_thumb_src(record))
     thumbnail_src_url = thumbnail_src.get('url')
     if thumbnail_src_url:
-        request = {'url': thumbnail_src_url, 'auth': auth}
+        request = ContentRequest(media_source_url, auth)
         record['thumbnail'] = create_thumbnail_component(collection_id, request, thumbnail_src, record['calisphere-id'])
 
     return record
 
 
-def get_dimensions(filepath: str, calisphere_id: str = 'not provided') -> Optional[tuple[int, int]]:
+@dataclass(frozen=True)
+class ContentRequest(object):
+    """
+    An immutable, hashable object representing a request for content.
+    This is used as the cache key in download_url. Since auth can be
+    Any, we need to define our own __hash__ and __eq__ methods for use
+    with the lru cache.
+    """
+    url: str
+    auth: Any
+
+    def __hash__(self):
+        return hash(self.url)
+
+    def __eq__(self, other):
+        return self.url == other.url
+
+
+@lru_cache(maxsize=10)
+def download_url(request: ContentRequest):
+    """
+    Download a file from a given URL and return:
+    {
+        'path': str,            # local filesystem path to the downloaded
+                                  content file
+        'md5': str,             # md5 hash of the content file
+        'size': int             # size of the downloaded file in bytes
+        'Content-Type': str,    # Content-Type header from the response
+        'ETag': str,            # ETag header from the response
+        'Last-Modified': str,   # Last-Modified header from the response
+    }
+
+    This is cached in an in-memory lru_cache to avoid downloading the
+    same url multiple times - as is the case when the media file is a
+    video or pdf file and the thumbnail file is a jpg derived from the
+    same video or pdf file. The cache is limited to 10 entries, but
+    since we first download the media source file and then immediately
+    download the thumbnail source file, I think we could limit this to 2
+    items.
+    """
+    get_request = asdict(request)
+    get_request.update({
+        "stream": True,
+        "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
+    })
+    response = http_session.get(**get_request)
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"Error downloading {request.url}: {e}")
+        return None
+
+    local_destination = f"/tmp/{get_url_basename(request.url)}"
+    hasher = hashlib.new('md5')
+    source_size = 0
+    with open(local_destination, 'wb') as f:
+        for block in response.iter_content(1024 * hasher.block_size):
+            hasher.update(block)
+            f.write(block)
+            source_size += len(block)
+    md5 = hasher.hexdigest()
+
+    return {
+        'path': local_destination,
+        'md5': md5,
+        'size': source_size,
+        'Content-Type': response.headers.get('Content-Type'),
+        'ETag': response.headers.get('ETag'),
+        'Last-Modified': response.headers.get('Last-Modified'),
+    }
+
+
+def get_dimensions(
+        filepath: str, 
+        calisphere_id: str = 'not provided') -> Optional[tuple[int, int]]:
     try:
         return Image.open(filepath).size
     except UnidentifiedImageError as e:
@@ -114,61 +190,35 @@ def get_dimensions(filepath: str, calisphere_id: str = 'not provided') -> Option
         return None
 
 
-def create_media_component(collection_id, request: dict, media_source: dict[str, str]) -> Optional[dict[str, str]]:
+def create_media_component(
+        collection_id, 
+        request: ContentRequest, 
+        media_source: dict[str, str]) -> Optional[dict[str, str]]:
     '''
         download source file to local disk
     '''
-    url = request['url']
-    if request.get('auth') and urlparse(url).scheme != 'https':
+    url = request.url
+    if request.auth and urlparse(url).scheme != 'https':
         raise Exception(f"Basic auth not over https is a bad idea! {url}")
-    head_resp = http_session.head(**request)
+    head_resp = http_session.head(**asdict(request))
 
     media_component = content_component_cache.get('|'.join([
         collection_id,
-        request['url'],
+        request.url,
         'media',
         head_resp.headers.get('ETag', ''),
         head_resp.headers.get('Last-Modified', '')]))
     if media_component:
         media_component['from-cache'] = True
-        print(f"Retrieved media component from cache for {request['url']}")
+        print(f"Retrieved media component from cache for {url}")
         return media_component
 
     media_dest_filename = media_source.get('filename', get_url_basename(url))
 
-    media_source_component = in_memory_cache.get(request['url'])
+    media_source_component = download_url(request)
     if not media_source_component:
-        request.update({
-            "stream": True,
-            "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
-        })
-        response = http_session.get(**request)
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            print(f"Error downloading {url}: {e}")
-            return None
+        return None
 
-        local_destination = f"/tmp/{get_url_basename(request['url'])}"
-        hasher = hashlib.new('md5')
-        source_size = 0
-        with open(local_destination, 'wb') as f:
-            for block in response.iter_content(1024 * hasher.block_size):
-                hasher.update(block)
-                f.write(block)
-                source_size += len(block)
-        md5 = hasher.hexdigest()
-
-        media_source_component = {
-            'path': local_destination,
-            'md5': md5,
-            'Content-Type': response.headers.get('Content-Type'),
-            'ETag': response.headers.get('ETag'),
-            'Last-Modified': response.headers.get('Last-Modified'),
-            'size': source_size
-        }
-        in_memory_cache[request['url']] = media_source_component
-    
     media_tmp_filepath = media_source_component['path']
     media_component = dict()
     if media_source.get('nuxeo_type') == 'SampleCustomPicture':
@@ -202,69 +252,39 @@ def create_media_component(collection_id, request: dict, media_source: dict[str,
     })
     content_component_cache['|'.join([
         collection_id, 
-        request['url'], 
+        request.url, 
         'media', 
         head_resp.headers.get('Etag', ''), 
         head_resp.headers.get('Last-Modified', '')
     ])] = media_component
-    print(f"Created media component for {request['url']}")
+    print(f"Created media component for {request.url}")
     media_component['from-cache'] = False
     return media_component
 
 
-def create_thumbnail_component(collection_id, request: dict, thumb_src: dict[str, str], record_context) -> Optional[dict[str, str]]:
+def create_thumbnail_component(collection_id, request: ContentRequest, thumb_src: dict[str, str], record_context) -> Optional[dict[str, str]]:
     '''
         download source file to local disk
     '''
-    url = request['url']
-    if request.get('auth') and urlparse(url).scheme != 'https':
+    url = request.url
+    if request.auth and urlparse(url).scheme != 'https':
         raise Exception(f"Basic auth not over https is a bad idea! {url}")
 
-    head_resp = http_session.head(**request)
+    head_resp = http_session.head(**asdict(request))
     thumb_component = content_component_cache.get('|'.join([
         collection_id,
-        request['url'],
+        request.url,
         'thumbnail',
         head_resp.headers.get('ETag', ''),
         head_resp.headers.get('Last-Modified', '')]))
     if thumb_component:
         thumb_component['from-cache'] = True
-        print(f"Retrieved thumbnail component from cache for {request['url']}")
+        print(f"Retrieved thumbnail component from cache for {request.url}")
         return thumb_component
 
-    thumb_source_component = in_memory_cache.get(request['url'])
+    thumb_source_component = download_url(request)
     if not thumb_source_component:
-        request.update({
-            "stream": True,
-            "timeout": (12.05, (60 * 10) + 0.05)  # connect, read
-        })
-        response = http_session.get(**request)
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            print(f"Error downloading {url}: {e}")
-            return None
-
-        local_destination = f"/tmp/{get_url_basename(request['url'])}"
-        hasher = hashlib.new('md5')
-        source_size = 0
-        with open(local_destination, 'wb') as f:
-            for block in response.iter_content(1024 * hasher.block_size):
-                hasher.update(block)
-                f.write(block)
-                source_size += len(block)
-        md5 = hasher.hexdigest()
-
-        thumb_source_component = {
-            'path': local_destination,
-            'md5': md5,
-            'Content-Type': response.headers.get('Content-Type'),
-            'ETag': response.headers.get('ETag'),
-            'Last-Modified': response.headers.get('Last-Modified'),
-            'size': source_size
-        }
-        in_memory_cache[request['url']] = thumb_source_component
-
+        return None
 
     thumbnail_tmp_filepath = thumb_source_component['path']
     thumbnail_md5 = thumb_source_component['md5']
@@ -305,12 +325,12 @@ def create_thumbnail_component(collection_id, request: dict, thumb_src: dict[str
     }
     content_component_cache['|'.join([
             collection_id, 
-            request['url'], 
+            request.url, 
             'thumbnail', 
             head_resp.headers.get('Etag', ''), 
             head_resp.headers.get('Last-Modified', '')
         ])] = thumb_component
-    print(f"Created thumbnail component for {request['url']}")
+    print(f"Created thumbnail component for {request.url}")
     thumb_component['from-cache'] = False
     return thumb_component
 
