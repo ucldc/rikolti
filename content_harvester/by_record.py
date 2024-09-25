@@ -347,25 +347,11 @@ def create_thumbnail_component(
     return thumbnail_component
 
 
-def upload_content(filepath: str, destination: str, md5_cache: Optional[dict] = None) -> str:
+def upload_content(filepath: str, destination: str) -> str:
     '''
         upload file to CONTENT_ROOT
     '''
-    if not md5_cache:
-        md5_cache = {}
-
-    filename = os.path.basename(destination)
-    if md5_cache.get(filename, {}).get('path'):
-        return md5_cache[filename]['path']
-
     content_root = os.environ.get("CONTENT_ROOT", 'file:///tmp')
     content_path = f"{content_root.rstrip('/')}/{destination}"
     upload_file(filepath, content_path)
-
-    # (mime, dimensions) = image_info(filepath)
-    md5_cache[filename] = {
-        # 'mime': mime,
-        # 'dimensions': dimensions,
-        'path': content_path
-    }
     return content_path
