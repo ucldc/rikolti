@@ -59,7 +59,7 @@ docker compose run -it --entrypoint "/bin/bash" --rm content_harvester
 
 default entrypoint is `content_harvester.by_page` 
 
-requires an env.local adjacent to the docker-compose in order to run (check settings.py for hints on what needs to be defined in env.local)
+requires some variables be defined in your environment - check content_harvester/docker-compose.yml for a list. 
 
 # Deployment
 
@@ -72,7 +72,3 @@ aws ecr-public get-login-password --region us-east-1 | docker login --username A
 docker buildx create --use
 docker buildx build -f Dockerfile.content_harvester --platform linux/arm64,linux/amd64 -t public.ecr.aws/b6c7x7s4/rikolti/content_harvester . --push
 ```
-
-# TODO:
-- tune log output (this module is v. noisy currently)
-- add error handling

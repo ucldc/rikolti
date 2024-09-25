@@ -21,9 +21,13 @@ from rikolti.utils.storage import upload_file
 
 
 s3_cache = os.environ.get('CONTENT_COMPONENT_CACHE')
-persistent_cache = S3Cache(urlparse(s3_cache).netloc) if s3_cache else None
-if not s3_cache:
+if s3_cache:
+    bucket = urlparse(s3_cache).netloc
+    prefix = urlparse(s3_cache).path.lstrip('/')
+    persistent_cache = S3Cache(bucket, prefix)
+else:
     print("CONTENT_COMPONENT_CACHE not configured, skipping cache check")
+    persistent_cache = None
 
 in_memory_cache = dict()
 
