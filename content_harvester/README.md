@@ -43,7 +43,12 @@ From inside the rikolti folder:
 ```
 docker build -f Dockerfile.content_harvester -t rikolti/content_harvester .
 cd content_harvester
-docker compose run --entrypoint "python3 -m content_harvester.by_registry_endpoint" --rm content_harvester https://registry.cdlib.org/api/v1/rikoltimapper/26147/?format=json
+docker compose run --entrypoint "python3 -m content_harvester.by_registry_endpoint" --rm content_harvester "https://registry.cdlib.org/api/v1/rikoltimapper/26147/?format=json"
+```
+
+To debug the container from an interactive bash shell:
+```
+docker compose run -it --entrypoint "/bin/bash" --rm content_harvester
 ```
 
 > If you've previously authenticated to Amazon ECR Public, if your auth token has expired you may receive an authentication error when attempting to do unauthenticated docker pulls from Amazon ECR Public. To resolve this issue, it may be necessary to run docker logout public.ecr.aws to avoid the error. This will result in an unauthenticated pull. For more information, see Authentication issues.

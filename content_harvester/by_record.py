@@ -20,9 +20,7 @@ from .s3_cache import S3Cache
 from rikolti.utils.storage import upload_file
 
 
-configured_cache_location = os.environ.get('CONTENT_COMPONENT_CACHE')
-if configured_cache_location:
-    persistent_cache = S3Cache(configured_cache_location)
+persistent_cache_location = os.environ.get('CONTENT_COMPONENT_CACHE')
 in_memory_cache = dict()
 
 
@@ -94,7 +92,7 @@ def harvest_record_content(
     thumbnail_src = record.get('thumbnail_source', get_thumb_src(record))
     thumbnail_src_url = thumbnail_src.get('url')
     if thumbnail_src_url:
-        request = ContentRequest(media_source_url, auth)
+        request = ContentRequest(thumbnail_src_url, auth)
         record['thumbnail'] = create_thumbnail_component(
             collection_id,
             request,
@@ -194,15 +192,24 @@ def content_component_cache(component_type):
                 request: ContentRequest,
                 *args, **kwargs
             ):
-            if not persistent_cache:
-                print("No persistent cache configured, skipping cache check")
-                return create_component(collection_id, request, *args, **kwargs)
+            if not persistent_cache_location:
+                print(
+                    f"No persistent {component_type} cache configured, "
+                    "skipping cache check"
+                )
+                component = create_component(
+                    collection_id, request, *args, **kwargs)
+                component['from-cache'] = False
+                return component
+
+            persistent_cache = S3Cache(
+                urlparse(persistent_cache_location).netloc)
 
             head_resp = http_session.head(**asdict(request))
 
             cache_key = '/'.join([
-                collection_id,
-                quote_plus(request.url, safe='/'),
+                str(collection_id),
+                quote_plus(request.url),
                 component_type,
                 quote_plus(head_resp.headers.get('ETag', '')),
                 quote_plus(head_resp.headers.get('Last-Modified', ''))
@@ -215,8 +222,8 @@ def content_component_cache(component_type):
             else:
                 component = create_component(collection_id, request, *args, **kwargs)
                 print(f"Created {component_type} component for {request.url}")
-                component['from-cache'] = False
                 persistent_cache[cache_key] = component
+                component['from-cache'] = False
             return component
         return check_component_cache
     return inner
@@ -317,26 +324,25 @@ def create_thumbnail_component(
 
     content_s3_filepath = None
     dimensions = None
-    downloaded_md5 = thumbnail_md5.get('md5')
     mapped_mimetype = mapped_thumbnail_source.get('mimetype', 'image/jpeg')
     if mapped_mimetype in ['image/jpeg', 'image/png']:
         dimensions = get_dimensions(thumbnail_tmp_filepath, record_context)
         content_s3_filepath = upload_content(
             thumbnail_tmp_filepath,
-            f"thumbnails/{collection_id}/{downloaded_md5}"
+            f"thumbnails/{collection_id}/{thumbnail_md5}"
         )
     elif mapped_mimetype == 'application/pdf':
         derivative_filepath = derivatives.pdf_to_thumb(thumbnail_tmp_filepath)
         if derivative_filepath:
             content_s3_filepath = upload_content(
-                derivative_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
+                derivative_filepath, f"thumbnails/{collection_id}/{thumbnail_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
     elif mapped_mimetype in ['video/mp4','video/quicktime']:
         derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
         if derivative_filepath:
             content_s3_filepath = upload_content(
-                derivative_filepath, f"thumbnails/{collection_id}/{downloaded_md5}"
+                derivative_filepath, f"thumbnails/{collection_id}/{thumbnail_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
 
