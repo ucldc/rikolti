@@ -1,3 +1,4 @@
+import json
 import boto3
 from typing import Optional
 
@@ -29,7 +30,7 @@ class S3Cache(object):
         try:
             response = self.s3.get_object(
                 Bucket=self.bucket_name, Key=self.prefix+key)
-            return response['Body'].read()
+            return json.loads(response['Body'].read())
         except Exception as e:
             print(f"{self} error getting {key}")
             raise e
@@ -47,7 +48,7 @@ class S3Cache(object):
         try:
             response = self.s3.get_object(
                 Bucket=self.bucket_name, Key=self.prefix + key)
-            return response['Body'].read()
+            return json.loads(response['Body'].read())
         except self.s3.exceptions.NoSuchKey:
             return default
         except Exception as e:
@@ -61,7 +62,10 @@ class S3Cache(object):
         """
         try:
             self.s3.put_object(
-                Bucket=self.bucket_name, Key=self.prefix + key, Body=data)
+                Bucket=self.bucket_name, 
+                Key=self.prefix + key, 
+                Body=json.dumps(data)
+            )
         except Exception as e:
             print(f"{self} error setting {key}: {e}")
             raise e
