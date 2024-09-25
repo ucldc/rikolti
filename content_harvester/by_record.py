@@ -20,7 +20,11 @@ from .s3_cache import S3Cache
 from rikolti.utils.storage import upload_file
 
 
-persistent_cache_location = os.environ.get('CONTENT_COMPONENT_CACHE')
+s3_cache = os.environ.get('CONTENT_COMPONENT_CACHE')
+persistent_cache = S3Cache(urlparse(s3_cache).netloc) if s3_cache else None
+if not s3_cache:
+    print("CONTENT_COMPONENT_CACHE not configured, skipping cache check")
+
 in_memory_cache = dict()
 
 
@@ -87,7 +91,8 @@ def harvest_record_content(
     media_source_url = media_source.get('url')
     if media_source_url:
         request = ContentRequest(media_source_url, auth)
-        record['media'] = create_media_component(collection_id, request, media_source)
+        record['media'] = create_media_component(
+            collection_id, request, media_source)
 
     thumbnail_src = record.get('thumbnail_source', get_thumb_src(record))
     thumbnail_src_url = thumbnail_src.get('url')
@@ -122,7 +127,8 @@ class ContentRequest(object):
 
     def __post_init__(self):
         if self.auth and urlparse(self.url).scheme != 'https':
-            raise Exception(f"Basic auth not over https is a bad idea! {self.url}")
+            raise Exception(
+                f"Basic auth not over https is a bad idea! {self.url}")
 
 
 @lru_cache(maxsize=10)
@@ -192,21 +198,16 @@ def content_component_cache(component_type):
                 request: ContentRequest,
                 *args, **kwargs
             ):
-            if not persistent_cache_location:
-                print(
-                    f"No persistent {component_type} cache configured, "
-                    "skipping cache check"
-                )
-                component = create_component(
-                    collection_id, request, *args, **kwargs)
-                component['from-cache'] = False
-                return component
 
-            persistent_cache = S3Cache(
-                urlparse(persistent_cache_location).netloc)
+            if not persistent_cache:
+                return {
+                    **create_component(collection_id, request, *args, **kwargs),
+                    'from-cache': False
+                }
 
+            # Do a head request to get the current ETag and
+            # Last-Modified values, used to create a cache key
             head_resp = http_session.head(**asdict(request))
-
             if (
                 not head_resp.headers.get('ETag') or
                 not head_resp.headers.get('Last-Modified')
@@ -215,11 +216,12 @@ def content_component_cache(component_type):
                     f"{component_type}: No ETag or Last-Modified headers, "
                     "skipping cache check"
                 )
-                component = create_component(
-                    collection_id, request, *args, **kwargs)
-                component['from-cache'] = False
-                return component
+                return {
+                    **create_component(collection_id, request, *args, **kwargs),
+                    'from-cache': False
+                }
 
+            # Create cache key
             cache_key = '/'.join([
                 str(collection_id),
                 quote_plus(request.url),
@@ -228,16 +230,22 @@ def content_component_cache(component_type):
                 quote_plus(head_resp.headers.get('Last-Modified', ''))
             ])
 
+            # Check cache for component or create component
             component = persistent_cache.get(cache_key)
             if component:
-                print(f"Retrieved {component_type} component from cache for {request.url}")
-                component['from-cache'] = True
+                print(
+                    f"Retrieved {component_type} component from cache for "
+                    f"{request.url}"
+                )
+                return {**component, 'from-cache': True}
             else:
-                component = create_component(collection_id, request, *args, **kwargs)
+                component = create_component(
+                    collection_id, request, *args, **kwargs)
                 print(f"Created {component_type} component for {request.url}")
+                # set cache key to the component
                 persistent_cache[cache_key] = component
-                component['from-cache'] = False
-            return component
+                return {**component, 'from-cache': False}
+
         return check_component_cache
     return inner
 
