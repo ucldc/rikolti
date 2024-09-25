@@ -15,10 +15,14 @@ from urllib.parse import urlparse
 
 from . import settings
 from . import derivatives
+from .s3_cache import S3Cache
 
 from rikolti.utils.storage import upload_file
 
-persistent_cache = dict()
+
+persistent_cache = S3Cache(
+    os.environ.get('CONTENT_CACHE_BUCKET', 'rikolti-content-component-cache')
+)
 in_memory_cache = dict()
 
 
