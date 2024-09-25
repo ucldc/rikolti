@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional, Any
 from functools import lru_cache
 from dataclasses import dataclass, asdict
+from urllib.parse import quote_plus
 
 from PIL import Image
 from PIL import UnidentifiedImageError
@@ -191,28 +192,23 @@ def content_component_cache(component_type):
             ):
             head_resp = http_session.head(**asdict(request))
 
-            component = persistent_cache.get('|'.join([
+            cache_key = '/'.join([
                 collection_id,
-                request.url,
+                quote_plus(request.url, safe='/'),
                 component_type,
-                head_resp.headers.get('ETag', ''),
-                head_resp.headers.get('Last-Modified', '')]))
+                quote_plus(head_resp.headers.get('ETag', '')),
+                quote_plus(head_resp.headers.get('Last-Modified', ''))
+            ])
 
+            component = persistent_cache.get(cache_key)
             if component:
-                component['from-cache'] = True
                 print(f"Retrieved {component_type} component from cache for {request.url}")
-                return component
+                component['from-cache'] = True
             else:
-                component = create_component(collection_id, request, component_type)
-                persistent_cache['|'.join([
-                    collection_id,
-                    request.url,
-                    'media',
-                    head_resp.headers.get('Etag', ''),
-                    head_resp.headers.get('Last-Modified', '')
-                ])] = component
+                component = create_component(collection_id, request, *args, **kwargs)
                 print(f"Created {component_type} component for {request.url}")
                 component['from-cache'] = False
+                persistent_cache[cache_key] = component
             return component
         return check_component_cache
     return inner
