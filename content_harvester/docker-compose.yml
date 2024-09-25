@@ -13,8 +13,8 @@ services:
     # command: ["3433"]
     working_dir: /
     volumes: 
-      - ../rikolti_data:/rikolti_data
-      - ../rikolti_content:/rikolti_content
+      - ../../rikolti_data:/rikolti_data
+      - ../../rikolti_content:/rikolti_content
       - ./:/content_harvester
       - ../utils:/rikolti/utils
     environment:
@@ -23,3 +23,7 @@ services:
       - CONTENT_ROOT=file:///rikolti_content
       - NUXEO_USER=${NUXEO_USER}
       - NUXEO_PASS=${NUXEO_PASS}
+      - CONTENT_COMPONENT_CACHE=${CONTENT_COMPONENT_CACHE}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}

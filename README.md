@@ -165,7 +165,7 @@ DOCKER_SOCKET="/var/run/docker.sock"
 
 These env vars are used in the `aws-mwaa-local-runner/docker/docker-compose-local.yml` script (and other docker-compose scripts) to mount the relevant directories containing Airflow DAGs, requirements, plugin files, startup file, Rikolti data destination, and docker socket into the docker container.
 
-The docker socket will typically be at `/var/run/docker.sock`. On Mac OS Docker Desktop you can check that the socket is available and at this location by opening Docker Desktop's settings, looking under "Advanced", and checking the "Allow the Docker socket to be used" setting. 
+> The docker socket will typically be at `/var/run/docker.sock`. On Mac OS Docker Desktop you can check that the socket is available and at this location by opening Docker Desktop's settings, looking under "Advanced", and checking the "Allow the Docker socket to be used" setting. 
 
 Next, back in the Rikolti repository, create the `startup.sh` file by running `cp env.example dags/startup.sh`. Update the startup.sh file with Nuxeo, Flickr, and Solr keys as available, and make sure that the following environment variables are set:
 
