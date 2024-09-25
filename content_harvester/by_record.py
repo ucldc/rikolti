@@ -20,9 +20,9 @@ from .s3_cache import S3Cache
 from rikolti.utils.storage import upload_file
 
 
-persistent_cache = S3Cache(
-    os.environ.get('CONTENT_CACHE_BUCKET', 'rikolti-content-component-cache')
-)
+configured_cache_location = os.environ.get('CONTENT_COMPONENT_CACHE')
+if configured_cache_location:
+    persistent_cache = S3Cache(configured_cache_location)
 in_memory_cache = dict()
 
 
@@ -194,6 +194,10 @@ def content_component_cache(component_type):
                 request: ContentRequest,
                 *args, **kwargs
             ):
+            if not persistent_cache:
+                print("No persistent cache configured, skipping cache check")
+                return create_component(collection_id, request, *args, **kwargs)
+
             head_resp = http_session.head(**asdict(request))
 
             cache_key = '/'.join([
