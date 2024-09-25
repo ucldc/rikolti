@@ -207,6 +207,19 @@ def content_component_cache(component_type):
 
             head_resp = http_session.head(**asdict(request))
 
+            if (
+                not head_resp.headers.get('ETag') or
+                not head_resp.headers.get('Last-Modified')
+            ):
+                print(
+                    f"{component_type}: No ETag or Last-Modified headers, "
+                    "skipping cache check"
+                )
+                component = create_component(
+                    collection_id, request, *args, **kwargs)
+                component['from-cache'] = False
+                return component
+
             cache_key = '/'.join([
                 str(collection_id),
                 quote_plus(request.url),
