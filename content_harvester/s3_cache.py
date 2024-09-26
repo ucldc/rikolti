@@ -29,7 +29,7 @@ class S3Cache(object):
         """
         try:
             response = self.s3.get_object(
-                Bucket=self.bucket_name, Key=self.prefix+key)
+                Bucket=self.bucket_name, Key=f"{self.prefix}{key}")
             return json.loads(response['Body'].read())
         except Exception as e:
             print(f"{self} error getting {key}")
@@ -47,7 +47,7 @@ class S3Cache(object):
         """
         try:
             response = self.s3.get_object(
-                Bucket=self.bucket_name, Key=self.prefix + key)
+                Bucket=self.bucket_name, Key=f"{self.prefix}{key}")
             return json.loads(response['Body'].read())
         except self.s3.exceptions.NoSuchKey:
             return default
@@ -63,7 +63,7 @@ class S3Cache(object):
         try:
             self.s3.put_object(
                 Bucket=self.bucket_name, 
-                Key=self.prefix + key, 
+                Key=f"{self.prefix}{key}",
                 Body=json.dumps(data)
             )
         except Exception as e:
