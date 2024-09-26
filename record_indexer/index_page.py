@@ -7,7 +7,6 @@ import requests
 
 from . import settings
 from .utils import print_opensearch_error
-from .index_templates.record_index_config import RECORD_INDEX_CONFIG
 from rikolti.utils.versions import (
     get_merged_page_content, get_with_content_urls_page_content)
 
@@ -68,30 +67,59 @@ def build_bulk_request_body(records: list, index: str):
     return body
 
 
-def remove_unexpected_fields(record: dict, expected_fields: list):
+def remove_unexpected_fields(record: dict, schema: dict):
     removed_fields = []
-    for field in list(record.keys()):
-        if field not in expected_fields:
+    fields = list(record.keys())
+    for field in fields:
+        if field not in schema.keys():
             removed_fields.append(field)
             record.pop(field)
+            continue
 
-    # TODO: not sure if we want to qualify field names with the parent id
-    parent_id = record.get('calisphere-id')
-    for child in record.get('children', []):
-        removed_fields_from_child = remove_unexpected_fields(
-            child, expected_fields)
-        removed_fields += [
-            f"{parent_id}[{field}]" for field in removed_fields_from_child
-        ]
+        subschema = schema[field].get('properties')
+        if subschema:
+            if schema[field].get('type') == 'nested':
+                # recursively remove fields for a list of nested records
+                for child in record[field]:
+                    removed = remove_unexpected_fields(child, subschema)
+                    removed = [f"{field}.{subfield}" for subfield in removed]
+                    removed_fields += removed
+            else:
+                # recursively remove fields for a single nested record
+                removed = remove_unexpected_fields(record[field], subschema)
+                removed = [f"{field}.{subfield}" for subfield in removed]
+                removed_fields += removed
+
+    # remove duplicates - if a field is nested, we'd see
+    # 'children.removed_field' for each child containing the removed
+    # field, potentially hundreds of times
+    removed_fields = list(set(removed_fields))
 
     return removed_fields
 
 
-def get_expected_fields():
-    record_schema = RECORD_INDEX_CONFIG["template"]["mappings"]["properties"]
-    expected_fields = list(record_schema.keys())
+def get_opensearch_schema(index_alias: str):
+    url = f"{settings.ENDPOINT}/{index_alias}/_mapping"
+    r = requests.get(
+        url,
+        headers={"Content-Type": "application/json"},
+        auth=settings.get_auth(),
+        verify=settings.verify_certs()
+    )
+    if not (200 <= r.status_code <= 299):
+        print_opensearch_error(r, url)
+        r.raise_for_status()
 
-    return expected_fields
+    indices_at_alias = list(r.json().keys())
+    if len(indices_at_alias) > 1:
+        raise Exception(
+            f"Expected 1 index at alias `{index_alias}`, found "
+            f"{len(indices_at_alias)}: {indices_at_alias}"
+        )
+    index = indices_at_alias[0]
+
+    schema = r.json()[index].get('mappings', {}).get('properties')
+    return schema
 
 
 def index_page(version_page: str, index: str, rikolti_data: dict):
@@ -100,10 +128,10 @@ def index_page(version_page: str, index: str, rikolti_data: dict):
     else:
         records = get_with_content_urls_page_content(version_page)
 
-    expected_fields = get_expected_fields()
+    schema = get_opensearch_schema(index)
     removed_fields_report = defaultdict(list)
     for record in records:
-        removed_fields = remove_unexpected_fields(record, expected_fields)
+        removed_fields = remove_unexpected_fields(record, schema)
         calisphere_id = record.get("calisphere-id", None)
         for field in removed_fields:
             removed_fields_report[field].append(calisphere_id)
