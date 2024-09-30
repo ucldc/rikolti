@@ -212,9 +212,9 @@ def content_component_cache(component_type):
             # Do a head request to get the current ETag and
             # Last-Modified values, used to create a cache key
             head_resp = http_session.head(**asdict(request))
-            if (
-                not head_resp.headers.get('ETag') or
-                not head_resp.headers.get('Last-Modified')
+            if not (
+                head_resp.headers.get('ETag') or
+                head_resp.headers.get('Last-Modified')
             ):
                 print(
                     f"{component_type}: No ETag or Last-Modified headers, "
