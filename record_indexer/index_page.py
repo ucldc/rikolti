@@ -109,8 +109,15 @@ def get_opensearch_schema(index_alias: str):
         print_opensearch_error(r, url)
         r.raise_for_status()
 
-    schema = r.json().get('mappings', {}).get('properties')
+    indices_at_alias = list(r.json().keys())
+    if len(indices_at_alias) > 1:
+        raise Exception(
+            f"Expected 1 index at alias `{index_alias}`, found "
+            f"{len(indices_at_alias)}: {indices_at_alias}"
+        )
+    index = indices_at_alias[0]
 
+    schema = r.json()[index].get('mappings', {}).get('properties')
     return schema
 
 
