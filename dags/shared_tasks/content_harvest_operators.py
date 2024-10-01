@@ -82,6 +82,10 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                                 "value": "s3://rikolti-content"
                             },
                             {
+                                "name": "CONTENT_COMPONENT_CACHE",
+                                "value": os.environ.get("CONTENT_COMPONENT_CACHE")  
+                            },
+                            {
                                 "name": "NUXEO_USER",
                                 "value": os.environ.get("NUXEO_USER")
                             },
@@ -204,6 +208,7 @@ class ContentHarvestDockerOperator(DockerOperator):
                 "MAPPED_DATA": mapped_data,
                 "WITH_CONTENT_URL_DATA": with_content_url_data,
                 "CONTENT_ROOT": content_root,
+                "CONTENT_COMPONENT_CACHE": os.environ.get("CONTENT_COMPONENT_CACHE"),
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                 "NUXEO_PASS": os.environ.get("NUXEO_PASS")
             },
