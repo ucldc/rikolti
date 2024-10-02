@@ -4,7 +4,7 @@ from collections import Counter
 from .by_record import harvest_record_content
 
 from rikolti.utils.versions import (
-    get_mapped_page_content, put_with_content_urls_page, get_version
+    get_versioned_page_as_json, put_with_content_urls_page, get_version
 )
 
 
@@ -18,7 +18,7 @@ def harvest_page_content(
     mapped_version = get_version(collection_id, mapped_page_path)
     page_filename = mapped_page_path.split(mapped_version + '/data/')[-1]
 
-    records = get_mapped_page_content(mapped_page_path)
+    records = get_versioned_page_as_json(mapped_page_path)
     print(
         f"Harvesting content for {len(records)} records at {mapped_page_path}")
 

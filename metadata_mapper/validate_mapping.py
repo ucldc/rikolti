@@ -12,7 +12,7 @@ from .validator.validation_log import ValidationLogLevel
 from .validator.validation_mode import ValidationMode
 from .validator.validator import Validator
 from rikolti.utils.versions import (
-    get_mapped_page_content, get_version, get_versioned_pages)
+    get_versioned_page_as_json, get_version, get_versioned_pages)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -165,7 +165,7 @@ def validate_page(collection_id: int, page_path: str,
         "collection_id": collection_id,
         "page_path": page_path
     }
-    collection = get_mapped_page_content(page_path)
+    collection = get_versioned_page_as_json(page_path)
 
     if len(collection) == 0:
         print(
