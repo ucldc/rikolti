@@ -187,7 +187,7 @@ def get_child_pages(version, **kwargs):
         return []
     return [path[len(data_root)+1:] for path in page_list]
 
-def get_vernacular_page_content(version_page):
+def get_versioned_page_content(version_page):
     """
     resolves a version page to a data_uri at $RIKOLTI_DATA/<version_page>/
     returns the contents of the page.
@@ -197,8 +197,7 @@ def get_vernacular_page_content(version_page):
     return content
 
 def get_versioned_page_as_json(version_page):
-    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
-    content = storage.get_page_content(f"{data_root}/{version_page}")
+    content = get_versioned_page_content(version_page)
     return json.loads(content)
 
 def put_vernacular_page(content: str, page_name: Union[int, str], version: str):
