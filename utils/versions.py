@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from typing import Union, Optional
+from typing import Union, Optional, Literal
 from . import storage
 
 """
@@ -36,6 +36,28 @@ def get_version(collection_id: Union[int, str], uri: str) -> str:
         path_list = path_list[:path_list.index('data')]
     version = "/".join(path_list)
     return version
+
+
+prefixes = Literal[
+    "vernacular_metadata_",
+    "mapped_metadata_",
+    "validation_",
+    "with_content_urls_",
+    "merged_"
+]
+def create_version(version: str, prefix: prefixes, suffix: Optional[str] = None) -> str:
+    """
+    Given a version path, ex: 3433/vernacular_metadata_v1/ and a version prefix,
+    ex: mapped_metadata_, and a version suffix, ex: v2, creates a new version
+    path, ex: 3433/vernacular_metadata_v1/mapped_metadata_v2/
+
+    If no suffix is provided, uses the current datetime.
+    """
+    version = version.rstrip('/')
+    if not suffix:
+        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    return f"{version}/{prefix}{suffix}/"
+
 
 def create_vernacular_version(
         collection_id: Union[int, str],
