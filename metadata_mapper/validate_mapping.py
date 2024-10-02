@@ -12,7 +12,7 @@ from .validator.validation_log import ValidationLogLevel
 from .validator.validation_mode import ValidationMode
 from .validator.validator import Validator
 from rikolti.utils.versions import (
-    get_mapped_page_content, get_version, get_mapped_pages)
+    get_mapped_page_content, get_version, get_versioned_pages)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -390,7 +390,7 @@ if __name__ == "__main__":
     print(f"Generating validations for collection {args.collection_id} with options:")
     print(kwargs)
 
-    mapped_page_paths = get_mapped_pages(args.mapped_data_version)
+    mapped_page_paths = get_versioned_pages(args.mapped_data_version)
 
     num_rows, file_location = create_collection_validation_csv(
         args.collection_id, mapped_page_paths, **kwargs)

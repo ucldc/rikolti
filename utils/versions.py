@@ -141,34 +141,13 @@ def get_most_recent_mapped_version(collection_id: Union[int, str]):
     recent_version = sorted(mapped_versions)[-1]
     return f"{collection_id}/{vernacular_version}/{recent_version}/"
 
-def get_vernacular_pages(version, **kwargs):
+def get_versioned_pages(version, **kwargs):
     """
     resolves a vernacular version to a data_uri at $RIKOLTI_DATA/<version>/
     returns a list of version pages.
     """
-    data_root = os.environ.get('RIKOLTI_DATA', "file:///tmp")
-    data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
-    page_list = storage.list_pages(data_path, recursive=True, **kwargs)
-    return [path[len(data_root)+1:] for path in page_list]
-
-def get_mapped_pages(version, **kwargs):
-    """
-    resolves a mapped version to a data_uri at $RIKOLTI_DATA/<version>/
-    returns a list of version pages located at that data_uri.
-    """
     if not version:
-        raise ValueError("versions.get_mapped_pages: No mapped version path provided")
-    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
-    data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
-    page_list = storage.list_pages(data_path, recursive=True, **kwargs)
-    return [path[len(data_root)+1:] for path in page_list]
-
-def get_with_content_urls_pages(version, **kwargs):
-    """
-    resolves a with_content_urls version to a data_uri at 
-    $RIKOLTI_DATA/<version>/
-    returns a list of version pages located at that data_uri.
-    """
+        raise ValueError("versions.get_versioned_pages: No version path provided")
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)

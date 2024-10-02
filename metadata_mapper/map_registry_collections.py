@@ -10,7 +10,7 @@ import requests
 from .lambda_shepherd import MappedCollectionStatus
 from .lambda_shepherd import map_collection
 from .validate_mapping import create_collection_validation_csv
-from rikolti.utils.versions import get_mapped_pages
+from rikolti.utils.versions import get_versioned_pages
 from rikolti.utils.registry_client import registry_endpoint
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ def validate_endpoint(
 
         mapped_version = mapped_versions.get(str(collection_id))
         try:
-            mapped_pages = get_mapped_pages(mapped_version)
+            mapped_pages = get_versioned_pages(mapped_version)
         except (FileNotFoundError, ValueError) as e:
             print(f"{collection_id:<6}: not mapped yet", file=sys.stderr)
             status = ValidationReportStatus(

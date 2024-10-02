@@ -8,7 +8,7 @@ from rikolti.dags.shared_tasks.shared import send_event_to_sns
 from rikolti.record_indexer.index_collection import (
     index_collection, delete_collection)
 from rikolti.utils.versions import (
-    get_version, get_merged_pages, get_with_content_urls_pages)
+    get_version, get_merged_pages, get_versioned_pages)
 
 def index_collection_task(alias, collection, version_pages, context):
     collection_id = collection.get('id')
@@ -108,7 +108,7 @@ def get_version_pages(params=None):
     if 'merged' in version:
         version_pages = get_merged_pages(version)
     else:
-        version_pages = get_with_content_urls_pages(version)
+        version_pages = get_versioned_pages(version)
 
     return version_pages
 

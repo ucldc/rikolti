@@ -15,7 +15,7 @@ from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
 from rikolti.dags.shared_tasks.mapping_tasks  import mapping_tasks
 from rikolti.dags.shared_tasks.content_harvest_tasks import content_harvesting_tasks
 from rikolti.utils.versions import (
-    get_child_directories, get_with_content_urls_pages,
+    get_child_directories, get_versioned_pages,
     get_with_content_urls_page_content, get_child_pages,
     create_merged_version, put_merged_page)
 from rikolti.dags.shared_tasks.indexing_tasks import stage_collection_task
@@ -38,7 +38,7 @@ def get_child_thumbnail(child_records):
 @task(task_id="merge_any_child_records", 
       on_failure_callback=notify_rikolti_failure)
 def merge_any_child_records_task(version, **context):
-    with_content_urls_pages = get_with_content_urls_pages(version)
+    with_content_urls_pages = get_versioned_pages(version)
 
     # Recurse through the record's children (if any)
     child_directories = get_child_directories(version)
