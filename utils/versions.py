@@ -148,19 +148,12 @@ def get_versioned_pages(version, **kwargs):
     """
     if not version:
         raise ValueError("versions.get_versioned_pages: No version path provided")
+    recursive = True
+    if "recursive" in kwargs:
+        recursive = kwargs.pop("recursive")
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
-    page_list = storage.list_pages(data_path, recursive=True, **kwargs)
-    return [path[len(data_root)+1:] for path in page_list]
-
-def get_merged_pages(version, **kwargs):
-    """
-    resolves a merged version to a data_uri at $RIKOLTI_DATA/<version>/
-    returns a list of version pages located at that data_uri.
-    """
-    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
-    data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
-    page_list = storage.list_pages(data_path, recursive=False, **kwargs)
+    page_list = storage.list_pages(data_path, recursive=recursive, **kwargs)
     return [path[len(data_root)+1:] for path in page_list]
 
 def get_child_directories(version, **kwargs):
