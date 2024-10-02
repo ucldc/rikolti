@@ -7,8 +7,7 @@ import requests
 
 from . import settings
 from .utils import print_opensearch_error
-from rikolti.utils.versions import (
-    get_merged_page_content, get_with_content_urls_page_content)
+from rikolti.utils.versions import get_versioned_page_as_json
 
 
 def bulk_add(records: list, index: str):
@@ -123,10 +122,7 @@ def get_opensearch_schema(index_alias: str):
 
 
 def index_page(version_page: str, index: str, rikolti_data: dict):
-    if 'merged' in version_page:
-        records = get_merged_page_content(version_page)
-    else:
-        records = get_with_content_urls_page_content(version_page)
+    records = get_versioned_page_as_json(version_page)
 
     schema = get_opensearch_schema(index)
     removed_fields_report = defaultdict(list)

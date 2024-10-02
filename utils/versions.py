@@ -193,23 +193,10 @@ def get_vernacular_page_content(version_page):
     returns the contents of the page.
     """
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
-    return storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
-
-def get_mapped_page_content(version_page):
-    """
-    resolves a version page to a data_uri at $RIKOLTI_DATA/<version_page>/
-    returns the contents of the page loaded as json
-    """
-    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
-    content = storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
-    return json.loads(content)
-
-def get_with_content_urls_page_content(version_page):
-    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
     content = storage.get_page_content(f"{data_root}/{version_page}")
-    return json.loads(content)
+    return content
 
-def get_merged_page_content(version_page):
+def get_versioned_page_as_json(version_page):
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
     content = storage.get_page_content(f"{data_root}/{version_page}")
     return json.loads(content)
