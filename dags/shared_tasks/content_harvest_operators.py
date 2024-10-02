@@ -74,7 +74,7 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                                 "value": "s3://rikolti-data"
                             },
                             {
-                                "name": "CONTENT_ROOT",
+                                "name": "RIKOLTI_CONTENT",
                                 "value": "s3://rikolti-content"
                             },
                             {
@@ -175,10 +175,10 @@ class ContentHarvestDockerOperator(DockerOperator):
         else:
             rikolti_data = "file:///rikolti_data"
 
-        if os.environ.get('CONTENT_ROOT', '').startswith('s3'):
-            content_root = os.environ.get('CONTENT_ROOT')
+        if os.environ.get('RIKOLTI_CONTENT', '').startswith('s3'):
+            rikolti_content = os.environ.get('RIKOLTI_CONTENT')
         else:
-            content_root = "file:///rikolti_content"
+            rikolti_content = "file:///rikolti_content"
 
         prefix, pages = extract_prefix_from_pages(pages)
         args = {
@@ -197,7 +197,7 @@ class ContentHarvestDockerOperator(DockerOperator):
             "mount_tmp_dir": False,
             "environment": {
                 "RIKOLTI_DATA": rikolti_data,
-                "CONTENT_ROOT": content_root,
+                "RIKOLTI_CONTENT": rikolti_content,
                 "CONTENT_COMPONENT_CACHE": os.environ.get("CONTENT_COMPONENT_CACHE"),
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                 "NUXEO_PASS": os.environ.get("NUXEO_PASS")
