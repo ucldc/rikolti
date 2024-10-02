@@ -45,7 +45,8 @@ prefixes = Literal[
     "with_content_urls_",
     "merged_"
 ]
-def create_version(version: str, prefix: prefixes, suffix: Optional[str] = None) -> str:
+def create_version(
+        version: str, prefix: prefixes, suffix: Optional[str] = None) -> str:
     """
     Given a version path, ex: 3433/vernacular_metadata_v1/ and a version prefix,
     ex: mapped_metadata_, and a version suffix, ex: v2, creates a new version
@@ -59,80 +60,23 @@ def create_version(version: str, prefix: prefixes, suffix: Optional[str] = None)
     return f"{version}/{prefix}{suffix}/"
 
 
-def create_vernacular_version(
-        collection_id: Union[int, str],
-        suffix: Optional[str] = None
-    ) -> str:
-    """
-    Given a collection id, ex: 3433, and version suffix, ex: v1, creates a new
-    vernacular version, ex: 3433/vernacular_metadata_v1/
+def create_vernacular_version(collection_id: Union[int, str], **kwargs) -> str:
+    return create_version(f"{collection_id}", "vernacular_metadata_", **kwargs)
 
-    If no suffix is provided, uses the current datetime.
-    """
-    version_path = f"{collection_id}"
-    if not suffix:
-        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    return f"{version_path}/vernacular_metadata_{suffix}/"
+def create_mapped_version(vernacular_version: str, **kwargs) -> str:
+    return create_version(vernacular_version, "mapped_metadata_", **kwargs)
 
-def create_mapped_version(
-        vernacular_version: str, suffix: Optional[str] = None) -> str:
-    """
-    Given a vernacular version, ex: 3433/vernacular_metadata_v1/ and version
-    suffix, ex: v2, creates a new mapped version, ex:
-    3433/vernacular_metadata_v1/mapped_metadata_v2/
+def create_validation_version(mapped_version: str, **kwargs) -> str:
+    version = create_version(mapped_version, "validation_", **kwargs)
+    versioned_file = f"{version[:-1]}.csv"
+    return versioned_file
 
-    If no suffix is provided, uses the current datetime.
-    """
-    vernacular_version = vernacular_version.rstrip('/')
-    if not suffix:
-        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    return f"{vernacular_version}/mapped_metadata_{suffix}/"
+def create_with_content_urls_version(mapped_version: str, **kwargs) -> str:
+    return create_version(mapped_version, "with_content_urls_", **kwargs)
 
-def create_validation_version(
-        mapped_version: str,
-        suffix: Optional[str] = None
-):
-    """
-    Given a mapped version, ex: 3433/vernacular_metadata_v1/mapped_metadata_v2/
-    and a version suffix, ex: v2, creates a new validation version, ex:
-    3433/vernacular_metadata_v1/mapped_metadata_v2/validation_v2.csv
-    Validation versions paths are also version pages.
+def create_merged_version(with_content_urls_version: str, **kwargs) -> str:
+    return create_version(with_content_urls_version, "merged_", **kwargs)
 
-    If no suffix is provided, uses the current datetime.
-    """
-    mapped_version = mapped_version.rstrip('/')
-    if not suffix:
-        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    return f"{mapped_version}/validation_{suffix}.csv"
-
-def create_with_content_urls_version(
-        mapped_version: str, suffix: Optional[str] = None) -> str:
-    """
-    Given a mapped version, ex: 3433/vernacular_metadata_v1/mapped_metadata_v2/
-    and a version suffix, ex: v2, creates a new with content urls version, ex:
-    3433/vernacular_metadata_v1/mapped_metadata_v2/with_content_urls_v2/
-
-    If no suffix is provided, uses the current datetime.
-    """
-    mapped_version = mapped_version.rstrip('/')
-    if not suffix:
-        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    return f"{mapped_version}/with_content_urls_{suffix}/"
-
-def create_merged_version(
-        with_content_urls_version: str, suffix: Optional[str] = None) -> str:
-    """
-    Given a with content urls version, ex: 
-    3433/vernacular_metadata_v1/mapped_metadata_v2/with_content_urls_v2/ and a
-    version suffix, ex: v1, creates a new merged version, ex:
-    3433/vernacular_metadata_v1/mapped_metadata_v2/with_content_urls_v2/merged_v1/
-
-    If no suffix is provided, uses the current datetime.
-    """
-    with_content_urls_version = with_content_urls_version.rstrip('/')
-    if not suffix:
-        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-    return f"{with_content_urls_version}/merged_{suffix}/"
 
 def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     """
@@ -227,7 +171,7 @@ def put_versioned_page(content: str, page_name: Union[int, str], version: str):
     resolves a version path to a page uri at $RIKOLTI_DATA/<version>/data/<page_name>.jsonl
     and writes content to that data uri. returns the version page.
 
-    content should be a json.dumped string of a list of dicts.
+    content is a string or a json.dumped string of a list of dicts.
     """
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
