@@ -18,8 +18,7 @@ services:
       - ./:/content_harvester
       - ../utils:/rikolti/utils
     environment:
-      - MAPPED_DATA=file:///rikolti_data
-      - WITH_CONTENT_URL_DATA=file:///rikolti_data
+      - RIKOLTI_DATA=file:///rikolti_data
       - CONTENT_ROOT=file:///rikolti_content
       - NUXEO_USER=${NUXEO_USER}
       - NUXEO_PASS=${NUXEO_PASS}

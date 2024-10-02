@@ -114,11 +114,11 @@ def create_merged_version(
 
 def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     """
-    Sorts the contents of $VERNACULAR_DATA/<collection_id>/, and returns the
+    Sorts the contents of $RIKOLTI_DATA/<collection_id>/, and returns the
     version path of the first item - this presumes a sortable vernacular
     version suffix.
     """
-    data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     versions = storage.list_dirs(f"{data_root.rstrip('/')}/{collection_id}/")
     if not versions:
         raise Exception(
@@ -127,7 +127,7 @@ def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     return f"{collection_id}/{recent_version}/"
 
 def get_most_recent_mapped_version(collection_id: Union[int, str]):
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     collection_path = f"{data_root.rstrip('/')}/{collection_id}/"
     vernacular_versions = storage.list_dirs(collection_path)
     if not vernacular_versions:
@@ -143,22 +143,22 @@ def get_most_recent_mapped_version(collection_id: Union[int, str]):
 
 def get_vernacular_pages(version, **kwargs):
     """
-    resolves a vernacular version to a data_uri at $VERNACULAR_DATA/<version>/
+    resolves a vernacular version to a data_uri at $RIKOLTI_DATA/<version>/
     returns a list of version pages.
     """
-    data_root = os.environ.get('VERNACULAR_DATA', "file:///tmp")
+    data_root = os.environ.get('RIKOLTI_DATA', "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)
     return [path[len(data_root)+1:] for path in page_list]
 
 def get_mapped_pages(version, **kwargs):
     """
-    resolves a mapped version to a data_uri at $MAPPED_DATA/<version>/
+    resolves a mapped version to a data_uri at $RIKOLTI_DATA/<version>/
     returns a list of version pages located at that data_uri.
     """
     if not version:
         raise ValueError("versions.get_mapped_pages: No mapped version path provided")
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)
     return [path[len(data_root)+1:] for path in page_list]
@@ -166,34 +166,34 @@ def get_mapped_pages(version, **kwargs):
 def get_with_content_urls_pages(version, **kwargs):
     """
     resolves a with_content_urls version to a data_uri at 
-    $WITH_CONTENT_URL_DATA/<version>/
+    $RIKOLTI_DATA/<version>/
     returns a list of version pages located at that data_uri.
     """
-    data_root = os.environ.get("WITH_CONTENT_URL_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     page_list = storage.list_pages(data_path, recursive=True, **kwargs)
     return [path[len(data_root)+1:] for path in page_list]
 
 def get_merged_pages(version, **kwargs):
     """
-    resolves a merged version to a data_uri at $MERGED_DATA/<version>/
+    resolves a merged version to a data_uri at $RIKOLTI_DATA/<version>/
     returns a list of version pages located at that data_uri.
     """
-    data_root = os.environ.get("MERGED_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/"
     page_list = storage.list_pages(data_path, recursive=False, **kwargs)
     return [path[len(data_root)+1:] for path in page_list]
 
 def get_child_directories(version, **kwargs):
     """
-    resolves a mapped version to a data_uri at $MAPPED_DATA/<version>/data/
+    resolves a mapped version to a data_uri at $RIKOLTI_DATA/<version>/data/
     returns a list of directories.
 
     complex objects are stored in a directory named "children" within the
     mapped version data directory. This function is used to check if any
     directory named "children" is inside the mapped version's data directory.
     """
-    data_root = os.environ.get('MAPPED_DATA', "file:///tmp")
+    data_root = os.environ.get('RIKOLTI_DATA', "file:///tmp")
     child_directories = storage.list_dirs(
         f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/",
         recursive=False
@@ -202,10 +202,10 @@ def get_child_directories(version, **kwargs):
 
 def get_child_pages(version, **kwargs):
     """
-    resolves a mapped version to a data_uri at $MAPPED_DATA/<version>/data/children/
+    resolves a mapped version to a data_uri at $RIKOLTI_DATA/<version>/data/children/
     returns a list of version pages located at data_uri.
     """
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     data_path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/children/"
     try:
         page_list = storage.list_pages(data_path, recursive=False, **kwargs)
@@ -217,79 +217,79 @@ def get_child_pages(version, **kwargs):
 
 def get_vernacular_page_content(version_page):
     """
-    resolves a version page to a data_uri at $VERNACULAR_DATA/<version_page>/
+    resolves a version page to a data_uri at $RIKOLTI_DATA/<version_page>/
     returns the contents of the page.
     """
-    data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp").rstrip('/')
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
     return storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
 
 def get_mapped_page_content(version_page):
     """
-    resolves a version page to a data_uri at $MAPPED_DATA/<version_page>/
+    resolves a version page to a data_uri at $RIKOLTI_DATA/<version_page>/
     returns the contents of the page loaded as json
     """
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp").rstrip('/')
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
     content = storage.get_page_content(f"{data_root.rstrip('/')}/{version_page}")
     return json.loads(content)
 
 def get_with_content_urls_page_content(version_page):
-    data_root = os.environ.get("WITH_CONTENT_URL_DATA", "file:///tmp").rstrip('/')
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
     content = storage.get_page_content(f"{data_root}/{version_page}")
     return json.loads(content)
 
 def get_merged_page_content(version_page):
-    data_root = os.environ.get("MERGED_DATA", "file:///tmp").rstrip('/')
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
     content = storage.get_page_content(f"{data_root}/{version_page}")
     return json.loads(content)
 
 def put_vernacular_page(content: str, page_name: Union[int, str], version: str):
     """
-    resolves a version path to a page uri at $VERNACULAR_DATA/<version>/data/<page_name>
+    resolves a version path to a page uri at $RIKOLTI_DATA/<version>/data/<page_name>
     and writes content to that data uri. returns the version page.
     """
-    data_root = os.environ.get("VERNACULAR_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}"
 
 def put_mapped_page(content, page_name, version):
     """
-    resolves a version path to a page uri at $MAPPED_DATA/<version>/data/<page_name>.jsonl
+    resolves a version path to a page uri at $RIKOLTI_DATA/<version>/data/<page_name>.jsonl
     and writes content to that data uri. returns the version page.
 
     content should be a json.dumped string of a list of dicts.
     """
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}.jsonl"
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}.jsonl"
 
 def put_with_content_urls_page(content, page_name, version):
     """
-    resolves a version path to a page uri at $WITH_CONTENT_URL_DATA/<version>/data/<page_name>
+    resolves a version path to a page uri at $RIKOLTI_DATA/<version>/data/<page_name>
     and writes content to that data uri. returns the version page.
 
     content should be a json.dumped string of a list of dicts.
     """
-    data_root = os.environ.get("WITH_CONTENT_URL_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}"
 
 def put_merged_page(content, page_name, version):
-    data_root = os.environ.get("MERGED_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}.jsonl"
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}.jsonl"
 
 def put_validation_report(content, version_page):
     """
-    resolves a version path to a page uri at $MAPPED_DATA/<version page>
+    resolves a version path to a page uri at $RIKOLTI_DATA/<version page>
     and writes content to that data uri. returns the version page.
 
     content should be a csv string.
     """
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp")
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version_page}"
     storage.put_page_content(content, path)
     return version_page
