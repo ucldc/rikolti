@@ -210,18 +210,6 @@ def put_vernacular_page(content: str, page_name: Union[int, str], version: str):
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}"
 
-def put_mapped_page(content, page_name, version):
-    """
-    resolves a version path to a page uri at $RIKOLTI_DATA/<version>/data/<page_name>.jsonl
-    and writes content to that data uri. returns the version page.
-
-    content should be a json.dumped string of a list of dicts.
-    """
-    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
-    path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}.jsonl"
-    storage.put_page_content(content, path)
-    return f"{version.rstrip('/')}/data/{page_name}.jsonl"
-
 def put_with_content_urls_page(content, page_name, version):
     """
     resolves a version path to a page uri at $RIKOLTI_DATA/<version>/data/<page_name>
@@ -234,7 +222,13 @@ def put_with_content_urls_page(content, page_name, version):
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}"
 
-def put_merged_page(content, page_name, version):
+def put_versioned_page(content, page_name, version):
+    """
+    resolves a version path to a page uri at $RIKOLTI_DATA/<version>/data/<page_name>.jsonl
+    and writes content to that data uri. returns the version page.
+
+    content should be a json.dumped string of a list of dicts.
+    """
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}.jsonl"
     storage.put_page_content(content, path)

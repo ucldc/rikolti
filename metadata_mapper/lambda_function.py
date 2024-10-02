@@ -9,7 +9,7 @@ from urllib.parse import parse_qs, urlparse
 
 from . import settings
 from .mappers.mapper import Record, Vernacular
-from rikolti.utils.versions import get_versioned_page_content, put_mapped_page, get_version
+from rikolti.utils.versions import get_versioned_page_content, put_versioned_page, get_version
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +155,7 @@ def map_page(
 
     mapped_metadata = [record.to_dict() for record in mapped_records]
 
-    mapped_page_path = put_mapped_page(
+    mapped_page_path = put_versioned_page(
         json.dumps(mapped_metadata, ensure_ascii=False),
         page_filename, mapped_data_version)
 
