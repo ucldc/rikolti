@@ -72,7 +72,7 @@ def merge_any_child_records_task(version, **context):
         merged_pages.append(
             put_versioned_page(
                 json.dumps(parent_records),
-                os.path.basename(page_path),
+                f"{os.path.basename(page_path)}.jsonl",
                 merged_version
             )
         )
