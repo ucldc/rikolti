@@ -157,7 +157,7 @@ def map_page(
 
     mapped_page_path = put_versioned_page(
         json.dumps(mapped_metadata, ensure_ascii=False),
-        page_filename, mapped_data_version)
+        f"{page_filename}.jsonl", mapped_data_version)
 
     return MappedPageStatus(
         'success',

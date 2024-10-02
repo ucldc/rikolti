@@ -230,9 +230,9 @@ def put_versioned_page(content, page_name, version):
     content should be a json.dumped string of a list of dicts.
     """
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
-    path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}.jsonl"
+    path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
     storage.put_page_content(content, path)
-    return f"{version.rstrip('/')}/data/{page_name}.jsonl"
+    return f"{version.rstrip('/')}/data/{page_name}"
 
 def put_validation_report(content, version_page):
     """
