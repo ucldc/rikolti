@@ -5,7 +5,7 @@ import boto3
 import shutil
 
 from urllib.parse import urlparse
-from collections import namedtuple
+from dataclasses import dataclass
 
 
 """
@@ -16,9 +16,13 @@ passed along to the underlying boto3 call and can be used for AWS credentials
 """
 
 
-DataStorage = namedtuple(
-    "DateStorage", "uri, store, bucket, path"
-)
+@dataclass
+class DataStorage:
+    uri: str
+    store: str
+    bucket: str
+    path: str
+
 
 def parse_data_uri(data_uri: str):
     data_loc = urlparse(data_uri)
