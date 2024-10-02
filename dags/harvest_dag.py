@@ -17,7 +17,7 @@ from rikolti.dags.shared_tasks.content_harvest_tasks import content_harvesting_t
 from rikolti.utils.versions import (
     get_child_directories, get_versioned_pages,
     get_versioned_page_as_json, get_child_pages,
-    create_merged_version, put_merged_page)
+    create_merged_version, put_versioned_page)
 from rikolti.dags.shared_tasks.indexing_tasks import stage_collection_task
 
 
@@ -70,7 +70,7 @@ def merge_any_child_records_task(version, **context):
                 if child_thumbnail:
                     record['thumbnail'] = child_thumbnail
         merged_pages.append(
-            put_merged_page(
+            put_versioned_page(
                 json.dumps(parent_records),
                 os.path.basename(page_path),
                 merged_version
