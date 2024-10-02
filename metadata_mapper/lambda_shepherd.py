@@ -10,7 +10,7 @@ from . import validate_mapping
 from .lambda_function import map_page, MappedPageStatus
 from .mappers.mapper import Record
 from rikolti.utils.versions import (
-    get_most_recent_vernacular_version, get_vernacular_pages,
+    get_most_recent_vernacular_version, get_versioned_pages,
     get_version, create_mapped_version
 )
 
@@ -173,7 +173,7 @@ def map_collection(collection_id, vernacular_version=None, validate=False):
 
     if not vernacular_version:
         vernacular_version = get_most_recent_vernacular_version(collection_id)
-    page_list = get_vernacular_pages(vernacular_version)
+    page_list = get_versioned_pages(vernacular_version)
     # TODO: split page_list into pages and children?
 
     vernacular_version = get_version(collection_id, page_list[0])

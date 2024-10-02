@@ -11,8 +11,7 @@ from rikolti.dags.shared_tasks.shared import get_registry_data_task
 from rikolti.dags.shared_tasks.shared import batched
 from rikolti.utils.versions import get_most_recent_vernacular_version
 from rikolti.utils.versions import get_most_recent_mapped_version
-from rikolti.utils.versions import get_vernacular_pages
-from rikolti.utils.versions import get_mapped_pages
+from rikolti.utils.versions import get_versioned_pages
 
 
 @task(task_id="get_vernacular_page_batches")
@@ -22,7 +21,7 @@ def get_vernacular_page_batches_task(
     vernacular_version = params.get('vernacular_version') if params else None
     if not vernacular_version:
         vernacular_version = get_most_recent_vernacular_version(collection_id)
-    pages = get_vernacular_pages(vernacular_version)
+    pages = get_versioned_pages(vernacular_version)
     # TODO: split page_list into pages and children?
 
     # 1024 is the maximum number of fanout tasks allowed
@@ -38,7 +37,7 @@ def get_mapped_pages_task(params: Optional[dict] = None):
     mapped_version = params.get('mapped_version') if params else None
     if not mapped_version:
         mapped_version = get_most_recent_mapped_version(collection_id)
-    pages = get_mapped_pages(mapped_version)
+    pages = get_versioned_pages(mapped_version)
     return pages
 
 # This is a functional duplicate of 
