@@ -48,13 +48,13 @@ vi env.local
 
 Currently, I only use one virtual environment, even though each folder located at the root of this repository represents an isolated component. If dependency conflicts are encountered, I'll wind up creating separate environments.
 
-Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `RIKOLTI_DATA` to the URI where you would like Rikolti to store and retrieve data - Rikolti will create a folder (or s3 prefix) `<collection_id>/vernacular_metadata` at this location. Set `CONTENT_ROOT` to the URI where you would like Rikolti to store content files.
+Similarly, I also only use one env.local as well. Rikolti fetches data to your local system, maps that data, and then fetches relevant content files (media files, previews, and thumbnails). Set `RIKOLTI_DATA` to the URI where you would like Rikolti to store and retrieve data - Rikolti will create a folder (or s3 prefix) `<collection_id>/vernacular_metadata` at this location. Set `RIKOLTI_CONTENT` to the URI where you would like Rikolti to store content files.
 
 For example, one way to configure `env.local` is:
 
 ```
 RIKOLTI_DATA=file:///Users/awieliczka/Projects/rikolti/rikolti_data
-CONTENT_ROOT=file:///Users/awieliczka/Projects/rikolti/rikolti_content
+RIKOLTI_CONTENT=file:///Users/awieliczka/Projects/rikolti/rikolti_content
 ```
 
 Each of these can be different locations, however. For example, if you're attempting to re-run a mapper locally off of previously fetched data stored on s3, you might set `RIKOLTI_DATA=s3://rikolti_data`.

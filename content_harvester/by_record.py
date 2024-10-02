@@ -400,9 +400,9 @@ def create_thumbnail_component(
 
 def upload_content(filepath: str, destination: str) -> str:
     '''
-        upload file to CONTENT_ROOT
+        upload file to RIKOLTI_CONTENT
     '''
-    content_root = os.environ.get("CONTENT_ROOT", 'file:///tmp')
+    content_root = os.environ.get("RIKOLTI_CONTENT", 'file:///tmp')
     content_path = f"{content_root.rstrip('/')}/{destination}"
     upload_file(filepath, content_path)
     return content_path

@@ -19,7 +19,7 @@ services:
       - ../utils:/rikolti/utils
     environment:
       - RIKOLTI_DATA=file:///rikolti_data
-      - CONTENT_ROOT=file:///rikolti_content
+      - RIKOLTI_CONTENT=file:///rikolti_content
       - NUXEO_USER=${NUXEO_USER}
       - NUXEO_PASS=${NUXEO_PASS}
       - CONTENT_COMPONENT_CACHE=${CONTENT_COMPONENT_CACHE}
