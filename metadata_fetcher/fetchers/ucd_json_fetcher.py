@@ -10,7 +10,7 @@ from xml.etree import ElementTree
 from bs4 import BeautifulSoup
 
 from .Fetcher import Fetcher, FetchError, FetchedPageStatus
-from rikolti.utils.versions import put_vernacular_page
+from rikolti.utils.versions import put_versioned_page
 
 class UcdJsonFetcher(Fetcher):
     def __init__(self, params: dict[str]):
@@ -70,7 +70,7 @@ class UcdJsonFetcher(Fetcher):
             records = [self.fetch_json_ld(url) for url in urls]
             document_count = len(records)
             try:
-                filepath = put_vernacular_page(
+                filepath = put_versioned_page(
                     json.dumps(records), self.write_page, self.vernacular_version)
                 fetch_status.append(FetchedPageStatus(document_count, filepath))
             except Exception as e:
