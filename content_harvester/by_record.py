@@ -84,7 +84,6 @@ def harvest_record_content(
             collection_id,
             rikolti_mapper_type: Optional[str] = None,
             ) -> dict:
-
     # Weird how we have to use username/pass to hit this endpoint
     # but we have to use auth token to hit API endpoint
     auth = None
@@ -98,7 +97,12 @@ def harvest_record_content(
         record['media'] = create_media_component(
             collection_id, request, media_source)
 
-    thumbnail_src = record.get('thumbnail_source', get_thumb_src(record))
+    # For unknown reasons, this always returns `get_thumb_src(record)`,
+    # even when the `thumbnail_source` key exists in the dictionary:
+    #   `thumbnail_src = record.get('thumbnail_source', get_thumb_src(record))`
+    thumbnail_src = record.get('thumbnail_source')
+    if not thumbnail_src:
+        thumbnail_src = get_thumb_src(record)
     thumbnail_src_url = thumbnail_src.get('url')
     if thumbnail_src_url:
         request = ContentRequest(thumbnail_src_url, auth)
