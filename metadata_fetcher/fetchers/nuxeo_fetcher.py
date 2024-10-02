@@ -1,7 +1,7 @@
 import json
 import logging
 from urllib.parse import quote as urllib_quote
-from rikolti.utils.versions import put_vernacular_page
+from rikolti.utils.versions import put_versioned_page
 
 import requests
 
@@ -137,7 +137,7 @@ class NuxeoFetcher(Fetcher):
                 more_component_pages = False
                 continue
 
-            child_version_page = put_vernacular_page(
+            child_version_page = put_versioned_page(
                 component_resp.text,
                 f"children/{record['uid']}-{component_page_count}",
                 self.vernacular_version
@@ -191,7 +191,7 @@ class NuxeoFetcher(Fetcher):
                 more_pages_of_records = False
                 continue
 
-            version_page = put_vernacular_page(
+            version_page = put_versioned_page(
                 document_resp.text, 
                 f"{'-'.join(page_prefix)}-p{record_page_count}", 
                 self.vernacular_version

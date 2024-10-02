@@ -4,7 +4,7 @@ from collections import Counter
 from .by_record import harvest_record_content
 
 from rikolti.utils.versions import (
-    get_versioned_page_as_json, put_with_content_urls_page, get_version
+    get_versioned_page_as_json, put_versioned_page, get_version
 )
 
 
@@ -42,7 +42,7 @@ def harvest_page_content(
                 f"record {record.get('calisphere-id')} in page {mapped_page_path}"
             )
 
-    metadata_with_content_urls = put_with_content_urls_page(
+    metadata_with_content_urls = put_versioned_page(
         json.dumps(records), page_filename, with_content_urls_version)
 
     media_source = [r for r in records if r.get('media_source')]

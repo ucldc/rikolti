@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from requests.adapters import HTTPAdapter, Retry
-from rikolti.utils.versions import put_vernacular_page
+from rikolti.utils.versions import put_versioned_page
 
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class Fetcher(object):
         filepath = None
         content = self.aggregate_vernacular_content(response)
         try:
-            filepath = put_vernacular_page(
+            filepath = put_versioned_page(
                 content, self.write_page, self.vernacular_version)
         except Exception as e:
             print(f"Metadata Fetcher: {e}")
