@@ -123,7 +123,7 @@ def get_mapping_status_task(
 
 def print_s3_link(version_page, mapped_version):
     # create a link to the file in the logs
-    data_root = os.environ.get("MAPPED_DATA", "file:///tmp").rstrip('/')
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp").rstrip('/')
     if data_root.startswith('s3'):
         s3_path = urlparse(f"{data_root}/{version_page}")
         bucket = s3_path.netloc

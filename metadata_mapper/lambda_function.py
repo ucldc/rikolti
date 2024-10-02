@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
     print(f"{mapped_page_status.num_mapped_records} records mapped")
     print(
-        f"mapped page at {os.environ.get('MAPPED_DATA')}/"
+        f"mapped page at {os.environ.get('RIKOLTI_DATA')}/"
         f"{mapped_page_status.mapped_page_path}")
 
     for report, couch_ids in mapped_page_status.exceptions.items():
