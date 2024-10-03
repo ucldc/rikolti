@@ -97,9 +97,6 @@ def harvest_record_content(
         record['media'] = create_media_component(
             collection_id, request, media_source)
 
-    # For unknown reasons, this always returns `get_thumb_src(record)`,
-    # even when the `thumbnail_source` key exists in the dictionary:
-    #   `thumbnail_src = record.get('thumbnail_source', get_thumb_src(record))`
     thumbnail_src = record.get('thumbnail_source')
     if not thumbnail_src:
         thumbnail_src = get_thumb_src(record)
