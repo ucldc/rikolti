@@ -308,6 +308,7 @@ def create_media_component(
                 derivative_filepath, 
                 f"jp2/{collection_id}/{jp2_destination_filename}"
             )
+            os.remove(derivative_filepath)
             mimetype = 'image/jp2'
     else:
         content_s3_filepath = upload_content(
@@ -328,6 +329,7 @@ def create_media_component(
             'date_content_component_created': datetime.now().isoformat()
         }
     }
+
     return media_component
 
 
@@ -364,6 +366,7 @@ def create_thumbnail_component(
                 derivative_filepath, f"thumbnails/{collection_id}/{thumbnail_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
+            os.remove(derivative_filepath)
     elif mapped_mimetype in ['video/mp4','video/quicktime']:
         derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
         if derivative_filepath:
@@ -371,6 +374,7 @@ def create_thumbnail_component(
                 derivative_filepath, f"thumbnails/{collection_id}/{thumbnail_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
+            os.remove(derivative_filepath)
 
     thumbnail_component = {
         'mimetype': 'image/jpeg',
@@ -384,6 +388,10 @@ def create_thumbnail_component(
             'date_content_component_created': datetime.now().isoformat()
         }
     }
+
+    if os.path.exists(thumbnail_tmp_filepath):
+        os.remove(thumbnail_tmp_filepath)
+
     return thumbnail_component
 
 
