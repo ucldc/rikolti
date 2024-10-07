@@ -67,14 +67,14 @@ def get_url_basename(url: str) -> Optional[str]:
     return url_path_parts[-1] if url_path_parts else None
 
 
-def get_thumb_src(record: dict) -> dict:
+def make_thumbnail_src(record, thumbnail_url: str) -> dict:
     """
     provided for backwards compatibility, add a deprecation warning log
     here, to get mappers off using the is_shown_by key
     """
-    thumb_src = {'url': record.get('is_shown_by', '')}
-    record['thumbnail_source'] = thumb_src
-    return thumb_src
+    thumbnail_src = {'url': thumbnail_url}
+    record['thumbnail_source'] = thumbnail_src
+    return thumbnail_src
     
 
 # returns a mapped metadata record with content urls at the
@@ -97,9 +97,12 @@ def harvest_record_content(
         record['media'] = create_media_component(
             collection_id, request, media_source)
 
-    thumbnail_src = record.get('thumbnail_source')
-    if not thumbnail_src:
-        thumbnail_src = get_thumb_src(record)
+    thumbnail_src = record.get(
+        'thumbnail_source', 
+        record.get('is_shown_by', '')
+    )
+    if isinstance(thumbnail_src, str):
+        thumbnail_src = make_thumbnail_src(record, thumbnail_src)
     thumbnail_src_url = thumbnail_src.get('url')
     if thumbnail_src_url:
         request = ContentRequest(thumbnail_src_url, auth)
