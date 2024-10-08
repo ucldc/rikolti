@@ -356,15 +356,13 @@ def check_date_format(record_id, date_value_list):
             if value and key != "displayDate":
                 try:
                     ymd = [int(s) for s in value.split("-")]
-                except ValueError as e:
-                    print(f"Invalid date.{key}: {value} - {e} for {record_id}")
-                    date_value_dict[key] = None
-
-                year = ymd[0]
-                month = ymd[1] if len(ymd) > 1 else 1
-                day = ymd[2] if len(ymd) > 2 else 1
-                try:
+                    year = ymd[0]
+                    month = ymd[1] if len(ymd) > 1 else 1
+                    day = ymd[2] if len(ymd) > 2 else 1
                     datetime.datetime(year=year, month=month, day=day)
                 except ValueError as e:
-                    print(f"Invalid date.{key}: {value} - {e} for {record_id}")
+                    print(
+                        f"Invalid date.{key}: {value} - {e} for record "
+                        f"{record_id}; setting to None"
+                    )
                     date_value_dict[key] = None
