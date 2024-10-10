@@ -17,13 +17,14 @@ CONTAINER_EXECUTION_ENVIRONMENT = os.environ.get(
 
 def get_awsvpc_config():
     """ 
-    get private subnets and security group from cloudformation stack for use
+    get public subnets and security group from cloudformation stack for use
     with the ContentHarvestEcsOperator to run tasks in an ECS cluster
     """
     client = boto3.client('cloudformation', region_name='us-west-2')
     awsvpcConfig = {
         "subnets": [],
-        "securityGroups": []
+        "securityGroups": [],
+        "assignPublicIp": "ENABLED"
     }
     cf_outputs = (client
                         .describe_stacks(StackName='pad-airflow-mwaa')
@@ -31,7 +32,7 @@ def get_awsvpc_config():
                         .get('Outputs', [])
     )
     for output in cf_outputs:
-        if output['OutputKey'] in ['PrivateSubnet1', 'PrivateSubnet2']:
+        if output['OutputKey'] in ['PublicSubnet1', 'PublicSubnet2']:
             awsvpcConfig['subnets'].append(output['OutputValue'])
         if output['OutputKey'] == 'SecurityGroup':
             awsvpcConfig['securityGroups'].append(output['OutputValue'])
