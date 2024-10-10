@@ -31,7 +31,7 @@ def get_awsvpc_config():
                         .get('Outputs', [])
     )
     for output in cf_outputs:
-        if output['OutputKey'] in ['PrivateSubnet1', 'PrivateSubnet2']:
+        if output['OutputKey'] in ['PublicSubnet1', 'PublicSubnet2']:
             awsvpcConfig['subnets'].append(output['OutputValue'])
         if output['OutputKey'] == 'SecurityGroup':
             awsvpcConfig['securityGroups'].append(output['OutputValue'])
