@@ -328,7 +328,7 @@ def convert_dates(date_values):
     else:
         # split on ; and flatten list
         date_values = [
-            date for date_str in date_values for date in date_str.split(";")]
+            date.strip() for date_str in date_values for date in date_str.split(";")]
         for date in date_values:
             start_date, end_date = parse_date_or_range(clean_date(date))
             if end_date != DEFAULT_DATETIME_STR:
