@@ -113,6 +113,13 @@ def harvest_record_content(
             record['calisphere-id']
         )
 
+    tmp_files = list(set(
+        record.get('media', {}).pop('tmp_filepaths', []) +
+        record.get('thumbnail', {}).pop('tmp_filepaths', [])
+    ))
+    if tmp_files:
+        [os.remove(filepath) for filepath in tmp_files]
+
     return record
 
 
@@ -208,6 +215,7 @@ def content_component_cache(component_type):
             ):
 
             if not persistent_cache:
+                # always a cache miss, also don't cache this
                 return {
                     **create_component(collection_id, request, *args, **kwargs),
                     'from-cache': False
@@ -224,6 +232,7 @@ def content_component_cache(component_type):
                     f"{component_type}: No ETag or Last-Modified headers, "
                     "skipping cache check"
                 )
+                # always a cache miss, also don't cache this
                 return {
                     **create_component(collection_id, request, *args, **kwargs),
                     'from-cache': False
@@ -251,8 +260,14 @@ def content_component_cache(component_type):
                     collection_id, request, *args, **kwargs)
                 print(f"Created {component_type} component for {request.url}")
                 # set cache key to the component
+                # but don't cache tmp filepaths
+                tmp_files = component.pop('tmp_filepaths')
                 persistent_cache[cache_key] = component
-                return {**component, 'from-cache': False}
+                return {
+                    **component,
+                    'from-cache': False,
+                    'tmp_filepaths': tmp_files
+                }
 
         return check_component_cache
     return inner
@@ -298,6 +313,7 @@ def create_media_component(
         return None
 
     media_tmp_filepath = source_component['path']
+    tmp_filepaths = [media_tmp_filepath]
     mapped_mimetype = mapped_media_source.get('mimetype')
     mapped_nuxeotype = mapped_media_source.get('nuxeo_type')
 
@@ -311,7 +327,7 @@ def create_media_component(
                 derivative_filepath, 
                 f"jp2/{collection_id}/{jp2_destination_filename}"
             )
-            os.remove(derivative_filepath)
+            tmp_filepaths.append(derivative_filepath)
             mimetype = 'image/jp2'
     else:
         content_s3_filepath = upload_content(
@@ -330,7 +346,8 @@ def create_media_component(
             'mapped_mimetype': mapped_mimetype,
             'src_size': source_component['size'],
             'date_content_component_created': datetime.now().isoformat()
-        }
+        },
+        'tmp_filepaths': tmp_filepaths
     }
 
     return media_component
@@ -351,6 +368,7 @@ def create_thumbnail_component(
         return None
 
     thumbnail_tmp_filepath = source_component['path']
+    tmp_filepaths = [thumbnail_tmp_filepath]
     thumbnail_md5 = source_component['md5']
 
     content_s3_filepath = None
@@ -369,7 +387,7 @@ def create_thumbnail_component(
                 derivative_filepath, f"thumbnails/{collection_id}/{thumbnail_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
-            os.remove(derivative_filepath)
+            tmp_filepaths.append(derivative_filepath)
     elif mapped_mimetype in ['video/mp4','video/quicktime']:
         derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
         if derivative_filepath:
@@ -377,7 +395,7 @@ def create_thumbnail_component(
                 derivative_filepath, f"thumbnails/{collection_id}/{thumbnail_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
-            os.remove(derivative_filepath)
+            tmp_filepaths.append(derivative_filepath)
 
     thumbnail_component = {
         'mimetype': 'image/jpeg',
@@ -389,11 +407,9 @@ def create_thumbnail_component(
             'mapped_mimetype': mapped_thumbnail_source.get('mimetype'),
             'src_size': source_component['size'],
             'date_content_component_created': datetime.now().isoformat()
-        }
+        },
+        'tmp_filepaths': tmp_filepaths
     }
-
-    if os.path.exists(thumbnail_tmp_filepath):
-        os.remove(thumbnail_tmp_filepath)
 
     return thumbnail_component
 
