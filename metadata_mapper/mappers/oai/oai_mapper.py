@@ -61,6 +61,7 @@ class OaiRecord(Record):
                 "require"
             ]),
             "rights": self.collate_fields(["accessRights", "rights"]),
+            "rightsHolder": self.source_metadata.get("rightsHolder"),
             "source": self.source_metadata.get("source"),
             "spatial": self.collate_fields(["coverage", "spatial"]),
             "subject": self.map_subject,
