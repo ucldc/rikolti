@@ -1,7 +1,7 @@
 import hashlib
 import os
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 from functools import lru_cache
 from dataclasses import dataclass, asdict
 from urllib.parse import quote_plus
@@ -94,7 +94,7 @@ def harvest_record_content(
     media_source_url = media_source.get('url')
     if media_source_url:
         request = ContentRequest(media_source_url, auth)
-        record['media'] = create_media_component(
+        record['media'], tmp_files = create_media_component(
             collection_id, request, media_source)
 
     thumbnail_src = record.get(
@@ -106,19 +106,14 @@ def harvest_record_content(
     thumbnail_src_url = thumbnail_src.get('url')
     if thumbnail_src_url:
         request = ContentRequest(thumbnail_src_url, auth)
-        record['thumbnail'] = create_thumbnail_component(
+        record['thumbnail'], tmp_files = create_thumbnail_component(
             collection_id,
             request,
             thumbnail_src,
             record['calisphere-id']
         )
 
-    tmp_files = list(set(
-        record.get('media', {}).pop('tmp_filepaths', []) +
-        record.get('thumbnail', {}).pop('tmp_filepaths', [])
-    ))
-    if tmp_files:
-        [os.remove(filepath) for filepath in tmp_files]
+    [os.remove(filepath) for filepath in tmp_files]
 
     return record
 
@@ -215,11 +210,9 @@ def content_component_cache(component_type):
             ):
 
             if not persistent_cache:
-                # always a cache miss, also don't cache this
-                return {
-                    **create_component(collection_id, request, *args, **kwargs),
-                    'from-cache': False
-                }
+                # always a cache miss, don't cache this
+                component, tmp_files = create_component(collection_id, request, *args, **kwargs)
+                return {**component, 'from-cache': False}, tmp_files
 
             # Do a head request to get the current ETag and
             # Last-Modified values, used to create a cache key
@@ -233,10 +226,8 @@ def content_component_cache(component_type):
                     "skipping cache check"
                 )
                 # always a cache miss, also don't cache this
-                return {
-                    **create_component(collection_id, request, *args, **kwargs),
-                    'from-cache': False
-                }
+                component, tmp_files = create_component(collection_id, request, *args, **kwargs)
+                return {**component, 'from-cache': False}, tmp_files
 
             # Create cache key
             cache_key = '/'.join([
@@ -254,20 +245,14 @@ def content_component_cache(component_type):
                     f"Retrieved {component_type} component from cache for "
                     f"{request.url}"
                 )
-                return {**component, 'from-cache': True}
+                return {**component, 'from-cache': True}, []
             else:
-                component = create_component(
+                component, tmp_files = create_component(
                     collection_id, request, *args, **kwargs)
                 print(f"Created {component_type} component for {request.url}")
                 # set cache key to the component
-                # but don't cache tmp filepaths
-                tmp_files = component.pop('tmp_filepaths')
                 persistent_cache[cache_key] = component
-                return {
-                    **component,
-                    'from-cache': False,
-                    'tmp_filepaths': tmp_files
-                }
+                return {**component, 'from-cache': False}, tmp_files
 
         return check_component_cache
     return inner
@@ -301,7 +286,7 @@ def create_media_component(
         collection_id, 
         request: ContentRequest, 
         mapped_media_source: dict[str, str]
-    ) -> Optional[dict[str, Any]]:
+    ) -> Tuple[Optional[dict[str, Any]], list]:
     '''
         download source file to local disk
     '''
@@ -310,7 +295,7 @@ def create_media_component(
 
     source_component = download_url(request)
     if not source_component:
-        return None
+        return None, []
 
     media_tmp_filepath = source_component['path']
     tmp_filepaths = [media_tmp_filepath]
@@ -346,11 +331,10 @@ def create_media_component(
             'mapped_mimetype': mapped_mimetype,
             'src_size': source_component['size'],
             'date_content_component_created': datetime.now().isoformat()
-        },
-        'tmp_filepaths': tmp_filepaths
+        }
     }
 
-    return media_component
+    return media_component, tmp_filepaths
 
 
 @content_component_cache('thumbnail')
@@ -359,13 +343,13 @@ def create_thumbnail_component(
         request: ContentRequest, 
         mapped_thumbnail_source: dict[str, str],
         record_context: str
-    ) -> Optional[dict[str, Any]]:
+    ) -> Tuple[Optional[dict[str, Any]], list]:
     '''
         download source file to local disk
     '''
     source_component = download_url(request)
     if not source_component:
-        return None
+        return None, []
 
     thumbnail_tmp_filepath = source_component['path']
     tmp_filepaths = [thumbnail_tmp_filepath]
@@ -407,11 +391,10 @@ def create_thumbnail_component(
             'mapped_mimetype': mapped_thumbnail_source.get('mimetype'),
             'src_size': source_component['size'],
             'date_content_component_created': datetime.now().isoformat()
-        },
-        'tmp_filepaths': tmp_filepaths
+        }
     }
 
-    return thumbnail_component
+    return thumbnail_component, tmp_filepaths
 
 
 def upload_content(filepath: str, destination: str) -> str:
