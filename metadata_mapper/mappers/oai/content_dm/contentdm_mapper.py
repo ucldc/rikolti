@@ -16,7 +16,8 @@ class ContentdmRecord(OaiRecord):
             "spatial": self.map_spatial,
             "type": self.map_type,
             "language": self.split_and_flatten('language'),
-            "subject": self.map_subject
+            "subject": self.map_subject,
+            "rightsHolder": self.source_metadata.get('rightsHolder')
         }
 
     def map_is_shown_at(self):
@@ -31,13 +32,11 @@ class ContentdmRecord(OaiRecord):
         To run post mapping. For this one, is_shown_by needs sourceResource/type
         """
         record_type = self.map_type()
-        if not record_type:
-            return
 
-        record_types = [record_type] if isinstance(record_type, str) else record_type
-
-        if "sound" in [t.lower() for t in record_types]:
-            return None
+        if record_type:
+            record_types = [record_type] if isinstance(record_type, str) else record_type
+            if "sound" in [t.lower() for t in record_types]:
+                return None
 
         return self.get_preview_image_url()
 
@@ -71,6 +70,7 @@ class ContentdmRecord(OaiRecord):
         feed's object_id, but larger images are sometimes available.
         """
         larger_preview_image = self.get_larger_preview_image_url()
+
         if larger_preview_image:
             return larger_preview_image
 
