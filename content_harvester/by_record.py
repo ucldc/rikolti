@@ -116,7 +116,7 @@ def harvest_record_content(
         )
         tmp_files.extend(thumbnail_tmp_files)
 
-    [os.remove(filepath) for filepath in tmp_files]
+    [os.remove(filepath) for filepath in set(tmp_files)]
 
     return record
 
