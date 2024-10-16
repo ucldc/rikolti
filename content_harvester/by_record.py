@@ -1,7 +1,7 @@
 import hashlib
 import os
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 from functools import lru_cache
 from dataclasses import dataclass, asdict
 from urllib.parse import quote_plus
@@ -90,12 +90,14 @@ def harvest_record_content(
     if rikolti_mapper_type == 'nuxeo.nuxeo':
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
 
+    tmp_files = []
     media_source = record.get('media_source', {})
     media_source_url = media_source.get('url')
     if media_source_url:
         request = ContentRequest(media_source_url, auth)
-        record['media'] = create_media_component(
+        record['media'], media_tmp_files = create_media_component(
             collection_id, request, media_source)
+        tmp_files.extend(media_tmp_files)
 
     thumbnail_src = record.get(
         'thumbnail_source', 
@@ -106,12 +108,15 @@ def harvest_record_content(
     thumbnail_src_url = thumbnail_src.get('url')
     if thumbnail_src_url:
         request = ContentRequest(thumbnail_src_url, auth)
-        record['thumbnail'] = create_thumbnail_component(
+        record['thumbnail'], thumbnail_tmp_files = create_thumbnail_component(
             collection_id,
             request,
             thumbnail_src,
             record['calisphere-id']
         )
+        tmp_files.extend(thumbnail_tmp_files)
+
+    [os.remove(filepath) for filepath in set(tmp_files)]
 
     return record
 
@@ -208,10 +213,9 @@ def content_component_cache(component_type):
             ):
 
             if not persistent_cache:
-                return {
-                    **create_component(collection_id, request, *args, **kwargs),
-                    'from-cache': False
-                }
+                # always a cache miss, don't cache this
+                component, tmp_files = create_component(collection_id, request, *args, **kwargs)
+                return {**component, 'from-cache': False}, tmp_files
 
             # Do a head request to get the current ETag and
             # Last-Modified values, used to create a cache key
@@ -224,10 +228,9 @@ def content_component_cache(component_type):
                     f"{component_type}: No ETag or Last-Modified headers, "
                     "skipping cache check"
                 )
-                return {
-                    **create_component(collection_id, request, *args, **kwargs),
-                    'from-cache': False
-                }
+                # always a cache miss, also don't cache this
+                component, tmp_files = create_component(collection_id, request, *args, **kwargs)
+                return {**component, 'from-cache': False}, tmp_files
 
             # Create cache key
             cache_key = '/'.join([
@@ -245,14 +248,14 @@ def content_component_cache(component_type):
                     f"Retrieved {component_type} component from cache for "
                     f"{request.url}"
                 )
-                return {**component, 'from-cache': True}
+                return {**component, 'from-cache': True}, []
             else:
-                component = create_component(
+                component, tmp_files = create_component(
                     collection_id, request, *args, **kwargs)
                 print(f"Created {component_type} component for {request.url}")
                 # set cache key to the component
                 persistent_cache[cache_key] = component
-                return {**component, 'from-cache': False}
+                return {**component, 'from-cache': False}, tmp_files
 
         return check_component_cache
     return inner
@@ -286,7 +289,7 @@ def create_media_component(
         collection_id, 
         request: ContentRequest, 
         mapped_media_source: dict[str, str]
-    ) -> Optional[dict[str, Any]]:
+    ) -> Tuple[Optional[dict[str, Any]], list]:
     '''
         download source file to local disk
     '''
@@ -295,9 +298,10 @@ def create_media_component(
 
     source_component = download_url(request)
     if not source_component:
-        return None
+        return None, []
 
     media_tmp_filepath = source_component['path']
+    tmp_filepaths = [media_tmp_filepath]
     mapped_mimetype = mapped_media_source.get('mimetype')
     mapped_nuxeotype = mapped_media_source.get('nuxeo_type')
 
@@ -311,7 +315,7 @@ def create_media_component(
                 derivative_filepath, 
                 f"jp2/{collection_id}/{jp2_destination_filename}"
             )
-            os.remove(derivative_filepath)
+            tmp_filepaths.append(derivative_filepath)
             mimetype = 'image/jp2'
     else:
         content_s3_filepath = upload_content(
@@ -333,7 +337,7 @@ def create_media_component(
         }
     }
 
-    return media_component
+    return media_component, tmp_filepaths
 
 
 @content_component_cache('thumbnail')
@@ -342,15 +346,16 @@ def create_thumbnail_component(
         request: ContentRequest, 
         mapped_thumbnail_source: dict[str, str],
         record_context: str
-    ) -> Optional[dict[str, Any]]:
+    ) -> Tuple[Optional[dict[str, Any]], list]:
     '''
         download source file to local disk
     '''
     source_component = download_url(request)
     if not source_component:
-        return None
+        return None, []
 
     thumbnail_tmp_filepath = source_component['path']
+    tmp_filepaths = [thumbnail_tmp_filepath]
     thumbnail_md5 = source_component['md5']
 
     content_s3_filepath = None
@@ -369,7 +374,7 @@ def create_thumbnail_component(
                 derivative_filepath, f"thumbnails/{collection_id}/{thumbnail_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
-            os.remove(derivative_filepath)
+            tmp_filepaths.append(derivative_filepath)
     elif mapped_mimetype in ['video/mp4','video/quicktime']:
         derivative_filepath = derivatives.video_to_thumb(thumbnail_tmp_filepath)
         if derivative_filepath:
@@ -377,7 +382,7 @@ def create_thumbnail_component(
                 derivative_filepath, f"thumbnails/{collection_id}/{thumbnail_md5}"
             )
             dimensions = get_dimensions(derivative_filepath, record_context)
-            os.remove(derivative_filepath)
+            tmp_filepaths.append(derivative_filepath)
 
     thumbnail_component = {
         'mimetype': 'image/jpeg',
@@ -392,10 +397,7 @@ def create_thumbnail_component(
         }
     }
 
-    if os.path.exists(thumbnail_tmp_filepath):
-        os.remove(thumbnail_tmp_filepath)
-
-    return thumbnail_component
+    return thumbnail_component, tmp_filepaths
 
 
 def upload_content(filepath: str, destination: str) -> str:
