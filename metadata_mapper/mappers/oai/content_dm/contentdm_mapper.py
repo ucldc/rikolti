@@ -16,7 +16,8 @@ class ContentdmRecord(OaiRecord):
             "spatial": self.map_spatial,
             "type": self.map_type,
             "language": self.split_and_flatten('language'),
-            "subject": self.map_subject
+            "subject": self.map_subject,
+            "rightsHolder": self.source_metadata.get('rightsHolder')
         }
 
     def map_is_shown_at(self):
