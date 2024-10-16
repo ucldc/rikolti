@@ -90,12 +90,14 @@ def harvest_record_content(
     if rikolti_mapper_type == 'nuxeo.nuxeo':
         auth = (settings.NUXEO_USER, settings.NUXEO_PASS)
 
+    tmp_files = []
     media_source = record.get('media_source', {})
     media_source_url = media_source.get('url')
     if media_source_url:
         request = ContentRequest(media_source_url, auth)
-        record['media'], tmp_files = create_media_component(
+        record['media'], media_tmp_files = create_media_component(
             collection_id, request, media_source)
+        tmp_files.extend(media_tmp_files)
 
     thumbnail_src = record.get(
         'thumbnail_source', 
@@ -106,12 +108,13 @@ def harvest_record_content(
     thumbnail_src_url = thumbnail_src.get('url')
     if thumbnail_src_url:
         request = ContentRequest(thumbnail_src_url, auth)
-        record['thumbnail'], tmp_files = create_thumbnail_component(
+        record['thumbnail'], thumbnail_tmp_files = create_thumbnail_component(
             collection_id,
             request,
             thumbnail_src,
             record['calisphere-id']
         )
+        tmp_files.extend(thumbnail_tmp_files)
 
     [os.remove(filepath) for filepath in tmp_files]
 
