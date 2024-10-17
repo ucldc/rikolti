@@ -98,7 +98,7 @@ def harvest_record_content(
         media_component, media_tmp_files = create_media_component(
             collection_id, request, media_source)
         tmp_files.extend(media_tmp_files)
-        if media_component.get('path'):
+        if media_component and media_component.get('path'):
             record['media'] = media_component
 
     thumbnail_src = record.get(
@@ -297,6 +297,9 @@ def create_media_component(
     '''
     media_dest_filename = mapped_media_source.get(
         'filename', get_url_basename(request.url))
+    if not media_dest_filename:
+        print(f"Could not determine filename for {request.url}")
+        return None, []
 
     source_component = download_url(request)
     if not source_component:
