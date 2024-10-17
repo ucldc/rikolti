@@ -1,6 +1,6 @@
 import hashlib
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Any, Tuple
 from functools import lru_cache
 from dataclasses import dataclass, asdict
@@ -198,6 +198,16 @@ def download_url(request: ContentRequest):
     }
 
 
+def in_last_seven_days(iso_date: str) -> bool:
+    """
+    Return True if the date is within the last 7 days
+    """
+    date = datetime.fromisoformat(iso_date)
+    today = datetime.today()
+    seven_days_ago = today - timedelta(days=7)
+    return seven_days_ago <= date <= today
+
+
 def content_component_cache(component_type):
     """
     decorator to cache content components in a persistent cache
@@ -220,42 +230,65 @@ def content_component_cache(component_type):
             # Do a head request to get the current ETag and
             # Last-Modified values, used to create a cache key
             head_resp = http_session.head(**asdict(request))
+            cache_key = ''
             if not (
                 head_resp.headers.get('ETag') or
                 head_resp.headers.get('Last-Modified')
             ):
                 print(
                     f"{component_type}: No ETag or Last-Modified headers, "
-                    "skipping cache check"
+                    "checking if nuxeo in request url, and if so, trying "
+                    "a cache key without ETag or Last-Modified"
                 )
-                # always a cache miss, also don't cache this
-                component, tmp_files = create_component(collection_id, request, *args, **kwargs)
-                return {**component, 'from-cache': False}, tmp_files
-
-            # Create cache key
-            cache_key = '/'.join([
-                str(collection_id),
-                quote_plus(request.url),
-                component_type,
-                quote_plus(head_resp.headers.get('ETag', '')),
-                quote_plus(head_resp.headers.get('Last-Modified', ''))
-            ])
+                if 'nuxeo' in request.url:
+                    # Create cache key without ETag or Last-Modified
+                    cache_key = '/'.join([
+                        str(collection_id),
+                        quote_plus(request.url),
+                        component_type
+                    ])
+            else:
+                # Create specific cache key
+                cache_key = '/'.join([
+                    str(collection_id),
+                    quote_plus(request.url),
+                    component_type,
+                    quote_plus(head_resp.headers.get('ETag', '')),
+                    quote_plus(head_resp.headers.get('Last-Modified', ''))
+                ])
 
             # Check cache for component or create component
             component = persistent_cache.get(cache_key)
             if component:
+                date_component_created = (component
+                    ['component_content_harvest_metadata']
+                    ['date_content_component_created']
+                )
                 print(
-                    f"Retrieved {component_type} component from cache for "
+                    f"Retrieved {component_type} component created on "
+                    f"{date_component_created} from cache for "
                     f"{request.url}"
                 )
-                return {**component, 'from-cache': True}, []
-            else:
-                component, tmp_files = create_component(
-                    collection_id, request, *args, **kwargs)
-                print(f"Created {component_type} component for {request.url}")
-                # set cache key to the component
+                # if the cache key is specific with etag and/or
+                # last-modified, so we have a true cache hit
+                if len(cache_key.split('/')) == 5:
+                    return {**component, 'from-cache': True}, []
+
+                # if the cache key is not specific, check if the cache
+                # hit was created within the last week
+                elif in_last_seven_days(date_component_created):
+                    return {**component, 'from-cache': True}, []
+
+                print(f"Cache hit at key {cache_key} is older than 7 days, "
+                      "re-creating component")
+
+            component, tmp_files = create_component(
+                collection_id, request, *args, **kwargs)
+            print(f"Created {component_type} component for {request.url}")
+            # set cache key to the component
+            if cache_key and component['path'] is not None:
                 persistent_cache[cache_key] = component
-                return {**component, 'from-cache': False}, tmp_files
+            return {**component, 'from-cache': False}, tmp_files
 
         return check_component_cache
     return inner
@@ -295,6 +328,9 @@ def create_media_component(
     '''
     media_dest_filename = mapped_media_source.get(
         'filename', get_url_basename(request.url))
+    if not media_dest_filename:
+        print(f"Could not determine filename for {request.url}")
+        return None, []
 
     source_component = download_url(request)
     if not source_component:
@@ -304,6 +340,8 @@ def create_media_component(
     tmp_filepaths = [media_tmp_filepath]
     mapped_mimetype = mapped_media_source.get('mimetype')
     mapped_nuxeotype = mapped_media_source.get('nuxeo_type')
+    content_s3_filepath = None
+    mimetype = None
 
     if mapped_nuxeotype == 'SampleCustomPicture':
         derivatives.check_media_mimetype(mapped_mimetype or '')
