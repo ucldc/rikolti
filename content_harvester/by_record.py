@@ -95,9 +95,11 @@ def harvest_record_content(
     media_source_url = media_source.get('url')
     if media_source_url:
         request = ContentRequest(media_source_url, auth)
-        record['media'], media_tmp_files = create_media_component(
+        media_component, media_tmp_files = create_media_component(
             collection_id, request, media_source)
         tmp_files.extend(media_tmp_files)
+        if media_component.get('path'):
+            record['media'] = media_component
 
     thumbnail_src = record.get(
         'thumbnail_source', 
@@ -304,6 +306,8 @@ def create_media_component(
     tmp_filepaths = [media_tmp_filepath]
     mapped_mimetype = mapped_media_source.get('mimetype')
     mapped_nuxeotype = mapped_media_source.get('nuxeo_type')
+    mimetype = None
+    content_s3_filepath = None
 
     if mapped_nuxeotype == 'SampleCustomPicture':
         derivatives.check_media_mimetype(mapped_mimetype or '')
