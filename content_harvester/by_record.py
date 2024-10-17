@@ -1,6 +1,6 @@
 import hashlib
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Any, Tuple
 from functools import lru_cache
 from dataclasses import dataclass, asdict
@@ -200,6 +200,16 @@ def download_url(request: ContentRequest):
     }
 
 
+def in_last_seven_days(iso_date: str) -> bool:
+    """
+    Return True if the date is within the last 7 days
+    """
+    date = datetime.fromisoformat(iso_date)
+    today = datetime.today()
+    seven_days_ago = today - timedelta(days=7)
+    return seven_days_ago <= date <= today
+
+
 def content_component_cache(component_type):
     """
     decorator to cache content components in a persistent cache
@@ -228,36 +238,56 @@ def content_component_cache(component_type):
             ):
                 print(
                     f"{component_type}: No ETag or Last-Modified headers, "
-                    "skipping cache check"
+                    "checking cache and judging cache hit based on URL and "
+                    "date since content component creation"
                 )
-                # always a cache miss, also don't cache this
-                component, tmp_files = create_component(collection_id, request, *args, **kwargs)
-                return {**component, 'from-cache': False}, tmp_files
-
-            # Create cache key
-            cache_key = '/'.join([
-                str(collection_id),
-                quote_plus(request.url),
-                component_type,
-                quote_plus(head_resp.headers.get('ETag', '')),
-                quote_plus(head_resp.headers.get('Last-Modified', ''))
-            ])
+                # Create cache key without ETag or Last-Modified
+                cache_key = '/'.join([
+                    str(collection_id),
+                    quote_plus(request.url),
+                    component_type
+                ])
+            else:
+                # Create specific cache key
+                cache_key = '/'.join([
+                    str(collection_id),
+                    quote_plus(request.url),
+                    component_type,
+                    quote_plus(head_resp.headers.get('ETag', '')),
+                    quote_plus(head_resp.headers.get('Last-Modified', ''))
+                ])
 
             # Check cache for component or create component
             component = persistent_cache.get(cache_key)
             if component:
+                date_component_created = (component
+                    ['component_content_harvest_metadata']
+                    ['date_content_component_created']
+                )
                 print(
-                    f"Retrieved {component_type} component from cache for "
+                    f"Retrieved {component_type} component created on "
+                    f"{date_component_created} from cache for "
                     f"{request.url}"
                 )
-                return {**component, 'from-cache': True}, []
-            else:
-                component, tmp_files = create_component(
-                    collection_id, request, *args, **kwargs)
-                print(f"Created {component_type} component for {request.url}")
-                # set cache key to the component
-                persistent_cache[cache_key] = component
-                return {**component, 'from-cache': False}, tmp_files
+                # if the cache key is specific with etag and/or
+                # last-modified, so we have a true cache hit
+                if len(cache_key.split('/')) == 5:
+                    return {**component, 'from-cache': True}, []
+
+                # if the cache key is not specific, check if the cache
+                # hit was created within the last week
+                elif in_last_seven_days(date_component_created):
+                    return {**component, 'from-cache': True}, []
+
+                print(f"Cache hit at key {cache_key} is older than 7 days, "
+                      "re-creating component")
+
+            component, tmp_files = create_component(
+                collection_id, request, *args, **kwargs)
+            print(f"Created {component_type} component for {request.url}")
+            # set cache key to the component
+            persistent_cache[cache_key] = component
+            return {**component, 'from-cache': False}, tmp_files
 
         return check_component_cache
     return inner
