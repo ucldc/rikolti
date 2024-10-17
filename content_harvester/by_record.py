@@ -295,6 +295,9 @@ def create_media_component(
     '''
     media_dest_filename = mapped_media_source.get(
         'filename', get_url_basename(request.url))
+    if not media_dest_filename:
+        print(f"Could not determine filename for {request.url}")
+        return None, []
 
     source_component = download_url(request)
     if not source_component:
@@ -304,6 +307,8 @@ def create_media_component(
     tmp_filepaths = [media_tmp_filepath]
     mapped_mimetype = mapped_media_source.get('mimetype')
     mapped_nuxeotype = mapped_media_source.get('nuxeo_type')
+    content_s3_filepath = None
+    mimetype = None
 
     if mapped_nuxeotype == 'SampleCustomPicture':
         derivatives.check_media_mimetype(mapped_mimetype or '')
