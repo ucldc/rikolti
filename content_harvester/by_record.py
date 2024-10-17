@@ -240,21 +240,23 @@ def content_component_cache(component_type: str) -> Callable[
             # Do a head request to get the current ETag and
             # Last-Modified values, used to create a cache key
             head_resp = http_session.head(**asdict(request))
+            cache_key = ''
             if not (
                 head_resp.headers.get('ETag') or
                 head_resp.headers.get('Last-Modified')
             ):
                 print(
                     f"{component_type}: No ETag or Last-Modified headers, "
-                    "checking cache and judging cache hit based on URL and "
-                    "date since content component creation"
+                    "checking if nuxeo in request url, and if so, trying "
+                    "a cache key without ETag or Last-Modified"
                 )
-                # Create cache key without ETag or Last-Modified
-                cache_key = '/'.join([
-                    str(collection_id),
-                    quote_plus(request.url),
-                    component_type
-                ])
+                if 'nuxeo' in request.url:
+                    # Create cache key without ETag or Last-Modified
+                    cache_key = '/'.join([
+                        str(collection_id),
+                        quote_plus(request.url),
+                        component_type
+                    ])
             else:
                 # Create specific cache key
                 cache_key = '/'.join([
@@ -295,7 +297,7 @@ def content_component_cache(component_type: str) -> Callable[
             print(f"Created {component_type} component for {request.url}")
             # set cache key to the component
             if component:
-                if component['path'] is not None:
+                if cache_key and component['path'] is not None:
                     persistent_cache[cache_key] = component
                 return {**component, 'from-cache': False}, tmp_files
             else:
