@@ -1,7 +1,7 @@
 import hashlib
 import os
-from datetime import datetime
-from typing import Optional, Any, Tuple
+from datetime import datetime, timedelta
+from typing import Optional, Any, Tuple, Callable, Union
 from functools import lru_cache
 from dataclasses import dataclass, asdict
 from urllib.parse import quote_plus
@@ -98,7 +98,7 @@ def harvest_record_content(
         media_component, media_tmp_files = create_media_component(
             collection_id, request, media_source)
         tmp_files.extend(media_tmp_files)
-        if media_component.get('path'):
+        if media_component and media_component.get('path'):
             record['media'] = media_component
 
     thumbnail_src = record.get(
@@ -200,24 +200,42 @@ def download_url(request: ContentRequest):
     }
 
 
-def content_component_cache(component_type):
+def in_last_seven_days(iso_date: str) -> bool:
+    """
+    Return True if the date is within the last 7 days
+    """
+    date = datetime.fromisoformat(iso_date)
+    today = datetime.today()
+    seven_days_ago = today - timedelta(days=7)
+    return seven_days_ago <= date <= today
+
+
+CreateComponentFunc = Callable[...,Tuple[Optional[dict], list]]
+
+
+def content_component_cache(component_type: str) -> Callable[
+    [CreateComponentFunc], CreateComponentFunc]:
     """
     decorator to cache content components in a persistent cache
     don't love how this is implemented, but it's a start
     for one, check_component_cache arguments seem pretty tightly
     coupled to create_media_component and create_thumbnail_component
     """
-    def inner(create_component):
+    def inner(create_component: CreateComponentFunc) -> CreateComponentFunc:
         def check_component_cache(
-                collection_id: str,
+                collection_id: Union[str, int],
                 request: ContentRequest,
-                *args, **kwargs
-            ):
+                *args: Any, **kwargs: Any
+            ) -> Tuple[Optional[dict], list]:
 
             if not persistent_cache:
                 # always a cache miss, don't cache this
-                component, tmp_files = create_component(collection_id, request, *args, **kwargs)
-                return {**component, 'from-cache': False}, tmp_files
+                component, tmp_files = create_component(
+                    collection_id, request, *args, **kwargs)
+                if component:
+                    return {**component, 'from-cache': False}, tmp_files
+                else:
+                    return None, tmp_files
 
             # Do a head request to get the current ETag and
             # Last-Modified values, used to create a cache key
@@ -228,36 +246,60 @@ def content_component_cache(component_type):
             ):
                 print(
                     f"{component_type}: No ETag or Last-Modified headers, "
-                    "skipping cache check"
+                    "checking cache and judging cache hit based on URL and "
+                    "date since content component creation"
                 )
-                # always a cache miss, also don't cache this
-                component, tmp_files = create_component(collection_id, request, *args, **kwargs)
-                return {**component, 'from-cache': False}, tmp_files
-
-            # Create cache key
-            cache_key = '/'.join([
-                str(collection_id),
-                quote_plus(request.url),
-                component_type,
-                quote_plus(head_resp.headers.get('ETag', '')),
-                quote_plus(head_resp.headers.get('Last-Modified', ''))
-            ])
+                # Create cache key without ETag or Last-Modified
+                cache_key = '/'.join([
+                    str(collection_id),
+                    quote_plus(request.url),
+                    component_type
+                ])
+            else:
+                # Create specific cache key
+                cache_key = '/'.join([
+                    str(collection_id),
+                    quote_plus(request.url),
+                    component_type,
+                    quote_plus(head_resp.headers.get('ETag', '')),
+                    quote_plus(head_resp.headers.get('Last-Modified', ''))
+                ])
 
             # Check cache for component or create component
             component = persistent_cache.get(cache_key)
             if component:
+                date_component_created = (component
+                    ['component_content_harvest_metadata']
+                    ['date_content_component_created']
+                )
                 print(
-                    f"Retrieved {component_type} component from cache for "
+                    f"Retrieved {component_type} component created on "
+                    f"{date_component_created} from cache for "
                     f"{request.url}"
                 )
-                return {**component, 'from-cache': True}, []
-            else:
-                component, tmp_files = create_component(
-                    collection_id, request, *args, **kwargs)
-                print(f"Created {component_type} component for {request.url}")
-                # set cache key to the component
-                persistent_cache[cache_key] = component
+                # if the cache key is specific with etag and/or
+                # last-modified, so we have a true cache hit
+                if len(cache_key.split('/')) == 5:
+                    return {**component, 'from-cache': True}, []
+
+                # if the cache key is not specific, check if the cache
+                # hit was created within the last week
+                elif in_last_seven_days(date_component_created):
+                    return {**component, 'from-cache': True}, []
+
+                print(f"Cache hit at key {cache_key} is older than 7 days, "
+                      "re-creating component")
+
+            component, tmp_files = create_component(
+                collection_id, request, *args, **kwargs)
+            print(f"Created {component_type} component for {request.url}")
+            # set cache key to the component
+            if component:
+                if component['path'] is not None:
+                    persistent_cache[cache_key] = component
                 return {**component, 'from-cache': False}, tmp_files
+            else:
+                return None, tmp_files
 
         return check_component_cache
     return inner
@@ -288,15 +330,18 @@ def get_dimensions(
 
 @content_component_cache('media')
 def create_media_component(
-        collection_id, 
+        collection_id: Union[str, int], 
         request: ContentRequest, 
         mapped_media_source: dict[str, str]
-    ) -> Tuple[Optional[dict[str, Any]], list]:
+    ) -> Tuple[Optional[dict], list]:
     '''
         download source file to local disk
     '''
     media_dest_filename = mapped_media_source.get(
         'filename', get_url_basename(request.url))
+    if not media_dest_filename:
+        print(f"Could not determine filename for {request.url}")
+        return None, []
 
     source_component = download_url(request)
     if not source_component:
@@ -346,11 +391,11 @@ def create_media_component(
 
 @content_component_cache('thumbnail')
 def create_thumbnail_component(
-        collection_id, 
+        collection_id: Union[str, int], 
         request: ContentRequest, 
         mapped_thumbnail_source: dict[str, str],
         record_context: str
-    ) -> Tuple[Optional[dict[str, Any]], list]:
+    ) -> Tuple[Optional[dict], list]:
     '''
         download source file to local disk
     '''
