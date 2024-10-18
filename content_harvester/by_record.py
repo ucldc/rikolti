@@ -287,6 +287,8 @@ def content_component_cache(component_type):
             print(f"Created {component_type} component for {request.url}")
             # set cache key to the component
             persistent_cache[cache_key] = component
+            if component and component['path'] is not None:
+                persistent_cache[cache_key] = component
             return {**component, 'from-cache': False}, tmp_files
 
         return check_component_cache
