@@ -221,7 +221,15 @@ def content_component_cache(component_type):
 
             # Do a head request to get the current ETag and
             # Last-Modified values, used to create a cache key
-            head_resp = http_session.head(**asdict(request))
+            if 'nuxeo' in request.url:
+                # The S3 presigned URLs from Nuxeo are good for GET requests only
+                # so do a GET request that mimics a head request
+                head_resp = http_session.get(
+                    **asdict(request),
+                    headers={"Range": "bytes=0-0"}
+                )
+            else:
+                head_resp = http_session.head(**asdict(request))
             if not (
                 head_resp.headers.get('ETag') or
                 head_resp.headers.get('Last-Modified')
