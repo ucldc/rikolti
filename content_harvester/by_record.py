@@ -229,7 +229,7 @@ def content_component_cache(component_type):
                     headers={"Range": "bytes=0-0"}
                 )
             else:
-                head_resp = http_session.head(**asdict(request))
+                head_resp = http_session.head(**asdict(request), allow_redirects=True)
             if not (
                 head_resp.headers.get('ETag') or
                 head_resp.headers.get('Last-Modified')
