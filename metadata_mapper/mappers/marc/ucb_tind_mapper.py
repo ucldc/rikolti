@@ -369,64 +369,29 @@ class UcbTindVernacular(Vernacular):
         )
 
         records = []
-        for re in record_elements:
-            record = self._process_record(re, request_url)
-            # sickle_rec = models.Record(re)
-            # sickle_header = sickle_rec.header
-            # if sickle_header.deleted:
-            #     continue
+        for record_element in record_elements:
+            sickle_rec = models.Record(record_element)
+            sickle_header = sickle_rec.header
+            if not sickle_header.deleted:
+                marc_record_element = record_element.find(
+                    ".//marc:record",
+                    namespaces={"marc": "http://www.loc.gov/MARC21/slim"}
+                )
+                marc_record_string = etree.tostring(
+                    marc_record_element,encoding="utf-8").decode("utf-8")
 
-            # record = self.strip_metadata(sickle_rec.metadata)
-            # record["datestamp"] = sickle_header.datestamp
-            # record["id"] = sickle_header.identifier
-            # record["request_url"] = request_url
-            records.append(record)
+                # Wrap the record in collection so pymarc can read it
+                marc_collection_xml_full = \
+                    ('<collection xmlns="http://www.loc.gov/MARC21/slim">'
+                    f'{marc_record_string}'
+                    '</collection>')
+
+                record = {
+                    "datestamp": sickle_header.datestamp,
+                    "id": sickle_header.identifier,
+                    "request_url": request_url,
+                    "marc": parse_xml_to_array(StringIO(marc_collection_xml_full))[0]
+                }
+                records.append(record)
 
         return self.get_records(records)
-
-    def strip_metadata(self, record_metadata):
-        stripped = {}
-        for key, value in record_metadata.items():
-            if isinstance(value, str):
-                value = value.strip()
-            elif isinstance(value, list):
-                value = [v.strip() if isinstance(v, str) else v for v in value]
-            stripped[key] = value
-
-        return stripped
-
-    def _process_record(self,
-                        record_element: etree.ElementBase,
-                        request_url: Optional[str]) -> Optional[dict]:
-        """
-        Process a record element and extract relevant information.
-
-        :param record_element: Element representing a single record.
-        :param request_url: The URL of the request.
-        :return: A dictionary containing the extracted information from the record.
-        """
-        sickle_rec = models.Record(record_element)
-        sickle_header = sickle_rec.header
-        if sickle_header.deleted:
-            return None
-
-        marc_record_element = record_element.find(".//marc:record", namespaces={
-            "marc": "http://www.loc.gov/MARC21/slim"})
-        marc_record_string = etree.tostring(marc_record_element,
-                                            encoding="utf-8").decode("utf-8")
-
-        # Wrap the record in collection so pymarc can read it
-        marc_collection_xml_full = \
-            ('<collection xmlns="http://www.loc.gov/MARC21/slim">'
-             f'{marc_record_string}'
-             '</collection>')
-
-
-        record = {
-            "datestamp": sickle_header.datestamp,
-            "id": sickle_header.identifier,
-            "request_url": request_url,
-            "marc": parse_xml_to_array(StringIO(marc_collection_xml_full))[0]
-        }
-
-        return record
