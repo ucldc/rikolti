@@ -12,8 +12,6 @@ from ..mapper import Record, Vernacular, Validator
 
 class UcbTindRecord(Record):
     def UCLDC_map(self):
-        import json
-        print(f"{self.source_metadata=}")
         return {
             "calisphere-id": self.legacy_couch_db_id.split("--")[1],
             "_id": self.get_marc_data_fields(["901"], ["a"]),
