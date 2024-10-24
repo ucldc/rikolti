@@ -1,7 +1,7 @@
 from io import StringIO
 from itertools import chain
 import re
-from typing import Callable, Optional
+from typing import Callable, Any
 
 from lxml import etree
 from pymarc import parse_xml_to_array
@@ -333,18 +333,31 @@ class UcbTindValidator(Validator):
             {
                 "field": "is_shown_by",
                 "validations": [
-                    Validator.str_match_ignore_url_protocol,
+                    UcbTindValidator.str_match_ignore_url_protocol,
                     Validator.verify_type(str)
                 ]
             },
             {
                 "field": "is_shown_at",
                 "validations": [
-                    Validator.str_match_ignore_url_protocol,
+                    UcbTindValidator.str_match_ignore_url_protocol,
                     Validator.verify_type(str)
                 ]
             }
         ])
+
+    @staticmethod
+    def str_match_ignore_url_protocol(validation_def: dict,
+                                    rikolti_value: Any,
+                                    comparison_value: Any) -> None:
+        if rikolti_value == comparison_value:
+            return
+
+        if comparison_value and comparison_value.startswith('http'):
+            comparison_value = comparison_value.replace('http', 'https')
+
+        if not rikolti_value == comparison_value:
+            return "Content mismatch"
 
 
 class UcbTindVernacular(Vernacular):
