@@ -307,9 +307,7 @@ class UcbTindRecord(Record):
 
         :return: A list of extent values.
         """
-        return [", ".join(
-            self.get_marc_data_fields(["300"]) + self.get_marc_data_fields(["340"],
-                                                                           ["b"]))]
+        return self.get_marc_data_fields(["300"]) + self.get_marc_data_fields(["340"], ["b"])
 
     def map_title(self) -> list:
         # 245, all subfields except c
