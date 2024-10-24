@@ -5,3 +5,4 @@ sickle
 MarkupSafe
 python-dotenv
 timelib
+pymarc
