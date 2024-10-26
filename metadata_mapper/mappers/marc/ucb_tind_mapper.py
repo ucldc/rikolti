@@ -1,7 +1,5 @@
 from io import StringIO
-from itertools import chain
-import re
-from typing import Callable, Any
+from typing import Any
 
 from lxml import etree
 from pymarc import parse_xml_to_array
@@ -11,7 +9,10 @@ from ..mapper import Record, Vernacular, Validator
 
 
 class UcbTindRecord(Record):
+
     def UCLDC_map(self):
+        self.marc_880_fields = self.get_880_fields()
+
         return {
             "calisphere-id": self.legacy_couch_db_id.split("--")[1],
             "_id": self.get_marc_data_fields(["901"], ["a"]),
@@ -75,44 +76,53 @@ class UcbTindRecord(Record):
 
         return value
 
-    def get_marc_data_fields(self, field_tags: list, subfield_codes=[], recurse=True,
-                             **kwargs) -> list:
-        """
-        TODO: Variable name meaning becomes quite fuzzy in the heart of this
-              function. Most variables could stand to be renamed.
 
-        `Data fields` is not a specific term in MARC. This function really will accept
-        any field tags. See https://www.loc.gov/marc/bibliographic/ for all fields.
+    def get_880_fields(self) -> dict:
+        '''
+        Returns a dict of 880 fields for the record, e.g.:
 
-        In most cases, this returns the Cartesian product of the provided `field_tags`
-        and `subfield codes`. If `recurse` is true, it will augment to include values
-        from field 880. Note the special handling of code `6`.
+        marc_880_fields = {
+            '01': [
+                Subfield(code='6', value='700-01'), 
+                Subfield(code='a', value='雪谷.')
+            ], 
+            '02': [
+                Subfield(code='6', value='245-02'),
+                Subfield(code='a', value='保壽軒御茶銘雙六 ')
+            ],
+            '03': [
+                Subfield(code='6', value='246-03'),
+                Subfield(code='a', value='保壽軒')
+            ], 
+            '04': [
+                Subfield(code='6', value='260-04'), 
+                Subfield(code='a', value='横濱 '), 
+                Subfield(code='a', value='東京 '), 
+                Subfield(code='b', value='桝本保五郎'), 
+                Subfield(code='c', value='[between 1868 and 1912]')
+            ]
+        }
+        '''
+        marc_880_fields = {}
+        marc_data = self.source_metadata.get("marc")
 
-        Set the `exclude_subfields` kwarg to exclude the specified subfield_codes.
+        for field in marc_data.get_fields("880"):
+            for subfield in field.subfields:
+                if self.subfield_matches(subfield.code, ['6'], False):
+                    field_880_key = subfield.value.split('-')[1]
 
-        Set the `process_value` kwarg to pass the value through your own code to
-        do transformations based on the field tag, code and value. There isn't an
-        example of this in use currently, but it could be useful for debugging or
-        for context-based transformations.
+            marc_880_fields[field_880_key] = field.subfields
 
-        :param recurse: Indicates whether alternate graphic representations (field 880)
-                        should be sought. This is used here to prevent infinite loops
-                        when this function is called to get field 880. It would also be
-                        possible (and maybe preferable) to remove this argument and set
-                        a `recurse` variable to false if "880" is included among
-                        `field_tags`.
-        :param field_tags: A list of MARC fields.
-        :param subfield_codes: A list of subfield codes to filter the values. If empty,
-                               all subfields will be included.
-        :return: A list of values of the specified subfields.
-        """
-        def subfield_matches(check_code: str, subfield_codes: list,
-                             exclude_subfields: bool) -> bool:
+        return marc_880_fields
+
+
+    def subfield_matches(self, check_code: str, subfield_codes: list,
+                            exclude_subfields: bool) -> bool:
             """
             :param check_code: The code to check against the subfield codes.
             :param subfield_codes: A list of subfield codes to include / exclude
             :param exclude_subfields: A boolean value indicating whether to exclude the
-                                      specified subfield codes.
+                                    specified subfield codes.
             :return: A boolean value indicating whether the check_code is included or
                     excluded based on the subfield_codes and exclude_subfields parameters.
             """
@@ -120,8 +130,7 @@ class UcbTindRecord(Record):
             # Always exclude subfield 6 (Linkage,
             # see: https://www.loc.gov/marc/bibliographic/ecbdcntf.html) unless it is
             # explicitly listed. Not excluding this was producing results that
-            # were not expected. Note the explicit inclusion of 6 in
-            # `get_alternate_graphic_representation()`, below.
+            # were not expected.
             if check_code == "6" and "6" not in subfield_codes:
                 return False
             if not subfield_codes:
@@ -131,85 +140,6 @@ class UcbTindRecord(Record):
             else:
                 return check_code in subfield_codes
 
-        def get_alternate_graphic_representation(tag: str, code: str, index: int,
-                                                 recurse=True) -> list:
-            """
-            This is where field 880 is handled.
-            See: https://www.loc.gov/marc/bibliographic/bd880.html
-
-            :param tag:
-            :param code:
-            :param index:
-            :param recurse:
-            :return:
-            """
-            if not recurse:
-                return []
-
-            subfield_6 = self.get_marc_data_fields([tag], ["6"], False)
-            if not subfield_6 or index >= len(subfield_6):
-                return []
-
-            match = re.match(r"^880\-([0-9]+)$", subfield_6[index])
-            if not match:
-                return []
-
-            all_880 = self.marc_tags_as_dict(["880"])["880"]
-            index_880 = int(match.group(1)) - 1  # 880 indices start at 1
-
-            if not all_880 or index_880 >= len(all_880):
-                return []
-
-            field = all_880[index_880]
-            subfields = field.subfields_as_dict()
-
-            if code not in subfields:
-                return []
-
-            return subfields[code]
-
-        if "process_value" in kwargs and isinstance(kwargs["process_value"], Callable):
-            process_value = kwargs["process_value"]
-        else:
-            process_value = None
-
-        exclude_subfields = "exclude_subfields" in kwargs and kwargs[
-            "exclude_subfields"]
-
-        # Do we want process_value to have access to the 880 field values as well?
-        # If so, call process_value with value + the output of
-        # get_alternate_graphic_representation
-        value_list = [[(process_value(value, field_tag, subfield[0])
-                      if process_value else value)] +
-                      get_alternate_graphic_representation(field_tag, subfield[0], field_index, recurse)
-
-                      # Iterate the fields that have tags matching those requested
-                      for (field_tag, matching_fields) in
-                      self.marc_tags_as_dict(field_tags).items()
-
-                      # Iterate the individual matches, tracking order in index
-                      for field_index, matching_field in enumerate(matching_fields)
-
-                      # Iterate the subfield codes in those fields
-                      for subfield in list(matching_field.subfields_as_dict().items())
-
-                      # Iterate the values in those subfields
-                      for value in subfield[1]
-                      if
-
-                      # Ensure we're including only requested subfields
-                      subfield_matches(subfield[0], subfield_codes, exclude_subfields)]
-
-        # Dedupe the output
-        deduped_values = []
-        [deduped_values.append(value) for value in value_list
-         if value not in deduped_values]
-
-        # Flatten the output
-        flattened_values = list(chain.from_iterable(deduped_values)) if (
-            isinstance(deduped_values, list)) else []
-
-        return flattened_values
 
     def marc_tags_as_dict(self, field_tags: list) -> dict:
         """
@@ -218,11 +148,53 @@ class UcbTindRecord(Record):
         :param field_tags: List of MARC fields to retrieve.
         :return: List of MARC fields from the source_metadata.
         """
-        return {field_tag: self.source_metadata.get('marc').get_fields(field_tag) for
+        return {field_tag: self.source_metadata.get("marc").get_fields(field_tag) for
                 field_tag in field_tags}
+
+
+    def get_marc_data_fields(self, field_tags: list, subfield_codes=[], get_880_values=True,
+                             exclude_subfields=False) -> list:
+        """
+        In most cases, this returns the Cartesian product of the provided `field_tags`
+        and `subfield codes`. If `get_880_values` is true, it will augment to include values
+        from field 880. Note the special handling of code `6`.
+
+        Set the `exclude_subfields` kwarg to exclude the specified subfield_codes.
+
+        :param field_tags: A list of MARC fields.
+        :param subfield_codes: A list of subfield codes to include / exclude
+        :param get_880_values: Indicates whether alternate graphic representations
+                               (field 880) should be sought.
+        :param exclude_subfields: A boolean value indicating whether to exclude the
+                                  specified subfield codes.
+        :return: A list of values of the specified subfields.
+        """
+        values = []
+        for tag in field_tags:
+            for marc_field in self.source_metadata.get("marc").get_fields(tag):
+                field_880_key = None
+                # get 880 field key so we can look up corresponding 880 field
+                if get_880_values:
+                    for subfield in marc_field.subfields:
+                        if self.subfield_matches(subfield.code, ['6'], False):
+                            field_880_key = subfield.value.split('-')[1]
+
+                # get subfield values, plus any corresponding 880 values
+                for index, subfield in enumerate(marc_field.subfields):
+                    if self.subfield_matches(subfield.code, subfield_codes, exclude_subfields):
+                        values.append(subfield.value)
+                        if field_880_key:
+                            values.append(
+                                self.marc_880_fields[field_880_key][index].value
+                            )
+
+        return values
+
 
     def get_marc_leader(self, leader_key: str):
         """
+        Note: This is a stub. Leaving here in case it is needed in other marc mappers.
+
         Retrieve the value of specified leader key from the MARC metadata.
         See: https://www.loc.gov/marc/bibliographic/bdleader.html
 
@@ -242,6 +214,7 @@ class UcbTindRecord(Record):
             return leader.getattr(leader_key, "")
 
         return ""
+
             
     def map_is_shown_at(self):
         field_001 = self.get_marc_control_field("001")
