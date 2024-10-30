@@ -224,7 +224,8 @@ def map_endpoint_task(endpoint, fetched_versions, params=None, **context):
         )
         mapped_versions[collection_id] = mapped_collection_status.version
 
-    send_event_to_sns(context, mapped_collections)
+    send_event_to_sns(context,
+                      {k: v.asdict() for k, v in mapped_collections.items()})
     return mapped_versions
 
 
@@ -269,7 +270,8 @@ def validate_endpoint_task(url, mapped_versions, params=None, **context):
         print("-", file=sys.stderr)
         raise ValueError("No collections successfully validated, exiting.")
 
-    send_event_to_sns(context, validations)
+    send_event_to_sns(context,
+                      {k: v.asdict() for k, v in validations.items()})
     return [
         validation_status.filepath
         for validation_status in validations.values() 

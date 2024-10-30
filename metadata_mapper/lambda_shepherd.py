@@ -3,8 +3,9 @@ import sys
 
 import requests
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from urllib.parse import urlparse
+from typing import Optional
 
 from . import validate_mapping
 from .lambda_function import map_page, MappedPageStatus
@@ -41,7 +42,7 @@ def check_for_missing_enrichments(collection):
     return not_yet_implemented
 
 
-@dataclass
+@dataclass(frozen=True)
 class MappedCollectionStatus:
     status: str
     num_mapped_records: int
@@ -51,6 +52,10 @@ class MappedCollectionStatus:
     filepaths: list[str]
     version: str
     data_link: str
+
+
+    def asdict(self):
+        return asdict(self)
 
 
 def get_mapping_status(
@@ -155,7 +160,10 @@ def print_map_status(collection, map_result: MappedCollectionStatus):
     print(map_report_row)
 
 
-def map_collection(collection_id, vernacular_version=None, validate=False):
+def map_collection(
+        collection_id,
+        vernacular_version: Optional[str]=None,
+        validate: bool=False) -> MappedCollectionStatus:
     # This is a functional duplicate of rikolti.d*gs.mapper_d*g.mapper_d*g
 
     # Within an airflow runtime context, we take advantage of airflow's dynamic
@@ -217,7 +225,8 @@ if __name__ == "__main__":
         const=True, nargs='?')
     parser.add_argument('vernacular_version', help='relative path describing a vernacular version, ex: 3433/vernacular_data_version_1/')
     args = parser.parse_args(sys.argv[1:])
-    mapped_collection = map_collection(args.collection_id, args.vernacular_version, args.validate)
+    mapped_collection = map_collection(
+        args.collection_id, args.vernacular_version, args.validate)
     missing_enrichments = mapped_collection.missing_enrichments
     if len(missing_enrichments) > 0:
         print(

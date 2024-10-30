@@ -79,14 +79,14 @@ def run_enrichments(records, collection, enrichment_set, page_filename):
 class MappedPageStatus:
     status: str
     num_mapped_records: int
-    exceptions: dict
+    exceptions: dict[str, list[str]]
     mapped_page_path: Union[str, None]
     # ex: 3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
 
 
-def group_page_exceptions(mapped_records: list[Record]):
+def group_page_exceptions(mapped_records: list[Record]) -> dict[str, list[str]]:
     group_page_exceptions = {}
-    page_exceptions = {
+    page_exceptions: dict[str, list[str]] = {
         rec.legacy_couch_db_id: rec.enrichment_report
         for rec in mapped_records if rec.enrichment_report
     }

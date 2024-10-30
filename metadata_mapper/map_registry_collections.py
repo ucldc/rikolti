@@ -2,8 +2,8 @@ import argparse
 import logging
 import sys
 
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, asdict
+from typing import Optional, Union
 
 import requests
 
@@ -16,10 +16,16 @@ from rikolti.utils.registry_client import registry_endpoint
 logger = logging.getLogger(__name__)
 
 
-def map_endpoint(url, fetched_versions, limit=None) -> dict[int, MappedCollectionStatus]:
+def map_endpoint(
+        url: str,
+        fetched_versions: dict[str, str],
+        limit: Optional[Union[int, str]]=None
+    ) -> dict[int, MappedCollectionStatus]:
+
     response = requests.get(url=url)
     response.raise_for_status()
-    total = response.json().get('meta', {}).get('total_count', 1)
+    total: Union[int,str] = (
+        response.json().get('meta', {}).get('total_count', 1))
     progress = 0
     # map_report_headers = (
     #     "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
@@ -65,13 +71,19 @@ def map_endpoint(url, fetched_versions, limit=None) -> dict[int, MappedCollectio
     return map_report
 
 
-@dataclass
+@dataclass(frozen=True)
 class ValidationReportStatus:
     filepath: Optional[str] = None
     num_validation_errors: int = 0
     mapped_version: Optional[str] = None
     error: bool = False
     exception: Optional[Exception] = None
+
+    def asdict(self):
+        d = asdict(self)
+        if self.exception:
+            d['exception'] = str(self.exception)
+        return d
 
 
 def validate_endpoint(
