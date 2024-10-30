@@ -227,37 +227,20 @@ class UcbTindRecord(Record):
             return ("https://digicoll.lib.berkeley.edu/nanna/thumbnail/v2/" +
                     field_001 + "?redirect=1")
 
-    def get_metadata_fields(self):
-        """
-        Returns a list of metadata fields used by map_format, map_subject,
-        map_temporal, map_format
-
-        :return: A list of fields
-        :rtype: list
-        """
-        return [str(i) for i in [600, 630, 650, 651] + list(range(610, 620)) + list(
-            range(653, 659)) + list(range(690, 700))]
-
     def map_spatial(self) -> list:
         f651 = self.get_marc_data_fields(["651"], ["a"])
-
-        values = f651 + self.get_marc_data_fields(self.get_metadata_fields(), ["z"])
+        additional_fields = [str(i) for i in [600, 630, 650, 651] + list(range(610, 620))
+                             + list(range(653, 659)) + list(range(690, 700))]
+        values = f651 + self.get_marc_data_fields(additional_fields, ["z"])
 
         # Stripping off trailing period
         return [value[0:-1] if value[-1] == "." else value for value in values]
 
     def map_subject(self) -> list:
-        fields = self.get_metadata_fields()
+        fields = [str(i) for i in [600, 630, 650, 651] + list(range(610, 620))
+                  + list(range(653, 659)) + list(range(690, 700))]
         return [{"name": s} for s in
                 self.get_marc_data_fields(fields, ["2"], exclude_subfields=True)]
-
-    def map_temporal(self) -> list:
-        f648 = self.get_marc_data_fields(["648"])
-
-        return f648 + self.get_marc_data_fields(self.get_metadata_fields(), ["y"])
-
-    def map_format(self) -> list:
-        return self.get_marc_data_fields(self.get_metadata_fields(), ["v"])
 
     def map_description(self) -> list:
         field_range = [str(i) for i in range(500, 600) if i != 538 and i != 540]
@@ -268,11 +251,6 @@ class UcbTindRecord(Record):
         field_range = [str(i) for i in range(760, 788)]  # Up to 787
 
         self.get_marc_data_fields(field_range)
-
-    def map_identifier(self) -> list:
-        f050 = self.get_marc_data_fields(["050"], ["a", "b"])
-
-        return f050 + self.get_marc_data_fields(["020", "022", "035"], ["a"])
 
     def map_extent(self) -> list:
         """
