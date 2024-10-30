@@ -8,3 +8,4 @@ timelib
 apache-airflow-providers-docker
 apache-airflow-providers-google
 apache-airflow-providers-amazon
+pymarc
