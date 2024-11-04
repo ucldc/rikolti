@@ -151,10 +151,7 @@ def validate_collection_task(
         "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
     ]
     """
-    # Skip validation step during harvest process until we can re-implement
-    # validator to compare again OpenSearch daata
-    validate = False
-    if validate:
+    if os.environ.get("UCLDC_SOLR_URL"):
         mapped_page_batches = [json.loads(batch) for batch in mapped_page_batches]
         mapped_pages = list(chain.from_iterable(mapped_page_batches))
         mapped_pages = [path for path in mapped_pages if 'children' not in path]
