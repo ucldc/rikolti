@@ -151,11 +151,7 @@ def validate_collection_task(
         "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
     ]
     """
-    validate = bool(
-        os.environ.get("UCLDC_SOLR_URL") and 
-        os.environ.get("UCLDC_COUCH_URL")
-    )
-    if validate:
+    if os.environ.get("UCLDC_SOLR_URL"):
         mapped_page_batches = [json.loads(batch) for batch in mapped_page_batches]
         mapped_pages = list(chain.from_iterable(mapped_page_batches))
         mapped_pages = [path for path in mapped_pages if 'children' not in path]
@@ -266,7 +262,7 @@ def validate_endpoint_task(url, mapped_versions, params=None, **context):
         print(f"please validate manually: {list(errored_collections.keys())}")
         print("*" * 60)
 
-    if not len(errored_collections) == len(validations):
+    if len(errored_collections) == len(validations):
         print("-", file=sys.stderr)
         raise ValueError("No collections successfully validated, exiting.")
 
