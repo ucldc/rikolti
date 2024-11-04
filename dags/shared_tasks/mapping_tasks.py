@@ -265,7 +265,7 @@ def validate_endpoint_task(url, mapped_versions, params=None, **context):
         print(f"please validate manually: {list(errored_collections.keys())}")
         print("*" * 60)
 
-    if not len(errored_collections) == len(validations):
+    if len(errored_collections) == len(validations):
         print("-", file=sys.stderr)
         raise ValueError("No collections successfully validated, exiting.")
 
