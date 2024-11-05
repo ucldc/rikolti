@@ -3,6 +3,7 @@ import itertools
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
+from ...mapper import Validator
 from ..oai_mapper import OaiRecord, OaiVernacular
 
 
@@ -173,6 +174,24 @@ class ContentdmRecord(OaiRecord):
             return identifiers[-1]
         return identifiers[0]
 
+class ContentdmValidator(Validator):
+
+    def setup(self):
+        self.add_validatable_fields([
+            {
+                "field": "is_shown_by",
+                "validations": [
+                    Validator.content_match
+                ]
+            },
+            {
+                "field": "is_shown_at",
+                "validations": [
+                    Validator.content_match
+                ]
+            }
+        ])
 
 class ContentdmVernacular(OaiVernacular):
     record_cls = ContentdmRecord
+    validator = ContentdmValidator
