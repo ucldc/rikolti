@@ -5,6 +5,7 @@ import sys
 from typing import Optional
 
 import requests
+from requests.adapters import HTTPAdapter, Retry
 
 from xml.etree import ElementTree
 from bs4 import BeautifulSoup
@@ -89,7 +90,10 @@ class UcdJsonFetcher(Fetcher):
         Returns:
             dict
         """
-        response = self.make_http_request(url)
+        session = requests.Session()
+        retries = Retry(total=3, backoff_factor=2)
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        response = session.get(url=url)
         soup = BeautifulSoup(response.text, "html.parser")
         json_ld_str = soup.find(id="seo-jsonld").text
 
