@@ -9,7 +9,6 @@ from urllib.parse import quote_plus
 from PIL import Image
 from PIL import UnidentifiedImageError
 import requests
-from requests.adapters import HTTPAdapter, Retry
 
 from urllib.parse import urlparse
 
@@ -18,7 +17,7 @@ from . import derivatives
 from .s3_cache import S3Cache
 
 from rikolti.utils.storage import upload_file
-
+from rikolti.utils.request_retry import configure_http_session
 
 s3_cache = os.environ.get('CONTENT_COMPONENT_CACHE')
 if s3_cache:
@@ -32,16 +31,6 @@ else:
 in_memory_cache = dict()
 
 
-def configure_http_session() -> requests.Session:
-    http = requests.Session()
-    retry_strategy = Retry(
-        total=3,
-        status_forcelist=[413, 429, 500, 502, 503, 504],
-    )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    http.mount("https://", adapter)
-    http.mount("http://", adapter)
-    return http
 http_session = configure_http_session()
 
 
