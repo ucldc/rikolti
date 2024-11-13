@@ -69,7 +69,7 @@ class NuxeoFetcher(Fetcher):
                 'headers': self.nuxeo_request_headers
             }
             try:
-                response = requests.get(**request)
+                response = self.http_session.get(**request)
                 response.raise_for_status()
             except Exception as e:
                 print(
@@ -105,7 +105,7 @@ class NuxeoFetcher(Fetcher):
         }
 
         try:
-            response = requests.get(**request)
+            response = self.http_session.get(**request)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             print(f"{self.collection_id:<6}: unable to fetch components: {request}")
@@ -173,7 +173,7 @@ class NuxeoFetcher(Fetcher):
         }
 
         try:
-            response = requests.get(**request)
+            response = self.http_session.get(**request)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             print(f"{self.collection_id:<6}: unable to fetch page {request}")
@@ -233,7 +233,7 @@ class NuxeoFetcher(Fetcher):
         }
 
         try:
-            response = requests.get(**request)
+            response = self.http_session.get(**request)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             print(f"{self.collection_id:<6}: unable to fetch page {request}")

@@ -1,11 +1,10 @@
-import requests
 from urllib import parse
 from typing import Any, Optional
 
 from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
 from ...validator import ValidationLogLevel, ValidationMode
-
+from rikolti.utils.request_retry import configure_http_session
 
 class OmekaRecord(OaiRecord):
     """
@@ -53,7 +52,8 @@ class OmekaRecord(OaiRecord):
                 else:
                     thumb_url = i.replace("/original/", "/thumbnails/")
                     thumb_url = thumb_url.rsplit('.', 1)[0] + '.jpg'
-                    request = requests.get(thumb_url)
+                    http = configure_http_session()
+                    request = http.get(thumb_url)
                     if request.status_code == 200:
                         return thumb_url
                     else:

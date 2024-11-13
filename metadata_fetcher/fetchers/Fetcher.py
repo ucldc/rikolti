@@ -4,9 +4,8 @@ import requests
 from dataclasses import dataclass
 from typing import Optional
 
-from requests.adapters import HTTPAdapter, Retry
+from rikolti.utils.request_retry import configure_http_session
 from rikolti.utils.versions import put_versioned_page
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +43,11 @@ class Fetcher(object):
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
         self.vernacular_version = params['vernacular_version']
-
+        self.http_session = configure_http_session()
 
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
+
 
     def fetch_page(self) -> FetchedPageStatus:
         """
@@ -68,11 +68,13 @@ class Fetcher(object):
             f"at {page.get('url')}"
         )
         try:
-            response = requests.get(**page)
+            response = self.http_session.get(**page)
             response.raise_for_status()
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.HTTPError as e:
             raise FetchError(
-                f"[{self.collection_id}]: unable to fetch page {page}")
+                f"[{self.collection_id}]: unable to fetch page {page}",
+                f"Error was: {e}"
+            )
 
         record_count = self.check_page(response)
         if not record_count:
@@ -129,22 +131,6 @@ class Fetcher(object):
     def json(self):
         """build json serialization of current state"""
         raise NotImplementedError
-
-    def make_http_request(self, url: str) -> requests.Response:
-        """
-        Given a URL, will return the response, retrying per the argument passed to
-        Retry().
-
-        Parameters:
-            url: str
-
-        Returns:
-             requests.Response
-        """
-        session = requests.Session()
-        retries = Retry(total=3, backoff_factor=2)
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-        return session.get(url=url)
 
     def __str__(self):
         """build string representation of current state"""

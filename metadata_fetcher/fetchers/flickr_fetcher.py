@@ -5,7 +5,6 @@ import time
 from urllib.parse import urlencode
 
 import requests
-from requests.adapters import HTTPAdapter, Retry
 
 from .. import settings
 from .Fetcher import Fetcher
@@ -170,10 +169,7 @@ class FlickrFetcher(Fetcher):
             f"({self.photo_index} of {self.photo_total}) at {url}"
         )
 
-        session = requests.Session()
-        retries = Retry(total=3, backoff_factor=2)
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-        return session.get(url=url)
+        return self.http_session.get(url=url)
 
     def check_page(self, http_resp: requests.Response) -> int:
         """
