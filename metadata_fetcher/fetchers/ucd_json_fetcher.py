@@ -5,7 +5,6 @@ import sys
 from typing import Optional
 
 import requests
-from requests.adapters import HTTPAdapter, Retry
 
 from xml.etree import ElementTree
 from bs4 import BeautifulSoup
@@ -39,7 +38,7 @@ class UcdJsonFetcher(Fetcher):
         page = {"url": self.url}
         print(f"[{self.collection_id}]: Fetching {page.get('url')}")
         try:
-            response = requests.get(**page)
+            response = self.http_session.get(**page)
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             raise FetchError(
@@ -90,10 +89,7 @@ class UcdJsonFetcher(Fetcher):
         Returns:
             dict
         """
-        session = requests.Session()
-        retries = Retry(total=3, backoff_factor=2)
-        session.mount("https://", HTTPAdapter(max_retries=retries))
-        response = session.get(url=url)
+        response = self.http_session.get(url=url)
         soup = BeautifulSoup(response.text, "html.parser")
         json_ld_str = soup.find(id="seo-jsonld").text
 

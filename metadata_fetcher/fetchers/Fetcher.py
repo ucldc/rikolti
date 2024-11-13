@@ -4,9 +4,8 @@ import requests
 from dataclasses import dataclass
 from typing import Optional
 
-from requests.adapters import HTTPAdapter, Retry
+from rikolti.utils.request_retry import configure_http_session
 from rikolti.utils.versions import put_versioned_page
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,21 +43,11 @@ class Fetcher(object):
         self.collection_id = params.get('collection_id')
         self.write_page = params.get('write_page', 0)
         self.vernacular_version = params['vernacular_version']
-        self.http_session = self.configure_http_session()
+        self.http_session = configure_http_session()
 
         if not self.collection_id:
             raise CollectionIdRequired("collection_id is required")
 
-    def configure_http_session(self) -> requests.Session:
-        http = requests.Session()
-        retry_strategy = Retry(
-            total=3,
-            status_forcelist=[413, 429, 500, 502, 503, 504],
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        http.mount("https://", adapter)
-        http.mount("http://", adapter)
-        return http
 
     def fetch_page(self) -> FetchedPageStatus:
         """
@@ -81,7 +70,7 @@ class Fetcher(object):
         try:
             response = self.http_session.get(**page)
             response.raise_for_status()
-        except self.http_session.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError as e:
             raise FetchError(
                 f"[{self.collection_id}]: unable to fetch page {page}",
                 f"Error was: {e}"

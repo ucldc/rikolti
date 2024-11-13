@@ -37,7 +37,7 @@ class OacFetcher(Fetcher):
         # TODO: see if there's a different OAC endpoint we can hit
         # that doesn't put everything out into groups like this
         if not counts and not current_group:
-            response = requests.get(f'{url}&docsPerPage=0')
+            response = self.http_session.get(f'{url}&docsPerPage=0')
             response.raise_for_status()
             initial_response = ElementTree.fromstring(response.content)
 
