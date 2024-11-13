@@ -28,7 +28,7 @@ class UcbTindRecord(Record):
             "identifier": self.get_marc_data_fields(["024", "901", "035"],
                                                     ["a"]),
             "contributor": self.get_marc_data_fields(["100", "110", "111"]),
-            "creator": self.get_marc_data_fields(["700", "710"], ["a"]),
+            "creator": self.get_marc_data_fields(["700", "710"], ["a", "e"]),
             "relation": self.map_relation,
             "provenance": self.get_marc_data_fields(["541"], ["a"]),
             "description": self.map_description,
