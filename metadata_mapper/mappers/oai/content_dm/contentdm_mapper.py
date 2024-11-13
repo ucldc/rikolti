@@ -1,10 +1,8 @@
 import itertools
 
-import requests
-from requests.adapters import HTTPAdapter, Retry
-
 from ...mapper import Validator
 from ..oai_mapper import OaiRecord, OaiVernacular
+from rikolti.utils.request_retry import configure_http_session
 
 
 class ContentdmRecord(OaiRecord):
@@ -124,15 +122,7 @@ class ContentdmRecord(OaiRecord):
             return image_info
 
         if image_info_url:
-            http = requests.Session()
-            retry_strategy = Retry(
-                total=3,
-                status_forcelist=[413, 429, 500, 502, 503, 504],
-            )
-            adapter = HTTPAdapter(max_retries=retry_strategy)
-            http.mount("https://", adapter)
-            http.mount("http://", adapter)
-
+            http = configure_http_session()
             resp = http.get(image_info_url)
             resp.raise_for_status()
             if resp.json().get('imageinfo'):

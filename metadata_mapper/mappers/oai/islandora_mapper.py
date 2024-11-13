@@ -1,11 +1,9 @@
-import requests
 from typing import Union, Optional, Any
-
-from requests.adapters import HTTPAdapter, Retry
 
 from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
 
+from rikolti.utils.request_retry import configure_http_session
 
 class IslandoraRecord(OaiRecord):
     # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
@@ -68,15 +66,7 @@ class IslandoraRecord(OaiRecord):
             jpg_url = thumb_url.replace("/TN/", "/JPG/")
             # TODO: should figure out a way to punt a request
             # to minimize the mapper's reliance on external systems
-            http = requests.Session()
-            retry_strategy = Retry(
-                total=3,
-                status_forcelist=[413, 429, 500, 502, 503, 504],
-            )
-            adapter = HTTPAdapter(max_retries=retry_strategy)
-            http.mount("https://", adapter)
-            http.mount("http://", adapter)
-
+            http = configure_http_session()
             request = http.get(jpg_url)
             if request.status_code == 200:
                 thumb_url = jpg_url
