@@ -90,9 +90,11 @@ def delete_by_query(index: str, data: dict[str, Any]):
         auth=settings.get_auth(),
         verify=settings.verify_certs()
     )
-    if not (200 <= r.status_code <= 299):
+    if not (200 <= r.status_code <= 299 or r.status_code == 409):
         print_opensearch_error(r, url)
         r.raise_for_status()
+    if r.status_code == 409:
+        print("Ignoring 409 Conflict Error Response")
     return r
 
 
