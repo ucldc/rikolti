@@ -21,6 +21,11 @@ logger = logging.getLogger(__name__)
 # and for each folder, paginate through a record list (and those record's
 # component lists) - the folder structure can be arbitrarily deep.
 #
+# To complicate things even further, the Nuxeo database schema does not 
+# support paged fetching of all descendants of a given root document recursively;
+# it only supports paged fetching of direct children of a given document.
+# Therefore, we need to implement recursion here in the client code.
+#
 # `.fetch_page` traverses this linear iteration (pagination of folder pages,
 # record pages, and component pages), fan out (for each record, for each
 # folder) and recursion (down a folder tree) in one function call and returns
@@ -220,7 +225,7 @@ class NuxeoFetcher(Fetcher):
         payload = {
             'uid': folder['uid'],
             'doc_type': 'folders',
-            'results_type': 'listing',
+            'results_type': 'full',
             'resume_after': resume_after
         }
 
@@ -241,31 +246,48 @@ class NuxeoFetcher(Fetcher):
     def folder_traversal(self, root_folder: dict, page_prefix: list):
         pages = []
 
-        def recurse(current_folder, page_prefix, folder_page_count):
-            more_pages_of_folders = True
-            resume_after = ''
+        collection_folders = self.get_descendant_folders(root_folder)
 
-            while more_pages_of_folders:
-                folder_resp = self.get_page_of_folders(current_folder, resume_after)
-                more_pages_of_folders = folder_resp.json().get('isNextPageAvailable')
-                resume_after = folder_resp.json().get('resumeAfter')
+        for i, folder in enumerate(collection_folders):
+            page_prefix.append(f"f{i}")
+            print(f"{'-'.join(page_prefix)} {folder['path']}")
+            pages.extend(self.get_pages_of_records(folder, page_prefix))
+            page_prefix.pop()
 
-                page_prefix.append(f"fp{folder_page_count}")
-
-                for i, folder in enumerate(folder_resp.json().get('entries', [])):
-                    page_prefix.append(f"f{i}")
-                    pages.extend(self.get_pages_of_records(folder, page_prefix))
-
-                    current_folder = {'uid': folder['uid']}
-                    recurse(current_folder, page_prefix, 0)
-                    page_prefix.pop()
-
-                page_prefix.pop()
-                folder_page_count += 1
-
-        recurse(root_folder, page_prefix, 0)
         return pages
 
+    def get_descendant_folders(self, root_folder):
+        descendant_folders = []
+
+        def recurse(folders):
+            descendant_folders.extend(folders)
+            for folder in folders:
+                subfolders = self.get_child_folders(folder)
+                recurse(subfolders)
+
+        # get child folders of root
+        root_folders = self.get_child_folders(root_folder)
+
+        # recurse down the tree
+        recurse(root_folders)
+
+        return descendant_folders
+
+    def get_child_folders(self, folder):
+        subfolders = []
+        more_pages_of_folders = True
+        resume_after = ''
+
+        while more_pages_of_folders:
+            print(f"getting page of folders for {folder['path']}")
+            folder_resp = self.get_page_of_folders(folder, resume_after)
+            more_pages_of_folders = folder_resp.json().get('isNextPageAvailable')
+            resume_after = folder_resp.json().get('resumeAfter')
+
+            for i, child_folder in enumerate(folder_resp.json().get('entries', [])):
+                subfolders.append(child_folder)
+
+        return subfolders
 
 
     def fetch_page(self) -> list[FetchedPageStatus]:
