@@ -247,7 +247,6 @@ class NuxeoFetcher(Fetcher):
 
         for i, folder in enumerate(collection_folders):
             page_prefix.append(f"f{i}")
-            print(f"{'-'.join(page_prefix)} {folder['path']}")
             pages.extend(self.get_pages_of_records(folder, page_prefix))
             page_prefix.pop()
 
