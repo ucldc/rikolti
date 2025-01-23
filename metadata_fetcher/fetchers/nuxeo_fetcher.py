@@ -222,7 +222,7 @@ class NuxeoFetcher(Fetcher):
         payload = {
             'uid': folder['uid'],
             'doc_type': 'folders',
-            'results_type': 'full',
+            'results_type': 'listing',
             'resume_after': resume_after
         }
 
