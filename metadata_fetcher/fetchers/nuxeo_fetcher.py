@@ -88,29 +88,7 @@ class NuxeoFetcher(Fetcher):
                 'uid': response.json().get('uid')
             }
 
-    def get_page_of_components(self, record: dict, resume_after: str):
-        payload = {
-            'uid': record['uid'],
-            'doc_type': 'records',
-            'results_type': 'full',
-            'resume_after': resume_after
-        }
-
-        request = {
-            'url': 'https://nuxeo.cdlib.org/cdl_dbquery',
-            'headers': self.nuxeo_request_headers,
-            'cookies': self.nuxeo_request_cookies,
-            'data': json.dumps(payload)
-        }
-        try:
-            response = self.http_session.get(**request)
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            print(f"{self.collection_id:<6}: unable to fetch components: {request}")
-            raise(e)
-        return response
-
-    def get_pages_of_record_components(self, record: dict):
+    def get_pages_of_record_components(self, root_record:dict):
         """
         Components of a complex object record are served at 100 components per page
         Iterate through all pages of components of a single parent object, writing
@@ -131,40 +109,59 @@ class NuxeoFetcher(Fetcher):
         """
         pages_of_record_components = []
 
-        def recurse(record, root_record_uid, component_page_count):
-            more_component_pages = True
-            resume_after = ''
-            while more_component_pages:
-                component_resp = self.get_page_of_components(record, resume_after)
-                more_component_pages = component_resp.json().get('isNextPageAvailable')
-                if not component_resp.json().get('entries', []):
-                    more_component_pages = False
-                    continue
-                resume_after = component_resp.json().get('resumeAfter')
+        def recurse(pages):
+            pages_of_record_components.extend(pages)
+            for page in pages:
+                records = page.get('entries', [])
+                for record in records:
+                    child_component_pages = self.get_pages_of_child_components(record)
+                    recurse(child_component_pages)
 
-                child_version_page = put_versioned_page(
-                    component_resp.text,
-                    f"children/{root_record_uid}-{component_page_count}",
-                    self.vernacular_version
+        # get components of root record
+        root_component_pages = self.get_pages_of_child_components(root_record)
+
+        # recurse to fetch any nested components
+        recurse(root_component_pages)
+
+        component_page_count = 0
+        pages_of_fetch_statuses = []
+        for page in pages_of_record_components:
+            child_version_page = put_versioned_page(
+                json.dumps(page),
+                f"children/{root_record['uid']}-{component_page_count}",
+                self.vernacular_version
+            )
+
+            pages_of_fetch_statuses.append(
+                FetchedPageStatus(
+                    len(page.get('entries', [])),
+                    child_version_page
                 )
+            )
+            component_page_count += 1
 
-                pages_of_record_components.append(
-                    FetchedPageStatus(
-                        len(component_resp.json().get('entries', [])),
-                        child_version_page
-                    )
-                )
-                component_page_count+=1
+        return pages_of_fetch_statuses
 
-                for component in component_resp.json().get('entries', []):
-                    recurse (component, root_record_uid, component_page_count)
+    def get_pages_of_child_components(self, record:dict):
+        pages = []
+        more_component_pages = True
+        resume_after = ''
 
-        recurse(record, record['uid'], 0)
-        return pages_of_record_components
+        while more_component_pages:
+            component_resp = self.get_page_of_documents(record, resume_after)
+            more_component_pages = component_resp.json().get('isNextPageAvailable')
+            if not component_resp.json().get('entries', []):
+                more_component_pages = False
+                continue
+            resume_after = component_resp.json().get('resumeAfter')
 
-    def get_page_of_documents(self, folder: dict, resume_after: str):
+            pages.append(component_resp.json())
+
+        return pages
+
+    def get_page_of_documents(self, parent: dict, resume_after: str):
         payload = {
-            'uid': folder['uid'],
+            'uid': parent['uid'],
             'doc_type': 'records',
             'results_type': 'full',
             'resume_after': resume_after
@@ -279,16 +276,14 @@ class NuxeoFetcher(Fetcher):
         resume_after = ''
 
         while more_pages_of_folders:
-            print(f"getting page of folders for {folder['path']}")
             folder_resp = self.get_page_of_folders(folder, resume_after)
             more_pages_of_folders = folder_resp.json().get('isNextPageAvailable')
             resume_after = folder_resp.json().get('resumeAfter')
 
-            for i, child_folder in enumerate(folder_resp.json().get('entries', [])):
+            for child_folder in folder_resp.json().get('entries', []):
                 subfolders.append(child_folder)
 
         return subfolders
-
 
     def fetch_page(self) -> list[FetchedPageStatus]:
         page_prefix = ['r']
