@@ -323,7 +323,10 @@ class NuxeoVernacular(Vernacular):
     validator = NuxeoValidator
 
     def parse(self, api_response):
-        return self.get_records(json.loads(api_response)['entries'])
+        if json.loads(api_response).get('entries'):
+            return self.get_records(json.loads(api_response)['entries'])
+        else:
+            return self.get_records([json.loads(api_response)])
 
     def skip(self, record):
         if not record.get("properties").get("dc:title"):
