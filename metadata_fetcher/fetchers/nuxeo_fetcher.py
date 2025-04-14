@@ -147,24 +147,54 @@ class NuxeoFetcher(Fetcher):
         more_component_pages = True
         resume_after = ''
 
+        # fetch a list of components
+        components = []
         while more_component_pages:
-            component_resp = self.get_page_of_documents(record, resume_after)
+            component_resp = self.get_page_of_documents(record, resume_after, 'listing')
             more_component_pages = component_resp.json().get('isNextPageAvailable')
             if not component_resp.json().get('entries', []):
                 more_component_pages = False
                 continue
             resume_after = component_resp.json().get('resumeAfter')
 
-            pages.append(component_resp.json())
+            components.extend(component_resp.json().get('entries', []))
+
+        # fetch full metadata for each component, in order based on `pos`
+        # there is one page per component
+        for component in sorted(components, key=lambda x: x['pos']):
+            single_component_resp = self.get_document(component['uid'])
+            pages.append(single_component_resp.json())
 
         return pages
 
-    def get_page_of_documents(self, parent: dict, resume_after: str):
+    def get_page_of_documents(self, parent: dict, resume_after: str, results_type: str):
         payload = {
             'uid': parent['uid'],
             'doc_type': 'records',
-            'results_type': 'full',
+            'results_type': results_type,
             'resume_after': resume_after
+        }
+
+        request = {
+            'url': 'https://nuxeo.cdlib.org/cdl_dbquery',
+            'headers': self.nuxeo_request_headers,
+            'cookies': self.nuxeo_request_cookies,
+            'data': json.dumps(payload)
+        }
+
+        try:
+            response = self.http_session.get(**request)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            print(f"{self.collection_id:<6}: unable to fetch page {request}")
+            raise(e)
+        return response
+
+    def get_document(self, uid):
+        payload = {
+            'uid': uid,
+            'relation': 'self',
+            'results_type': 'full'
         }
 
         request = {
@@ -188,7 +218,7 @@ class NuxeoFetcher(Fetcher):
         more_pages_of_records = True
         resume_after = ''
         while more_pages_of_records:
-            document_resp = self.get_page_of_documents(folder, resume_after)
+            document_resp = self.get_page_of_documents(folder, resume_after, 'full')
             more_pages_of_records = document_resp.json().get('isNextPageAvailable')
             if not document_resp.json().get('entries', []):
                 more_pages_of_records = False
