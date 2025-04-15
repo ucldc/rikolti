@@ -150,7 +150,7 @@ class NuxeoFetcher(Fetcher):
         # fetch a list of components
         components = []
         while more_component_pages:
-            component_resp = self.get_page_of_documents(record, resume_after, 'listing')
+            component_resp = self.get_page_of_documents(record, resume_after, 'full')
             more_component_pages = component_resp.json().get('isNextPageAvailable')
             if not component_resp.json().get('entries', []):
                 more_component_pages = False
@@ -159,11 +159,8 @@ class NuxeoFetcher(Fetcher):
 
             components.extend(component_resp.json().get('entries', []))
 
-        # fetch full metadata for each component, in order based on `pos`
-        full_metadata = []
-        for component in sorted(components, key=lambda x: x['pos']):
-            single_component_resp = self.get_document(component['uid'])
-            full_metadata.append(single_component_resp.json())
+        # sort components based on `pos`
+        components = sorted(components, key=lambda x: x['pos'])
 
         # batch into pages of 100 records each
         # NOTE: This arguably goes against the principle of the fetcher not making any
@@ -171,8 +168,8 @@ class NuxeoFetcher(Fetcher):
         #       causes the content harvester to fail due to excessively large payloads
         # TODO: in python3.12 we can use itertools.batched
         batch_size = 100
-        for i in range(0, len(full_metadata), batch_size):
-            pages.append({"entries": full_metadata[i:i+batch_size]})
+        for i in range(0, len(components), batch_size):
+            pages.append({"entries": components[i:i+batch_size]})
 
         return pages
 
