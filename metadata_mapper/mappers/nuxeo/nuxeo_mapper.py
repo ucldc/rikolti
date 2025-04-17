@@ -55,8 +55,7 @@ class NuxeoRecord(Record):
             'rights': self.map_rights(),
             'spatial': self.map_spatial(),
             'subject': self.map_subject(),
-            'temporal': list(
-                self.source_metadata.get('ucldc_schema:temporalcoverage', [])),
+            'temporal': self.map_temporal(),
             'title': [self.source_metadata.get('dc:title')],
             'type': self.map_type,
             'provenance': self.source_metadata.get('ucldc_schema:provenance', None),
@@ -274,6 +273,10 @@ class NuxeoRecord(Record):
                 thumbnail_source = None
 
         return thumbnail_source
+
+    def map_temporal(self):
+        return [t for t in self.source_metadata.get('ucldc_schema:temporalcoverage', [])
+                if t is not None]
 
 
 class NuxeoValidator(Validator):
