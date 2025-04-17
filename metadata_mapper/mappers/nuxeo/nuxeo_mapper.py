@@ -240,7 +240,7 @@ class NuxeoRecord(Record):
         # https://github.com/ucldc/harvester/blob/b42846bf9d869e6f75dbb0b9f9e0e30273d3d35c/harvester/fetcher/nuxeo_fetcher.py#L79
         if (source_type == 'SampleCustomPicture'):
             # Rikolti Logic:
-            picture_views = self.source_metadata.get("picture:views")
+            picture_views = self.source_metadata.get("picture:views", [])
             medium_view = list(
                 filter(lambda x: x['title'] == 'Medium', picture_views)
             )
