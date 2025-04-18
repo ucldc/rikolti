@@ -55,8 +55,7 @@ class NuxeoRecord(Record):
             'rights': self.map_rights(),
             'spatial': self.map_spatial(),
             'subject': self.map_subject(),
-            'temporal': list(
-                self.source_metadata.get('ucldc_schema:temporalcoverage', [])),
+            'temporal': self.map_temporal(),
             'title': [self.source_metadata.get('dc:title')],
             'type': self.map_type,
             'provenance': self.source_metadata.get('ucldc_schema:provenance', None),
@@ -116,7 +115,10 @@ class NuxeoRecord(Record):
         unpacked = None
         if isinstance(data, dict):
             # make robust to not break
-            data_type = data.get('type', '').strip()
+            data_type = data.get('type', '')
+            # the statement above sometimes results in a None value
+            if data_type:
+                data_type = data_type.strip()
             # print(f"Data CODE:{ data_type }")
             if self.description_type_labels.get(data_type, ''):
                 data_type = self.description_type_labels.get(data_type, '')
@@ -241,7 +243,7 @@ class NuxeoRecord(Record):
         # https://github.com/ucldc/harvester/blob/b42846bf9d869e6f75dbb0b9f9e0e30273d3d35c/harvester/fetcher/nuxeo_fetcher.py#L79
         if (source_type == 'SampleCustomPicture'):
             # Rikolti Logic:
-            picture_views = self.source_metadata.get("picture:views")
+            picture_views = self.source_metadata.get("picture:views", [])
             medium_view = list(
                 filter(lambda x: x['title'] == 'Medium', picture_views)
             )
@@ -274,6 +276,10 @@ class NuxeoRecord(Record):
                 thumbnail_source = None
 
         return thumbnail_source
+
+    def map_temporal(self):
+        return [t for t in self.source_metadata.get('ucldc_schema:temporalcoverage', [])
+                if t is not None]
 
 
 class NuxeoValidator(Validator):
