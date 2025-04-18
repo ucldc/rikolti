@@ -115,7 +115,10 @@ class NuxeoRecord(Record):
         unpacked = None
         if isinstance(data, dict):
             # make robust to not break
-            data_type = data.get('type', '').strip()
+            data_type = data.get('type', '')
+            # the statement above sometimes results in a None value
+            if data_type:
+                data_type = data_type.strip()
             # print(f"Data CODE:{ data_type }")
             if self.description_type_labels.get(data_type, ''):
                 data_type = self.description_type_labels.get(data_type, '')
