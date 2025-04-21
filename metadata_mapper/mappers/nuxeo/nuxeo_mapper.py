@@ -236,6 +236,10 @@ class NuxeoRecord(Record):
         # in the case of images!
         thumbnail_source = self.map_media_source()
 
+        # we only know how to make CustomFile thumbnails out of PDFs
+        if source_type == 'CustomFile' and thumbnail_source.get('mime-type') != 'application/pdf':
+            return None
+
         # if it's a SampleCustomPicture, overwrite thumbnail location
         # URL with Nuxeo thumbnail url (see legacy logic for why this
         # comes after thumbnail_source = self.map_media_source())
