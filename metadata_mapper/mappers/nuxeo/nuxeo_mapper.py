@@ -238,7 +238,7 @@ class NuxeoRecord(Record):
 
         # we only know how to make CustomFile thumbnails out of PDFs
         if thumbnail_source and source_type == 'CustomFile' \
-        and thumbnail_source.get('mime-type') != 'application/pdf':
+        and thumbnail_source.get('mimetype') != 'application/pdf':
             return None
 
         # if it's a SampleCustomPicture, overwrite thumbnail location
