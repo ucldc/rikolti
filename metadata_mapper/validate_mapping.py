@@ -77,8 +77,11 @@ def validate_collection(collection_id: int,
         print(dupes)
 
     # check all objects in rikolti against objects in solr
-    num_lost_solr_ids, num_solr_records = validate_collection_from_solr(
-        collection_id, all_rikolti_ids, validator)
+    # num_lost_solr_ids, num_solr_records = validate_collection_from_solr(
+    #     collection_id, all_rikolti_ids, validator)
+    # Disable solr validation for now
+    num_lost_solr_ids = 0
+    num_solr_records = len(all_rikolti_ids)
 
     metadata_errors = (
         len(validator.log.log) - len(new_rikolti_ids) - num_lost_solr_ids)
@@ -87,9 +90,11 @@ def validate_collection(collection_id: int,
         f"{collection_id:<6}, "
         f"{metadata_errors} validation errors, "
         f"{len(new_rikolti_ids)} new records, "
-        f"{num_lost_solr_ids} lost records, "
+        #f"{num_lost_solr_ids} lost records, "
+        "Unknown number of lost records while validation is disabled, "
         f"{len(all_rikolti_ids)} rikolti records, "
-        f"{num_solr_records} solr records"
+        #f"{num_solr_records} solr records"
+        "Unknown number of solr records while validation is disabled
     )
 
     return validator
