@@ -81,7 +81,7 @@ def validate_collection(collection_id: int,
     #     collection_id, all_rikolti_ids, validator)
     # Disable solr validation for now
     num_lost_solr_ids = 0
-    num_solr_records = len(all_rikolti_ids)
+    len(all_rikolti_ids)
 
     metadata_errors = (
         len(validator.log.log) - len(new_rikolti_ids) - num_lost_solr_ids)
@@ -94,7 +94,7 @@ def validate_collection(collection_id: int,
         "Unknown number of lost records while validation is disabled, "
         f"{len(all_rikolti_ids)} rikolti records, "
         #f"{num_solr_records} solr records"
-        "Unknown number of solr records while validation is disabled
+        "Unknown number of solr records while validation is disabled"
     )
 
     return validator
