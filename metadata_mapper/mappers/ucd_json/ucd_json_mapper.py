@@ -8,14 +8,20 @@ from ..mapper import Vernacular, Record
 class UcdJsonRecord(Record):
 
     BASE_URL = "https://digital.ucdavis.edu"
+    IMAGE_URL_PREFIX = f"{BASE_URL}/fcrepo/rest"
+    IMAGE_URL_SUFFIX = "/svc:gcs/dams-client-media-prod/images/large.jpg"
 
     def UCLDC_map(self) -> dict[str]:
         self.legacy_couch_db_id = self.get_legacy_couch_id()
 
         return {
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
-            "isShownAt": self.BASE_URL + self.source_metadata.get("@id"),
-            "isShownBy": self.BASE_URL + self.source_metadata.get("thumbnailUrl"),
+            "isShownAt": self.BASE_URL + self.source_metadata.get("@id", ""),
+            "isShownBy": (
+                self.IMAGE_URL_PREFIX +
+                self.source_metadata.get("associatedMedia", {}).get('@id') +
+                self.IMAGE_URL_SUFFIX
+            ),
             "title": self.map_title,
             "date": self.source_metadata.get("datePublished"),
             "description": self.map_description,
@@ -53,7 +59,7 @@ class UcdJsonRecord(Record):
         return [value]
 
     def map_subject(self) -> list:
-        value = self.source_metadata.get("about", [])
+        value = self.source_metadata.get("subjects", [])
         # Wrap dicts in lists, see collection 8, item ark:/13030/tf629006kp
         if isinstance(value, dict):
             value = [value]
