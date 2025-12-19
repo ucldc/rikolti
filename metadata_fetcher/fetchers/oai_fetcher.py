@@ -45,7 +45,9 @@ class OaiFetcher(Fetcher):
 
             if `oai_qdc` is supported, use it; otherwise use `oai_dc`
         '''
-        sickle_client = Sickle(self.oai.get('url'))
+        sickle_client = Sickle(self.oai.get('url'), headers={
+            "User-Agent": "Calisphere metadata fetcher: github.com/ucldc/rikolti"
+        })
         md_formats = [x for x in sickle_client.ListMetadataFormats()]
         for f in md_formats:
             if f.metadataPrefix == 'oai_qdc':

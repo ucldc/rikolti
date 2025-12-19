@@ -11,5 +11,8 @@ def configure_http_session() -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry_strategy)
     http.mount("https://", adapter)
     http.mount("http://", adapter)
+    http.headers.update({
+        "User-Agent": "Calisphere metadata fetcher: github.com/ucldc/rikolti"
+    })
     return http
 
