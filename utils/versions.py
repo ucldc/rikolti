@@ -42,6 +42,8 @@ prefixes = Literal[
     "vernacular_metadata_",
     "mapped_metadata_",
     "validation_",
+    "summary_report_",
+    "detail_report_",
     "with_content_urls_",
     "merged_"
 ]
@@ -69,6 +71,16 @@ def create_mapped_version(vernacular_version: str, **kwargs) -> str:
 def create_validation_version(mapped_version: str, **kwargs) -> str:
     version = create_version(mapped_version, "validation_", **kwargs)
     versioned_file = f"{version[:-1]}.csv"
+    return versioned_file
+
+def create_summary_report_version(mapped_version: str, **kwargs) -> str:
+    version = create_version(mapped_version, "summary_report_", **kwargs)
+    versioned_file = f"{version[:-1]}.md"
+    return versioned_file
+
+def create_detail_report_version(mapped_version: str, **kwargs) -> str:
+    version = create_version(mapped_version, "detail_report_", **kwargs)
+    versioned_file = f"{version[:-1]}.md"
     return versioned_file
 
 def create_with_content_urls_version(mapped_version: str, **kwargs) -> str:
@@ -177,6 +189,18 @@ def put_versioned_page(content: str, page_name: Union[int, str], version: str):
     path = f"{data_root.rstrip('/')}/{version.rstrip('/')}/data/{page_name}"
     storage.put_page_content(content, path)
     return f"{version.rstrip('/')}/data/{page_name}"
+
+def put_markdown_report(content: str, version_page: str):
+    """
+    resolves a version path to a page uri at $RIKOLTI_DATA/<version page>
+    and writes content to that data uri. returns the version page.
+
+    content should be a markdown string.
+    """
+    data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
+    path = f"{data_root.rstrip('/')}/{version_page}"
+    storage.put_page_content(content, path)
+    return version_page
 
 def put_validation_report(content, version_page):
     """

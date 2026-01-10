@@ -6,7 +6,7 @@ import traceback
 
 from dataclasses import asdict
 from itertools import chain
-from typing import Union, Optional
+from typing import Dict, Tuple, Union, Optional
 
 from airflow.decorators import task, task_group
 
@@ -25,6 +25,8 @@ from rikolti.metadata_mapper.map_registry_collections import ValidationReportSta
 from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.utils.versions import create_mapped_version
 from rikolti.utils.versions import get_version
+from rikolti.dags.shared_tasks.diffs import create_qa_reports
+from rikolti.dags.shared_tasks.diffs import DiffReportStatus
 
 @task(task_id="create_mapped_version",
       on_failure_callback=notify_rikolti_failure)
@@ -141,48 +143,35 @@ def print_s3_link(version_page, mapped_version):
 @task(task_id="validate_collection",
       on_failure_callback=notify_rikolti_failure)
 def validate_collection_task(
-    collection_id: int, mapped_page_batches: list[str], **context) -> str:
+    collection_id: int, mapped_page_batches: list[str], **context) -> Dict[str, str]:
     """
-    mapped_page_batches is a list of str representations of lists of mapped
-    page paths, ex:
+    mapped_page_batches is a list of str representations of lists of all the
+    mapped page paths, ex:
     [
         "[3433/vernacular_metadata_v1/mapped_metadata_v1/1.jsonl]",
         "[3433/vernacular_metadata_v1/mapped_metadata_v1/2.jsonl]",
         "[3433/vernacular_metadata_v1/mapped_metadata_v1/3.jsonl]"
     ]
     """
-    if os.environ.get("UCLDC_SOLR_URL"):
-        mapped_page_batches = [json.loads(batch) for batch in mapped_page_batches]
-        mapped_pages = list(chain.from_iterable(mapped_page_batches))
-        mapped_pages = [path for path in mapped_pages if 'children' not in path]
+    mapped_page_batches = [json.loads(batch) for batch in mapped_page_batches]
+    mapped_pages = list(chain.from_iterable(mapped_page_batches))
+    mapped_pages = [path for path in mapped_pages if 'children' not in path]
 
-        num_rows, version_page = create_collection_validation_csv(
-            collection_id, mapped_pages)
+    summary_report, detail_report = create_qa_reports(collection_id, mapped_pages)
 
-        status = ValidationReportStatus(
-            filepath=version_page,
-            num_validation_errors=num_rows,
-            mapped_version=get_version(collection_id, mapped_pages[0])
-        )
+    status = DiffReportStatus(
+        summary_report_filepath=summary_report,
+        detail_report_filepath=detail_report,
+        mapped_version=get_version(collection_id, mapped_pages[0])
+    )
+    print(f"Output summary report to {summary_report}")
+    print_s3_link(summary_report, get_version(collection_id, mapped_pages[0]))
 
-        print(f"Output {num_rows} rows to {version_page}")
-        print_s3_link(version_page, get_version(collection_id, mapped_pages[0]))
+    print(f"Output detail report to {detail_report}")
+    print_s3_link(detail_report, get_version(collection_id, mapped_pages[0]))
 
-        send_event_to_sns(context, asdict(status))
-
-        return version_page
-
-    else:
-        send_event_to_sns(context, {
-            "validation": "skipped", 
-            "collection_id": collection_id,
-            "mapped_page_batches": mapped_page_batches
-        })
-        return (
-            f"Skipping validation of {mapped_page_batches} for {collection_id} "
-            "until we can re-implement validator to compare against OpenSearch "
-            "data."
-        )
+    send_event_to_sns(context, asdict(status))
+    return {"summary_report": summary_report, "detail_report": detail_report}
 
 
 @task_group(group_id='mapping')
