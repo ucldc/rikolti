@@ -31,7 +31,6 @@ class GlbthsRecord(IslandoraRecord):
                 "require"
             ]),
             "identifier": self.map_identifier(),
-            "format": self.map_format()
         }
 
     def map_provenance(self):
