@@ -6,7 +6,7 @@ import traceback
 
 from dataclasses import asdict
 from itertools import chain
-from typing import Dict, Tuple, Union, Optional
+from typing import Dict, Union, Optional
 
 from airflow.decorators import task, task_group
 
@@ -21,8 +21,6 @@ from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
 from rikolti.metadata_mapper.lambda_shepherd import print_map_status
 from rikolti.metadata_mapper.map_registry_collections import map_endpoint
 from rikolti.metadata_mapper.map_registry_collections import validate_endpoint
-from rikolti.metadata_mapper.map_registry_collections import ValidationReportStatus
-from rikolti.metadata_mapper.validate_mapping import create_collection_validation_csv
 from rikolti.utils.versions import create_mapped_version
 from rikolti.utils.versions import get_version
 from rikolti.dags.shared_tasks.diffs import create_qa_reports
