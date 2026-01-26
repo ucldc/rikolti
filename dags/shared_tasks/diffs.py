@@ -229,8 +229,9 @@ def _get_mapped_pages_from_opensearch(calisphere_ids: list[str]):
         r['calisphere-id']: r['rikolti'] for r in indexed_records
     }
     mapped_pages = [rikolti['page'] for rikolti in indexed_records.values()]
-
-    return Counter(mapped_pages)
+    c = Counter(mapped_pages)
+    print(f"getting mapped pages from open search: {c}")
+    return c
 
 def get_basis_of_comparison(indexed_version: str, candidate_record_ids: list[str]):
     if indexed_version == 'initial':
@@ -244,6 +245,7 @@ def get_basis_of_comparison(indexed_version: str, candidate_record_ids: list[str
 
         indexed_records = {}
         for indexed_mapped_page in indexed_mapped_pages:
+            print(f"getting versioned page at {indexed_mapped_version}/data/{indexed_mapped_page}")
             version_page = get_versioned_page_as_json(
                 f"{indexed_mapped_version}/data/{indexed_mapped_page}"
             )
@@ -453,10 +455,12 @@ class DiffReportStatus:
         return d
 
 
-def create_reports(collection_id, mapped_pages: list[str]):
+def create_reports(collection_id, mapped_pages: list[str]) -> tuple[str, str]:
+    # returns summary_report_content, detail_report_content
     indexed_version = get_indexed_version(collection_id)
     if not indexed_version:
-        return "No currently indexed mapped metadata version found, skipping."
+        message = "No currently indexed mapped metadata version found, skipping."
+        return message, message
 
     diffs = {}
     required_fields = [
