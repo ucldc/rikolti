@@ -2,7 +2,7 @@ import os
 
 from datetime import datetime
 from docker.types import Mount
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.models.param import Param
 from airflow.providers.docker.operators.docker import DockerOperator
 

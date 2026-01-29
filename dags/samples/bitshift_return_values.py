@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 
 @task()
 def create_path():

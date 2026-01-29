@@ -3,8 +3,7 @@
 # Modified for our use case
 
 import json
-from airflow.decorators import dag, task
-from airflow.utils.dates import days_ago
+from airflow.sdk import dag, task
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
 default_args = {
@@ -12,8 +11,7 @@ default_args = {
 }
 @dag(
         default_args=default_args, 
-        schedule_interval="@daily", 
-        start_date=days_ago(2), 
+        schedule="@daily", 
         tags=['test'])
 def dag_with_taskflow_api():
     """

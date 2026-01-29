@@ -1,5 +1,5 @@
 from datetime import datetime
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.providers.docker.operators.docker import DockerOperator
 
 import os

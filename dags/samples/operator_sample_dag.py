@@ -1,7 +1,7 @@
 from datetime import datetime
-from airflow.decorators import dag
+from airflow.sdk import dag
 from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
+from airflow.providers.standard.operators.python import PythonOperator
 import requests
 
 def requests_test(collection_id):

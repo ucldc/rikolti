@@ -5,7 +5,7 @@ import traceback
 
 import requests
 
-from airflow.decorators import task
+from airflow.sdk import task
 
 from urllib.parse import urlparse
 

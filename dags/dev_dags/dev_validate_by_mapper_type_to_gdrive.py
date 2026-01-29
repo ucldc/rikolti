@@ -2,7 +2,7 @@ import logging
 
 from datetime import datetime
 
-from airflow.decorators import dag
+from airflow.sdk import dag
 from airflow.models.param import Param
 
 from airflow.providers.google.suite.transfers.local_to_drive import LocalFilesystemToGoogleDriveOperator

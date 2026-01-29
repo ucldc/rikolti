@@ -1,5 +1,5 @@
 from datetime import datetime
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.models.param import Param
 
 from rikolti.utils.versions import get_versioned_pages

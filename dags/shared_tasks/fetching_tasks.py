@@ -4,7 +4,7 @@ import pprint
 from typing import Optional
 from dataclasses import asdict
 
-from airflow.decorators import task, task_group
+from airflow.sdk import task, task_group
 
 from rikolti.dags.shared_tasks.shared import batched, send_event_to_sns
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure

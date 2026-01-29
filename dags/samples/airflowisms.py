@@ -1,11 +1,10 @@
 import os
 
 from datetime import datetime
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.models.param import Param
-from airflow.models import Variable
-from airflow.operators.python import get_current_context
-from airflow.operators.bash import BashOperator
+from airflow.sdk import get_current_context, Variable
+from airflow.providers.standard.operators.bash import BashOperator
 
 import requests
 

@@ -8,5 +8,6 @@ timelib
 apache-airflow-providers-docker
 apache-airflow-providers-google
 apache-airflow-providers-amazon
+apache-airflow-providers-standard
 pymarc
 deepdiff

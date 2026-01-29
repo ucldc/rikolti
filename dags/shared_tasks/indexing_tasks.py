@@ -1,7 +1,7 @@
 import os
 import json
 
-from airflow.decorators import task
+from airflow.sdk import task
 
 from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
 from rikolti.dags.shared_tasks.shared import send_event_to_sns

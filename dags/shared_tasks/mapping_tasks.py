@@ -8,7 +8,7 @@ from dataclasses import asdict
 from itertools import chain
 from typing import Dict, Union, Optional
 
-from airflow.decorators import task, task_group
+from airflow.sdk import task, task_group
 
 from urllib.parse import urlparse
 

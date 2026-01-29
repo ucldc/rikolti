@@ -2,7 +2,7 @@ import math
 from datetime import datetime
 from typing import Optional
 
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks.mapping_tasks import mapping_tasks
