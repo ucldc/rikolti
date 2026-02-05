@@ -52,7 +52,7 @@ def get_indexed_ids_from_opensearch(collection_id: int) -> dict[str, str]:
         print(
             "No records found in OpenSearch for collection {collection_id}"
         )
-        return []
+        return {}
     
 
     scroll_id = resp.headers.get('X-Scroll-Id')
@@ -484,7 +484,7 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[str, str]:
         candidate_ids.update({r['id']: r['calisphere-id'] for r in candidate_records})
         candidate_records = {r['calisphere-id']: r for r in candidate_records}
 
-        indexed_records = get_basis_of_comparison(indexed_version, candidate_records.keys())
+        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()))
         if indexed_version == 'initial':
             indexed_records, candidate_records = strip_non_mapping_fields(
                 indexed_records, candidate_records)
@@ -494,17 +494,18 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[str, str]:
             if missing_fields:
                 for field in missing_fields:
                     missing[field].append((candidate_record_id, candidate_records[candidate_record_id]['id']))
-                
-            record_diff = DeepDiff(
-                indexed_records[candidate_record_id],
-                candidate_records[candidate_record_id],
-                ignore_order=True
-            )
-            if record_diff:
-                diffs[candidate_record_id] = {
-                    "id": candidate_records[candidate_record_id]['id'],
-                    "deep_diff": record_diff
-                }
+
+            if candidate_record_id in indexed_records:
+                record_diff = DeepDiff(
+                    indexed_records[candidate_record_id],
+                    candidate_records[candidate_record_id],
+                    ignore_order=True
+                )
+                if record_diff:
+                    diffs[candidate_record_id] = {
+                        "id": candidate_records[candidate_record_id]['id'],
+                        "deep_diff": record_diff
+                    }
     
     indexed_ids_report = create_id_diff_report(candidate_ids, indexed_ids, indexed_version)
 
