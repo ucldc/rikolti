@@ -1,5 +1,5 @@
 tests.py
 test_dag.py
 README.md
-samples/.*
-dev_dags/.*
+samples/*
+dev_dags/*
