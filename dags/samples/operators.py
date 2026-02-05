@@ -24,7 +24,7 @@ def sample_operators():
 
     @task.docker(
         image="python:3",
-        auto_remove=True,
+        auto_remove="force",
         container_name="docker_decorated_task"
     )
     def docker_decorated_func():
