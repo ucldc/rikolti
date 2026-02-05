@@ -111,7 +111,7 @@ def _diff_ids(indexed_records, candidate_records):
 def create_id_diff_report(
         indexed_records: dict[str, str], 
         candidate_records: dict[str, str], 
-        last_mapped_version
+        last_mapped_version: Optional[str]
     ) -> list[str]:
     """
     Report out IDs that are indexed, but not in candidate, and vice versa. 
@@ -121,11 +121,18 @@ def create_id_diff_report(
 
     report = ["# ID Differences\n",]
     if only_in_indexed or only_in_candidate:
-        report = [
-            f"Since last mapped {last_mapped_version} version:",
-            f"    {len(only_in_indexed)} records were dropped, or changed ID",
-            f"    {len(only_in_candidate)} records were picked up, or changed ID",
-        ]
+        if last_mapped_version:
+            report = [
+                f"Since last mapped {last_mapped_version} version:",
+                f"    {len(only_in_indexed)} records were dropped, or changed ID",
+                f"    {len(only_in_candidate)} records were picked up, or changed ID",
+            ]
+        else:
+            report = [
+                "No previously mapped version found:",
+                f"    {len(only_in_indexed)} records were dropped, or changed ID",
+                f"    {len(only_in_candidate)} records were picked up, or changed ID",
+            ]
     else: 
         report.extend([
             "No ID differences found between indexed and candidate metadata.",
@@ -233,8 +240,10 @@ def _get_mapped_pages_from_opensearch(calisphere_ids: list[str]):
     print(f"getting mapped pages from open search: {c}")
     return c
 
-def get_basis_of_comparison(indexed_version: str, candidate_record_ids: list[str]):
-    if indexed_version == 'initial':
+def get_basis_of_comparison(indexed_version: Optional[str], candidate_record_ids: list[str]) -> dict[str, dict]:
+    if not indexed_version:
+        indexed_records = {}
+    elif indexed_version == 'initial':
         indexed_records = _get_indexed_data_from_opensearch(
             list(candidate_record_ids))
     else:
@@ -278,7 +287,7 @@ def check_for_missing_fields(candidate_record: dict) -> dict[str, list[str]]:
 
     return missing_fields
 
-def create_missing_fields_report(missing: dict[str, list[str]], total_number: int) -> list[str]:
+def create_missing_fields_report(missing: dict[str, list[str]], total_number: int) -> tuple[list[str], list[str]]:
     """
     Create a report of missing required fields in candidate records.
     Returns a list of strings summarizing the missing fields.
@@ -288,11 +297,11 @@ def create_missing_fields_report(missing: dict[str, list[str]], total_number: in
     if any(missing.values()):
         summary_report.append("\n## Records with missing Required Fields:")
     else:
-        summary_report.extend[
+        summary_report.extend([
             f"All {total_number} candidate records contain all required fields.",
             "Analyzed the following required fields: "
             f"{', '.join(missing.keys())}"
-        ]
+        ])
         return summary_report, summary_report
 
     detail_report = summary_report.copy()
@@ -455,14 +464,10 @@ class DiffReportStatus:
         return d
 
 
-def create_reports(collection_id, mapped_pages: list[str]) -> tuple[str, str]:
+def create_reports(collection_id, mapped_pages: list[str]) -> tuple[list[str], list[str]]:
     # returns summary_report_content, detail_report_content
     indexed_version = get_indexed_version(collection_id)
-    if not indexed_version:
-        message = "No currently indexed mapped metadata version found, skipping."
-        return message, message
-
-    diffs = {}
+    diff_stats = {}
     required_fields = [
         'id',
         'calisphere-id',
@@ -472,7 +477,7 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[str, str]:
         'is_shown_by',
         'is_shown_at',
     ]
-    missing = {field: [] for field in required_fields}
+    missing_fields_stats = {field: [] for field in required_fields}
     candidate_ids = {}
     indexed_ids = get_indexed_ids_from_opensearch(collection_id)
 
@@ -493,7 +498,7 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[str, str]:
             missing_fields = check_for_missing_fields(candidate_records[candidate_record_id])
             if missing_fields:
                 for field in missing_fields:
-                    missing[field].append((candidate_record_id, candidate_records[candidate_record_id]['id']))
+                    missing_fields_stats[field].append((candidate_record_id, candidate_records[candidate_record_id]['id']))
 
             if candidate_record_id in indexed_records:
                 record_diff = DeepDiff(
@@ -502,22 +507,22 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[str, str]:
                     ignore_order=True
                 )
                 if record_diff:
-                    diffs[candidate_record_id] = {
+                    diff_stats[candidate_record_id] = {
                         "id": candidate_records[candidate_record_id]['id'],
                         "deep_diff": record_diff
                     }
     
     indexed_ids_report = create_id_diff_report(candidate_ids, indexed_ids, indexed_version)
 
-    summary_missing_fields_report, detail_missing_fields_report = create_missing_fields_report(missing, len(candidate_ids))
+    summary_missing_fields_report, detail_missing_fields_report = create_missing_fields_report(missing_fields_stats, len(candidate_ids))
 
-    if not diffs:
+    if not diff_stats:
         print(f"No diffs found between mapped version and indexed version for collection {collection_id}.")
 
     # let's just look at values changed for now, I haven't seen other kinds of diffs
     # values_changed = {cali_id: {"id": diff["id"], "values_changed": diff["deep_diff"].pop('values_changed', {})}
-    #                         for cali_id, diff in diffs.items()}
-    # print_other_diff_warning(diffs)
+    #                         for cali_id, diff in diff_stats.items()}
+    # print_other_diff_warning(diff_stats)
 
     # make git-style string diffs for easier aggregation
     values_changed = {
@@ -529,7 +534,7 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[str, str]:
                 for field, values in d['deep_diff']['values_changed'].items()
             ]
         }
-        for cali_id, d, in diffs.items()
+        for cali_id, d, in diff_stats.items()
     }
 
     diff_summary_report, diff_details_report = create_aggregate_diff_reports(values_changed)
