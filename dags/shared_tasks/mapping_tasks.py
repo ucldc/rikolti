@@ -128,8 +128,13 @@ def print_s3_link(version_page, mapped_version):
         s3_path = urlparse(f"{data_root}/{version_page}")
         bucket = s3_path.netloc
         print(
-            "Download validation report at: "
+            "Download report at: "
             f"https://{bucket}.s3.amazonaws.com{s3_path.path}"
+        )
+        print(
+            "Review report at: "
+            f"https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
+            f"#{s3_path.path}"
         )
         print(
             f"Review collection data at: "
