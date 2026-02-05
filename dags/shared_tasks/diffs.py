@@ -50,7 +50,7 @@ def get_indexed_ids_from_opensearch(collection_id: int) -> dict[str, str]:
 
     if response_data['hits']['total']['value'] == 0:
         print(
-            "No records found in OpenSearch for collection {collection_id}"
+            f"No records found in OpenSearch for collection {collection_id}"
         )
         return {}
     
@@ -512,7 +512,7 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[list[str], l
                         "deep_diff": record_diff
                     }
     
-    indexed_ids_report = create_id_diff_report(candidate_ids, indexed_ids, indexed_version)
+    indexed_ids_report = create_id_diff_report(indexed_ids, candidate_ids, indexed_version)
 
     summary_missing_fields_report, detail_missing_fields_report = create_missing_fields_report(missing_fields_stats, len(candidate_ids))
 
