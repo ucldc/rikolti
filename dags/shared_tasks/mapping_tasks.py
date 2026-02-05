@@ -134,7 +134,7 @@ def print_s3_link(version_page, mapped_version):
         print(
             "Review report at: "
             f"https://{bucket}.s3.us-west-2.amazonaws.com/index.html"
-            f"#{s3_path.path.rstrip('/')}"
+            f"#{s3_path.path.lstrip('/')}"
         )
         print(
             f"Review collection data at: "
