@@ -17,11 +17,7 @@ class UcdJsonRecord(Record):
         return {
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.BASE_URL + self.source_metadata.get("@id", ""),
-            "isShownBy": (
-                self.IMAGE_URL_PREFIX +
-                self.source_metadata.get("associatedMedia", {}).get('@id') +
-                self.IMAGE_URL_SUFFIX
-            ),
+            "isShownBy": self.map_is_shown_by,
             "title": self.map_title,
             "date": self.source_metadata.get("datePublished"),
             "description": self.map_description,
@@ -39,6 +35,16 @@ class UcdJsonRecord(Record):
                if v.startswith("ark:")]
 
         return f"{self.collection_id}--{ark[0]}"
+
+    def map_is_shown_by(self) -> str:
+        thumbnail_url = self.source_metadata.get("image",{}).get("@id")
+        if not thumbnail_url:
+            thumbnail_url = self.source_metadata.get("associatedMedia", {}).get('@id')
+
+        if thumbnail_url:
+            return self.IMAGE_URL_PREFIX + thumbnail_url + self.IMAGE_URL_SUFFIX
+        else:
+            return None
 
     def map_title(self) -> Optional[list]:
         value = self.source_metadata.get("name", [])
@@ -91,7 +97,11 @@ class UcdJsonVernacular(Vernacular):
         """
         If we are missing a thumbnailUrl or an ark, things will go wrong in the mapping
         """
-        if not record.get("thumbnailUrl"):
+        thumbnail_url =record.get("image",{}).get("@id")
+        if not thumbnail_url:
+            thumbnail_url = record.get("associatedMedia", {}).get('@id')
+
+        if not thumbnail_url:
             return True
 
         return not any([v.startswith("ark:") for v
