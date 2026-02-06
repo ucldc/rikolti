@@ -254,6 +254,9 @@ def get_basis_of_comparison(indexed_version: Optional[str], candidate_record_ids
 
         indexed_records = {}
         for indexed_mapped_page in indexed_mapped_pages:
+            if indexed_mapped_page.endswith('.jsonl.jsonl'):
+                print(f"versioned page in opensearch is corrupted: {indexed_mapped_page}, modifying...")
+                indexed_mapped_page = indexed_mapped_page[:-6]
             print(f"getting versioned page at {indexed_mapped_version}/data/{indexed_mapped_page}")
             version_page = get_versioned_page_as_json(
                 f"{indexed_mapped_version}/data/{indexed_mapped_page}"
