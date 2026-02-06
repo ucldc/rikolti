@@ -182,7 +182,20 @@ type_map = {
     "video mp4 file": "moving image",
     "sound mp3 file": "sound",
     "streaming media": "interactive resource",
-    "sound recording": "sound"
+    "sound recording": "sound",
+    "http://id.loc.gov/vocabulary/resourceTypes/art": "physical object",  # fix for UCLA
+    "http://id.loc.gov/vocabulary/resourceTypes/aud": "sound",
+    "http://id.loc.gov/vocabulary/resourceTypes/car": "image",
+    "http://id.loc.gov/vocabulary/resourceTypes/col": "collection",
+    "http://id.loc.gov/vocabulary/resourceTypes/dat": "dataset",
+    "http://id.loc.gov/vocabulary/resourceTypes/man": "text",
+    "http://id.loc.gov/vocabulary/resourceTypes/mix": "collection",
+    "http://id.loc.gov/vocabulary/resourceTypes/mov": "moving image",
+    "http://id.loc.gov/vocabulary/resourceTypes/mul": "interactive resource",
+    "http://id.loc.gov/vocabulary/resourceTypes/not": "text",
+    "http://id.loc.gov/vocabulary/resourceTypes/img": "image",
+    "http://id.loc.gov/vocabulary/resourceTypes/tac": "physical object",
+    "http://id.loc.gov/vocabulary/resourceTypes/txt": "text"
 }
 format_map = {
     "holiday card": "image",
