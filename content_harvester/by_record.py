@@ -356,7 +356,7 @@ def create_media_component(
         derivative_filepath = derivatives.make_jp2(media_tmp_filepath)
         if derivative_filepath:
             jp2_destination_filename = (
-                f"{media_dest_filename.split('.')[0]}.jp2")
+                f"{os.path.splitext(media_dest_filename)[0]}.jp2")
             content_s3_filepath = upload_content(
                 derivative_filepath, 
                 f"jp2/{collection_id}/{jp2_destination_filename}"
