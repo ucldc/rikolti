@@ -92,7 +92,7 @@ def fetch_collection(payload, vernacular_version) -> FetchedCollectionStatus:
         page_status = fetcher.fetch_page()
         page_statuses.append(page_status)
 
-        # this is a nuxeo and ucd json fetcher workaround
+        # this is a nuxeo, ucd json, and xml file fetcher workaround
         if len(page_statuses) == 1 and isinstance(page_statuses[0], list):
             page_statuses = page_statuses[0]
 
