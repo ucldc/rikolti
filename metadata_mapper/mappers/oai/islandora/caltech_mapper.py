@@ -9,8 +9,8 @@ class CaltechRecord(IslandoraRecord):
 
     def UCLDC_map(self):
         return {
-            'isShownAt': self.source_metadata.get('isShownAt'),
-            'isShownBy': self.source_metadata.get('isShownBy')
+            'isShownAt': self.source_metadata.get('identifier_type-Web-Access'),
+            'isShownBy': self.source_metadata.get('identifier_type-image-thumbnail')
         }
 
 class CaltechVernacular(IslandoraVernacular):
@@ -55,9 +55,9 @@ class CaltechVernacular(IslandoraVernacular):
                 if tag == 'identifier':
                     id_type = element.get('type')
                     if id_type == 'Web-Access':
-                        fields['isShownAt'].append(element.text)
+                        fields['identifier_type-Web-Access'].append(element.text)
                     elif id_type == 'image-thumbnail':
-                        fields['isShownBy'].append(element.text)
+                        fields['identifier_type-image-thumbnail'].append(element.text)
                 fields[tag].append(element.text)
 
             fields["datestamp"] = header.find("oai2:datestamp", namespace).text
