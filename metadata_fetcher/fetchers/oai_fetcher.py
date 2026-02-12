@@ -17,7 +17,7 @@ class OaiFetcher(Fetcher):
     def __init__(self, params):
         super(OaiFetcher, self).__init__(params)
 
-        self.oai = params.get('harvest_data')
+        self.oai = params.get('harvest_data', {})
 
         if self.oai.get('harvest_extra_data'):
             # see if we have a query string,
@@ -70,8 +70,13 @@ class OaiFetcher(Fetcher):
 
     def check_page(self, http_resp: requests.Response) -> int:
         xml_resp = ElementTree.fromstring(http_resp.content)
-        xml_hits = xml_resp.find(
-            'oai2:ListRecords', NAMESPACE).findall('oai2:record', NAMESPACE)
+
+        xml_list = xml_resp.find('oai2:ListRecords', NAMESPACE)
+        if xml_list is None:
+            raise ValueError(
+                "No records found in response from {http_resp.request.url}")
+
+        xml_hits = xml_list.findall('oai2:record', NAMESPACE)
 
         if len(xml_hits) > 0:
             logging.debug(
