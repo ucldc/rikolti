@@ -11,6 +11,7 @@ assignees: ''
 Freshdesk: 
 Harvesting issue: 
 Item record URL: 
+Ops manual: https://docs.google.com/document/d/1Jf_6-kUn8lBqALuQ7K_r3SEyfi-4PW4cXqhA_vEdemQ/edit?tab=t.0#heading=h.sdidbpjgvz82
 
 ## Metadata edits
 Currently Published Metadata Version (from Rikolti-data):
