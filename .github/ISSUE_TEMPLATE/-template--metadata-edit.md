@@ -26,5 +26,6 @@ ZIP upload (edited json):
 - [ ] Edit json files, as needed
 - [ ] Zip all json files, and upload to this issue
 - [ ] Amy adds the candidate metadata's S3 URL & version path (with `<today>`)
+- [ ] Verify the revisions are in the rikolti-data URL Amy provides
 - [ ] Run the `index_manual_edits` DAG in Airflow; review on -stage
 - [ ] Run the `publish` DAG in Registry; review on -prod
