@@ -10,7 +10,9 @@ assignees: ''
 ## Useful links to reference
 Freshdesk: 
 Harvesting issue: 
-Item record URL: 
+Item record URL (-prod): https://calisphere.org/item/#####
+Item record URL (-stage): https://calisphere-stage.cdlib.org/item/#####
+Registry: https://registry.cdlib.org/admin/library_collection/collection/#####
 Ops manual: https://docs.google.com/document/d/1Jf_6-kUn8lBqALuQ7K_r3SEyfi-4PW4cXqhA_vEdemQ/edit?tab=t.0#heading=h.sdidbpjgvz82
 
 ## Metadata edits
