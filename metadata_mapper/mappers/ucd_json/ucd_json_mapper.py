@@ -31,7 +31,11 @@ class UcdJsonRecord(Record):
         }
 
     def get_legacy_couch_id(self) -> str:
-        ark = [v for v in self.source_metadata.get("identifier", [])
+        identifier = self.source_metadata.get("identifier", [])
+        if isinstance(identifier, str):
+            identifier = [identifier]
+
+        ark = [v for v in identifier
                if v.startswith("ark:")]
 
         return f"{self.collection_id}--{ark[0]}"
@@ -104,8 +108,12 @@ class UcdJsonVernacular(Vernacular):
         if not thumbnail_url:
             return True
 
+        identifier = record.get("identifier", [])
+        if isinstance(identifier, str):
+            identifier = [identifier]
+
         return not any([v.startswith("ark:") for v
-                        in record.get("identifier", [])])
+                        in identifier])
 
     def parse(self, api_response: str) -> list:
         records = []
