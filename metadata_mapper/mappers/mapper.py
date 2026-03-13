@@ -641,7 +641,11 @@ class Record(ABC, object):
                 if isinstance(t, dict) else t
                 for t in record_types
             ]
-            record_types = [t.lower().rstrip('s') for t in record_types]
+            record_types = [
+                t.lower().rstrip('s')
+                if not t.startswith('http://id.loc.gov/vocabulary/resourceTypes/') else t
+                for t in record_types
+            ]
 
             for record_type in record_types:
                 if record_type in constants.type_map:
