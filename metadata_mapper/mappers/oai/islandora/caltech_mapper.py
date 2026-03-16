@@ -55,9 +55,9 @@ class CaltechVernacular(IslandoraVernacular):
                 if tag == 'identifier':
                     id_type = element.get('type')
                     if id_type == 'Web-Access':
-                        fields['identifier_type-Web-Access'].append(element.text)
+                        fields['identifier_type-Web-Access'] = element.text
                     elif id_type == 'image-thumbnail':
-                        fields['identifier_type-image-thumbnail'].append(element.text)
+                        fields['identifier_type-image-thumbnail'] = element.text
                 fields[tag].append(element.text)
 
             fields["datestamp"] = header.find("oai2:datestamp", namespace).text
