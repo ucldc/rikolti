@@ -492,17 +492,18 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[list[str], l
         candidate_ids.update({r['id']: r['calisphere-id'] for r in candidate_records})
         candidate_records = {r['calisphere-id']: r for r in candidate_records}
 
-        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()))
-        if indexed_version == 'initial':
-            indexed_records, candidate_records = strip_non_mapping_fields(
-                indexed_records, candidate_records)
-
         for candidate_record_id in candidate_records:
             missing_fields = check_for_missing_fields(candidate_records[candidate_record_id])
             if missing_fields:
                 for field in missing_fields:
                     missing_fields_stats[field].append((candidate_record_id, candidate_records[candidate_record_id]['id']))
 
+        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()))
+        if indexed_version == 'initial':
+            indexed_records, candidate_records = strip_non_mapping_fields(
+                indexed_records, candidate_records)
+
+        for candidate_record_id in candidate_records:
             if candidate_record_id in indexed_records:
                 record_diff = DeepDiff(
                     indexed_records[candidate_record_id],
