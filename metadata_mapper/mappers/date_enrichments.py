@@ -200,7 +200,6 @@ def parse_date_or_range(date_str):
                 else:
                     # ie 1970-9
                     (y, m) = split_result
-                    m = m.rstrip(",")
                     # If the second number is a month, format it to two digits
                     # and use "-" as the delim for consistency in the
                     # dateparser.to_iso8601 result
