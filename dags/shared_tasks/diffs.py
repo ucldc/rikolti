@@ -699,6 +699,8 @@ def create_aggregate_diff_reports(values_changed):
             if hasattr(obj, '__iter__') and type(obj).__name__ in ('SetOrdered'):
                 # DeepDiff uses 'SetOrdered'
                 return list(obj)
+            if isinstance(obj, type):
+                return str(obj)
             raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
         diff_summary_report.append(json.dumps(record_specific_diffs, indent=2, default=set_encoder))
