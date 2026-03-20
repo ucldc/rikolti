@@ -195,17 +195,15 @@ def strip_non_mapping_fields(indexed_metadata: dict, candidate_metadata: dict):
     """
     # not exactly apples-to-apples here, so fudge the mapped and indexed
     # records for backwards compatibility
-    for _, record in candidate_metadata.items():
-        candidate_removals = ['is_shown_at', 'is_shown_by', 'item_count', 'media_source', 'thumbnail_source']
-        for field in candidate_removals:
-            if field in record.keys():
-                record.pop(field)
+    candidate_removals = ['is_shown_at', 'is_shown_by', 'item_count', 'media_source', 'thumbnail_source']
+    for field in candidate_removals:
+        if field in candidate_metadata.keys():
+            candidate_metadata.pop(field)
 
-    for _, record in indexed_metadata.items():
-        indexed_removals = ['rikolti', 'thumbnail', 'media']
-        for field in indexed_removals:
-            if field in record.keys():
-                record.pop(field)
+    indexed_removals = ['rikolti', 'thumbnail', 'media']
+    for field in indexed_removals:
+        if field in indexed_metadata.keys():
+            indexed_metadata.pop(field)
 
     return indexed_metadata, candidate_metadata
 
@@ -492,19 +490,19 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[list[str], l
         candidate_ids.update({r['id']: r['calisphere-id'] for r in candidate_records})
         candidate_records = {r['calisphere-id']: r for r in candidate_records}
 
+        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()))
+
         for candidate_record_id in candidate_records:
             missing_fields = check_for_missing_fields(candidate_records[candidate_record_id])
             if missing_fields:
                 for field in missing_fields:
                     missing_fields_stats[field].append((candidate_record_id, candidate_records[candidate_record_id]['id']))
 
-        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()))
-        if indexed_version == 'initial':
-            indexed_records, candidate_records = strip_non_mapping_fields(
-                indexed_records, candidate_records)
-
-        for candidate_record_id in candidate_records:
             if candidate_record_id in indexed_records:
+                if indexed_version == 'initial':
+                    indexed_records, candidate_records = strip_non_mapping_fields(
+                        indexed_records[candidate_record_id], candidate_records[candidate_record_id])
+
                 record_diff = DeepDiff(
                     indexed_records[candidate_record_id],
                     candidate_records[candidate_record_id],
