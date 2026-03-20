@@ -30,7 +30,13 @@ class YoutubeFetcher(Fetcher):
         if self.next_page_token:
             url += f"&pageToken={self.next_page_token}"
 
-        return {"url": url}
+        request = {"url": url}
+
+        print(
+            f"[{self.collection_id}]: Fetching page {self.write_page} "
+            f"at {request.get('url')}")
+
+        return request
 
     def check_page(self, http_resp) -> int:
         data = json.loads(http_resp.content)
