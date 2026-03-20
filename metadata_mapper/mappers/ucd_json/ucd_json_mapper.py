@@ -19,7 +19,7 @@ class UcdJsonRecord(Record):
             "isShownAt": self.BASE_URL + self.source_metadata.get("@id", ""),
             "isShownBy": self.map_is_shown_by,
             "title": self.map_title,
-            "date": self.source_metadata.get("datePublished"),
+            "date": self.map_date,
             "description": self.map_description,
             "subject": self.map_subject,
             "format": self.source_metadata.get("material", []),
@@ -59,6 +59,12 @@ class UcdJsonRecord(Record):
             return value
 
         return [value]
+
+    def map_date(self) -> str:
+        date = self.source_metadata.get('datePublished')
+        # allow for dates of type str and int
+        if date:
+            return f"{date}"
 
     def map_description(self) -> list:
         value = self.source_metadata.get("description", [])
