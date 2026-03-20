@@ -25,7 +25,7 @@ class YoutubeRecord(Record):
         return self.source_metadata.get("snippet", {}).get("description")
 
     def map_subject(self):
-        tags = self.source_metadata.get("snippet", {}).get("tags")
+        tags = self.source_metadata.get("snippet", {}).get("tags", [])
 
         return [{"name": tag} for tag in tags]
 
