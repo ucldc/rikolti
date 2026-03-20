@@ -188,7 +188,7 @@ def _get_indexed_data_from_opensearch(calisphere_ids: list[str]):
 
     return indexed_records
 
-def strip_non_mapping_fields(indexed_metadata: dict, candidate_metadata: dict):
+def strip_non_mapping_fields(indexed_metadata: dict, candidate_metadata: dict) -> tuple[dict, dict]:
     """
     removes fields from indexed metadata that are not part of the mapping
     so they don't interfere with diffing
@@ -499,13 +499,15 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[list[str], l
                     missing_fields_stats[field].append((candidate_record_id, candidate_records[candidate_record_id]['id']))
 
             if candidate_record_id in indexed_records:
+                indexed_record = indexed_records[candidate_record_id]
+                candidate_record = candidate_records[candidate_record_id]
                 if indexed_version == 'initial':
-                    indexed_records, candidate_records = strip_non_mapping_fields(
-                        indexed_records[candidate_record_id], candidate_records[candidate_record_id])
+                    indexed_record, candidate_record = strip_non_mapping_fields(
+                        indexed_record, candidate_record)
 
                 record_diff = DeepDiff(
-                    indexed_records[candidate_record_id],
-                    candidate_records[candidate_record_id],
+                    indexed_record,
+                    candidate_record,
                     ignore_order=True
                 )
                 if record_diff:
