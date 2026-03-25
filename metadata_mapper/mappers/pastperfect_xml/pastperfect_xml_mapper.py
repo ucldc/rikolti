@@ -10,7 +10,7 @@ class PastperfectXmlRecord(Record):
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
             "title": self.source_metadata.get("title"),
-            "date": self.source_metadata.get("date"),
+            "date": self.map_date,
             "description": self.source_metadata.get("title"),
             "subject": self.map_subject,
             "spatial": self.source_metadata.get("place"),
@@ -37,6 +37,16 @@ class PastperfectXmlRecord(Record):
         values = self.collate_fields(["subject", "people", "searchterms"])()
         return [{"name": value} for value in values]
 
+    def map_date(self):
+        date = self.source_metadata.get("date")
+        # remove comma in specific case that causes the date enrichment code
+        # to throw an error
+        if date:
+            date = date.strip()
+            if date.endswith(", ca."):
+                date = f"{date[:-5]} ca."
+
+        return date
 
 class PastperfectXmlVernacular(Vernacular):
     record_cls = PastperfectXmlRecord
