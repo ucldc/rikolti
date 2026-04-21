@@ -11,7 +11,7 @@ class PastperfectXmlRecord(Record):
             "isShownBy": self.map_is_shown_by,
             "title": self.string_to_list(self.source_metadata.get("title")),
             "date": self.map_date,
-            "description": self.string_to_list(self.source_metadata.get("title")),
+            "description": self.string_to_list(self.source_metadata.get("description")),
             "subject": self.map_subject,
             "spatial": self.string_to_list(self.source_metadata.get("place")),
             "temporal": self.source_metadata.get("coverage"),
