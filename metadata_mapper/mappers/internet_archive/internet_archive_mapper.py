@@ -12,15 +12,15 @@ class InternetArchiveRecord(Record):
             "date": self.source_metadata.get("date"),
             "description": self.source_metadata.get("description"),
             "format": self.source_metadata.get("format"),
-            "identifier": self.source_metadata.get("identifier"),
+            "identifier": self.string_to_list(self.source_metadata.get("identifier")),
             "language": self.source_metadata.get("language"),
             "type": self.source_metadata.get("mediatype"),
-            "rights": self.source_metadata.get("licenseurl"),
+            "rights": self.source_metadata.get("rights"),
             "publisher": self.source_metadata.get("publisher"),
             "subject": self.map_subject(),
-            "title": self.source_metadata.get("title"),
-            "contributor": self.source_metadata.get("contributor"),
-            "creator": self.source_metadata.get("creator")
+            "title": self.string_to_list(self.source_metadata.get("title")),
+            "contributor": self.string_to_list(self.source_metadata.get("contributor")),
+            "creator": self.string_to_list(self.source_metadata.get("creator"))
         }
     
     def map_is_shown_at(self):
@@ -32,13 +32,19 @@ class InternetArchiveRecord(Record):
         identifier = self.source_metadata['identifier']
 
         return f"https://archive.org/services/img/{identifier}"
-    
-    def map_subject(self):
+
+    def map_subject(self) -> list:
         subjects = self.source_metadata.get("subject", [])
         if isinstance(subjects, str):
             subjects = [subjects]
 
         return [{"name": subject} for subject in subjects]
+
+    def string_to_list(self, value) -> list:
+        if isinstance(value, str):
+            value = [value]
+
+        return value
 
 class InternetArchiveVernacular(Vernacular):
     record_cls = InternetArchiveRecord
