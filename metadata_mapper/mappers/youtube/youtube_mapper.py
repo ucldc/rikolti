@@ -19,10 +19,13 @@ class YoutubeRecord(Record):
     
     def map_is_shown_by(self):
         thumbnails = self.source_metadata.get("snippet",{}).get("thumbnails",{})
+
         return thumbnails.get("standard", {}).get("url")
 
     def map_description(self):
-        return self.source_metadata.get("snippet", {}).get("description")
+        description = self.source_metadata.get("snippet", {}).get("description")
+
+        return self.string_to_list(description)
 
     def map_subject(self):
         tags = self.source_metadata.get("snippet", {}).get("tags", [])
@@ -30,7 +33,15 @@ class YoutubeRecord(Record):
         return [{"name": tag} for tag in tags]
 
     def map_title(self):
-        return self.source_metadata.get("snippet", {}).get("title")
+        title = self.source_metadata.get("snippet", {}).get("title")
+
+        return self.string_to_list(title)
+
+    def string_to_list(self, value) -> list:
+        if isinstance(value, str):
+            value = [value]
+
+        return value
 
 
 class YoutubeVernacular(Vernacular):
