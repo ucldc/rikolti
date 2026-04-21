@@ -15,7 +15,7 @@ class InternetArchiveRecord(Record):
             "identifier": self.string_to_list(self.source_metadata.get("identifier")),
             "language": self.source_metadata.get("language"),
             "type": self.source_metadata.get("mediatype"),
-            "rights": self.source_metadata.get("licenseurl"),
+            "rights": self.source_metadata.get("rights"),
             "publisher": self.source_metadata.get("publisher"),
             "subject": self.map_subject(),
             "title": self.string_to_list(self.source_metadata.get("title")),
