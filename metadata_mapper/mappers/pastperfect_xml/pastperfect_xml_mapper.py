@@ -9,18 +9,18 @@ class PastperfectXmlRecord(Record):
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
-            "title": self.source_metadata.get("title"),
+            "title": self.string_to_list(self.source_metadata.get("title")),
             "date": self.map_date,
-            "description": self.source_metadata.get("title"),
+            "description": self.string_to_list(self.source_metadata.get("description")),
             "subject": self.map_subject,
-            "spatial": self.source_metadata.get("place"),
+            "spatial": self.string_to_list(self.source_metadata.get("place")),
             "temporal": self.source_metadata.get("coverage"),
             "format": self.collate_fields(["medium", "material"]),
             "creator": self.collate_fields(["creator", "author", "artist",
                                             "photographer"]),
             "identifier": self.collate_fields(["identifier", "objectid", "arkid"]),
             "type": self.source_metadata.get("objectname"),
-            "relation": self.source_metadata.get("collection"),
+            "relation": self.string_to_list(self.source_metadata.get("collection")),
             "rights": self.source_metadata.get("rights")
         }
 
@@ -47,6 +47,12 @@ class PastperfectXmlRecord(Record):
                 date = f"{date[:-5]} ca."
 
         return date
+
+    def string_to_list(self, value) -> list:
+        if isinstance(value, str):
+            value = [value]
+
+        return value
 
 class PastperfectXmlVernacular(Vernacular):
     record_cls = PastperfectXmlRecord
