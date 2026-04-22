@@ -4,8 +4,10 @@ from ..mapper import Record, Vernacular
 
 class YoutubeRecord(Record):
     def UCLDC_map(self):
+        self.legacy_couch_db_id = f"{self.collection_id}--{self.get_video_id()}"
+
         return {
-            "calisphere-id": self.source_metadata.get("id"),
+            "calisphere-id": self.get_video_id,
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
             "description": self.map_description,
@@ -13,16 +15,27 @@ class YoutubeRecord(Record):
             "title": self.map_title
         }
 
+    def get_video_id(self):
+        if self.source_metadata.get("kind") == "youtube#playlistItem":
+            return self.source_metadata.get("snippet", {}).get("resourceId", {}).get("videoId")
+        elif self.source_metadata.get("kind") == "youtube#video":
+            return self.source_metadata.get("id")
+
     def map_is_shown_at(self):
-        if self.source_metadata.get('id'):
-            return f"https://www.youtube.com/watch?v={self.source_metadata.get('id')}"
-    
+        video_id = self.get_video_id()
+
+        if video_id:
+            return f"https://www.youtube.com/watch?v={video_id}"
+
     def map_is_shown_by(self):
         thumbnails = self.source_metadata.get("snippet",{}).get("thumbnails",{})
+
         return thumbnails.get("standard", {}).get("url")
 
     def map_description(self):
-        return self.source_metadata.get("snippet", {}).get("description")
+        description = self.source_metadata.get("snippet", {}).get("description")
+
+        return self.string_to_list(description)
 
     def map_subject(self):
         tags = self.source_metadata.get("snippet", {}).get("tags", [])
@@ -30,7 +43,15 @@ class YoutubeRecord(Record):
         return [{"name": tag} for tag in tags]
 
     def map_title(self):
-        return self.source_metadata.get("snippet", {}).get("title")
+        title = self.source_metadata.get("snippet", {}).get("title")
+
+        return self.string_to_list(title)
+
+    def string_to_list(self, value) -> list:
+        if isinstance(value, str):
+            value = [value]
+
+        return value
 
 
 class YoutubeVernacular(Vernacular):
