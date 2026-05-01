@@ -10,17 +10,17 @@ class InternetArchiveRecord(Record):
             "isShownBy": self.map_is_shown_by(),
             "relation": self.source_metadata.get("collection"),
             "date": self.source_metadata.get("date"),
-            "description": self.ensure_list("description"),
+            "description": self.ensure_list(self.source_metadata.get("description")),
             "format": self.source_metadata.get("format"),
-            "identifier": self.ensure_list("identifier"),
+            "identifier": self.ensure_list(self.source_metadata.get("identifier")),
             "language": self.source_metadata.get("language"),
             "type": self.source_metadata.get("mediatype"),
-            "rights": self.ensure_list("rights"),
+            "rights": self.ensure_list(self.source_metadata.get("rights")),
             "publisher": self.source_metadata.get("publisher"),
             "subject": self.map_subject(),
-            "title": self.ensure_list("title"),
-            "contributor": self.ensure_list("contributor"),
-            "creator": self.ensure_list("creator")
+            "title": self.ensure_list(self.source_metadata.get("title")),
+            "contributor": self.ensure_list(self.source_metadata.get("contributor")),
+            "creator": self.ensure_list(self.source_metadata.get("creator"))
         }
     
     def map_is_shown_at(self):
