@@ -35,7 +35,7 @@ class YoutubeRecord(Record):
     def map_description(self):
         description = self.source_metadata.get("snippet", {}).get("description")
 
-        return self.string_to_list(description)
+        return self.ensure_list(description)
 
     def map_subject(self):
         tags = self.source_metadata.get("snippet", {}).get("tags", [])
@@ -45,13 +45,7 @@ class YoutubeRecord(Record):
     def map_title(self):
         title = self.source_metadata.get("snippet", {}).get("title")
 
-        return self.string_to_list(title)
-
-    def string_to_list(self, value) -> list:
-        if isinstance(value, str):
-            value = [value]
-
-        return value
+        return self.ensure_list(title)
 
 
 class YoutubeVernacular(Vernacular):
