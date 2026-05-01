@@ -137,10 +137,7 @@ class Record(ABC, object):
 
         return list([s.strip() for s in itertools.chain.from_iterable(split_values)])
 
-    @returns_callable
-    def ensure_list(self, field: Union[list, str]) -> list:
-        value = self.source_metadata.get(field)
-
+    def ensure_list(self, value: Union[list, str]) -> list:
         if not value:
             return
 
