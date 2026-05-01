@@ -10,17 +10,17 @@ class InternetArchiveRecord(Record):
             "isShownBy": self.map_is_shown_by(),
             "relation": self.source_metadata.get("collection"),
             "date": self.source_metadata.get("date"),
-            "description": self.source_metadata.get("description"),
+            "description": self.ensure_list("description"),
             "format": self.source_metadata.get("format"),
-            "identifier": self.string_to_list(self.source_metadata.get("identifier")),
+            "identifier": self.ensure_list("identifier"),
             "language": self.source_metadata.get("language"),
             "type": self.source_metadata.get("mediatype"),
-            "rights": self.source_metadata.get("rights"),
+            "rights": self.ensure_list("rights"),
             "publisher": self.source_metadata.get("publisher"),
             "subject": self.map_subject(),
-            "title": self.string_to_list(self.source_metadata.get("title")),
-            "contributor": self.string_to_list(self.source_metadata.get("contributor")),
-            "creator": self.string_to_list(self.source_metadata.get("creator"))
+            "title": self.ensure_list("title"),
+            "contributor": self.ensure_list("contributor"),
+            "creator": self.ensure_list("creator")
         }
     
     def map_is_shown_at(self):
@@ -39,12 +39,6 @@ class InternetArchiveRecord(Record):
             subjects = [subjects]
 
         return [{"name": subject} for subject in subjects]
-
-    def string_to_list(self, value) -> list:
-        if isinstance(value, str):
-            value = [value]
-
-        return value
 
 class InternetArchiveVernacular(Vernacular):
     record_cls = InternetArchiveRecord
