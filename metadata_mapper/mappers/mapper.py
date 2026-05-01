@@ -4,7 +4,7 @@ import json
 import os
 import re
 from abc import ABC
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 import traceback
 
 from markupsafe import Markup
@@ -136,6 +136,19 @@ class Record(ABC, object):
         split_values = [c.split(';') for c in filter(None, values)]
 
         return list([s.strip() for s in itertools.chain.from_iterable(split_values)])
+
+    @returns_callable
+    def ensure_list(self, field: Union[list, str]) -> list:
+        value = self.source_metadata.get(field)
+
+        if not value:
+            return
+
+        if isinstance(value, list):
+            return value
+        elif isinstance(value, str):
+            return [value]
+        raise ValueError(f"Cannot ensure_list of {type(value)}: {value}")
 
     # Enrichments
     # The enrichment chain is a dpla construction that we are porting to Rikolti
