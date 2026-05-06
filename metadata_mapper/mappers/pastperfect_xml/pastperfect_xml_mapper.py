@@ -9,18 +9,18 @@ class PastperfectXmlRecord(Record):
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
-            "title": self.source_metadata.get("title"),
+            "title": self.ensure_list(self.source_metadata.get("title")),
             "date": self.map_date,
-            "description": self.source_metadata.get("title"),
+            "description": self.ensure_list(self.source_metadata.get("description")),
             "subject": self.map_subject,
-            "spatial": self.source_metadata.get("place"),
+            "spatial": self.ensure_list(self.source_metadata.get("spatial")),
             "temporal": self.source_metadata.get("coverage"),
             "format": self.collate_fields(["medium", "material"]),
             "creator": self.collate_fields(["creator", "author", "artist",
                                             "photographer"]),
             "identifier": self.collate_fields(["identifier", "objectid", "arkid"]),
             "type": self.source_metadata.get("objectname"),
-            "relation": self.source_metadata.get("collection"),
+            "relation": self.ensure_list(self.source_metadata.get("collection")),
             "rights": self.source_metadata.get("rights")
         }
 
