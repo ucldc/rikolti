@@ -18,22 +18,20 @@ class UcdJsonRecord(Record):
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.BASE_URL + self.source_metadata.get("@id", ""),
             "isShownBy": self.map_is_shown_by,
-            "title": self.map_title,
+            "title": self.ensure_list(self.source_metadata.get("name")),
             "date": self.map_date,
-            "description": self.map_description,
+            "description": self.ensure_list(self.source_metadata.get("description")),
             "subject": self.map_subject,
             "format": self.source_metadata.get("material", []),
-            "creator": self.map_creator,
-            "identifier": self.source_metadata.get("identifier"),
+            "creator": self.ensure_list(self.source_metadata.get("creator")),
+            "identifier": self.ensure_list(self.source_metadata.get("identifier")),
             "publisher": self.map_publisher,
             "type": self.source_metadata.get("type"),
             "rightsURI": self.source_metadata.get("license")
         }
 
     def get_legacy_couch_id(self) -> str:
-        identifier = self.source_metadata.get("identifier", [])
-        if isinstance(identifier, str):
-            identifier = [identifier]
+        identifier = self.ensure_list(self.source_metadata.get("identifier"))
 
         ark = [v for v in identifier
                if v.startswith("ark:")]
@@ -50,29 +48,11 @@ class UcdJsonRecord(Record):
         else:
             return None
 
-    def map_title(self) -> Optional[list]:
-        value = self.source_metadata.get("name", [])
-        if not value:
-            return None
-
-        if isinstance(value, list):
-            return value
-
-        return [value]
-
     def map_date(self) -> str:
         date = self.source_metadata.get('datePublished')
         # allow for dates of type str and int
         if date:
             return f"{date}"
-
-    def map_description(self) -> list:
-        value = self.source_metadata.get("description", [])
-
-        if isinstance(value, list):
-            return value
-
-        return [value]
 
     def map_subject(self) -> list:
         value = self.source_metadata.get("subjects", [])
