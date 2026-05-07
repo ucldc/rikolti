@@ -1,7 +1,5 @@
 import json
 
-from typing import Optional
-
 from ..mapper import Vernacular, Record
 
 
