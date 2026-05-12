@@ -8,7 +8,6 @@ class InternetArchiveRecord(Record):
             "calisphere-id": self.source_metadata.get("identifier"),
             "isShownAt": self.map_is_shown_at(),
             "isShownBy": self.map_is_shown_by(),
-            "relation": self.source_metadata.get("collection"),
             "date": self.source_metadata.get("date"),
             "description": self.ensure_list(self.source_metadata.get("description")),
             "format": self.source_metadata.get("format"),
