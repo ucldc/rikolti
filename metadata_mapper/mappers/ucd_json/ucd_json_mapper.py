@@ -21,7 +21,7 @@ class UcdJsonRecord(Record):
             "description": self.ensure_list(self.source_metadata.get("description")),
             "subject": self.map_subject,
             "format": self.source_metadata.get("material", []),
-            "creator": self.ensure_list(self.source_metadata.get("creator")),
+            "creator": self.map_creator,
             "identifier": self.ensure_list(self.source_metadata.get("identifier")),
             "publisher": self.map_publisher,
             "type": self.source_metadata.get("type"),
