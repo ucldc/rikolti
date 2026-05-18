@@ -30,7 +30,10 @@ class YoutubeRecord(Record):
     def map_is_shown_by(self):
         thumbnails = self.source_metadata.get("snippet",{}).get("thumbnails",{})
 
-        return thumbnails.get("standard", {}).get("url")
+        if thumbnails.get("standard", {}).get("url"):
+            return thumbnails.get("standard", {}).get("url")
+        else:
+            return thumbnails.get("high", {}).get("url")
 
     def map_description(self):
         description = self.source_metadata.get("snippet", {}).get("description")
