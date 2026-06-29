@@ -92,10 +92,10 @@ class YoutubeFetcher(Fetcher):
             )
 
         return len(items)
-    
+
     def increment(self, http_resp):
         self.write_page = self.write_page + 1
-        
+
         if not is_playlist(self.url):
             data = http_resp.json()
             self.next_page_token = data.get("nextPageToken")
