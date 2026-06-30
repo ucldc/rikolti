@@ -11,6 +11,11 @@ class NuxeoRecord(Record):
         return super().to_UCLDC()
 
     def UCLDC_map(self):
+        # All collections w/ rikolti_mapper_type__startswith="nuxeo." have 
+        # first enrichment: Counter({'/select-id?prop=uid': 398})
+        id_handle = self.source_metadata["uid"].strip().replace(" ", "__")
+        self.legacy_couch_db_id = f"{self.collection_id}--{id_handle}"
+
         return {
             "calisphere-id": self.original_metadata.get("uid"),
             "isShownAt": (
