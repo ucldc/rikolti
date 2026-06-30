@@ -4,6 +4,13 @@ from ..mapper import Vernacular, Record
 
 class PastperfectXmlRecord(Record):
 
+    def to_UCLDC(self):
+        # All collections w/ rikolti_mapper_type__startswith="pastperfect" have 
+        # first enrichment: Counter({'/select-id?prop=identifier': 4})
+        id_handle = self.source_metadata["identifier"].strip().replace(" ", "__")
+        self.legacy_couch_db_id = f"{self.collection_id}--{id_handle}"
+        return super().to_UCLDC()
+
     def UCLDC_map(self):
         return {
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
