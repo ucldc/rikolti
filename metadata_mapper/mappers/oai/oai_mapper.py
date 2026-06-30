@@ -17,6 +17,11 @@ class OaiRecord(Record):
     TYPES_BASEURL = "http://id.loc.gov/vocabulary/resourceTypes/"
 
     def UCLDC_map(self):
+        # All collections w/ rikolti_mapper_type__startswith="oai." have 
+        # first enrichment: Counter({'/select-id?prop=id': 1281})
+        id_handle = self.source_metadata["id"].strip().replace(" ", "__")
+        self.legacy_couch_db_id = f"{self.collection_id}--{id_handle}"
+
         return {
             # `legacy_couch_db_id` is set by a premapping function
             "calisphere-id": self.legacy_couch_db_id.split("--")[1],
