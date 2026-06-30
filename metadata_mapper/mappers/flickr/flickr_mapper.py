@@ -8,6 +8,11 @@ from ..mapper import Record, Validator, Vernacular
 
 class FlickrRecord(Record):
     def UCLDC_map(self):
+        # All collections w/ rikolti_mapper_type__startswith="flickr." have 
+        # first enrichment: Counter({'/select-id?prop=id': 41})
+        id_handle = self.source_metadata["id"].strip().replace(" ", "__")
+        self.legacy_couch_db_id = f"{self.collection_id}--{id_handle}"
+
         return {
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.map_is_shown_at,
