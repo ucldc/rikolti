@@ -9,6 +9,13 @@ class UcsdBlacklightMapper(Record):
 
     BASE_ARK = "ark:/20775/"
 
+    def to_UCLDC(self):
+        # All collections w/ rikolti_mapper_type__startswith="ucsd_blacklight." have 
+        # first enrichment: Counter({'/select-id?prop=id': 455, 'select-id?prop=id': 1})
+        id_handle = self.source_metadata["id"].strip().replace(" ", "__")
+        self.legacy_couch_db_id = f"{self.collection_id}--{id_handle}"
+        return super().to_UCLDC()
+
     def UCLDC_map(self) -> dict:
         return {
             "calisphere-id": self.legacy_couch_db_id.split("--")[1],
