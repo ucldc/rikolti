@@ -6,8 +6,13 @@ from ..mapper import Record, Vernacular, Validator
 
 class NuxeoRecord(Record):
     def to_UCLDC(self):
+        # All collections w/ rikolti_mapper_type__startswith="nuxeo." have 
+        # first enrichment: Counter({'/select-id?prop=uid': 398})
+        id_handle = self.source_metadata["uid"].strip().replace(" ", "__")
+        self.legacy_couch_db_id = f"{self.collection_id}--{id_handle}"
+
         self.original_metadata = self.source_metadata
-        self.source_metadata = self.source_metadata.get('properties')
+        self.source_metadata = self.source_metadata.get('properties', {})
         return super().to_UCLDC()
 
     def UCLDC_map(self):
