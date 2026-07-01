@@ -9,6 +9,26 @@ from ..utils import exists, getprop, iterify
 class OacRecord(Record):
 
     def to_UCLDC(self):
+        # copy select-oac-id here
+        id_values = self.source_metadata.get("identifier")
+        if not isinstance(id_values, list):
+            id_values = [id_values]
+
+        ark_ids = [v.get('text') for v in id_values
+                   if v.get('text').startswith("http://ark.cdlib.org/ark:")]
+
+        calisphere_id = None
+        if ark_ids:
+            calisphere_id = ark_ids[0]
+        else:
+            calisphere_id = id_values[0]
+
+        self.pre_mapped_data["id"] = f"{self.collection_id}--{calisphere_id}"
+        self.pre_mapped_data["calisphere-id"] = f"{calisphere_id}"
+        self.pre_mapped_data["isShownAt"] = calisphere_id
+        self.pre_mapped_data["isShownBy"] = f"{calisphere_id}/thumbnail"
+        self.legacy_couch_db_id = (f"{self.collection_id}--{calisphere_id}")
+
         mapped_data = {}
 
         id = self.pre_mapped_data.get("id", "")
