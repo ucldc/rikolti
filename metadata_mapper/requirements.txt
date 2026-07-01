@@ -6,3 +6,4 @@ MarkupSafe
 python-dotenv
 timelib
 pymarc
+typing-extensions
