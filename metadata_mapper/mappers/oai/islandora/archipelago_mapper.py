@@ -5,7 +5,8 @@ class ArchipelagoRecord(IslandoraRecord):
     def UCLDC_map(self):
         return {
             'isShownAt': self.source_metadata.get('identifier.url')[0],
-            'isShownBy': self.source_metadata.get('identifier.thumbnail')[0]
+            'isShownBy': self.source_metadata.get('identifier.thumbnail')[0],
+            'identifier': self.collate_fields(['bibliographicCitation', 'identifier', 'identifier.ark'])
         }
 
 class ArchipelagoVernacular(IslandoraVernacular):
