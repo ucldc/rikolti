@@ -9,6 +9,12 @@ from ..mapper import Record, Vernacular, Validator
 
 
 class TindRecord(Record):
+    def to_UCLDC(self):
+        # All collections w/ rikolti_mapper_type__startswith="marc." have 
+        # first enrichment: Counter({'/select-id?prop=id': 338})
+        id_handle = self.source_metadata["id"].strip().replace(" ", "__")
+        self.legacy_couch_db_id = f"{self.collection_id}--{id_handle}"
+        return super().to_UCLDC()
 
     def UCLDC_map(self):
         self.marc_880_fields = self.get_880_fields()
