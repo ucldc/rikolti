@@ -9,9 +9,11 @@ class UcdJsonRecord(Record):
     IMAGE_URL_PREFIX = f"{BASE_URL}/fcrepo/rest"
     IMAGE_URL_SUFFIX = "/svc:gcs/dams-client-media-prod/images/large.jpg"
 
-    def UCLDC_map(self) -> dict[str]:
+    def to_UCLDC(self):
         self.legacy_couch_db_id = self.get_legacy_couch_id()
+        return super().to_UCLDC()
 
+    def UCLDC_map(self) -> dict[str]:
         return {
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.BASE_URL + self.source_metadata.get("@id", ""),

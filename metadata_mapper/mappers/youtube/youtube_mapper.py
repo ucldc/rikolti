@@ -3,9 +3,11 @@ import json
 from ..mapper import Record, Vernacular
 
 class YoutubeRecord(Record):
-    def UCLDC_map(self):
+    def to_UCLDC(self):
         self.legacy_couch_db_id = f"{self.collection_id}--{self.get_video_id()}"
+        return super().to_UCLDC()
 
+    def UCLDC_map(self):
         return {
             "calisphere-id": self.get_video_id,
             "isShownAt": self.map_is_shown_at,
