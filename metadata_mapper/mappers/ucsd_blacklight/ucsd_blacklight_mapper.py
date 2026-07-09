@@ -14,6 +14,10 @@ class UcsdBlacklightMapper(Record):
         # first enrichment: Counter({'/select-id?prop=id': 455, 'select-id?prop=id': 1})
         id_handle = self.source_metadata["id"].strip().replace(" ", "__")
         self.legacy_couch_db_id = f"{self.collection_id}--{id_handle}"
+
+        # All collections w/ rikolti_mapper_type = ucsd_blacklight.ucsd_blacklight
+        # have second enrichment: '/jsonfy_prop': 456
+        self.jsonfy_prop()
         return super().to_UCLDC()
 
     def UCLDC_map(self) -> dict:
