@@ -1,9 +1,9 @@
 import json
-import logging
 import requests
 from urllib.parse import urlsplit, quote
 
-from .Fetcher import Fetcher, FetchError
+from .Fetcher import Fetcher, FetchError, FetchedPageStatus, logger
+from rikolti.utils.versions import put_versioned_page
 
 class PreservicaApiFetcher(Fetcher):
     BASE_URL ="https://us.preservica.com/api"
@@ -29,25 +29,70 @@ class PreservicaApiFetcher(Fetcher):
         self.num_fetched = params.get("num_fetched", 0)
         self.start_at = params.get("start_at", 0)
 
-    def build_fetch_request(self) -> dict[str]:
+    def fetch_page(self) -> FetchedPageStatus:
+        # get a page of child object ids
+        object_children_response = self.get_object_children_page()
+        children = object_children_response.json()
+        object_ids = children.get("value", {}).get("objectIds", [])
+
+        # Although it is possible to fetch object metadata via the
+        # content/get_object_children endpoint, it only returns the first
+        # value for each field, i.e. if a record has multiple subjects,
+        # then it will only return the first one. Therefore, we now have
+        # to hit the content/object-details endpoint for each record
+        # to get full metadata.
+        records = []
+        record_count = 0
+        for id in object_ids:
+            object_detail_response = self.get_object_detail(id)
+            item = object_detail_response.json()
+            item = item.get("value", {})
+            if item:
+                records.append(item)
+                record_count = record_count + 1
+
+        if not record_count:
+            logger.warning(
+                f"[{self.collection_id}]: no records found "
+                f"on page {self.write_page}"
+            )
+
+        filepath = None
+        try:
+            filepath = put_versioned_page(
+                json.dumps(records), self.write_page, self.vernacular_version)
+        except Exception as e:
+            print(f"Metadata Fetcher: {e}")
+            raise(e)
+
+        self.increment(object_children_response)
+
+        return FetchedPageStatus(record_count, filepath)
+
+    def get_object_detail(self, id):
+        # https://us.preservica.com/api/content/documentation.html#/%2F/get_object_details
+        url = f"{self.BASE_URL}/content/object-details?id={quote(id)}"
+        headers = {
+                "Preservica-Access-Token": self.access_token,
+                "accept": "application/json"
+            }
+        request = {"url": url, "headers": headers}
+
+        try:
+            response = self.http_session.get(**request)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise FetchError(
+                f"[{self.collection_id}]: unable to fetch object-details page {request}",
+                f"Error was: {e}"
+            )
+
+        return response
+
+    def get_object_children_page(self):
         # https://us.preservica.com/api/content/documentation.html#/%2F/get_object_children
         fields_to_fetch = [
-            'id',
-            'oai_dc.contributor',
-            'oai_dc.coverage',
-            'oai_dc.creator',
-            'oai_dc.date',
-            'oai_dc.description',
-            'oai_dc.format',
-            'oai_dc.identifier',
-            'oai_dc.language',
-            'oai_dc.publisher',
-            'oai_dc.relation',
-            'oai_dc.rights',
-            'oai_dc.source',
-            'oai_dc.subject',
-            'oai_dc.title',
-            'oai_dc.type'
+            'id'
         ]
         url = (
                 f"{self.BASE_URL}/content/object-children?"
@@ -63,12 +108,21 @@ class PreservicaApiFetcher(Fetcher):
                 "accept": "application/json"
             }
 
-        request = {
+        page = {
                 "url": url,
                 "headers": headers
             }
 
-        return request
+        try:
+            response = self.http_session.get(**page)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise FetchError(
+                f"[{self.collection_id}]: unable to fetch object-children page {page}",
+                f"Error was: {e}"
+            )
+
+        return response
 
     def get_preservica_collection_id(self) -> str:
         # example harvest url:
@@ -125,17 +179,6 @@ class PreservicaApiFetcher(Fetcher):
             )
 
         return token
-
-    def check_page(self, http_resp) -> int:
-        data = http_resp.json()
-        items = data.get("value").get("metadata")
-        if len(items) > 0:
-            logging.debug(
-                f"{self.collection_id}, fetched page {self.write_page} - "
-                f"{len(items)} hits,-,-,-,-,-"
-            )
-
-        return len(items)
 
     def increment(self, http_resp):
         self.write_page = self.write_page + 1
