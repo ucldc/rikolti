@@ -28,6 +28,7 @@ class PreservicaRecord(Record):
             "subject": self.map_subject,
             "title": self.source_metadata.get("title"),
             "type": self.source_metadata.get("type"),
+            "stateLocatedIn": [{"name": "California"}]
         }
     
     def remove_id_prefix(self, id) -> str:
