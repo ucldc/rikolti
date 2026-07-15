@@ -2,6 +2,7 @@ import json
 import requests
 from urllib.parse import urlsplit, quote
 
+from .. import settings
 from .Fetcher import Fetcher, FetchError, FetchedPageStatus, logger
 from rikolti.utils.versions import put_versioned_page
 
@@ -141,14 +142,10 @@ class PreservicaApiFetcher(Fetcher):
         """
         Get access token: https://us.preservica.com/api/accesstoken/documentation.html#//post_login
         """
-        credentials = self.harvest_data.get("harvest_extra_data")
-        credentials = [c.strip()for c in credentials.split(',')]
-        user = credentials[0]
-        password = credentials[1]
         url = f"{self.BASE_URL}/accesstoken/login"
         data = {
-            "username": user,
-            "password": password,
+            "username": settings.PRESERVICA_USER,
+            "password": settings.PRESERVICA_PASS,
             "cookie": "false",
             "includeUserDetails": "false"
         }
