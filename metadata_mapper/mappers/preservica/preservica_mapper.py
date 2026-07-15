@@ -66,11 +66,10 @@ class PreservicaVernacular(Vernacular):
             for field in dc_metadata[0]["groupOrItem"]:
                 field_name = field["name"]
                 field_value = field["value"]
+                if field_name not in record:
+                    record[field_name] = []
                 if field_value:
-                    if field_name in record:
-                        record[field_name].append(field_value)
-                    else:
-                        record[field_name] = [field_value]
+                    record[field_name].append(field_value)
 
             records.append(record)
 
