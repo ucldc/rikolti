@@ -35,10 +35,9 @@ def get_indexed_ids_from_opensearch(collection_id: int) -> dict[str, str]:
         "track_total_hits": True
     }
 
-    search_url = f"{settings.ENDPOINT}/rikolti-prd/_search"
+    search_url = f"{settings.ENDPOINT}/rikolti-prd/_search?scroll=1m"
     resp = requests.get(
         url=search_url,
-        params={"scroll": "1m"},
         data=json.dumps(opensearch_request),
         headers={"Content-Type": "application/json"},
         auth=settings.get_auth(),
@@ -57,11 +56,12 @@ def get_indexed_ids_from_opensearch(collection_id: int) -> dict[str, str]:
         return {}
     
 
-    scroll_id = resp.headers.get('X-Scroll-Id')
+    scroll_id = response_data.get('_scroll_id')
     while scroll_id:
-        scroll_resp = requests.post(
+        scroll_resp = requests.get(
             url=f"{settings.ENDPOINT}/_search/scroll",
             data=json.dumps({
+                "scroll": "1m",
                 "scroll_id": scroll_id
             }),
             headers={"Content-Type": "application/json"},
@@ -76,13 +76,13 @@ def get_indexed_ids_from_opensearch(collection_id: int) -> dict[str, str]:
         if not scroll_data['hits']['hits']:
             break
         response_data['hits']['hits'].extend(scroll_data['hits']['hits'])
-        scroll_id = scroll_resp.headers.get('X-Scroll-Id')
+        scroll_id = scroll_data.get('_scroll_id')
 
     indexed_ids = {
         r['_id']: r['_source']['calisphere-id']
         for r in response_data['hits']['hits'] 
     }
-    
+
     if len(indexed_ids) != response_data['hits']['total']['value']:
         print(
             f"Warning: Retrieved {len(indexed_ids)} indexed IDs, "
