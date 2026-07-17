@@ -76,7 +76,16 @@ class XmlFileFetcher(Fetcher):
         """
         This check assumes no xml namespace for record elements
         """
-        xml_resp = ElementTree.fromstring(response.text)
+        try:
+            xml_resp = ElementTree.fromstring(response.text)
+        except ElementTree.ParseError:
+            # The xml we fetch from https://historysanjose.catalogaccess.com/dpla.xml
+            # has 'Content-Type': 'text/xml' and 'Content-Encoding': 'gzip'.
+            # Python requests assumes ISO-8859-1 encoding for this, but that is
+            # incorrect, so try using its educated guess based on chardet instead.
+            response.encoding = response.apparent_encoding
+            xml_resp = ElementTree.fromstring(response.text)
+
         xml_hits = xml_resp.findall(".//record")
 
         if len(xml_hits) > 0:
