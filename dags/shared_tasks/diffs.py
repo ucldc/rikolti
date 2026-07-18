@@ -164,16 +164,20 @@ def create_id_diff_report(
 
 # get basis of comparison for DIFFs
 
-def _get_indexed_data_from_opensearch(calisphere_ids: list[str]):
+def _get_indexed_data_from_opensearch(calisphere_ids: list[str], collection_id: str):
     search_url = f"{settings.ENDPOINT}/rikolti-prd/_search"
     query = {
         "query": {
-            "terms": {
-                "calisphere-id": calisphere_ids
+            "bool": {
+                "must": [
+                    {"match": {"collection_url": collection_id}},
+                    {"terms": {"calisphere-id": calisphere_ids}}
+                ]
             }
         },
         "size": len(calisphere_ids) * 2
     }
+
     resp = requests.post(
         url=search_url,
         data=json.dumps(query),
@@ -240,12 +244,12 @@ def _get_mapped_pages_from_opensearch(calisphere_ids: list[str]):
     print(f"getting mapped pages from open search: {c}")
     return c
 
-def get_basis_of_comparison(indexed_version: str | None, candidate_record_ids: list[str]) -> dict[str, dict]:
+def get_basis_of_comparison(indexed_version: str | None, candidate_record_ids: list[str], collection_id: str) -> dict[str, dict]:
     if not indexed_version:
         indexed_records = {}
     elif indexed_version == 'initial':
         indexed_records = _get_indexed_data_from_opensearch(
-            list(candidate_record_ids))
+            list(candidate_record_ids), collection_id)
     else:
         indexed_mapped_pages = (
             _get_mapped_pages_from_opensearch(list(candidate_record_ids))
@@ -492,8 +496,7 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[list[str], l
         candidate_ids.update({r['id']: r['calisphere-id'] for r in candidate_records})
         candidate_records = {r['calisphere-id']: r for r in candidate_records}
 
-        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()))
-
+        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()), collection_id)
         for candidate_record_id in candidate_records:
             missing_fields = check_for_missing_fields(candidate_records[candidate_record_id])
             if missing_fields:
