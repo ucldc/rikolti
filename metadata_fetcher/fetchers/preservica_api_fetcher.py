@@ -182,7 +182,7 @@ class PreservicaApiFetcher(Fetcher):
 
         fetched_page = http_resp.json()
         self.num_fetched += len(fetched_page.get("value", {}).get("metadata", []))
-        if self.num_fetched >= fetched_page.get("value", {}).get("totalHits"):
+        if self.num_fetched >= fetched_page.get("value", {}).get("totalHits", 0):
             self.finished = True
         else:
             self.finished = False
