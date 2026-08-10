@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass
 
 import requests
 
-from rikolti.utils.registry_client import registry_endpoint
+from rikolti.utils import registry_client
 from rikolti.utils.versions import get_versioned_pages
 
 from .lambda_shepherd import MappedCollectionStatus, map_collection
@@ -24,8 +24,7 @@ def map_endpoint(
 
     response = requests.get(url=url)
     response.raise_for_status()
-    total: int | str = (
-        response.json().get('meta', {}).get('total_count', 1))
+    total = registry_client.collection_count(url)
     progress = 0
     # map_report_headers = (
     #     "Collection ID, Status, Extent, Solr Count, Diff Count, Message"
@@ -39,7 +38,7 @@ def map_endpoint(
     # print(map_report_headers)
     map_report = {}
 
-    for collection in registry_endpoint(url):
+    for collection in registry_client.registry_endpoint(url):
         collection_id = collection['collection_id']
 
         progress = progress + 1
@@ -100,7 +99,7 @@ def validate_endpoint(
 
     validation_reports = {}
 
-    for collection in registry_endpoint(url):
+    for collection in registry_client.registry_endpoint(url):
         collection_id = collection['collection_id']
         progress = progress + 1
         print(f"{collection_id:<6} Validating collection")
