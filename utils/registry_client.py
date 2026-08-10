@@ -18,6 +18,36 @@ else:
     REGISTRY_TOKEN = os.environ.get('RIKOLTI_REGISTRY_TOKEN', '')
 
 
+def mapper(collection_id):
+    url = ("https://registry.cdlib.org/api/v1/rikoltimapper/"
+           f"{collection_id}/?format=json")
+    try:
+        response = requests.get(
+            url=url, 
+            headers={
+                "Authorization": f"ApiKey {REGISTRY_USER}:{REGISTRY_TOKEN}"
+            }
+        )
+        response.raise_for_status()
+        collection_data = response.json()
+    except requests.exceptions.HTTPError as err:
+        print(
+            f"[Collection {collection_id}]: "
+            f"[{url}]"
+            f"{err}; Can't retrieve collection data from registry"
+        )
+    return collection_data
+
+
+def collection(collection_id):
+    collection = requests.get(
+        f'https://registry.cdlib.org/api/v1/'
+        f'rikolticollection/{collection_id}/?format=json',
+        headers={"Authorization": f'ApiKey {REGISTRY_USER}:{REGISTRY_TOKEN}'}
+    ).json()
+    return collection
+
+
 def collection_count(url):
     response = requests.get(
         url=url,

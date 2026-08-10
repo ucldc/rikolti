@@ -5,8 +5,7 @@ import sys
 from dataclasses import asdict, dataclass
 from urllib.parse import urlparse
 
-import requests
-
+from rikolti.utils import registry_client
 from rikolti.utils.versions import (
     create_mapped_version,
     get_most_recent_vernacular_version,
@@ -17,14 +16,6 @@ from rikolti.utils.versions import (
 from . import validate_mapping
 from .lambda_function import MappedPageStatus, map_page
 from .mappers.mapper import Record
-
-
-def get_collection(collection_id):
-    collection = requests.get(
-        f'https://registry.cdlib.org/api/v1/'
-        f'rikolticollection/{collection_id}/?format=json'
-    ).json()
-    return collection
 
 
 def check_for_missing_enrichments(collection):
@@ -180,7 +171,7 @@ def map_collection(
     if isinstance(validate, str):
          validate = json.loads(validate)
 
-    collection = get_collection(collection_id)
+    collection = registry_client.collection(collection_id)
 
     if not vernacular_version:
         vernacular_version = get_most_recent_vernacular_version(collection_id)

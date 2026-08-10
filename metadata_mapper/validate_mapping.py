@@ -8,6 +8,7 @@ from collections import Counter
 import requests
 import urllib3
 
+from rikolti.utils import registry_client
 from rikolti.utils.versions import (
     get_version,
     get_versioned_page_as_json,
@@ -343,21 +344,7 @@ def get_couch_db_data(collection_id: int,
 
 
 def get_validator_class(collection_id: int) -> type[Validator]:
-    url = ("https://registry.cdlib.org/api/v1/rikoltimapper/"
-           f"{collection_id}/?format=json")
-
-    try:
-        response = requests.get(url=url)
-        response.raise_for_status()
-        collection_data = response.json()
-    except requests.exceptions.HTTPError as err:
-        print(
-            f"[Collection {collection_id}]: "
-            f"[{url}]"
-            f"{err}; A valid collection id is required for validation"
-        )
-        return
-
+    collection_data = registry_client.mapper(collection_id)
     mapper = collection_data.get("rikolti_mapper_type")
     vernacular = utilities.import_vernacular_reader(mapper)
 
