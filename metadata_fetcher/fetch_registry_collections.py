@@ -2,9 +2,7 @@ import argparse
 import logging
 import sys
 
-import requests
-
-from rikolti.utils.registry_client import registry_endpoint
+from rikolti.utils import registry_client
 from rikolti.utils.versions import create_vernacular_version
 
 from . import lambda_function
@@ -30,9 +28,7 @@ def fetch_endpoint(
         )
     }
     """
-    response = requests.get(url=url)
-    response.raise_for_status()
-    total = response.json().get('meta', {}).get('total_count', 1)
+    total = registry_client.collection_count(url)
     progress = 0
     if not limit:
         limit = total
@@ -43,7 +39,7 @@ def fetch_endpoint(
 
     results = {}
 
-    for collection in registry_endpoint(url):
+    for collection in registry_client.registry_endpoint(url):
         collection_id = collection['collection_id']
 
         progress = progress + 1
