@@ -1,16 +1,13 @@
 import sys
 
-import requests
-from rikolti.utils.registry_client import registry_endpoint
+from rikolti.utils import registry_client
 from rikolti.utils.versions import get_most_recent_mapped_version
 
 from .by_collection import harvest_collection_content
 
 
 def harvest_endpoint(url, limit=None):
-    response = requests.get(url=url)
-    response.raise_for_status()
-    total = response.json().get('meta', {}).get('total_count', 1)
+    total = registry_client.collection_count(url)
     if not limit:
         limit = total
     print(
@@ -18,7 +15,7 @@ def harvest_endpoint(url, limit=None):
     )
     results = []
 
-    for collection in registry_endpoint(url):
+    for collection in registry_client.registry_endpoint(url):
         print(
             f"{collection['id']:<6}: {collection['solr_count']} items in solr "
             f"as of {collection['solr_last_updated']}"
