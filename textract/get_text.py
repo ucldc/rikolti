@@ -1,5 +1,6 @@
-import boto3
 import json
+
+import boto3
 
 
 def get_text(sns_message, context):
@@ -11,11 +12,11 @@ def get_text(sns_message, context):
 
 	print(job['Status'])
 	if job['Status'] != 'SUCCEEDED':
-		print((
+		print(
 			f"{job['Status']}: s3://"
 			f"{job['DocumentLocation']['S3Bucket']}"
 			f"{job['DocumentLocation']['S3ObjectName']}"
-		))
+		)
 		return
 
 	next=True

@@ -1,5 +1,4 @@
 # test 
-# noqa: E501
 from get_text import get_text
 
 test = {
@@ -14,7 +13,7 @@ test = {
             'Sns': {
 				'Type': 'Notification', 
 				'MessageId': '60c2153a-e4ab-5306-9953-42dc000fa6b5', 
-				'TopicArn': 'arn:aws:sns:us-west-2:563907706919:AmazonTextractPachamama', # noqa: E501
+				'TopicArn': 'arn:aws:sns:us-west-2:563907706919:AmazonTextractPachamama',
 				'Subject': None, 
 				'Message': '''{
 					"JobId":"b9150f75d8435907ea110448f4b4078abc18de71788457525a76516ff8912aa7",
