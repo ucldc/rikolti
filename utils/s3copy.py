@@ -1,7 +1,12 @@
 import os
+
 import boto3
+
 from .storage import DataStorage, parse_data_uri
 
+
+class S3CopyError(Exception):
+    pass
 
 def copy_s3_to_local(data: DataStorage, destination: str, **kwargs):
     """
@@ -38,7 +43,7 @@ def copy_to_local(data_uri: str, destination: str, **kwargs):
     if data.store == 's3':
         return copy_s3_to_local(data, destination, **kwargs)
     else:
-        raise Exception(f"Unknown data store: {data.store}")
+        raise S3CopyError(f"Unknown data store: {data.store}")
 
 
 if __name__ == "__main__":

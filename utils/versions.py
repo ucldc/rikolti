@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import json
 import os
 from datetime import datetime
-from typing import Union, Optional, Literal
+from typing import Literal
+
 from . import storage
 
 """
@@ -17,7 +20,10 @@ version path, a method to find a version path in an arbitrary string - usually
 an absolute path URI:
 """
 
-def get_version(collection_id: Union[int, str], uri: str) -> str:
+class VersionError(Exception):
+    pass
+
+def get_version(collection_id: int | str, uri: str) -> str:
     """
     Takes an arbitrary string (usually a URI) and tries to find a version path
     by splitting on the collection id and discarding everything prior to the
@@ -30,7 +36,7 @@ def get_version(collection_id: Union[int, str], uri: str) -> str:
     collection_id = str(collection_id)
     uri_parts = uri.strip('/').split('/')
     if str(collection_id) not in uri_parts or len(uri_parts) < 2:
-        raise Exception(f"Not a valid version path: {uri}, {uri_parts}")
+        raise VersionError(f"Not a valid version path: {uri}, {uri_parts}")
     path_list = uri_parts[uri_parts.index(collection_id):]
     if 'data' in path_list:
         path_list = path_list[:path_list.index('data')]
@@ -48,7 +54,7 @@ prefixes = Literal[
     "merged_"
 ]
 def create_version(
-        version: str, prefix: prefixes, suffix: Optional[str] = None) -> str:
+        version: str, prefix: prefixes, suffix: str | None = None) -> str:
     """
     Given a version path, ex: 3433/vernacular_metadata_v1/ and a version prefix,
     ex: mapped_metadata_, and a version suffix, ex: v2, creates a new version
@@ -58,11 +64,11 @@ def create_version(
     """
     version = version.rstrip('/')
     if not suffix:
-        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        suffix = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')   # noqa: DTZ005
     return f"{version}/{prefix}{suffix}/"
 
 
-def create_vernacular_version(collection_id: Union[int, str], **kwargs) -> str:
+def create_vernacular_version(collection_id: int | str, **kwargs) -> str:
     return create_version(f"{collection_id}", "vernacular_metadata_", **kwargs)
 
 def create_mapped_version(vernacular_version: str, **kwargs) -> str:
@@ -90,7 +96,7 @@ def create_merged_version(with_content_urls_version: str, **kwargs) -> str:
     return create_version(with_content_urls_version, "merged_", **kwargs)
 
 
-def get_most_recent_vernacular_version(collection_id: Union[int, str]):
+def get_most_recent_vernacular_version(collection_id: int | str):
     """
     Sorts the contents of $RIKOLTI_DATA/<collection_id>/, and returns the
     version path of the first item - this presumes a sortable vernacular
@@ -99,24 +105,24 @@ def get_most_recent_vernacular_version(collection_id: Union[int, str]):
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     versions = storage.list_dirs(f"{data_root.rstrip('/')}/{collection_id}/")
     if not versions:
-        raise Exception(
+        raise VersionError(
             "No vernacular metadata versions found for {collection_id}")
-    recent_version = sorted(versions)[-1]
+    recent_version = max(versions)
     return f"{collection_id}/{recent_version}/"
 
-def get_most_recent_mapped_version(collection_id: Union[int, str]):
+def get_most_recent_mapped_version(collection_id: int | str):
     data_root = os.environ.get("RIKOLTI_DATA", "file:///tmp")
     collection_path = f"{data_root.rstrip('/')}/{collection_id}/"
     vernacular_versions = storage.list_dirs(collection_path)
     if not vernacular_versions:
-        raise Exception(
+        raise VersionError(
             "No vernacular metadata versions found for {collection_id}")
-    vernacular_version = sorted(vernacular_versions)[-1]
+    vernacular_version = max(vernacular_versions)
     mapped_versions = storage.list_dirs(f"{collection_path}{vernacular_version}/")
     if not mapped_versions:
-        raise Exception(
+        raise VersionError(
             "No mapped metadata versions found for {collection_id} at {vernacular_version}")
-    recent_version = sorted(mapped_versions)[-1]
+    recent_version = max(mapped_versions)
     return f"{collection_id}/{vernacular_version}/{recent_version}/"
 
 def get_versioned_pages(version, **kwargs):
@@ -178,7 +184,7 @@ def get_versioned_page_as_json(version_page):
     content = get_versioned_page_content(version_page)
     return json.loads(content)
 
-def put_versioned_page(content: str, page_name: Union[int, str], version: str):
+def put_versioned_page(content: str, page_name: int | str, version: str):
     """
     resolves a version path to a page uri at $RIKOLTI_DATA/<version>/data/<page_name>.jsonl
     and writes content to that data uri. returns the version page.

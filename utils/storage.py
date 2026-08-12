@@ -1,12 +1,10 @@
 import os
 import re
+import shutil
+from dataclasses import dataclass
+from urllib.parse import urlparse
 
 import boto3
-import shutil
-
-from urllib.parse import urlparse
-from dataclasses import dataclass
-
 
 """
 This module implements list, get, and put operations for s3:// or file:// URIs.
@@ -14,6 +12,9 @@ Broadly, these functions take a data_uri, where a data_uri is always a
 URI-formatted absolute path to a storage location, and kwargs, which are always
 passed along to the underlying boto3 call and can be used for AWS credentials
 """
+
+class StorageException(Exception):
+    pass
 
 
 @dataclass
@@ -62,7 +63,7 @@ def list_dirs(data_uri: str, recursive=False, **kwargs) -> list[str]:
         ]
         return dirs
     else:
-        raise Exception(f"Unknown data store: {data.store}")
+        raise StorageException(f"Unknown data store: {data.store}")
 
 
 def list_pages(data_uri: str, recursive: bool=True, **kwargs) -> list:
@@ -78,7 +79,7 @@ def list_pages(data_uri: str, recursive: bool=True, **kwargs) -> list:
     if data.store == 's3':
         try:
             return list_s3_pages(data, recursive=recursive, **kwargs)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             url = (
                 f"https://{data.bucket}.s3.us-west-2.amazonaws"
                 f".com/index.html#{data.path}/"
@@ -91,11 +92,11 @@ def list_pages(data_uri: str, recursive: bool=True, **kwargs) -> list:
     elif data.store == 'file':
         try:
             return list_file_pages(data, recursive=recursive)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"Error listing files in {data.path}\n{e}")
             raise FileNotFoundError
     else:
-        raise Exception(f"Unknown data store: {data.store}")
+        raise StorageException(f"Unknown data store: {data.store}")
 
 
 def list_s3_pages(data: DataStorage, recursive: bool=True, **kwargs) -> list:
@@ -152,7 +153,7 @@ def get_page_content(data_uri: str, **kwargs):
     elif data.store == 'file':
         return get_file_contents(data)
     else:
-        raise Exception(f"Unknown data store: {data.store}")
+        raise StorageException(f"Unknown data store: {data.store}")
 
 
 def get_s3_contents(data: DataStorage, **kwargs):
@@ -164,7 +165,7 @@ def get_s3_contents(data: DataStorage, **kwargs):
     try:
         obj = s3.get_object(Bucket=data.bucket, Key=data.path.lstrip('/'))
         return obj['Body'].read().decode('utf-8')
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         url = (
             f"https://{data.bucket}.s3.us-west-2.amazonaws.com/"
             f"index.html#{data.path}/"
@@ -181,7 +182,7 @@ def get_file_contents(data: DataStorage):
     try:
         with open(data.path, 'r') as f:
             return f.read()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         raise FileNotFoundError(f"Error reading {data.path}\n{e}")
 
 
@@ -197,7 +198,7 @@ def put_page_content(content:str, data_uri: str, **kwargs) -> str:
     elif data.store == 'file':
         return put_file_content(data, content)
     else:
-        raise Exception(f"Unknown data store: {data.store}")
+        raise StorageException(f"Unknown data store: {data.store}")
 
 
 def put_s3_content(data: DataStorage, content, **kwargs) -> str:
@@ -242,7 +243,7 @@ def upload_file(filepath:str, data_uri: str, **kwargs):
     elif data.store == 'file':
         return copy_file(data, filepath)
     else:
-        raise Exception(f"Unknown data store: {data.store}")
+        raise StorageException(f"Unknown data store: {data.store}")
 
 def upload_s3_file(data: DataStorage, filepath, **kwargs):
     """
