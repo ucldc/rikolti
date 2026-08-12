@@ -5,8 +5,8 @@ import sys
 import requests
 
 from .. import settings
-from .record_index_config import RECORD_INDEX_CONFIG
 from ..utils import print_opensearch_error
+from .record_index_config import RECORD_INDEX_CONFIG
 
 """
     Create OpenSearch index template for rikolti

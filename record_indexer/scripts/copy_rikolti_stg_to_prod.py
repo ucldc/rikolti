@@ -1,10 +1,10 @@
-from datetime import datetime
 import sys
-
 import time
+from datetime import datetime
 
 from .. import settings
 from .reindex_rikolti_stg import OpensearchClient
+
 
 def main():
 
@@ -15,7 +15,7 @@ def main():
     source_index = os_client.get_aliased_indexes(alias)[0]
 
     # create new index name
-    version = datetime.today().strftime("%Y%m%d%H%M%S")
+    version = datetime.today().strftime("%Y%m%d%H%M%S")  # noqa: DTZ002
     destination_index = f"rikolti-prod-{version}"
 
     # reindex

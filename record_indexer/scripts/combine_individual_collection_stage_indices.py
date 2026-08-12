@@ -1,11 +1,12 @@
-from datetime import datetime
 import json
 import os
 import sys
+from datetime import datetime
 
 import requests
 
 from ..utils import print_opensearch_error
+
 
 def main():
     '''
@@ -15,14 +16,14 @@ def main():
     # Set these variables in your environment as a one-off before running this script
     endpoint = os.environ.get("OPENSEARCH_ENDPOINT")
     auth = (os.environ.get("OPENSEARCH_USER"), os.environ.get("OPENSEARCH_PASS"))
-    version = datetime.today().strftime("%Y%m%d%H%M%S")
+    version = datetime.today().strftime("%Y%m%d%H%M%S")  # noqa: DTZ002
     combined_index = f"rikolti-stg-combined-{version}"
 
     # Get list of indices aliased to `rikolti-stg`
     url = f"{endpoint}/_alias/rikolti-stg"
     r = requests.get(url, auth=auth)
     r.raise_for_status()
-    indices_to_combine = [key for key in r.json().keys()]
+    indices_to_combine = [key for key in r.json()]
     print(f"Number of indices to combine: {len(indices_to_combine)}")
 
     count = 0

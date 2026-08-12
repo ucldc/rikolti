@@ -1,10 +1,10 @@
 import os
-import urllib3
-from urllib3.exceptions import InsecureRequestWarning
 
+import urllib3
 from boto3 import Session
 from dotenv import load_dotenv
 from opensearchpy import AWSV4SignerAuth
+from urllib3.exceptions import InsecureRequestWarning
 
 load_dotenv()
 
@@ -12,7 +12,7 @@ es_user = os.environ.get("OPENSEARCH_USER")
 es_pass = os.environ.get("OPENSEARCH_PASS")
 
 def verify_certs():
-    ignore_tls = os.environ.get("OPENSEARCH_IGNORE_TLS", False)
+    ignore_tls = os.environ.get("OPENSEARCH_IGNORE_TLS", None)
     if ignore_tls:
         urllib3.disable_warnings(InsecureRequestWarning)
     return not ignore_tls
