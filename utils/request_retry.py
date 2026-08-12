@@ -1,6 +1,7 @@
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
+
 def configure_http_session() -> requests.Session:
     http = requests.Session()
     retry_strategy = Retry(

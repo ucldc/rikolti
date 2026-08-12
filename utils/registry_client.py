@@ -1,5 +1,7 @@
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
+
 import requests
+
 
 def registry_endpoint(url):
     if parse_qs(urlparse(url).query).get('format') != ['json']:
@@ -14,5 +16,5 @@ def registry_endpoint(url):
             page = f"https://registry.cdlib.org{page}"
 
         collections = response.json().get('objects', [response.json()])
-        for collection in collections:
+        for collection in collections:  # noqa: UP028
             yield collection
