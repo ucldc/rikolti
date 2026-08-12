@@ -23,6 +23,11 @@ class SfplTindRecord(TindRecord):
             return ("https://digitalsf.org/nanna/thumbnail/v2/" +
                     field_001 + "?redirect=1")
 
+    def map_relation(self) -> list:
+        field_range = [str(i) for i in list(range(760, 788)) + [982]]  # 760-787 + 982
+
+        self.get_marc_data_fields(field_range)
+
     def map_subject(self):
         fields = [str(i) for i in [600, 630, 650, 651] + list(range(610, 620))
                   + list(range(653, 659)) + [690, 691] + list(range(693, 700))]
