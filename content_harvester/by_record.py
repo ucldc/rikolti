@@ -1,23 +1,20 @@
+from __future__ import annotations
+
 import hashlib
 import os
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Optional, Any, Tuple, Callable, Union
 from functools import lru_cache
-from dataclasses import dataclass, asdict
-from urllib.parse import quote_plus
+from typing import Any, Callable, Optional
+from urllib.parse import quote_plus, urlparse
 
-from PIL import Image
-from PIL import UnidentifiedImageError
 import requests
-
-from urllib.parse import urlparse
-
-from . import settings
-from . import derivatives
-from .s3_cache import S3Cache
-
-from rikolti.utils.storage import upload_file
+from PIL import Image, UnidentifiedImageError
 from rikolti.utils.request_retry import configure_http_session
+from rikolti.utils.storage import upload_file
+
+from . import derivatives, settings
+from .s3_cache import S3Cache
 
 s3_cache = os.environ.get('CONTENT_COMPONENT_CACHE')
 if s3_cache:
@@ -28,7 +25,7 @@ else:
     print("CONTENT_COMPONENT_CACHE not configured, skipping cache check")
     persistent_cache = None
 
-in_memory_cache = dict()
+in_memory_cache = {}
 
 
 http_session = configure_http_session()
@@ -46,7 +43,7 @@ NUXEO_MEDIA_TYPE_MAP = {
 }
 
 
-def get_url_basename(url: str) -> Optional[str]:
+def get_url_basename(url: str) -> str | None:
     """
     For a given url, return the basename of the path, handling any
     query parameters or fragments.
@@ -71,7 +68,7 @@ def make_thumbnail_src(record, thumbnail_url: str) -> dict:
 def harvest_record_content(
             record: dict,
             collection_id,
-            rikolti_mapper_type: Optional[str] = None,
+            rikolti_mapper_type: str | None = None,
             ) -> dict:
     # Weird how we have to use username/pass to hit this endpoint
     # but we have to use auth token to hit API endpoint
@@ -112,8 +109,12 @@ def harvest_record_content(
     return record
 
 
+class BasicAuthException(Exception):
+    pass
+
+
 @dataclass(frozen=True)
-class ContentRequest(object):
+class ContentRequest:
     """
     An immutable, hashable object representing a request for content.
     This is used as the cache key in download_url. Since auth can be
@@ -131,7 +132,7 @@ class ContentRequest(object):
 
     def __post_init__(self):
         if self.auth and urlparse(self.url).scheme != 'https':
-            raise Exception(
+            raise BasicAuthException(
                 f"Basic auth not over https is a bad idea! {self.url}")
 
 
@@ -194,12 +195,12 @@ def in_last_seven_days(iso_date: str) -> bool:
     Return True if the date is within the last 7 days
     """
     date = datetime.fromisoformat(iso_date)
-    today = datetime.today()
+    today = datetime.today()  # noqa: DTZ002
     seven_days_ago = today - timedelta(days=7)
     return seven_days_ago <= date <= today
 
 
-CreateComponentFunc = Callable[...,Tuple[Optional[dict], list]]
+CreateComponentFunc = Callable[...,tuple[Optional[dict], list]]
 
 
 def content_component_cache(component_type: str) -> Callable[
@@ -212,10 +213,10 @@ def content_component_cache(component_type: str) -> Callable[
     """
     def inner(create_component: CreateComponentFunc) -> CreateComponentFunc:
         def check_component_cache(
-                collection_id: Union[str, int],
+                collection_id: str | int,
                 request: ContentRequest,
                 *args: Any, **kwargs: Any
-            ) -> Tuple[Optional[dict], list]:
+            ) -> tuple[dict | None, list]:
 
             if not persistent_cache:
                 # always a cache miss, don't cache this
@@ -276,7 +277,7 @@ def content_component_cache(component_type: str) -> Callable[
                 )
                 # if the cache key is specific with etag and/or
                 # last-modified, so we have a true cache hit
-                if len(cache_key.split('/')) == 5:
+                if len(cache_key.split('/')) == 5:  # noqa: SIM114
                     return {**component, 'from-cache': True}, []
 
                 # if the cache key is not specific, check if the cache
@@ -304,7 +305,7 @@ def content_component_cache(component_type: str) -> Callable[
 
 def get_dimensions(
         filepath: str, 
-        calisphere_id: str = 'not provided') -> Optional[tuple[int, int]]:
+        calisphere_id: str = 'not provided') -> tuple[int, int] | None:
     try:
         return Image.open(filepath).size
     except UnidentifiedImageError as e:
@@ -327,10 +328,10 @@ def get_dimensions(
 
 @content_component_cache('media')
 def create_media_component(
-        collection_id: Union[str, int], 
+        collection_id: str | int, 
         request: ContentRequest, 
         mapped_media_source: dict[str, str]
-    ) -> Tuple[Optional[dict], list]:
+    ) -> tuple[dict | None, list]:
     '''
         download source file to local disk
     '''
@@ -379,7 +380,7 @@ def create_media_component(
             'src_content-type': source_component['Content-Type'],
             'mapped_mimetype': mapped_mimetype,
             'src_size': source_component['size'],
-            'date_content_component_created': datetime.now().isoformat()
+            'date_content_component_created': datetime.now().isoformat()  # noqa: DTZ005
         }
     }
 
@@ -388,11 +389,11 @@ def create_media_component(
 
 @content_component_cache('thumbnail')
 def create_thumbnail_component(
-        collection_id: Union[str, int], 
+        collection_id: str | int, 
         request: ContentRequest, 
         mapped_thumbnail_source: dict[str, str],
         record_context: str
-    ) -> Tuple[Optional[dict], list]:
+    ) -> tuple[dict | None, list]:
     '''
         download source file to local disk
     '''
@@ -439,7 +440,7 @@ def create_thumbnail_component(
             'src_content-type': source_component['Content-Type'],
             'mapped_mimetype': mapped_thumbnail_source.get('mimetype'),
             'src_size': source_component['size'],
-            'date_content_component_created': datetime.now().isoformat()
+            'date_content_component_created': datetime.now().isoformat()  # noqa: DTZ005
         }
     }
 

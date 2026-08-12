@@ -1,12 +1,15 @@
-from .by_page import harvest_page_content
+import sys
+
+from rikolti.utils.versions import create_with_content_urls_version, get_versioned_pages
+
 from . import settings
-from rikolti.utils.versions import get_versioned_pages, create_with_content_urls_version
+from .by_page import harvest_page_content
 
 
 def harvest_collection_content(collection_id, mapper_type, mapped_data_version: str):
     if not collection_id or not mapped_data_version:
         print("Error: collection_id and mapped_data_version required")
-        exit()
+        sys.exit()
 
     page_list = get_versioned_pages(
         mapped_data_version, **settings.AWS_CREDENTIALS)

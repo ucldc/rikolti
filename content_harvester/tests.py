@@ -2,10 +2,10 @@ import json
 import os
 
 from . import settings
-
 from .by_collection import harvest_collection_content
 from .by_registry_endpoint import harvest_endpoint
 from .sample_data.nuxeo_harvests import nuxeo_complex_object_harvests
+
 
 def main():
     mapped_path = settings.DATA_SRC['PATH']

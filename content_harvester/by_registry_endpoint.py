@@ -1,10 +1,9 @@
 import sys
 
-import requests
+from rikolti.utils.registry_client import registry_endpoint
+from rikolti.utils.versions import get_most_recent_mapped_version
 
 from .by_collection import harvest_collection_content
-from rikolti.utils.versions import get_most_recent_mapped_version
-from rikolti.utils.registry_client import registry_endpoint
 
 
 def harvest_endpoint(url, limit=None):
