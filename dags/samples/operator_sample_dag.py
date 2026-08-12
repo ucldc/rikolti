@@ -2,20 +2,16 @@
 
 from datetime import datetime
 
-import requests
 from airflow.decorators import dag
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
+from rikolti.utils import registry_client
 
 
 def requests_test(collection_id):
     print(f"collection_id: {collection_id}")
-    resp = requests.get(
-        "https://registry.cdlib.org/api/v1/"
-        f"rikolticollection/{collection_id}/"
-    )
-    resp.raise_for_status()
-    print(resp.json().get('name'))
+    collection = registry_client.collection(collection_id)
+    print(collection.get('name'))
 
     return True
 
