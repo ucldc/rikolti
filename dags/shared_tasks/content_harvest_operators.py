@@ -2,9 +2,14 @@ import json
 import os
 
 import boto3
+from airflow.models import Variable
 from airflow.providers.amazon.aws.operators.ecs import EcsRunTaskOperator
 from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
+
+registry_auth = Variable.get("rikolti_registry_auth", deserialize_json=True)
+REGISTRY_USER = registry_auth.get('user', '')
+REGISTRY_TOKEN = registry_auth.get('token', '')
 
 # generally speaking, the CONTENT_HARVEST_EXECUTION_ENVIRONMENT should always
 # be 'ecs' in deployed MWAA and should always be 'docker' in local development.
@@ -96,6 +101,14 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                             {
                                 "name": "AWS_MAX_ATTEMPTS",
                                 "value": "10"
+                            },
+                            {
+                                "name": "REGISTRY_USER",
+                                "value": REGISTRY_USER
+                            },
+                            {
+                                "name": "REGISTRY_TOKEN",
+                                "value": REGISTRY_TOKEN
                             }
                         ]
                     }
@@ -200,7 +213,9 @@ class ContentHarvestDockerOperator(DockerOperator):
                 "RIKOLTI_CONTENT": rikolti_content,
                 "CONTENT_COMPONENT_CACHE": os.environ.get("CONTENT_COMPONENT_CACHE"),
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
-                "NUXEO_PASS": os.environ.get("NUXEO_PASS")
+                "NUXEO_PASS": os.environ.get("NUXEO_PASS"),
+                "REGISTRY_USER": REGISTRY_USER,
+                "REGISTRY_TOKEN": REGISTRY_TOKEN,
             },
             "max_active_tis_per_dag": 4
         }
