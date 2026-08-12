@@ -1,8 +1,11 @@
-import json
-import boto3
-from typing import Optional
+from __future__ import annotations
 
-class S3Cache(object):
+import json
+
+import boto3
+
+
+class S3Cache:
     """
     Create a dictionary-like interface to an s3 bucket
 
@@ -12,7 +15,7 @@ class S3Cache(object):
             include any necessary slashed when specifying the prefix
         **kwargs: Passed directly to the boto3 client
     """
-    def __init__(self, bucket_name: str, prefix: Optional[str]=None, **kwargs):
+    def __init__(self, bucket_name: str, prefix: str | None =None, **kwargs):
         self.bucket_name = bucket_name
         self.prefix = prefix or ''
         try:
@@ -20,7 +23,7 @@ class S3Cache(object):
             self.s3.head_bucket(Bucket=self.bucket_name)
         except Exception as e:
             print(f"Error connecting to s3 cache backend {bucket_name}: {e}")
-            raise e
+            raise
     
     def __getitem__(self, key):
         """
@@ -32,8 +35,8 @@ class S3Cache(object):
                 Bucket=self.bucket_name, Key=f"{self.prefix}{key}")
             return json.loads(response['Body'].read())
         except Exception as e:
-            print(f"{self} error getting {key}")
-            raise e
+            print(f"{self} error getting {key}: {e}")
+            raise
 
     def get(self, key, default=None):
         """
@@ -53,7 +56,7 @@ class S3Cache(object):
             return default
         except Exception as e:
             print(f"{self} error getting {key}: {e}")
-            raise e
+            raise
 
     def __setitem__(self, key, data):
         """
@@ -68,7 +71,7 @@ class S3Cache(object):
             )
         except Exception as e:
             print(f"{self} error setting {key}: {e}")
-            raise e
+            raise
 
     def __contains__(self, key):
         """
@@ -85,10 +88,10 @@ class S3Cache(object):
                 return False
             else:
                 print(f"{self} error checking {key}: {e}")
-                raise e
+                raise
         except Exception as e:
             print(f"{self} error checking {key}: {e}")
-            raise e
+            raise
 
     def __delitem__(self, key):
         self.s3.delete_object(Bucket=self.bucket_name, Key=key)

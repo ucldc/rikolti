@@ -1,11 +1,13 @@
 import json
 from collections import Counter
 
-from .by_record import harvest_record_content
-
 from rikolti.utils.versions import (
-    get_versioned_page_as_json, put_versioned_page, get_version
+    get_version,
+    get_versioned_page_as_json,
+    put_versioned_page,
 )
+
+from .by_record import harvest_record_content
 
 
 def harvest_page_content(
