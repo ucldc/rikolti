@@ -13,7 +13,7 @@ class SanJoseRecord(Record):
         return {
             "calisphere-id": self.legacy_couch_db_id.split('--')[1],
             "isShownAt": self.source_metadata.get("url"),
-            "isShownBy": self.map_is_shown_by,
+            "isShownBy": self.source_metadata.get("thumbnail"),
             "title": self.ensure_list(self.source_metadata.get("title")),
             "date": self.source_metadata.get("date"),
             "description": self.ensure_list(self.source_metadata.get("description")),
@@ -25,12 +25,6 @@ class SanJoseRecord(Record):
             "relation": self.ensure_list(self.source_metadata.get("collection")),
             "rights": self.source_metadata.get("rights")
         }
-
-    def map_is_shown_by(self):
-        thumbnail = self.source_metadata.get("thumbnail")
-        if ".tif" in thumbnail:
-            return thumbnail.replace(".tif", ".jpg")
-        return thumbnail
 
     def map_subject(self):
         values = self.collate_fields(["subject", "people", "searchterms"])()
