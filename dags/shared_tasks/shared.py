@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 import boto3
 import requests
 from airflow.decorators import task
+from rikolti.utils import registry_client
 
 
 def send_event_to_sns(context: dict, task_message: dict):
@@ -93,12 +94,7 @@ def get_registry_data_task(params=None, **context):
         raise ValueError("Collection ID not found in params")
     collection_id = params.get('collection_id')
 
-    resp = requests.get(
-        "https://registry.cdlib.org/api/v1/"
-        f"rikolticollection/{collection_id}/?format=json"
-    )
-    resp.raise_for_status()
-    registry_data = resp.json()
+    registry_data = registry_client.collection(collection_id)
 
     # TODO: remove the rikoltifetcher registry endpoint and restructure
     # the fetch_collection function to accept a rikolticollection resource.
