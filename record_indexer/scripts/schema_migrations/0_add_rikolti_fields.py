@@ -1,12 +1,13 @@
-import time
-import sys
 import json
-
+import sys
+import time
 from datetime import datetime
 from urllib.parse import urlparse
 
 from opensearchpy import OpenSearch, RequestsHttpConnection
+
 from ... import settings
+
 
 def get_client():
     if not settings.ENDPOINT:
@@ -37,14 +38,14 @@ def main():
     if len(source_index) > 1:
         raise ValueError(f"Alias `{alias}` has {len(source_index)} aliased "
                          "indices. There should be 1.")
-    source_index = list(source_index)[0]
+    source_index = source_index[0]
 
     # create new index name
-    version = datetime.today().strftime("%Y%m%d%H%M%S")
+    version = datetime.today().strftime("%Y%m%d%H%M%S")  # noqa: DTZ002
     destination_index = f"{alias}-{version}"
 
     # create migration script
-    indexed_at = datetime.now().isoformat()
+    indexed_at = datetime.now().isoformat()     # noqa: DTZ005
 
     field = "rikolti"
     initial_value = {"rikolti_value": {

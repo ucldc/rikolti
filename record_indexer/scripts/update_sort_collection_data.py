@@ -2,16 +2,19 @@ import json
 
 import requests
 
-from .. import settings
-
 from utils.registry_client import registry_endpoint
+
+from .. import settings
 
 etl_collection_url = (
     "https://registry.cdlib.org/api/v1/rikolticollection/"
     "?harvest_type=etl&format=json"
 )
 
-class OpensearchClient(object):
+class OpensearchException(Exception):
+    pass
+
+class OpensearchClient:
     def __init__(self, endpoint, auth):
         self.endpoint = endpoint
         self.auth = auth
@@ -35,7 +38,7 @@ class OpensearchClient(object):
         json_resp = resp.json()
 
         if json_resp['timed_out'] or json_resp['failures']:
-            raise Exception(f"TIMEOUT ERROR: \n{json.dumps(kwargs)}")
+            raise OpensearchException(f"TIMEOUT ERROR: \n{json.dumps(kwargs)}")
         
         return json_resp
 

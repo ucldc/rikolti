@@ -1,13 +1,17 @@
 import json
 from collections import defaultdict
-
 from pprint import pprint
 
 import requests
 
+from rikolti.utils.versions import get_versioned_page_as_json
+
 from . import settings
 from .utils import print_opensearch_error
-from rikolti.utils.versions import get_versioned_page_as_json
+
+
+class IndexerException(Exception):
+    pass
 
 
 def bulk_add(records: list, index: str):
@@ -33,7 +37,7 @@ def bulk_add(records: list, index: str):
         error_reasons = []
         errors = []
         for bulk_item in bulk_resp.get('items'):
-            for action, action_resp in bulk_item.items():
+            for action_resp in bulk_item.values():
                 if 'error' in action_resp:
                     if action_resp['error'].get('type') == 'version_conflict_engine_exception':
                         print(f"WARNING - document already exists; not creating.\n {bulk_item}")
@@ -46,7 +50,7 @@ def bulk_add(records: list, index: str):
             pprint(errors)
         if len(errors):
             raise(
-                Exception(
+                IndexerException(
                     f"{len(errors)} errors in bulk indexing "
                     f"{len(records)} records: {error_reasons}"
                 )
@@ -70,7 +74,7 @@ def remove_unexpected_fields(record: dict, schema: dict):
     removed_fields = []
     fields = list(record.keys())
     for field in fields:
-        if field not in schema.keys():
+        if field not in schema:
             removed_fields.append(field)
             record.pop(field)
             continue
@@ -111,7 +115,7 @@ def get_opensearch_schema(index_alias: str):
 
     indices_at_alias = list(r.json().keys())
     if len(indices_at_alias) > 1:
-        raise Exception(
+        raise IndexerException(
             f"Expected 1 index at alias `{index_alias}`, found "
             f"{len(indices_at_alias)}: {indices_at_alias}"
         )

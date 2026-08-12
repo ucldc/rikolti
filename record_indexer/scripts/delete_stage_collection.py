@@ -4,8 +4,8 @@ import sys
 
 import requests
 
-from ..utils import print_opensearch_error
 from .. import settings
+from ..utils import print_opensearch_error
 
 
 def delete_collection(collection_id, alias):
@@ -13,7 +13,7 @@ def delete_collection(collection_id, alias):
     url = f"{settings.ENDPOINT}/_alias/{alias}"
     r = requests.get(url, auth=settings.get_auth())
     r.raise_for_status()
-    aliased_indices = [key for key in r.json().keys()]
+    aliased_indices = [key for key in r.json()]
     if len(aliased_indices) != 1:
         raise ValueError(
             f"Alias `{alias}` has {len(aliased_indices)} aliased indices. There should be 1.")

@@ -1,11 +1,11 @@
 import argparse
-from datetime import datetime
 import sys
-
 import time
+from datetime import datetime
 
 from .. import settings
 from .reindex_rikolti_stg import OpensearchClient
+
 
 def main(src, dest, **kwargs):
     os_client = OpensearchClient(settings.ENDPOINT, settings.get_auth())
@@ -18,7 +18,7 @@ def main(src, dest, **kwargs):
         source_index = src
 
     # create new index name
-    version = datetime.today().strftime("%Y%m%d%H%M%S")
+    version = datetime.today().strftime("%Y%m%d%H%M%S")  # noqa: DTZ002
     destination_index = f"{dest}-{version}"
 
     print(f"Reindexing from {source_index} to {destination_index}")

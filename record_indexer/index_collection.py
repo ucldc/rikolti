@@ -1,12 +1,14 @@
 import json
-import requests
 from datetime import datetime
 from typing import Any
 
-from .index_page import index_page
-from . import settings
-from .utils import print_opensearch_error
+import requests
+
 from rikolti.utils.versions import get_version
+
+from . import settings
+from .index_page import index_page
+from .utils import print_opensearch_error
 
 
 def index_collection(alias: str, collection_id: str, version_pages: list[str]):
@@ -18,7 +20,7 @@ def index_collection(alias: str, collection_id: str, version_pages: list[str]):
     version_path = get_version(collection_id, version_pages[0])
     rikolti_data = {
         "version_path": version_path,
-        "indexed_at": datetime.now().isoformat(),
+        "indexed_at": datetime.now().isoformat(),  # noqa: DTZ005
     }
 
     # add pages of records to index
@@ -42,7 +44,7 @@ def get_index_for_alias(alias: str):
     if not (200 <= r.status_code <= 299):
         print_opensearch_error(r, url)
         r.raise_for_status()
-    aliased_indices = [key for key in r.json().keys()]
+    aliased_indices = [key for key in r.json()]
     if len(aliased_indices) != 1:
         raise ValueError(
             f"Alias `{alias}` has {len(aliased_indices)} aliased indices. There should be 1.")
@@ -54,7 +56,7 @@ def get_outdated_versions(index:str, query: dict[str, Any]):
     url = f"{settings.ENDPOINT}/{index}/_search"
     headers = {"Content-Type": "application/json"}
 
-    data = dict(query, **{
+    data = dict(query, **{  # noqa: PIE804
         "aggs": {
             "version_paths": {
                 "terms": {
@@ -167,5 +169,3 @@ def delete_collection_records_from_index(
         print(f"{hr}> Deletion results:\n{json.dumps(r.json(), indent=2)}{end}")
     else:
         print(f"No outdated records found for collection {collection_id} in `{index}` index.")
-
-    return

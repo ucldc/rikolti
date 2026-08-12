@@ -102,7 +102,7 @@ if __name__ == "__main__":
             "Optional name for the rikolti-stg index; created index will be "
             "rikolti-<name>, if none provided, current timestamp will be used"
         ),
-        default=datetime.now().strftime("%Y%m%d%H%M%S")
+        default=datetime.now().strftime("%Y%m%d%H%M%S")  # noqa: DTZ005
     )
     parser.add_argument(
         "-p", "--prd-name", 
@@ -110,7 +110,7 @@ if __name__ == "__main__":
             "Optional name for the rikolti-prd index; created index will be "
             "rikolti-<name>, if none provided, current timestamp will be used"
         ),
-        default=datetime.now().strftime("%Y%m%d%H%M%S")
+        default=datetime.now().strftime("%Y%m%d%H%M%S")  # noqa: DTZ005
     )
     args = parser.parse_args()
     sys.exit(main(args.stg_name, args.prd_name))

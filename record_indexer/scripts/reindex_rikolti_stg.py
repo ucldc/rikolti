@@ -1,14 +1,15 @@
-from datetime import datetime
-import sys
-
 import json
-import requests
+import sys
 import time
+from datetime import datetime
 
-from ..utils import print_opensearch_error
+import requests
+
 from .. import settings
+from ..utils import print_opensearch_error
 
-class OpensearchClient(object):
+
+class OpensearchClient:
     def __init__(self, endpoint, auth):
         self.endpoint = endpoint
         self.auth = auth
@@ -20,7 +21,7 @@ class OpensearchClient(object):
         url = f"{self.endpoint}/_alias/{alias}"
         resp = requests.get(url, auth=self.auth)
         resp.raise_for_status()
-        aliased_indices = [key for key in resp.json().keys()]
+        aliased_indices = [key for key in resp.json()]
         if len(aliased_indices) != 1:
             raise ValueError(
                 f"Alias `{alias}` has {len(aliased_indices)} aliased indices. "
@@ -149,7 +150,7 @@ def main():
     source_index = os_client.get_aliased_indexes(alias)[0]
 
     # create new index name
-    version = datetime.today().strftime("%Y%m%d%H%M%S")
+    version = datetime.today().strftime("%Y%m%d%H%M%S")  # noqa: DTZ002
     destination_index = f"rikolti-stg-{version}"
 
     # reindex

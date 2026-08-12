@@ -1,10 +1,11 @@
+import json
 import os
 import sys
 import traceback
-
-import json
 from pprint import pprint
+
 import requests
+
 
 def print_opensearch_error(r: requests.Response, url: str):
     direct_frame = traceback.extract_stack(limit=2)[0]
@@ -28,7 +29,7 @@ def main():
     url = f"{source_endpoint}/_alias/rikolti-stg"
     r = requests.get(url, auth=auth)
     r.raise_for_status()
-    indices_to_migrate = [key for key in r.json().keys()]
+    indices_to_migrate = [key for key in r.json()]
     
     for index in indices_to_migrate:
         # Copy index from source to target domain
