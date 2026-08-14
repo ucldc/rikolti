@@ -1,8 +1,12 @@
+# ruff: noqa: DTZ001
+
 from datetime import datetime
+
+import requests
 from airflow.decorators import dag
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
-import requests
+
 
 def requests_test(collection_id):
     print(f"collection_id: {collection_id}")

@@ -1,22 +1,26 @@
+# ruff: noqa: DTZ001, TRY002
+from __future__ import annotations
+
 import math
 from datetime import datetime
-from typing import Optional
 
 from airflow.decorators import dag, task
 from airflow.models.param import Param
-
-from rikolti.dags.shared_tasks.mapping_tasks import mapping_tasks
-from rikolti.dags.shared_tasks.mapping_tasks import validate_collection_task
-from rikolti.dags.shared_tasks.shared import get_registry_data_task
-from rikolti.dags.shared_tasks.shared import batched
-from rikolti.utils.versions import get_most_recent_vernacular_version
-from rikolti.utils.versions import get_most_recent_mapped_version
-from rikolti.utils.versions import get_versioned_pages
+from rikolti.dags.shared_tasks.mapping_tasks import (
+    mapping_tasks,
+    validate_collection_task,
+)
+from rikolti.dags.shared_tasks.shared import batched, get_registry_data_task
+from rikolti.utils.versions import (
+    get_most_recent_mapped_version,
+    get_most_recent_vernacular_version,
+    get_versioned_pages,
+)
 
 
 @task(task_id="get_vernacular_page_batches")
 def get_vernacular_page_batches_task(
-    collection: dict, params: Optional[dict]=None) -> list[list[str]]:
+    collection: dict, params: dict | None=None) -> list[list[str]]:
     collection_id = collection['id']
     vernacular_version = params.get('vernacular_version') if params else None
     if not vernacular_version:
@@ -30,7 +34,7 @@ def get_vernacular_page_batches_task(
     return batched(pages, batch_size)
 
 @task(task_id="get_mapped_pages")
-def get_mapped_pages_task(params: Optional[dict] = None):
+def get_mapped_pages_task(params: dict | None = None):
     collection_id = params.get('collection_id') if params else None
     if not collection_id:
         raise Exception("Collection ID is required")

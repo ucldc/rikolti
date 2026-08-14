@@ -1,10 +1,14 @@
+# ruff: noqa: UP031
+
 # DAG exhibiting task flow paradigm in airflow 2.0
 # https://airflow.apache.org/docs/apache-airflow/2.0.2/tutorial_taskflow_api.html
 # Modified for our use case
 
 import json
+
 from airflow.decorators import dag, task
 from airflow.utils.dates import days_ago
+
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
 default_args = {

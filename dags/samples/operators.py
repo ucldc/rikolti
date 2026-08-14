@@ -1,7 +1,11 @@
+# ruff: noqa: DTZ001
+
 from datetime import datetime
+
 from airflow.decorators import dag, task
-from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.operators.python import PythonOperator
+from airflow.providers.docker.operators.docker import DockerOperator
+
 
 @dag(
     schedule=None,

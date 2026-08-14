@@ -1,24 +1,31 @@
+# ruff: noqa: DTZ001
+
 import json
 import os
-
 from datetime import datetime
+
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
-
-from rikolti.dags.shared_tasks.shared import get_registry_data_task
-from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
-from rikolti.dags.shared_tasks.shared import notify_dag_success
-from rikolti.dags.shared_tasks.shared import notify_dag_failure
-from rikolti.dags.shared_tasks.shared import send_event_to_sns
-from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
-from rikolti.dags.shared_tasks.mapping_tasks  import mapping_tasks
 from rikolti.dags.shared_tasks.content_harvest_tasks import content_harvesting_tasks
-from rikolti.utils.versions import (
-    get_child_directories, get_versioned_pages,
-    get_versioned_page_as_json, get_child_pages,
-    create_merged_version, put_versioned_page)
+from rikolti.dags.shared_tasks.fetching_tasks import fetching_tasks
 from rikolti.dags.shared_tasks.indexing_tasks import stage_collection_task
+from rikolti.dags.shared_tasks.mapping_tasks import mapping_tasks
+from rikolti.dags.shared_tasks.shared import (
+    get_registry_data_task,
+    notify_dag_failure,
+    notify_dag_success,
+    notify_rikolti_failure,
+    send_event_to_sns,
+)
+from rikolti.utils.versions import (
+    create_merged_version,
+    get_child_directories,
+    get_child_pages,
+    get_versioned_page_as_json,
+    get_versioned_pages,
+    put_versioned_page,
+)
 
 
 def get_child_records(version, parent_id) -> list:

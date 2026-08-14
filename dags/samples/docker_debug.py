@@ -1,12 +1,16 @@
+# ruff: noqa: DTZ001
+
+import grp
+import os
+import pwd
+import stat
 from datetime import datetime
+
 from airflow.decorators import dag, task
 from airflow.providers.docker.operators.docker import DockerOperator
 
-import os
-import pwd
-import grp
-import stat
 import docker
+
 
 @task()
 def get_user_and_group():

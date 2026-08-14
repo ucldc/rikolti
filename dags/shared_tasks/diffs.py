@@ -1,20 +1,22 @@
-import requests
+from __future__ import annotations
+
+import difflib
 import json
 from collections import Counter
-from typing import Optional
+from dataclasses import asdict, dataclass
 from itertools import chain
+
+import requests
 from deepdiff import DeepDiff
-import difflib
-from dataclasses import dataclass, asdict
-
-
 from rikolti.record_indexer import settings
 from rikolti.record_indexer.utils import print_opensearch_error
-from rikolti.utils.versions import get_versioned_page_as_json
-from rikolti.utils.versions import create_summary_report_version
-from rikolti.utils.versions import create_detail_report_version
-from rikolti.utils.versions import put_markdown_report
-from rikolti.utils.versions import get_version
+from rikolti.utils.versions import (
+    create_detail_report_version,
+    create_summary_report_version,
+    get_version,
+    get_versioned_page_as_json,
+    put_markdown_report,
+)
 
 # compare IDs
 
@@ -111,7 +113,7 @@ def _diff_ids(indexed_records, candidate_records):
 def create_id_diff_report(
         indexed_records: dict[str, str], 
         candidate_records: dict[str, str], 
-        last_mapped_version: Optional[str]
+        last_mapped_version: str | None
     ) -> list[str]:
     """
     Report out IDs that are indexed, but not in candidate, and vice versa. 
@@ -143,7 +145,7 @@ def create_id_diff_report(
         report.extend([
             "\n## IDs found only in the indexed metadata:",
             f"Found {len(indexed_records.keys())} total records in the index.",
-            f"{len(indexed_records.keys()) - len(only_in_indexed)} records matched candidate metadata."
+            f"{len(indexed_records.keys()) - len(only_in_indexed)} records matched candidate metadata.",
             f"Missing {len(only_in_indexed)} records from candidate metadata (dropped or changed)"
         ])
         for idx_id in sorted(only_in_indexed):
@@ -152,7 +154,7 @@ def create_id_diff_report(
         report.extend([
             "\n## IDs found only in the candidate metadata:",
             f"Found {len(candidate_records.keys())} total records in the candidate metadata.",
-            f"{len(candidate_records.keys()) - len(only_in_candidate)} records matched indexed metadata."
+            f"{len(candidate_records.keys()) - len(only_in_candidate)} records matched indexed metadata.",
             f"Identified {len(only_in_candidate)} new records in candidate metadata (new or changed)"
         ])
         for cand_id in sorted(only_in_candidate):
@@ -197,12 +199,12 @@ def strip_non_mapping_fields(indexed_metadata: dict, candidate_metadata: dict) -
     # records for backwards compatibility
     candidate_removals = ['is_shown_at', 'is_shown_by', 'item_count', 'media_source', 'thumbnail_source']
     for field in candidate_removals:
-        if field in candidate_metadata.keys():
+        if field in candidate_metadata:
             candidate_metadata.pop(field)
 
     indexed_removals = ['rikolti', 'thumbnail', 'media']
     for field in indexed_removals:
-        if field in indexed_metadata.keys():
+        if field in indexed_metadata:
             indexed_metadata.pop(field)
 
     return indexed_metadata, candidate_metadata
@@ -238,7 +240,7 @@ def _get_mapped_pages_from_opensearch(calisphere_ids: list[str]):
     print(f"getting mapped pages from open search: {c}")
     return c
 
-def get_basis_of_comparison(indexed_version: Optional[str], candidate_record_ids: list[str]) -> dict[str, dict]:
+def get_basis_of_comparison(indexed_version: str | None, candidate_record_ids: list[str]) -> dict[str, dict]:
     if not indexed_version:
         indexed_records = {}
     elif indexed_version == 'initial':
@@ -300,7 +302,7 @@ def create_missing_fields_report(missing: dict[str, list[str]], total_number: in
     else:
         summary_report.extend([
             f"All {total_number} candidate records contain all required fields.",
-            "Analyzed the following required fields: "
+            "Analyzed the following required fields: ",
             f"{', '.join(missing.keys())}"
         ])
         return summary_report, summary_report
@@ -327,7 +329,7 @@ def create_missing_fields_report(missing: dict[str, list[str]], total_number: in
     return summary_report, detail_report
 
 # create report
-def get_indexed_version(collection_id: int) -> Optional[str]:
+def get_indexed_version(collection_id: int) -> str | None:
     """
     queries OpenSearch for the currently indexed mapped metadata version
     for a given collection id.
@@ -452,11 +454,11 @@ def string_diff(old_value, new_value):
 
 @dataclass(frozen=True)
 class DiffReportStatus:
-    summary_report_filepath: Optional[str] = None
-    detail_report_filepath: Optional[str] = None
-    mapped_version: Optional[str] = None
+    summary_report_filepath: str | None = None
+    detail_report_filepath: str | None = None
+    mapped_version: str | None = None
     error: bool = False
-    exception: Optional[Exception] = None
+    exception: Exception | None = None
 
     def asdict(self):
         d = asdict(self)

@@ -1,13 +1,12 @@
-import boto3
-import os
 import json
+import os
 import traceback
+from urllib.parse import urlparse
 
+import boto3
 import requests
-
 from airflow.decorators import task
 
-from urllib.parse import urlparse
 
 def send_event_to_sns(context: dict, task_message: dict):
     """
@@ -53,7 +52,7 @@ def send_event_to_sns(context: dict, task_message: dict):
             Message=message_body
         )
         print(f"Message sent to SNS with Message ID: {response['MessageId']}")
-    except Exception as e:
+    except Exception as e:     # noqa: BLE001
         print(f"Failed to send message to SQS: {e}")
 
 

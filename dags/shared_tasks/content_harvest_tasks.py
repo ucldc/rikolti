@@ -1,13 +1,12 @@
+from __future__ import annotations
+
 import json
-from typing import Optional
 
 from airflow.decorators import task, task_group
-
-from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
-from rikolti.dags.shared_tasks.shared import send_event_to_sns
-from rikolti.utils.versions import get_version
-from rikolti.utils.versions import create_with_content_urls_version
 from rikolti.dags.shared_tasks.content_harvest_operators import ContentHarvestOperator
+from rikolti.dags.shared_tasks.shared import notify_rikolti_failure, send_event_to_sns
+from rikolti.utils.versions import create_with_content_urls_version, get_version
+
 
 @task(task_id="create_with_content_urls_version", 
       on_failure_callback=notify_rikolti_failure)
@@ -27,8 +26,8 @@ def notify_content_harvest_success(context):
 
 @task_group(group_id='content_harvesting')
 def content_harvesting_tasks(
-    collection: Optional[dict] = None, 
-    mapped_page_batches: Optional[list[list[str]]] = None):
+    collection: dict | None = None, 
+    mapped_page_batches: list[list[str]] | None = None):
 
     with_content_urls_version = create_with_content_urls_version_task(
         collection, mapped_page_batches)

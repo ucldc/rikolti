@@ -1,12 +1,18 @@
+# ruff: noqa: DTZ001
+
 from datetime import datetime
+
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 
-from rikolti.utils.versions import get_versioned_pages
-from rikolti.dags.shared_tasks.shared import get_registry_data_task
-from rikolti.dags.shared_tasks.shared import notify_dag_success
-from rikolti.dags.shared_tasks.shared import notify_dag_failure
 from rikolti.dags.shared_tasks.indexing_tasks import stage_collection_task
+from rikolti.dags.shared_tasks.shared import (
+    get_registry_data_task,
+    notify_dag_failure,
+    notify_dag_success,
+)
+from rikolti.utils.versions import get_versioned_pages
+
 
 @task
 def get_pages_task(params=None, **context):

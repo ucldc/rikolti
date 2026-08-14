@@ -1,6 +1,10 @@
+# ruff: noqa: DTZ001
+
 import json
 from datetime import datetime
+
 from airflow.decorators import dag, task
+
 
 @task()
 def create_path():

@@ -1,13 +1,15 @@
-import os
+# ruff: noqa: DTZ001, B018, TRY002, DTZ005
 
+import os
 from datetime import datetime
-from airflow.decorators import dag, task
-from airflow.models.param import Param
-from airflow.models import Variable
-from airflow.operators.python import get_current_context
-from airflow.operators.bash import BashOperator
 
 import requests
+from airflow.decorators import dag, task
+from airflow.models import Variable
+from airflow.models.param import Param
+from airflow.operators.bash import BashOperator
+from airflow.operators.python import get_current_context
+
 
 @task()
 def taskflow_test_requests():
