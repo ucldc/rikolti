@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# ruff: noqa: EXE001
+
 from dotenv import load_dotenv
 
 load_dotenv()

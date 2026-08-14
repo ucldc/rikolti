@@ -1,8 +1,11 @@
 #!/usr/bin/python
 
-import os
+# ruff: noqa: C419, EXE001
+
 import glob
 import importlib
+import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
