@@ -1,12 +1,14 @@
+# ruff: noqa: PERF402, SIM113, RUF012
+
 import json
 import logging
 from urllib.parse import quote as urllib_quote
-from rikolti.utils.versions import put_versioned_page
 
 import requests
+from rikolti.utils.versions import put_versioned_page
 
 from .. import settings
-from .Fetcher import Fetcher, InvalidHarvestEndpoint, FetchedPageStatus
+from .Fetcher import FetchedPageStatus, Fetcher, InvalidHarvestEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,7 @@ class NuxeoFetcher(Fetcher):
     nuxeo_request_cookies = {'dbquerytoken': settings.NUXEO_TOKEN}
 
     def __init__(self, params: dict):
-        super(NuxeoFetcher, self).__init__(params)
+        super().__init__(params)
         # a root path is required for fetching from Nuxeo
         harvest_data = params.get('harvest_data', {})
         root_path = harvest_data.get('root_path', harvest_data.get('harvest_extra_data'))
@@ -76,13 +78,13 @@ class NuxeoFetcher(Fetcher):
             try:
                 response = self.http_session.get(**request)
                 response.raise_for_status()
-            except Exception as e:
+            except Exception:
                 print(
                     f"{self.collection_id:<6}: A path UID is required for "
                     f"fetching - could not retrieve root path uid for: "
                     f"{payload['path']}"
                 )
-                raise(e)
+                raise
             self.nuxeo['current_path'] = {
                 'path': root_path,
                 'uid': response.json().get('uid')
@@ -191,9 +193,9 @@ class NuxeoFetcher(Fetcher):
         try:
             response = self.http_session.get(**request)
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             print(f"{self.collection_id:<6}: unable to fetch page {request}")
-            raise(e)
+            raise
         return response
 
     def get_document(self, uid):
@@ -213,9 +215,9 @@ class NuxeoFetcher(Fetcher):
         try:
             response = self.http_session.get(**request)
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             print(f"{self.collection_id:<6}: unable to fetch page {request}")
-            raise(e)
+            raise
         return response
 
     def get_pages_of_records(self, folder: dict, page_prefix: list):
@@ -271,9 +273,9 @@ class NuxeoFetcher(Fetcher):
         try:
             response = self.http_session.get(**request)
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except requests.exceptions.HTTPError:
             print(f"{self.collection_id:<6}: unable to fetch page {request}")
-            raise(e)
+            raise
         return response
 
     def folder_traversal(self, root_folder: dict, page_prefix: list):

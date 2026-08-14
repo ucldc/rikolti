@@ -1,10 +1,13 @@
+# ruff: noqa: LOG015, SIM113
+
 import json
 import logging
-import requests
 from xml.etree import ElementTree
 
-from .Fetcher import Fetcher, FetchedPageStatus, FetchError
+import requests
 from rikolti.utils.versions import put_versioned_page
+
+from .Fetcher import FetchedPageStatus, Fetcher, FetchError
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +15,7 @@ logger = logging.getLogger(__name__)
 class XmlFileFetcher(Fetcher):
 
     def __init__(self, params: dict[str]):
-        super(XmlFileFetcher, self).__init__(params)
+        super().__init__(params)
 
         self.url = params.get("harvest_data").get("url")
 
@@ -62,7 +65,7 @@ class XmlFileFetcher(Fetcher):
                     content, write_page, self.vernacular_version)
             except Exception as e:
                 print(f"Metadata Fetcher: {e}")
-                raise(e)
+                raise
 
             write_page += 1
             pages.append(FetchedPageStatus(len(items), filepath))

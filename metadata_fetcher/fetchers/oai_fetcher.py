@@ -1,3 +1,5 @@
+# ruff: noqa: LOG015
+
 import json
 import logging
 from urllib.parse import parse_qs
@@ -15,7 +17,7 @@ NAMESPACE = {'oai2': 'http://www.openarchives.org/OAI/2.0/'}
 class OaiFetcher(Fetcher):
 
     def __init__(self, params):
-        super(OaiFetcher, self).__init__(params)
+        super().__init__(params)
 
         self.oai = params.get('harvest_data')
 
@@ -97,7 +99,7 @@ class OaiFetcher(Fetcher):
         return response.text
 
     def increment(self, http_resp):
-        super(OaiFetcher, self).increment(http_resp)
+        super().increment(http_resp)
 
         # if there is a resumption token, then increment
         xml_resp = ElementTree.fromstring(http_resp.content)
@@ -109,7 +111,6 @@ class OaiFetcher(Fetcher):
         else:
             self.oai['resumption_token'] = None
 
-        return
 
     def json(self):
         current_state = {

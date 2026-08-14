@@ -1,12 +1,14 @@
 import json
+
 import requests
 
-from .Fetcher import Fetcher
 from ..settings import CALISPHERE_ETL_TOKEN
+from .Fetcher import Fetcher
+
 
 class CalisphereSolrFetcher(Fetcher):
     def __init__(self, params: dict[str, str]):
-        super(CalisphereSolrFetcher, self).__init__(params)
+        super().__init__(params)
         self.collection_id = params.get("collection_id")
         self.cursor_mark = params.get("cursor_mark", "*")
         self.num_found = params.get("num_found", 0)
@@ -66,7 +68,7 @@ class CalisphereSolrFetcher(Fetcher):
         Parameters:
              http_resp: requests.Response
         """
-        super(CalisphereSolrFetcher, self).increment(http_resp)
+        super().increment(http_resp)
         resp_dict = http_resp.json()
 
         # this is a workaround for solr giving us an extra page

@@ -1,15 +1,22 @@
+# ruff: noqa: DTZ007
+
 import importlib
 import json
 import logging
 import sys
-
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 
-from .fetchers.Fetcher import Fetcher, FetchedPageStatus
 from rikolti.utils.versions import create_vernacular_version, get_version
 
+from .fetchers.Fetcher import FetchedPageStatus, Fetcher
+
 logger = logging.getLogger(__name__)
+
+
+class FetcherImportException(Exception):
+    pass
+
 
 def import_fetcher(harvest_type):
     fetcher_module = importlib.import_module(
@@ -18,7 +25,7 @@ def import_fetcher(harvest_type):
     class_type = ''.join([word.capitalize() for word in fetcher_module_words])
     fetcher_class = getattr(fetcher_module, f"{class_type}Fetcher")
     if fetcher_class not in Fetcher.__subclasses__():
-        raise Exception(
+        raise FetcherImportException(
             f"Fetcher class {fetcher_class} not a subclass of Fetcher")
     return fetcher_class
 

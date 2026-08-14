@@ -1,25 +1,25 @@
+# ruff: noqa: LOG015, TRY002
+
 import json
 import logging
-import requests
 from urllib.parse import urlparse
+
+import requests
 
 from .. import settings
 from .Fetcher import Fetcher, FetchError
 
+
 def is_playlist_url(url):
-    if urlparse(url).path == '/youtube/v3/playlistItems':
-        return True
-    return False
+    return urlparse(url).path == '/youtube/v3/videos'
 
 def is_videos_url(url):
-    if urlparse(url).path == '/youtube/v3/videos':
-        return True
-    return False
+    return urlparse(url).path == '/youtube/v3/videos'
 
 class YoutubeFetcher(Fetcher):
 
     def __init__(self, params):
-        super(YoutubeFetcher, self).__init__(params)
+        super().__init__(params)
 
         self.harvest_data = params.get("harvest_data", {})
         self.url = self.harvest_data.get("url")

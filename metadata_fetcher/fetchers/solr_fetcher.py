@@ -1,7 +1,9 @@
 import json
-from .Fetcher import Fetcher
-import requests
 from urllib.parse import urlencode
+
+import requests
+
+from .Fetcher import Fetcher
 
 
 class SolrFetcher(Fetcher):
@@ -10,13 +12,13 @@ class SolrFetcher(Fetcher):
         Parameters:
             params: dict[str]
         """
-        super(SolrFetcher, self).__init__(params)
+        super().__init__(params)
 
         # If `next_url` is a param, we know that this is not the fetch of the
         # first page, so skip setting those attributes
         if "next_url" in params:
-            for key in params:
-                setattr(self, key, params[key])
+            for key, value in params.items():
+                setattr(self, key, value)
             return
 
         self.collection_id = params.get("collection_id")
@@ -82,7 +84,7 @@ class SolrFetcher(Fetcher):
         Parameters:
              http_resp: requests.Response
         """
-        super(SolrFetcher, self).increment(http_resp)
+        super().increment(http_resp)
 
         previous_cursor_mark = self.cursor_mark
         resp_dict = json.loads(http_resp.content)

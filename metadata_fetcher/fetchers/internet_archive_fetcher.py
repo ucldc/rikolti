@@ -1,7 +1,9 @@
 import json
-from .Fetcher import Fetcher
-import requests
 from urllib.parse import urlencode
+
+import requests
+
+from .Fetcher import Fetcher
 
 
 class InternetArchiveFetcher(Fetcher):
@@ -10,7 +12,7 @@ class InternetArchiveFetcher(Fetcher):
         Parameters:
             params: dict[str]
         """
-        super(InternetArchiveFetcher, self).__init__(params)
+        super().__init__(params)
 
         self.harvest_data = params.get("harvest_data", {})
         self.harvest_extra_data = self.harvest_data.get("harvest_extra_data")
@@ -65,7 +67,7 @@ class InternetArchiveFetcher(Fetcher):
         Parameters:
              http_resp: requests.Response
         """
-        super(InternetArchiveFetcher, self).increment(http_resp)
+        super().increment(http_resp)
         
         resp_dict = http_resp.json()
         self.num_found = resp_dict["response"]["numFound"]

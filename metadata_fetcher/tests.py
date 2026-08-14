@@ -1,16 +1,21 @@
+# ruff: noqa: LOG015
+
 import argparse
 import json
 import logging
 
+from rikolti.utils.versions import create_vernacular_version
+
 from . import settings
 from .fetch_registry_collections import fetch_endpoint
 from .lambda_function import fetch_collection
-from .sample_data.nuxeo_harvests import (nuxeo_complex_object_harvests,
-                                        nuxeo_harvests,
-                                        nuxeo_nested_complex_object_harvests)
+from .sample_data.nuxeo_harvests import (
+    nuxeo_complex_object_harvests,
+    nuxeo_harvests,
+    nuxeo_nested_complex_object_harvests,
+)
 from .sample_data.oac_harvests import oac_harvests
 from .sample_data.oai_harvests import oai_harvests
-from rikolti.utils.versions import create_vernacular_version
 
 
 def main():
