@@ -1,17 +1,22 @@
-import logging
+# ruff: noqa: DTZ001
 
+import logging
 from datetime import datetime
 
 from airflow.decorators import dag
 from airflow.models.param import Param
-
-from airflow.providers.google.suite.transfers.local_to_drive import LocalFilesystemToGoogleDriveOperator
-
-from rikolti.dags.shared_tasks.shared import make_registry_endpoint_task
+from airflow.providers.google.suite.transfers.local_to_drive import (
+    LocalFilesystemToGoogleDriveOperator,
+)
 from rikolti.dags.shared_tasks.fetching_tasks import fetch_endpoint_task
-from rikolti.dags.shared_tasks.mapping_tasks import map_endpoint_task
-from rikolti.dags.shared_tasks.mapping_tasks import validate_endpoint_task
-from rikolti.dags.shared_tasks.shared import s3_to_localfilesystem
+from rikolti.dags.shared_tasks.mapping_tasks import (
+    map_endpoint_task,
+    validate_endpoint_task,
+)
+from rikolti.dags.shared_tasks.shared import (
+    make_registry_endpoint_task,
+    s3_to_localfilesystem,
+)
 
 logger = logging.getLogger("airflow.task")
 

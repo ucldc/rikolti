@@ -1,5 +1,4 @@
 import sys
-
 from unittest import TestCase
 
 from airflow.models import DagBag

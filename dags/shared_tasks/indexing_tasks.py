@@ -1,14 +1,11 @@
-import os
 import json
+import os
 
 from airflow.decorators import task
+from rikolti.dags.shared_tasks.shared import notify_rikolti_failure, send_event_to_sns
+from rikolti.record_indexer.index_collection import delete_collection, index_collection
+from rikolti.utils.versions import get_version, get_versioned_pages
 
-from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
-from rikolti.dags.shared_tasks.shared import send_event_to_sns
-from rikolti.record_indexer.index_collection import (
-    index_collection, delete_collection)
-from rikolti.utils.versions import (
-    get_version, get_versioned_pages)
 
 def index_collection_task(alias, collection, version_pages, context):
     collection_id = collection.get('id')
@@ -16,11 +13,8 @@ def index_collection_task(alias, collection, version_pages, context):
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
 
-    try:
-        index_collection(alias, collection_id, version_pages)
-    except Exception as e:
-        # TODO: implement some rollback exception handling?
-        raise e
+    index_collection(alias, collection_id, version_pages)
+    # TODO: implement some rollback exception handling?
 
     # Construct Airflow Log Message
     version = get_version(collection_id, version_pages[0])
@@ -70,11 +64,8 @@ def delete_collection_task(alias, collection, context):
         raise ValueError(
             f"Collection ID not found in collection metadata: {collection}")
 
-    try:
-        deleted_versions = delete_collection(collection_id, alias)
-    except Exception as e:
-        # TODO: implement some rollback exception handling?
-        raise e
+    deleted_versions = delete_collection(collection_id, alias)
+    # TODO: implement some rollback exception handling?
 
     calisphere_url = f"/collections/{collection_id}/"
     if alias == 'rikolti-prd':

@@ -1,10 +1,9 @@
-import os
-import boto3
 import json
+import os
 
-from airflow.providers.docker.operators.docker import DockerOperator
+import boto3
 from airflow.providers.amazon.aws.operators.ecs import EcsRunTaskOperator
-
+from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
 
 # generally speaking, the CONTENT_HARVEST_EXECUTION_ENVIRONMENT should always

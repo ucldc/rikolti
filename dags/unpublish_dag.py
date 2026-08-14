@@ -4,15 +4,17 @@ from airflow.decorators import dag
 from airflow.models.param import Param
 
 from rikolti.dags.shared_tasks.indexing_tasks import unpublish_collection_task
-from rikolti.dags.shared_tasks.shared import get_registry_data_task
-from rikolti.dags.shared_tasks.shared import notify_dag_success
-from rikolti.dags.shared_tasks.shared import notify_dag_failure
+from rikolti.dags.shared_tasks.shared import (
+    get_registry_data_task,
+    notify_dag_failure,
+    notify_dag_success,
+)
 
 
 @dag(
     dag_id="unpublish_collection",
     schedule=None,
-    start_date=datetime(2023, 1, 1),
+    start_date=datetime(2023, 1, 1),    # noqa: DTZ001
     catchup=False,
     params={
         'collection_id': Param(None, description="Collection ID to unpublish"),

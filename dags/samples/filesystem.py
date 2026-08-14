@@ -1,7 +1,10 @@
-import os
+# ruff: noqa: DTZ001
 
+import os
 from datetime import datetime
+
 from airflow.decorators import dag, task
+
 
 @task()
 def taskflow_mkdir():

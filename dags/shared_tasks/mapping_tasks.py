@@ -1,30 +1,29 @@
+from __future__ import annotations
+
 import json
 import math
 import os
 import sys
 import traceback
-
 from dataclasses import asdict
 from itertools import chain
-from typing import Dict, Union, Optional
-
-from airflow.decorators import task, task_group
-
 from urllib.parse import urlparse
 
-from rikolti.dags.shared_tasks.shared import batched
-from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
-from rikolti.dags.shared_tasks.shared import send_event_to_sns
-from rikolti.metadata_mapper.lambda_function import map_page
-from rikolti.metadata_mapper.lambda_function import MappedPageStatus
-from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status
-from rikolti.metadata_mapper.lambda_shepherd import print_map_status
-from rikolti.metadata_mapper.map_registry_collections import map_endpoint
-from rikolti.metadata_mapper.map_registry_collections import validate_endpoint
-from rikolti.utils.versions import create_mapped_version
-from rikolti.utils.versions import get_version
-from rikolti.dags.shared_tasks.diffs import create_qa_reports
-from rikolti.dags.shared_tasks.diffs import DiffReportStatus
+from airflow.decorators import task, task_group
+from rikolti.dags.shared_tasks.diffs import DiffReportStatus, create_qa_reports
+from rikolti.dags.shared_tasks.shared import (
+    batched,
+    notify_rikolti_failure,
+    send_event_to_sns,
+)
+from rikolti.metadata_mapper.lambda_function import MappedPageStatus, map_page
+from rikolti.metadata_mapper.lambda_shepherd import get_mapping_status, print_map_status
+from rikolti.metadata_mapper.map_registry_collections import (
+    map_endpoint,
+    validate_endpoint,
+)
+from rikolti.utils.versions import create_mapped_version, get_version
+
 
 @task(task_id="create_mapped_version",
       on_failure_callback=notify_rikolti_failure)
@@ -55,7 +54,7 @@ def create_mapped_version_task(
 @task(task_id="map_page",
       on_failure_callback=notify_rikolti_failure)
 def map_page_task(
-    vernacular_page_batch: Union[str,list[str]],
+    vernacular_page_batch: str | list[str],
     collection: dict,
     mapped_data_version: str,
     **context) -> list[dict]:
@@ -146,7 +145,7 @@ def print_s3_link(version_page, mapped_version):
 @task(task_id="validate_collection",
       on_failure_callback=notify_rikolti_failure)
 def validate_collection_task(
-    collection_id: int, mapped_page_batches: list[str], **context) -> Dict[str, str]:
+    collection_id: int, mapped_page_batches: list[str], **context) -> dict[str, str]:
     """
     mapped_page_batches is a list of str representations of lists of all the
     mapped page paths, ex:
@@ -179,8 +178,8 @@ def validate_collection_task(
 
 @task_group(group_id='mapping')
 def mapping_tasks(
-    collection: Optional[dict] = None, 
-    fetched_page_batches: Optional[list[list[str]]] = None):
+    collection: dict | None = None, 
+    fetched_page_batches: list[list[str]] | None = None):
 
     mapped_data_version = create_mapped_version_task(
         collection=collection,

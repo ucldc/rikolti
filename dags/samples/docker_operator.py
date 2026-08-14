@@ -1,10 +1,13 @@
-import os
+# ruff: noqa: B018, DTZ001
 
+import os
 from datetime import datetime
-from docker.types import Mount
+
 from airflow.decorators import dag, task
 from airflow.models.param import Param
 from airflow.providers.docker.operators.docker import DockerOperator
+from docker.types import Mount
+
 
 class SpecialDockerOperator(DockerOperator):
     def __init__(self, value, **kwargs):

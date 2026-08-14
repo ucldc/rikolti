@@ -1,17 +1,23 @@
+from __future__ import annotations
+
 import logging
 import math
 import pprint
-from typing import Optional
 from dataclasses import asdict
 
 from airflow.decorators import task, task_group
-
-from rikolti.dags.shared_tasks.shared import batched, send_event_to_sns
-from rikolti.dags.shared_tasks.shared import notify_rikolti_failure
-from rikolti.metadata_fetcher.lambda_function import fetch_collection
-from rikolti.metadata_fetcher.lambda_function import print_fetched_collection_report
+from rikolti.dags.shared_tasks.shared import (
+    batched,
+    notify_rikolti_failure,
+    send_event_to_sns,
+)
 from rikolti.metadata_fetcher.fetch_registry_collections import fetch_endpoint
+from rikolti.metadata_fetcher.lambda_function import (
+    fetch_collection,
+    print_fetched_collection_report,
+)
 from rikolti.utils.versions import create_vernacular_version
+
 
 @task(task_id="create_vernacular_version",
       on_failure_callback=notify_rikolti_failure)
@@ -36,7 +42,7 @@ def fetch_collection_task(
     """
     fetched_collection = fetch_collection(collection, vernacular_version)
     if not fetched_collection.filepaths:
-        raise Exception(
+        raise Exception(    # noqa: TRY002
             f"vernacular metadata not successfully fetched\n"
             f"{pprint.pprint(asdict(fetched_collection))}\n"
             f"{fetched_collection.filepaths}"
@@ -59,7 +65,7 @@ def fetch_collection_task(
 
 
 @task_group(group_id='fetching')
-def fetching_tasks(collection: Optional[dict] = None):
+def fetching_tasks(collection: dict | None = None):
     vernacular_version = create_vernacular_version_task(
         collection=collection['registry_fetchdata'])
     fetched_page_batches = fetch_collection_task(
