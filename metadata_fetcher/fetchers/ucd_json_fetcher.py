@@ -1,16 +1,16 @@
+from __future__ import annotations
+
 import json
 import math
 import sys
-
-from typing import Optional
+from xml.etree import ElementTree
 
 import requests
-
-from xml.etree import ElementTree
 from bs4 import BeautifulSoup
-
-from .Fetcher import Fetcher, FetchError, FetchedPageStatus
 from rikolti.utils.versions import put_versioned_page
+
+from .Fetcher import FetchedPageStatus, Fetcher, FetchError
+
 
 class UcdJsonFetcher(Fetcher):
     def __init__(self, params: dict[str]):
@@ -18,7 +18,7 @@ class UcdJsonFetcher(Fetcher):
         Parameters:
             params: dict[str]
         """
-        super(UcdJsonFetcher, self).__init__(params)
+        super().__init__(params)
 
         self.collection_id = params.get("collection_id")
         self.url = params.get("harvest_data").get("url")
@@ -75,11 +75,11 @@ class UcdJsonFetcher(Fetcher):
                 fetch_status.append(FetchedPageStatus(document_count, filepath))
             except Exception as e:
                 print(f"Metadata Fetcher: {e}", file=sys.stderr)
-                raise(e)
+                raise
             self.write_page += 1
         return fetch_status
 
-    def fetch_json_ld(self, url: str) -> Optional[dict]:
+    def fetch_json_ld(self, url: str) -> dict | None:
         """
         Takes a URL; fetches it and turns the contents of @seo-jsonld into a dict
 

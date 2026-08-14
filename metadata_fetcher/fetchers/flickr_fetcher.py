@@ -20,7 +20,7 @@ class FlickrFetcher(Fetcher):
         Parameters:
             params: dict[str]
         """
-        super(FlickrFetcher, self).__init__(params)
+        super().__init__(params)
 
         # Tracks where we're at processing photo requests
         self.photo_index = 1
@@ -29,8 +29,8 @@ class FlickrFetcher(Fetcher):
         # If `next_url` is a param, we know that this is not the fetch of the
         # first page, so skip setting those attributes
         if "next_url" in params:
-            for key in params:
-                setattr(self, key, params[key])
+            for key, value in params.items():
+                setattr(self, key, value)
             return
 
         self.collection_id = params.get("collection_id")
@@ -196,7 +196,7 @@ class FlickrFetcher(Fetcher):
         Parameters:
              http_resp: requests.Response
         """
-        super(FlickrFetcher, self).increment(http_resp)
+        super().increment(http_resp)
 
         data = json.loads(http_resp.content)
         pagination = data.get(self.response_items_attribute, {})

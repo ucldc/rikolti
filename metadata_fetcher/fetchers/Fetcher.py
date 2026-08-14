@@ -1,9 +1,10 @@
+# ruff: noqa: UP031
+from __future__ import annotations
+
 import logging
-import requests
-
 from dataclasses import dataclass
-from typing import Optional
 
+import requests
 from rikolti.utils.request_retry import configure_http_session
 from rikolti.utils.versions import put_versioned_page
 
@@ -26,10 +27,10 @@ class FetchError(Exception):
 class FetchedPageStatus:
     document_count: int
     vernacular_filepath: str
-    children: Optional[list] = None
+    children: list | None = None
 
 
-class Fetcher(object):
+class Fetcher:
     def __init__(self, params: dict):
         """
         params: dict
@@ -90,7 +91,7 @@ class Fetcher(object):
                 content, self.write_page, self.vernacular_version)
         except Exception as e:
             print(f"Metadata Fetcher: {e}")
-            raise(e)
+            raise
 
         self.increment(response)
 

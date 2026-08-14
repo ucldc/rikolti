@@ -2,11 +2,10 @@ import argparse
 import logging
 import sys
 
-import requests
+from rikolti.utils.registry_client import registry_endpoint
+from rikolti.utils.versions import create_vernacular_version
 
 from . import lambda_function
-from rikolti.utils.versions import create_vernacular_version
-from rikolti.utils.registry_client import registry_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +57,7 @@ def fetch_endpoint(
         try:
             fetched_collection = lambda_function.fetch_collection(
                 collection, vernacular_version)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"ERROR fetching collection { collection_id }: {e}")
             results[collection_id] = {
                 'status': 'error',

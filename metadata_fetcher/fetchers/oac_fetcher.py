@@ -24,7 +24,7 @@ class OacFetcher(Fetcher):
     #     "current_group": "image"
     # }
     def __init__(self, params):
-        super(OacFetcher, self).__init__(params)
+        super().__init__(params)
         self.oac = params.get('harvest_data')
 
         url = self.oac.get('url')
@@ -99,7 +99,7 @@ class OacFetcher(Fetcher):
         return len(xml_hits)
 
     def increment(self, http_resp):
-        super(OacFetcher, self).increment(http_resp)
+        super().increment(http_resp)
 
         response = ElementTree.fromstring(http_resp.content)
         current_group = self.oac.get('current_group')
@@ -113,8 +113,6 @@ class OacFetcher(Fetcher):
                 self.oac['current_group'] = 'text'
             else:
                 self.oac['current_group'] = None
-
-        return
 
     def json(self):
         current_state = {
