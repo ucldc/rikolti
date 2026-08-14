@@ -1,7 +1,9 @@
-import json
-from typing import Any, Union
+from __future__ import annotations
 
-from ..mapper import Record, Vernacular, Validator
+import json
+from typing import Any, ClassVar
+
+from ..mapper import Record, Validator, Vernacular
 
 
 class NuxeoRecord(Record):
@@ -82,7 +84,7 @@ class NuxeoRecord(Record):
     def to_dict(self):
         return self.mapped_data
 
-    description_type_labels = {
+    description_type_labels: ClassVar = {
         'scopecontent': 'Scope/Content',
         'acquisition': 'Acquisition',
         'bibliography': 'Bibliography',
@@ -130,7 +132,7 @@ class NuxeoRecord(Record):
                 # print(f"Data Readable:{ data_type }")
             item = data.get('item', '')
             if item:
-                unpacked = u'{}: {}'.format(data_type, item)
+                unpacked = u'{}: {}'.format(data_type, item)    # noqa: UP032, UP025
             else:
                 unpacked = ''
         else:
@@ -302,7 +304,7 @@ class NuxeoValidator(Validator):
     @staticmethod
     def is_shown_by_validation(validation_def: dict,
                                rikolti_value: Any,
-                               comparison_value: Any) -> Union[str, None]:
+                               comparison_value: Any) -> str | None:
 
         if rikolti_value == comparison_value:
             return
@@ -323,13 +325,13 @@ class NuxeoValidator(Validator):
         if not set(rikolti_value.keys()).issubset(set(expected_keys)):
             return ("Rikolti value includes unexpected keys")
 
-        if 'url' not in rikolti_value.keys():
+        if 'url' not in rikolti_value:
             return "Rikolti value missing required url key value pair"
 
-        if 'mimetype' not in rikolti_value.keys():
+        if 'mimetype' not in rikolti_value:
             return "Rikolti value missing mimetype key value pair, defaults to image/jpeg"
 
-        if 'filename' not in rikolti_value.keys():
+        if 'filename' not in rikolti_value:
             return "Rikolti value missing filename key value pair, defaults to basename of url"
 
         return

@@ -2,6 +2,7 @@ import json
 
 from ..mapper import Record, Vernacular
 
+
 class YoutubeRecord(Record):
     def to_UCLDC(self):
         self.legacy_couch_db_id = f"{self.collection_id}--{self.get_video_id()}"

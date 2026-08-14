@@ -34,7 +34,7 @@ def getprop(obj, path, keyErrorAsNone=False):
     pp, pn = tuple(path.lstrip(PATH_DELIM).split(PATH_DELIM, 1))
     if pp not in obj:
         if not keyErrorAsNone:
-            raise KeyError('Path not found in object: %s (%s)' % (path, pp))
+            raise KeyError(f"Path not found in object: {path} ({pp})")
         else:
             return None
 
@@ -43,7 +43,7 @@ def getprop(obj, path, keyErrorAsNone=False):
 
 def iterify(iterable):
     """Treat iterating over a single item or an iterator seamlessly"""
-    if (isinstance(iterable, str) or isinstance(iterable, dict)):
+    if isinstance(iterable, (str, dict)):
         iterable = [iterable]
     try:
         iter(iterable)

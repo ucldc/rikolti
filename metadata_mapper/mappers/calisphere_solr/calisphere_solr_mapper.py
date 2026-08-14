@@ -1,6 +1,7 @@
 import json
 
-from ..mapper import Record, Vernacular, Validator
+from ..mapper import Record, Validator, Vernacular
+
 
 class CalisphereSolrRecord(Record):
     # This mapper does not handle Nuxeo record complexities, meaning:
@@ -98,8 +99,8 @@ class CalisphereSolrRecord(Record):
             collection_id = self.parse_urls_for_ids([registry_url])[0]
 
             # join tri-part data with better delimiter '::')
-            tri_part_datas.append("::".join(
-                [sortable_name, display_name, collection_id]))
+            tri_part_datas.append(
+                f"{sortable_name}::{display_name}::{collection_id}")
 
         return tri_part_datas
 

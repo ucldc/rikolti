@@ -1,19 +1,22 @@
+from __future__ import annotations
+
 import json
 import sys
+from dataclasses import asdict, dataclass
+from urllib.parse import urlparse
 
 import requests
 
-from dataclasses import dataclass, asdict
-from urllib.parse import urlparse
-from typing import Optional
+from rikolti.utils.versions import (
+    create_mapped_version,
+    get_most_recent_vernacular_version,
+    get_version,
+    get_versioned_pages,
+)
 
 from . import validate_mapping
-from .lambda_function import map_page, MappedPageStatus
+from .lambda_function import MappedPageStatus, map_page
 from .mappers.mapper import Record
-from rikolti.utils.versions import (
-    get_most_recent_vernacular_version, get_versioned_pages,
-    get_version, create_mapped_version
-)
 
 
 def get_collection(collection_id):
@@ -162,7 +165,7 @@ def print_map_status(collection, map_result: MappedCollectionStatus):
 
 def map_collection(
         collection_id,
-        vernacular_version: Optional[str]=None,
+        vernacular_version: str | None = None,
         validate: bool=False) -> MappedCollectionStatus:
     # This is a functional duplicate of rikolti.d*gs.mapper_d*g.mapper_d*g
 

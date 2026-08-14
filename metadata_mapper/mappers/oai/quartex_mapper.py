@@ -1,8 +1,10 @@
-from typing import Union, Any, Optional
+from __future__ import annotations
 
-from .oai_mapper import OaiRecord, OaiVernacular
-from ..mapper import Validator
+from typing import Any
+
 from ...validator import ValidationLogLevel
+from ..mapper import Validator
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class QuartexRecord(OaiRecord):
@@ -24,7 +26,7 @@ class QuartexRecord(OaiRecord):
 
         return [val.strip() for val in split_languages if val]
 
-    def map_spatial(self) -> Union[list[str], None]:
+    def map_spatial(self) -> list[str] | None:
         spatial = self.collate_fields(["coverage", "spatial"])()
         spatial = [s for s in spatial if s]
         split_spatial = []
@@ -33,8 +35,8 @@ class QuartexRecord(OaiRecord):
 
         return [val.strip() for val in split_spatial if val]
 
-    def map_subject(self) -> Union[list[dict[str, str]], None]:
-        # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127 # noqa: E501
+    def map_subject(self) -> list[dict[str, str]] | None:
+        # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127
         value = self.source_metadata.get("subject")
         if not value:
             return None
@@ -105,7 +107,7 @@ class QuartexValidator(Validator):
     @staticmethod
     def match_trailing_periods(validation_def: dict,
                                rikolti_value: Any,
-                               comparison_value: Any) -> Optional[str]:
+                               comparison_value: Any) -> str | None:
         """
         Matches solr values ["Wieliczka, Amy L"] with rikolti values ["Wieliczka, Amy L."]
         """
@@ -131,7 +133,7 @@ class QuartexValidator(Validator):
     @staticmethod
     def match_trailing_space(validation_def: dict,
                              rikolti_value: Any,
-                             comparison_value: Any) -> Optional[str]:
+                             comparison_value: Any) -> str | None:
         """
         Matches solr values ["Wieliczka, Amy L"] with rikolti values ["Wieliczka, Amy L "]
         """

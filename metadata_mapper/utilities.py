@@ -1,4 +1,5 @@
 import importlib
+import sys
 from typing import Callable
 
 
@@ -37,6 +38,6 @@ def import_vernacular_reader(mapper_type):
 
     if not issubclass(vernacular_class, Vernacular):
         print(f"{mapper_type} not a subclass of Vernacular")
-        exit()
+        sys.exit()
     return vernacular_class
 

@@ -1,9 +1,8 @@
 import re
 from typing import Any
 
-
-from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class PsplRecord(OaiRecord):
@@ -60,7 +59,7 @@ class PsplValidator(Validator):
         if comparison_value and comparison_value.startswith('http'):
             comparison_value = comparison_value.replace('http', 'https')
 
-        if not rikolti_value == comparison_value:
+        if rikolti_value != comparison_value:
             return "Content mismatch"
 
     @staticmethod

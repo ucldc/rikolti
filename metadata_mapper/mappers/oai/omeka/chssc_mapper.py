@@ -1,5 +1,7 @@
 import re
+
 from ..omeka_mapper import OmekaRecord, OmekaVernacular
+
 
 class ChsscRecord(OmekaRecord):
     def UCLDC_map(self):

@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import json
+from typing import Any
+
 import requests
+
 from ..mapper import Record, Validator, Vernacular
-from typing import Any, Optional
 
 
 class UcsdBlacklightMapper(Record):
@@ -52,7 +56,7 @@ class UcsdBlacklightMapper(Record):
         id = self.source_metadata.get('id')
         return f"{self.BASE_URL}{id}"
 
-    def new_map_is_shown_by(self) -> Optional[str]:
+    def new_map_is_shown_by(self) -> str | None:
         """
         This replaces the for..else control flow of the legacy mapper 
         (replicated by CIC below) for a sequence of if/elses that is 
@@ -106,7 +110,7 @@ class UcsdBlacklightMapper(Record):
         id = self.source_metadata.get("id")
         return f"{self.BASE_URL}{id}/_{preferred_file}"
 
-    def map_is_shown_by(self) -> Optional[str]:
+    def map_is_shown_by(self) -> str | None:
         """
         TODO: handle complex objects (this todo from legacy mapper)
         """
@@ -209,7 +213,7 @@ class UcsdBlacklightMapper(Record):
             return
 
         if len(self.relationship) == 1:
-            return list(self.relationship.values())[0]
+            return next(iter(self.relationship.values()))
 
         creators = []
         for r, c in self.relationship.items():
@@ -481,7 +485,7 @@ class UcsdBlacklightVernacular(Vernacular):
             if isinstance(note, (str, bytes)):
                 note = [note]
 
-            if any([r and r.startswith("Culturally sensitive content:")
+            if any([r and r.startswith("Culturally sensitive content:")  # noqa: C419
                     for r in note]):
                 return True
 

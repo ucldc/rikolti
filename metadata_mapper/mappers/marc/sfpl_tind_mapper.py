@@ -1,5 +1,6 @@
 from .tind_mapper import TindRecord, TindValidator, TindVernacular
 
+
 class SfplTindRecord(TindRecord):
     def to_UCLDC(self):
         self.legacy_couch_db_id = f"{self.collection_id}--{self.source_metadata.get('id')}"

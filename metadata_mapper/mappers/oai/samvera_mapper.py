@@ -1,15 +1,17 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
-from ..mapper import Validator
 from ...validator import ValidationLogLevel, ValidationMode
+from ..mapper import Validator
 from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class SamveraRecord(OaiRecord):
 
-    def map_is_shown_at(self) -> Optional[str]:
+    def map_is_shown_at(self) -> str | None:
         value = self.source_metadata.get("isShownAt")
 
         if isinstance(value, list):
@@ -18,7 +20,7 @@ class SamveraRecord(OaiRecord):
             return value
         return None
 
-    def map_is_shown_by(self) -> Optional[str]:
+    def map_is_shown_by(self) -> str | None:
         value = self.source_metadata.get("object")
 
         if isinstance(value, list):
@@ -70,7 +72,7 @@ class SamveraValidator(Validator):
     @staticmethod
     def replace_ursus_with_digital(validation_def: dict,
                                    rikolti_value: Any,
-                                   comparison_value: Any) -> Optional[str]:
+                                   comparison_value: Any) -> str | None:
         if rikolti_value == comparison_value:
             return
 
@@ -88,7 +90,7 @@ class SamveraValidator(Validator):
     @staticmethod
     def contributor_match(validation_def: dict,
                           rikolti_value: Any,
-                          comparison_value: Any) -> Optional[str]:
+                          comparison_value: Any) -> str | None:
         """ matches values that differ in only a trailing period. """
         if rikolti_value == comparison_value:
             return
@@ -103,7 +105,7 @@ class SamveraValidator(Validator):
     @staticmethod
     def rights_match(validation_def: dict,
                      rikolti_value: Any,
-                     comparison_value: Any) -> Optional[str]:
+                     comparison_value: Any) -> str | None:
         """ 
         matches values that differ only in phone number when new phone number
         is '(310) 825-4988' - in legacy collection 153, this number seemed to
@@ -152,7 +154,7 @@ class SamveraValidator(Validator):
     @staticmethod
     def date_match(validation_def: dict,
                    rikolti_value: Any,
-                   comparison_value: Any) -> Optional[str]:
+                   comparison_value: Any) -> str | None:
         """
         if comparison value is a list of one string date and rikolti
         value is a list of two string dates, one in Month, DD, YYYY
@@ -171,24 +173,24 @@ class SamveraValidator(Validator):
         if sorted(rikolti_value) == sorted(comparison_value):
             return
 
-        if len(comparison_value) == 1 and len(rikolti_value) == 2:
-            if comparison_value[0] == rikolti_value[0]:
-                try:
-                    comparison_datetime = datetime.strptime(
-                        comparison_value[0], '%B %d, %Y')
-                    rikolti_datetime = datetime.strptime(
-                        rikolti_value[1], '%Y-%m-%d')
-                except ValueError:
-                    return "Content mismatch"
-                if comparison_datetime == rikolti_datetime:
-                    return
+        if (len(comparison_value) == 1 and len(rikolti_value) == 2 and
+            comparison_value[0] == rikolti_value[0]):
+            try:
+                comparison_datetime = datetime.strptime(    # noqa: DTZ007
+                    comparison_value[0], '%B %d, %Y')
+                rikolti_datetime = datetime.strptime(   # noqa: DTZ007
+                    rikolti_value[1], '%Y-%m-%d')
+            except ValueError:
+                return "Content mismatch"
+            if comparison_datetime == rikolti_datetime:
+                return
 
         return "Content mismatch"
 
     @staticmethod
     def source_match(validation_def: dict,
                      rikolti_value: Any,
-                     comparison_value: Any) -> Optional[str]:
+                     comparison_value: Any) -> str | None:
         """
         matches 
         "['Los Angeles Times Photographic Collection']"

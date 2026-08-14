@@ -1,8 +1,11 @@
-from enum import Enum
+from __future__ import annotations
+
 import json
-from typing import IO, Any
-from rikolti.utils.versions import (
-    create_validation_version, put_validation_report)
+from enum import Enum
+from typing import IO, Any, ClassVar
+
+from rikolti.utils.versions import create_validation_version, put_validation_report
+
 
 class ValidationLogLevel(Enum):
     DEBUG = "DEBUG"
@@ -12,7 +15,7 @@ class ValidationLogLevel(Enum):
 
 
 class ValidationLog:    
-    CSV_FIELDS: dict[str, str] = {
+    CSV_FIELDS: ClassVar[dict[str, str]] = {
         "harvest_id": "Harvest ID",
         # "level": "Level",
         "field": "Field",
@@ -24,21 +27,21 @@ class ValidationLog:
         "calisphere_test": "Calisphere Test",
     }
 
-    def __init__(self, log_level: ValidationLogLevel = ValidationLogLevel.WARNING):
+    def __init__(self, log_level: type[ValidationLogLevel] = ValidationLogLevel.WARNING):
         self.log: list[dict[str, Any]] = []
         self.level = log_level
 
-    def set_log_level(self, log_level: ValidationLogLevel) -> None:
+    def set_log_level(self, log_level: type[ValidationLogLevel]) -> None:
         self.level = log_level
 
     def has_entries(self):
-        return True if len(self.log) else False
+        return bool(len(self.log))
 
     def is_empty(self):
         return not self.has_entries()
 
     def add(self, key: str, field: str, description: str, expected: Any = "",
-            actual: Any = "", level: ValidationLogLevel = ValidationLogLevel.ERROR,
+            actual: Any = "", level: type[ValidationLogLevel] = ValidationLogLevel.ERROR,
             **context) -> None:
         """
         Adds an entry to the log.
@@ -73,7 +76,7 @@ class ValidationLog:
             **context
         })
 
-    def merge(self, other_log: "ValidationLog") -> "ValidationLog":
+    def merge(self, other_log: type[ValidationLog]) -> type[ValidationLog]:
         """
         Merges log list with another.
 
@@ -90,7 +93,7 @@ class ValidationLog:
         return self.log
 
     def output_csv_to_file(self, file: IO[str], append: bool = False,
-                           include_fields: list[str] = None) -> None:
+                           include_fields: list[str] | None = None) -> None:
         """
         Given a file, generates a CSV with log output.
 
@@ -105,8 +108,8 @@ class ValidationLog:
         with open(file, "a" if append else "w") as f:
             f.write(self._csv_content_string(include_fields, append))
 
-    def output_csv_to_bucket(self, collection_id: int, mapped_version: str = None,
-                             include_fields: list[str] = None) -> str:
+    def output_csv_to_bucket(self, collection_id: int, mapped_version: str | None = None,
+                             include_fields: list[str] | None = None) -> str:
         """
         Writes a CSV to the env-appropriate bucket (local or S3).
 
@@ -124,7 +127,7 @@ class ValidationLog:
                 3433/vernacular_metadata_v1/mapped_metadata_v1/validation_v1.csv
         """
         content = self._csv_content_string(include_fields)
-        if isinstance(content, list) or isinstance(content, dict):
+        if isinstance(content, (list, dict)):
             content = json.dumps(content)
 
         file_location = create_validation_version(mapped_version)
@@ -132,7 +135,7 @@ class ValidationLog:
         return file_location
 
 
-    def _csv_content(self, include_fields: list[str] = None,
+    def _csv_content(self, include_fields: list[str] | None = None,
                      include_headers: bool = True) -> list[list[str]]:
         """
         Generates a list from log entries suitable for generating a CSV.
@@ -174,7 +177,7 @@ class ValidationLog:
 
         return ret
 
-    def _csv_content_string(self, include_fields: list[str] = None,
+    def _csv_content_string(self, include_fields: list[str] | None = None,
                             include_headers: bool = True) -> str:
         """
         Generates a string of CSV content suitable for writing to a file.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 ISO639_3_1 = {
@@ -8139,11 +8138,11 @@ iso_639_3 = dict(ISO639_3_1, **ISO639_3_2)
 
 # previously EXACT_LANGUAGE_NAME_REGEXES
 language_regexes = {
-    k: re.compile(r'^{0}$'.format(re.escape(v)), re.I) for
+    k: re.compile(rf'^{re.escape(v)}$', re.IGNORECASE) for
     (k, v) in list(iso_639_3.items())
 }
 
 wb_language_regexes = {
-    k: re.compile(r'\b{0}\b'.format(re.escape(v)), re.I) for
+    k: re.compile(rf'\b{re.escape(v)}\b', re.IGNORECASE) for
     (k, v) in list(iso_639_3.items())
 }

@@ -1,9 +1,10 @@
-from collections import defaultdict
 import re
+from collections import defaultdict
 
 from lxml import etree
 
 from ..islandora_mapper import IslandoraRecord, IslandoraVernacular
+
 
 class CaltechRecord(IslandoraRecord):
 

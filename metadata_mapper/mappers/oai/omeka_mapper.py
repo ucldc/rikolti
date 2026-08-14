@@ -1,10 +1,14 @@
-from urllib import parse
-from typing import Any, Optional
+from __future__ import annotations
 
-from .oai_mapper import OaiRecord, OaiVernacular
-from ..mapper import Validator
-from ...validator import ValidationLogLevel, ValidationMode
+from typing import Any
+from urllib import parse
+
 from rikolti.utils.request_retry import configure_http_session
+
+from ...validator import ValidationLogLevel, ValidationMode
+from ..mapper import Validator
+from .oai_mapper import OaiRecord, OaiVernacular
+
 
 class OmekaRecord(OaiRecord):
     """
@@ -40,9 +44,9 @@ class OmekaRecord(OaiRecord):
         """
         identifiers = filter(None, self.source_metadata.get('identifier'))
         for i in identifiers:
-            if 's3.amazonaws.com/omeka-net' in i:
+            if 's3.amazonaws.com/omeka-net' in i:   # noqa: SIM114
                 return i
-            elif i.startswith('https://d1y502jg6fpugt.cloudfront.net'):
+            elif i.startswith('https://d1y502jg6fpugt.cloudfront.net'):  # noqa: SIM114
                 return i
             elif '/files/thumbnails/' in i:
                 return i
@@ -112,7 +116,7 @@ class OmekaValidator(Validator):
     @staticmethod
     def content_match_ignore_n_d(validation_def: dict,
                                  rikolti_value: Any,
-                                 comparison_value: Any) -> Optional[str]:
+                                 comparison_value: Any) -> str | None:
         """
         in the legacy harvester, we replaced instances of 'N.D.' with None, 
         but in rikolti, Christine's determined that we'd like to keep the 
@@ -134,7 +138,7 @@ class OmekaValidator(Validator):
     @staticmethod
     def match_signed_s3_url(validation_def: dict,
                             rikolti_value: Any,
-                            comparison_value: Any) -> Optional[str]:
+                            comparison_value: Any) -> str | None:
         """
         matches signed s3 urls, despite the fact that their signatures will differ:
 
@@ -169,7 +173,7 @@ class OmekaValidator(Validator):
     @staticmethod
     def contributor_match(validation_def: dict,
                           rikolti_value: Any,
-                          comparison_value: Any) -> Optional[str]:
+                          comparison_value: Any) -> str | None:
         """ matches values that differ in only a trailing period. """
         if rikolti_value == comparison_value:
             return
@@ -183,7 +187,7 @@ class OmekaValidator(Validator):
     @staticmethod
     def description_match(validation_def: dict,
                           rikolti_value: Any,
-                          comparison_value: Any) -> Optional[str]:
+                          comparison_value: Any) -> str | None:
         """ matches values that differ in only trailing space. """
         if rikolti_value == comparison_value:
             return

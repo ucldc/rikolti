@@ -1,6 +1,6 @@
 import json
 
-from ..mapper import Vernacular, Record
+from ..mapper import Record, Vernacular
 
 
 class UcdJsonRecord(Record):
@@ -98,7 +98,7 @@ class UcdJsonVernacular(Vernacular):
         if isinstance(identifier, str):
             identifier = [identifier]
 
-        return not any([v.startswith("ark:") for v
+        return not any([v.startswith("ark:") for v  # noqa: C419
                         in identifier])
 
     def parse(self, api_response: str) -> list:

@@ -34,7 +34,7 @@ class ValidationMode(Enum):
         """
         Strict validation mode generally requires exact matches to pass.
         """
-        pass
+        pass    # noqa: PIE790
 
 
     class ListOrderInsensitiveMode(Mode):

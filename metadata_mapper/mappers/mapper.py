@@ -1,26 +1,36 @@
+from __future__ import annotations
+
 import hashlib
 import itertools
 import json
 import os
 import re
-from abc import ABC
-from typing import Any, Callable, Optional, Union
 import traceback
+from abc import ABC
+from typing import Any, Callable
 
 from markupsafe import Markup
 from typing_extensions import deprecated
 
-from .date_enrichments import convert_dates, check_date_format
-from .solr_updater_helpers import make_sort_dates, unpack_display_date, get_facet_decades
 from ..utilities import returns_callable
 from ..validator.validation_log import ValidationLog  # noqa: F401
 from ..validator.validator import Validator
 from . import constants
+from .date_enrichments import check_date_format, convert_dates
 from .iso639_1 import iso_639_1
 from .iso639_3 import iso_639_3, language_regexes, wb_language_regexes
+from .solr_updater_helpers import (
+    get_facet_decades,
+    make_sort_dates,
+    unpack_display_date,
+)
 
 
-class Vernacular(ABC, object):
+class EnrichmentException(Exception):
+    pass
+
+
+class Vernacular(ABC):
     def __init__(self, collection_id: int, page_filename: str) -> None:
         self.collection_id = collection_id
         self.page_filename = page_filename
@@ -35,7 +45,7 @@ class Vernacular(ABC, object):
         return False
 
 
-class Record(ABC, object):
+class Record(ABC):
 
     validator = Validator
 
@@ -136,9 +146,9 @@ class Record(ABC, object):
 
         split_values = [c.split(';') for c in filter(None, values)]
 
-        return list([s.strip() for s in itertools.chain.from_iterable(split_values)])
+        return [s.strip() for s in itertools.chain.from_iterable(split_values)]
 
-    def ensure_list(self, value: Union[list, str]) -> list:
+    def ensure_list(self, value: list |str) -> list:
         if not value:
             return
 
@@ -156,10 +166,10 @@ class Record(ABC, object):
         func: Callable = getattr(self, enrichment_function_name)
         try:
             return func(**kwargs)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"ENRICHMENT ERROR: {e}\n{traceback.format_exc()}")
-            raise Exception(f"ENRICHMENT ERROR for enrichment: `{enrichment_function_name}` "
-                f"with kwargs: `{str(kwargs)}` "
+            raise EnrichmentException(f"ENRICHMENT ERROR for enrichment: `{enrichment_function_name}` "
+                f"with kwargs: `{kwargs!s}` "
             )
 
     def select_id(self, prop: list[str]):
@@ -172,9 +182,9 @@ class Record(ABC, object):
         3 times:    prop=["identifier"]
         """
         if len(prop) > 1:
-            raise Exception("select_id only accepts one property")
+            raise EnrichmentException("select_id only accepts one property")
         if not isinstance(prop, list):
-            raise Exception("select_id only accepts a list of length 1")
+            raise EnrichmentException("select_id only accepts a list of length 1")
         prop = prop[0]
 
         # original dpla_ingestion/lib/akamod/select-id.py
@@ -334,7 +344,7 @@ class Record(ABC, object):
             try:
                 value = delim.join(value)
                 value = value.replace(f"{delim}{delim}", delim)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 self.enrichment_report.append(
                     f"[shred]: Can't join {field} list {value} with {delim}, {e}"
                 )
@@ -351,7 +361,7 @@ class Record(ABC, object):
 
         return self
 
-    def copy_prop(self, prop, to_prop, no_overwrite=None, skip_if_exists=[False]):
+    def copy_prop(self, prop, to_prop, no_overwrite=None, skip_if_exists=None):
         """
         no_overwrite is specified in one of the enrichment chain items, but is
         not implemented in the dpla-ingestion code.
@@ -395,7 +405,7 @@ class Record(ABC, object):
 
         src = prop[0].split('/')[-1]
         dest = to_prop[0].split('/')[-1]
-        skip_if_exists = bool(skip_if_exists[0] in ['True', 'true'])
+        skip_if_exists = bool(skip_if_exists[0] in ['True', 'true']) if skip_if_exists else False
 
         if ((dest in self.mapped_data and skip_if_exists) or
                 (src not in self.mapped_data)):
@@ -406,8 +416,8 @@ class Record(ABC, object):
         src_val = self.mapped_data.get(src)
         dest_val = self.mapped_data.get(dest, [])
         if (
-                (not (isinstance(src_val, list) or isinstance(src_val, str))) or
-                (not (isinstance(dest_val, list) or isinstance(dest_val, str)))
+                not isinstance(src_val, (list, str)) or
+                not isinstance(dest_val, (list, str))
         ):
             self.enrichment_report.append(
                 f"[copy_prop]: Prop {src} is {type(src_val)} and prop {dest} "
@@ -460,7 +470,7 @@ class Record(ABC, object):
             cleaned_value = re.sub(r"[\(\)\.\?]", "", value)
             cleaned_value = cleaned_value.strip()
             for pattern in constants.move_date_value_reg_search:
-                matches = re.compile(pattern, re.I).findall(cleaned_value)
+                matches = re.compile(pattern, re.IGNORECASE).findall(cleaned_value)
                 if (len(matches) == 1 and
                         (not re.sub(matches[0], "", cleaned_value).strip())):
                     if matches[0] not in dest_values:
@@ -478,7 +488,7 @@ class Record(ABC, object):
 
         return self
 
-    def lookup(self, prop, target, substitution, inverse=[False]):
+    def lookup(self, prop, target, substitution, inverse=None):
         """
         dpla-ingestion code has a delnonexisting parameter that is not used by
         our enrichment chain, so I've not implemented it here.
@@ -514,7 +524,7 @@ class Record(ABC, object):
         src = prop[0].split('/')[1:]  # remove sourceResource
         dest = target[0].split('/')[1:]  # remove sourceResource
         substitution = substitution[0]
-        inverse = bool(inverse[0] in ['True', 'true'])
+        inverse = bool(inverse[0] in ['True', 'true']) if inverse else False
 
         # TODO: this won't actually work for deeply nested fields
 
@@ -614,7 +624,7 @@ class Record(ABC, object):
 
         return self
 
-    def enrich_location(self, prop=["sourceResource/spatial"]):
+    def enrich_location(self, prop=None):
         """
         the enrich_location.py file in dpla-ingestion includes the functions:
         `get_isostate` and `from_abbrev`, as well as the constants `STATES` and
@@ -629,6 +639,7 @@ class Record(ABC, object):
         1785 times: no parameters
         2080 times: prop=["sourceResource/stateLocatedIn"]
         """
+        prop = prop or ["sourceResource/spatial"]
         src = prop[0].split('/')[-1]  # remove sourceResource
         if src not in self.mapped_data:
             return self
@@ -697,10 +708,10 @@ class Record(ABC, object):
         def clean_subject(value):
             value = value.strip()
             regexps = (
-                ('\s*-{2,4}\s*', '--'),
-                ('\s*-\s*-\s*', '--'),
-                ('^[\.\' ";]*', ''),
-                ('[\.\' ";]*$', '')
+                (r'\s*-{2,4}\s*', '--'),
+                (r'\s*-\s*-\s*', '--'),
+                ('^[\\.\' ";]*', ''),
+                ('[\\.\' ";]*$', '')
             )
             for regexp, replacement in regexps:
                 value = re.sub(regexp, replacement, value)
@@ -724,7 +735,7 @@ class Record(ABC, object):
             ('audio/mp3', 'audio/mpeg'), ('images/jpeg', 'image/jpeg'),
             ('image/jpg', 'image/jpeg'), ('image/jp$', 'image/jpeg'),
             ('img/jpg', 'image/jpeg'), ('^jpeg$', 'image/jpeg'),
-            ('^jpg$', 'image/jpeg'), ('\W$', '')
+            ('^jpg$', 'image/jpeg'), (r'\W$', '')
         ]
 
         record_formats = self.mapped_data.get('format', [])
@@ -798,7 +809,7 @@ class Record(ABC, object):
                 continue
 
             # try to get an iso1 code from the language name
-            stripped_language = re.sub("[\.\[\]\(\)]", "", language)
+            stripped_language = re.sub(r"[\.\[\]\(\)]", "", language)
             cleaned_language = stripped_language.lower().strip()
             subbed_language = re.sub("[-_/].*$", "", cleaned_language)
             iso1 = subbed_language.strip()
@@ -908,7 +919,7 @@ class Record(ABC, object):
         return self
 
     def drop_long_values(
-            self, field: Optional[list[str]] = None, max_length=[150]):
+            self, field: list[str] | None = None, max_length=None):
         """ Look for long values in the sourceResource field specified.
         If value is longer than max_length, delete
 
@@ -921,7 +932,7 @@ class Record(ABC, object):
             return self
 
         field_name = field[0]
-        max_length = max_length[0]
+        max_length = max_length[0] if max_length else 150
 
         fieldvalues = self.mapped_data.get(field_name, '')
         if isinstance(fieldvalues, list):
@@ -937,7 +948,7 @@ class Record(ABC, object):
         return self
 
     def replace_regex(self, prop, regex, new=''):
-        """
+        r"""
         Replaces a regex in prop
 
         called with the following parameters:
@@ -1069,7 +1080,7 @@ class Record(ABC, object):
         for key, value in self.mapped_data.copy().items():
             if not value:
                 del self.mapped_data[key]
-            if value == [u'none'] or value == [u'[none]']:
+            if value == ['none'] or value == ['[none]']:
                 del self.mapped_data[key]
 
         for key, value in self.mapped_data.items():
@@ -1206,11 +1217,11 @@ class Record(ABC, object):
         def cleanup(value, field):
             strip_dquote = '"' if field not in ["title", "description"] else ''
             strip_dot = '.' if field not in dont_strip_trailing_dot else ''
-            strip_leading = '[\.\' \r\t\n;,%s]*' % (strip_dquote)
-            strip_trailing = '[%s\' \r\t\n;,%s]*' % (strip_dot, strip_dquote)
+            strip_leading = '[\\.\' \r\t\n;,%s]*' % (strip_dquote)  # noqa: UP031
+            strip_trailing = '[%s\' \r\t\n;,%s]*' % (strip_dot, strip_dquote)   # noqa: UP031
 
-            regexps = ('\( ', '('), \
-                      (' \)', ')'), \
+            regexps = (r'\( ', '('), \
+                      (r' \)', ')'), \
                       (' *-- *', '--'), \
                       ('[\t ]{2,}', ' '), \
                       ('^' + strip_leading, ''), \
@@ -1293,7 +1304,7 @@ class Record(ABC, object):
 
     def remove_none_values(self):
         keys_to_remove = []
-        for field in self.mapped_data.keys():
+        for field in self.mapped_data:
             if self.mapped_data[field] is None:
                 keys_to_remove.append(field)
             elif isinstance(self.mapped_data[field], list):
@@ -1311,16 +1322,16 @@ class Record(ABC, object):
 
         def normalize_sort_field(sort_field,
                                  default_missing='~title unknown',
-                                 missing_equivalents=['title unknown']):
+                                 missing_equivalents=None):
+            missing_equivalents = missing_equivalents or ['title unknown']
             if sort_field:
                 sort_field = sort_field.lower()
                 # remove punctuation
                 re_alphanumspace = re.compile(r'[^0-9A-Za-z\s]*')
                 sort_field = re_alphanumspace.sub('', sort_field)
                 words = sort_field.split()
-                if words:
-                    if words[0] in ('the', 'a', 'an'):
-                        sort_field = ' '.join(words[1:])
+                if words and words[0] in ('the', 'a', 'an'):
+                    sort_field = ' '.join(words[1:])
             if not sort_field or sort_field in missing_equivalents:
                 sort_field = default_missing
             return sort_field
@@ -1346,7 +1357,7 @@ class Record(ABC, object):
                 if not dejson_data:
                     items = data.items()
                     if len(items) == 1:
-                        dejson_data = list(items)[0][1]
+                        dejson_data = next(iter(items))[1]
                 if not dejson_data:
                     return data
 
@@ -1356,7 +1367,7 @@ class Record(ABC, object):
                     flatdata = j.get('name', data)
                 except (ValueError, AttributeError):
                     flatdata = data
-                    pass
+                    pass    # noqa: PIE790
                 dejson_data = flatdata
             return dejson_data
 
@@ -1437,7 +1448,7 @@ class Record(ABC, object):
                 try:
                     mangled_ark = doc['originalRecord'][f]
                     naan, arkid = mangled_ark.split('-')  # could fail?
-                    ark = '/'.join(('ark:', naan, arkid))
+                    ark = f"ark:/{naan}/{arkid}"
                     break
                 except KeyError:
                     pass
@@ -1470,9 +1481,9 @@ class Record(ABC, object):
                 solr_id = ucla_ark(couch_doc)
             if not solr_id:
                 if not couch_doc.get('calisphere-id'):
-                    raise Exception('no calisphere id')
+                    raise EnrichmentException('no calisphere id')
                 hash_id = hashlib.md5()
-                hash_id.update((
+                hash_id.update((    # noqa: UP012
                     f"{couch_doc['collection'][0]['id']}--"
                     f"{couch_doc['calisphere-id']}"
                 ).encode('utf-8'))
@@ -1495,8 +1506,8 @@ class Record(ABC, object):
                                         str(collection['id'])))
                 return sort_string
 
-            if not all([c.get('repository') for c in collections]):
-                raise Exception
+            if not all([c.get('repository') for c in collections]):     # noqa: C419
+                raise EnrichmentException
             repos = [
                 repo for c in collections for repo in c.get('repository', [])
             ]

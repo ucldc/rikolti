@@ -1,4 +1,6 @@
-from typing import Union
+from __future__ import annotations
+
+from typing import ClassVar
 
 from lxml import etree
 from sickle import models
@@ -9,7 +11,7 @@ from ..mapper import Record, Vernacular
 class OaiRecord(Record):
     """Superclass for OAI metadata."""
 
-    TYPES = {
+    TYPES: ClassVar = {
         "img": "image",
         "txt": "text"
     }
@@ -92,8 +94,8 @@ class OaiRecord(Record):
         """Will be implemented by child mapper classes"""
         return
 
-    def map_subject(self) -> Union[list[dict[str, str]], None]:
-        # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127 # noqa: E501
+    def map_subject(self) -> list[dict[str, str]] | None:
+        # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/dublin_core_mapper.py#L117-L127
         value = self.source_metadata.get("subject")
         if not value:
             return None
