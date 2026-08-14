@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import re
-from typing import Any, Optional
+from typing import Any
 
-
-from .oai_mapper import OaiRecord, OaiVernacular
 from ..mapper import Validator
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class UpRecord(OaiRecord):
@@ -71,21 +72,21 @@ class UpValidator(Validator):
     @staticmethod
     def str_match_ignore_url_protocol(validation_def: dict,
                                     rikolti_value: Any,
-                                    comparison_value: Any) -> Optional[str]:
+                                    comparison_value: Any) -> str | None:
         if rikolti_value == comparison_value:
             return
 
         if comparison_value and comparison_value.startswith('http'):
             comparison_value = comparison_value.replace('http', 'https')
 
-        if not rikolti_value == comparison_value:
+        if rikolti_value != comparison_value:
             return "Content mismatch"
 
 
     @staticmethod
     def identifier_ignore_url_template_match(validation_def: dict,
                                              rikolti_value: Any,
-                                             comparison_value: Any) -> Optional[str]:
+                                             comparison_value: Any) -> str | None:
         if rikolti_value == comparison_value:
             return
 

@@ -1,5 +1,6 @@
 from .tind_mapper import TindRecord, TindValidator, TindVernacular
 
+
 class UcbTindRecord(TindRecord):
     def UCLDC_map(self):
         return {

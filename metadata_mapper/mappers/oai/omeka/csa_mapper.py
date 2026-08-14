@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 
 from ..omeka_mapper import OmekaRecord, OmekaVernacular
 
@@ -15,7 +15,7 @@ class CsaRecord(OmekaRecord):
                        if 'files/original' in i]
         return identifiers[0] if identifiers else None
 
-    def map_spatial(self) -> Union[list[str], None]:
+    def map_spatial(self) -> list[str] | None:
         spatial = self.collate_fields(["coverage", "spatial"])()
         spatial = [s for s in spatial if s]
         split_spatial = []

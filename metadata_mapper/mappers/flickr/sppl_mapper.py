@@ -1,8 +1,8 @@
 import re
 from typing import Any
 
-from ..mapper import Validator
 from ...validator import ValidationLogLevel
+from ..mapper import Validator
 from .flickr_mapper import FlickrRecord, FlickrValidator, FlickrVernacular
 
 
@@ -99,7 +99,7 @@ class SpplFlickrValidator(FlickrValidator):
         content_match_validation = Validator.content_match(
             validation_def, rikolti_value, comparison_value)
 
-        if content_match_validation == "Content mismatch":
+        if content_match_validation == "Content mismatch":  # noqa: SIM102
             if (comparison_value is None and
                  rikolti_value == ['Owner: South Pasadena Public Library']):
                 return

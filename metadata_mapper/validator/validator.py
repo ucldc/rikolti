@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import itertools
 import re
 import urllib.parse
-from typing import Any, Callable, Union, Optional
 from datetime import datetime
+from typing import Any, Callable
 
 from .validation_log import ValidationLog, ValidationLogLevel
 from .validation_mode import ValidationMode
@@ -19,7 +21,7 @@ class Validator:
 
     def setup(self) -> None:
         """Optional post-init callback, useful to modify validatable fields, etc."""
-        pass
+        pass    # noqa PIE790
 
     def validate(self, key: str, rikolti_data: dict,
                  comparison_metadata: dict, validation_mode = None) -> ValidationLog:
@@ -73,10 +75,9 @@ class Validator:
         return self.validatable_fields
     
     def add_validatable_field(self, field: str,
-                              validations: Union[Callable,
-                                                 list[Callable],
-                                                 dict[Callable, ValidationLogLevel]
-                                                 ],
+                              validations: Callable |
+                                            list[Callable] |
+                                            dict[Callable, ValidationLogLevel],
                               level: ValidationLogLevel = None,
                               validation_mode: ValidationMode = None,
                               replace: bool = True
@@ -171,8 +172,8 @@ class Validator:
         
         return orig_len < len(self.validatable_fields)
 
-    def generate_keys(self, collection: list[dict], type: str = None,
-                      context: dict = {}) -> dict[str, dict]:
+    def generate_keys(self, collection: list[dict], type: str | None = None,
+                      context: dict | None = None) -> dict[str, dict] | None:
         """
         Given a list of records, generates keys and returns a dict with the
         original list contents as values.
@@ -193,6 +194,7 @@ class Validator:
         Returns: dict[str, dict]
             dict of dicts, keyed to ensure successful intersection.
         """
+        context = context or {}
         if type == "Rikolti":
             return {f"{context.get('collection_id')}--{r['calisphere-id']}": r
                     for r in collection}
@@ -203,7 +205,7 @@ class Validator:
         """
         Optional pre-validation callback.
         """
-        pass
+        pass  # noqa PIE790
 
     def rights_validation(self, **kwargs) -> None:
         if (not self.rikolti_data.get('rights') and
@@ -212,13 +214,12 @@ class Validator:
                 key=self.key,
                 field="record rights",
                 description="No rights or rights_uri found")
-        return
 
     def after_validation(self, **kwargs) -> None:
         """
         Optional post-validation callback.
         """
-        pass
+        pass  # noqa PIE790
 
     # Static validators
     #
@@ -233,7 +234,7 @@ class Validator:
 
     @staticmethod
     def ark_type(validation_def: dict, rikolti_value: Any,
-                 _: Any) -> Union[str, None]:
+                 _: Any) -> str | None:
         """
         Validates that the value is an ARK.
         """
@@ -244,7 +245,7 @@ class Validator:
             return "ID is not an 'ark:/'"
 
     @staticmethod
-    def verify_type(expected: Union[type, Callable, list[type]]) -> Callable:
+    def verify_type(expected: type | Callable | list[type]) -> Callable:
         """
         Verifies the rikolti value is its expected type. Passes if the value is None.
         If the value cannot be None, use Validator.required_field in addition
@@ -255,7 +256,7 @@ class Validator:
         or a list of types and/or Callables.
 
         Parameters:
-            expected: Union[type, Callable, list[Union[type, Callable]]]
+            expected: type | Callable | list[type | Callable]
                 The expected type, a Callable that performs a type check, or
                 list of expected types or Callables. If a list, only one must
                 eval true in order to pass.
@@ -264,7 +265,7 @@ class Validator:
         validation_definition, rikolti_value, and comparison_value that returns
         a validation report string or None.
         """
-        def inner(validation_def: dict, rikolti_value: Any, _: Any) -> Union[str, None]:
+        def inner(validation_def: dict, rikolti_value: Any, _: Any) -> str | None:
             if not Validator.compare_type(expected, rikolti_value):
                 if isinstance(expected, list):
                     expected_types = ",".join([t.__name__ for t in expected])
@@ -280,7 +281,7 @@ class Validator:
 
     @staticmethod
     def type_match(validation_def: dict, rikolti_value: Any,
-                   comparison_value: Any) -> Union[str, None]:
+                   comparison_value: Any) -> str | None:
         """
         Validates that the rikolti value is of the same type
         as the comparison type.
@@ -309,7 +310,7 @@ class Validator:
 
     @staticmethod
     def date_match(validation_def: dict, rikolti_value: Any,
-                     comparison_value: Any) -> Union[str, None]:
+                     comparison_value: Any) -> str | None:
         """
         Validates that the content of the provided values are identical
         iso format dates
@@ -320,7 +321,7 @@ class Validator:
         if rikolti_value:
             rikolti_value = datetime.fromisoformat(
                 rikolti_value.replace('Z', '+00:00'))
-        if not comparison_value == rikolti_value:
+        if comparison_value != rikolti_value:
             return "Date mismatch"
 
     @staticmethod
@@ -347,7 +348,7 @@ class Validator:
         Returns: Callable
         """
         def inner(validation_def: dict, rikolti_values: Any,
-                  comparison_value: Any) -> Optional[str]:
+                  comparison_value: Any) -> str | None:
 
             if not rikolti_values:
                 return Validator.content_match(
@@ -368,7 +369,7 @@ class Validator:
 
     @staticmethod
     def required_field(validation_def: dict, rikolti_value: Any,
-                       comparison_value: Any) -> Union[str, None]:
+                       comparison_value: Any) -> str | None:
         """
         Validates that a mapped value exists for a given field.
 
@@ -380,7 +381,7 @@ class Validator:
 
     @staticmethod
     def not_null(validation_def: dict, rikolti_value: Any,
-                 comparison_value: Any) -> Union[str, None]:
+                 comparison_value: Any) -> str | None:
         """
         Validates that a mapped value is not None.
 
@@ -393,7 +394,7 @@ class Validator:
     # Type helpers
 
     @staticmethod
-    def derive_type(value: Any) -> Union[type, Callable]:
+    def derive_type(value: Any) -> type | Callable:
         """
         Attempts to derive the type of a value for comparison.
 
@@ -403,21 +404,21 @@ class Validator:
             value: Any
                 The value of which to derive the type
 
-        Returns: Union[type, Callable]
+        Returns: type | Callable
         """
         if isinstance(value, list):
-            inner_types = set([Validator.derive_type(item) for item in value])
+            inner_types = {Validator.derive_type(item) for item in value}
             return Validator.list_of(*inner_types)
         elif isinstance(value, dict):
-            inner_types = set([Validator.derive_type(item)
+            inner_types = {Validator.derive_type(item)
                                for k, item
-                               in value.items()])
+                               in value.items()}
             return Validator.dict_of(*inner_types)
         else:
             return type(value)
 
     @staticmethod
-    def compare_type(expected_type: Union[type, Callable, list[Union[type, Callable]]], 
+    def compare_type(expected_type: type | Callable | list[type | Callable],
                      value: Any) -> Any:
         """
         Compares a value with its expected type. Passes if the value is None.
@@ -430,7 +431,7 @@ class Validator:
         Used in both Validator.verify_type and Validator.type_match.
 
         Parameters:
-            expected_value: Union[type, Callable, list[Union[type, Callable]]]
+            expected_value: type | Callable | list[type | Callable]
                 The expected type, a Callable that performs a type check, or
                 list of expected types or Callables. If a list, only one must eval
                 true in order to pass.
@@ -451,7 +452,7 @@ class Validator:
 
     @staticmethod
     def nested_value(iterable_type: type,
-                     nested_types: Union[type, list[type]],
+                     nested_types: type | list[type],
                      value_to_check: Any) -> bool:
         """
         Checks to see if an iterable and its contents are of given types.
@@ -466,7 +467,7 @@ class Validator:
         Parameters:
             container_type: type
                 The type that the iterable should be, i.e. list or dict.
-            nested_types: Union[type, list[type]]
+            nested_types: type | list[type]
                 The type or types that nested values are allowed to be
             value_to_check: Any
                 The iterable to check
@@ -486,13 +487,13 @@ class Validator:
         containing defined types.
 
         Parameters:
-            types: Union[type, list[type]]
+            types: type | list[type]
                 The type or types that are acceptable in the list
 
         Returns: Callable
         """
         type_list = list(types)
-        lam = lambda value: Validator.nested_value(list, type_list, value)  # noqa: E731, E501
+        lam = lambda value: Validator.nested_value(list, type_list, value)
         # Assign __name__ for readable expected value output
         lam.__name__ = f"List of {', '.join([t.__name__ for t in type_list])}"
         return lam
@@ -504,12 +505,12 @@ class Validator:
         containing values of defined types.
 
         Parameters:
-            types: Union[type, list[type]]
+            types: type | list[type]
                 The type or types that are acceptable in the dict's values
 
         Returns: Callable
         """
-        lam = lambda value: Validator.nested_value(dict, list(types), value)  # noqa: E731, E501
+        lam = lambda value: Validator.nested_value(dict, list(types), value)
         lam.__name__ = f"Dictionary of {', '.join([t.__name__ for t in types])}"
         return lam
 
@@ -554,11 +555,9 @@ class Validator:
 
         return validation_def
 
-    def _normalize_validations(self, validations: Union[
-                                                        Callable,
-                                                        list[Callable],
-                                                        dict[Callable, str]
-                                                        ],
+    def _normalize_validations(self, validations: Callable |
+                                                    list[Callable] |
+                                                    dict[Callable, str],
                                default_level: ValidationLogLevel
                                ) -> dict[Callable, str]:
         """

@@ -58,7 +58,6 @@ class FlickrRecord(Record):
         if there is no EXIF data. For items with EXIF data, hopefully it is
         the date taken == created date.
         """
-        pass
 
     def map_description(self):
         return [self.source_metadata.get("description", {}).get("_content")]
@@ -80,7 +79,6 @@ class FlickrRecord(Record):
         It looks like the only location may be the location of the owner of
         the photo, as it's an attribute on the owner object
         """
-        pass
 
     @staticmethod
     def get_mapping_configuration():

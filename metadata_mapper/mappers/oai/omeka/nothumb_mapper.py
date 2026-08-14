@@ -16,7 +16,7 @@ class NothumbVernacular(OmekaVernacular):
         searches = ['s3.amazonaws.com/omeka-net', '/files/thumbnails/',
                     '/files/original/']
 
-        return not any([search in identifier
+        return not any([search in identifier    # noqa C419
                         or identifier.startswith('https://d1y502jg6fpugt.cloudfront.net')
                         for search in searches
                         for identifier in filter(None, record.get('identifier'))])

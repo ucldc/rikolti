@@ -1,8 +1,10 @@
-from typing import Union, Any
+from __future__ import annotations
 
-from .oai_mapper import OaiRecord, OaiVernacular
-from ..mapper import Validator
+from typing import Any
+
 from ...validator import ValidationLogLevel
+from ..mapper import Validator
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class CcaVaultRecord(OaiRecord):
@@ -12,10 +14,10 @@ class CcaVaultRecord(OaiRecord):
             "source": self.source_metadata.get("source")
         }
 
-    def map_is_shown_at(self) -> Union[str, None]:
+    def map_is_shown_at(self) -> str | None:
         return self.identifier_for_image()
 
-    def map_is_shown_by(self) -> Union[str, None]:
+    def map_is_shown_by(self) -> str | None:
         if not self.is_image_type():
             return
 
@@ -31,7 +33,7 @@ class CcaVaultRecord(OaiRecord):
 
         return type and type[0].lower() == "image"
 
-    def identifier_for_image(self) -> Union[str, None]:
+    def identifier_for_image(self) -> str | None:
         identifier: list[str] = self.source_metadata.get("identifier")
         return identifier[0] if identifier else None
 
@@ -69,7 +71,7 @@ class CcaVaultValidator(Validator):
         if comparison_value and comparison_value.startswith('http'):
             comparison_value = comparison_value.replace('http', 'https')
 
-        if not rikolti_value == comparison_value:
+        if rikolti_value != comparison_value:
             return "Content mismatch"
 
     # this represents a known improvement in rikolti's mapping logic

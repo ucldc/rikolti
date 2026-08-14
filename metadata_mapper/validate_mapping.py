@@ -1,26 +1,31 @@
-import json
+from __future__ import annotations
+
 import functools
+import json
 import sys
-from typing import Type
 from collections import Counter
 
 import requests
 import urllib3
 
+from rikolti.utils.versions import (
+    get_version,
+    get_versioned_page_as_json,
+    get_versioned_pages,
+)
+
 from . import settings, utilities
 from .validator.validation_log import ValidationLogLevel
 from .validator.validation_mode import ValidationMode
 from .validator.validator import Validator
-from rikolti.utils.versions import (
-    get_versioned_page_as_json, get_version, get_versioned_pages)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def validate_collection(collection_id: int,
                         mapped_page_paths: list[str],
-                        validator_class: Type[Validator] = None,
-                        validator: Validator = None,
+                        validator_class: type[Validator] | None = None,
+                        validator: Validator | None = None,
                         validation_mode = ValidationMode.STRICT,
                         log_level = ValidationLogLevel.WARNING,
                         verbose = False
@@ -271,10 +276,10 @@ def make_solr_request(**params):
     try:
         res = requests.post(solr_url, headers=solr_auth, data=query, verify=False)
         res.raise_for_status()
-    except Exception as e:
+    except Exception:
         print(f"Error making post request to {solr_url}", file=sys.stderr)
         print(f"Errored solr query: {query}", file=sys.stderr)
-        raise(e)
+        raise
     return json.loads(res.content.decode('utf-8'))
 
 
@@ -326,7 +331,7 @@ def get_couch_db_data(collection_id: int,
         couch_data = couch_db_request(collection_id, field_name)
         data = {}
         for d in couch_data:
-            key = list(d.keys())[0]
+            key = next(iter(d.keys()))
             data[key] = {snakeify(field_name): d[key]}
 
         ret = {
@@ -337,7 +342,7 @@ def get_couch_db_data(collection_id: int,
     return ret
 
 
-def get_validator_class(collection_id: int) -> Type[Validator]:
+def get_validator_class(collection_id: int) -> type[Validator]:
     url = ("https://registry.cdlib.org/api/v1/rikoltimapper/"
            f"{collection_id}/?format=json")
 

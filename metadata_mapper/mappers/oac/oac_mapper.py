@@ -100,10 +100,11 @@ class OacRecord(Record):
                 mapped_data.pop(field)
         return mapped_data
 
-    def get_vals(self, provider_prop, suppress_attribs={}):
+    def get_vals(self, provider_prop, suppress_attribs=None):
         '''Return a list of string values take from the OAC type
         original record (each value is {'text':<val>, 'attrib':<val>} object)
         '''
+        suppress_attribs = suppress_attribs or {}
         values = []
         if exists(self.source_metadata, provider_prop):
             for x in self.source_metadata[provider_prop]:
@@ -156,15 +157,14 @@ class OacRecord(Record):
             # vs. the custom fetching mark was doing
             thumb = self.source_metadata.get(
                 'originalRecord', {}).get('thumbnail', None)
-            if thumb:
-                if 'src' in thumb:
-                    dim = max(int(thumb.get('X')), int(thumb.get('Y')))
-                    best_image = thumb.get('src')
+            if thumb and 'src' in thumb:
+                dim = max(int(thumb.get('X')), int(thumb.get('Y')))
+                best_image = thumb.get('src')
             # 'reference-image' might be represented differently in xmltodict
             # vs. the custom fetching mark was doing
             ref_images = self.source_metadata.get('originalRecord', {}).get(
                 'reference-image', [])
-            if type(ref_images) == dict:        # noqa: E721
+            if type(ref_images) == dict:
                 ref_images = [ref_images]
             for obj in ref_images:
                 if max(int(obj.get('X')), int(obj.get('Y'))) > dim:
@@ -192,41 +192,41 @@ class OacRecord(Record):
 
     def map_spatial(self):
         coverage = []
-        if 'originalRecord' in self.source_metadata:  # guard weird input
-            if 'coverage' in self.source_metadata.get('originalRecord'):
-                coverage_data = iterify(
-                    getprop(
-                        self.source_metadata.get('originalRecord'),
-                        "coverage"
-                    ))
-                # remove arks from data
-                # and move the "text" value to
-                for c in coverage_data:
-                    if (not isinstance(c, str) and
-                            not c.get('text').startswith('ark:')):
-                        if ('q' in c.get('attrib', {}) and
-                                'temporal' not in c.get(
-                                    'attrib', {}).get('q')):
-                            coverage.append(c.get('text'))
-                        # collection 25496 has coverage values like
-                        # A0800 & A1000 - drop these
-                        anum_re = re.compile('A\d\d\d\d')
-                        if ('q' not in c.get('attrib', {}) and
-                                c.get('attrib', {}) is not None and
-                                not anum_re.match(c.get('text'))):
-                            coverage.append(c.get('text'))
+        if ('originalRecord' in self.source_metadata and # guard weird input
+            'coverage' in self.source_metadata.get('originalRecord', {})):
+            coverage_data = iterify(
+                getprop(
+                    self.source_metadata.get('originalRecord'),
+                    "coverage"
+                ))
+            # remove arks from data
+            # and move the "text" value to
+            for c in coverage_data:
+                if (not isinstance(c, str) and
+                        not c.get('text').startswith('ark:')):
+                    if ('q' in c.get('attrib', {}) and
+                            'temporal' not in c.get(
+                                'attrib', {}).get('q')):
+                        coverage.append(c.get('text'))
+                    # collection 25496 has coverage values like
+                    # A0800 & A1000 - drop these
+                    anum_re = re.compile(r'A\d\d\d\d')
+                    if ('q' not in c.get('attrib', {}) and
+                            c.get('attrib', {}) is not None and
+                            not anum_re.match(c.get('text'))):
+                        coverage.append(c.get('text'))
         return coverage
 
     def map_temporal(self):
         temporal = []
-        if 'originalRecord' in self.source_metadata:  # guard weird input
-            if 'coverage' in self.source_metadata.get('originalRecord'):
-                time_data = iterify(getprop(
-                    self.source_metadata.get('originalRecord'), "coverage"))
-                for t in time_data:
-                    if ('q' in t.get('attrib', {})
-                            and 'temporal' in t.get('attrib', {}).get('q')):
-                        temporal.append(t.get('text'))
+        if ('originalRecord' in self.source_metadata and  # guard weird input
+            'coverage' in self.source_metadata.get('originalRecord', {})):
+            time_data = iterify(getprop(
+                self.source_metadata.get('originalRecord'), "coverage"))
+            for t in time_data:
+                if ('q' in t.get('attrib', {})
+                        and 'temporal' in t.get('attrib', {}).get('q')):
+                    temporal.append(t.get('text'))
         return temporal
 
     def map_subject(self):
@@ -318,7 +318,7 @@ class OacVernacular(Vernacular):
                 elif len(list(tag)) > 0:
                     # <snippet> tag breaks up text for findaid <relation>
                     for innertext in tag.itertext():
-                        data = ''.join((data, innertext.strip()))
+                        data = f"{data}{innertext.strip()}"
                     if data:
                         obj[tag.tag].append({
                             'attrib': tag.attrib,

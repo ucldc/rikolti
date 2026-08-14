@@ -41,7 +41,7 @@ def get_facet_decades(date_value):
 
 def facet_decade(date_string):
     """ process string and return array of decades """
-    year = date.today().year
+    year = date.today().year    # noqa: DTZ011
     pattern = re.compile(r'(?<!\d)(\d{4})(?!\d)')
     matches = [int(match) for match in re.findall(pattern, date_string)]
     matches = list(filter(lambda a: a >= 1000, matches))
@@ -96,9 +96,9 @@ def make_datetime(date_string):
 
         try:
             date_time = datetime(year, month, day, tzinfo=timezone.utc)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"Error making datetime: {e}")
-            pass
+            pass    # noqa: PIE790
 
     return date_time
 

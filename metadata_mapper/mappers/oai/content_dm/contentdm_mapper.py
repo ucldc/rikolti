@@ -1,8 +1,9 @@
 import itertools
 
+from rikolti.utils.request_retry import configure_http_session
+
 from ...mapper import Validator
 from ..oai_mapper import OaiRecord, OaiVernacular
-from rikolti.utils.request_retry import configure_http_session
 
 
 class ContentdmRecord(OaiRecord):
@@ -52,7 +53,7 @@ class ContentdmRecord(OaiRecord):
 
         split_values = [c.split(';') for c in filter(None, values)]
 
-        return list([s.strip() for s in itertools.chain.from_iterable(split_values)])
+        return list([s.strip() for s in itertools.chain.from_iterable(split_values)])   # noqa C411
 
     def map_subject(self):
         subject = self.source_metadata.get('subject')
@@ -97,7 +98,7 @@ class ContentdmRecord(OaiRecord):
             scale = int((max_dim / image_info['height']) * 100)
         else:
             scale = int((max_dim / image_info['width']) * 100)
-        scale = 100 if scale > 100 else scale       #  don't scale up, just down
+        scale = min(scale, 100)       #  don't scale up, just down
         return f"{image_info_url}&action=2&DMHEIGHT=2000"\
                f"&DMWIDTH=2000&DMSCALE={scale}"
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Compiled using the UTF-8 ISO 639-3 set from
 # http://www-01.sil.org/iso639-3/download.asp
 

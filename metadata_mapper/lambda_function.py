@@ -1,17 +1,27 @@
+from __future__ import annotations
+
 import importlib
 import json
 import logging
 import os
 import sys
 from dataclasses import dataclass
-from typing import Union
 from urllib.parse import parse_qs, urlparse
+
+from rikolti.utils.versions import (
+    get_version,
+    get_versioned_page_content,
+    put_versioned_page,
+)
 
 from . import settings
 from .mappers.mapper import Record, Vernacular
-from rikolti.utils.versions import get_versioned_page_content, put_versioned_page, get_version
 
 logger = logging.getLogger(__name__)
+
+
+class EnrichmentException(Exception):
+    pass
 
 
 def import_vernacular_reader(mapper_type):
@@ -38,7 +48,7 @@ def import_vernacular_reader(mapper_type):
 
     if not issubclass(vernacular_class, Vernacular):
         print(f"{mapper_type} not a subclass of Vernacular", file=sys.stderr)
-        exit()
+        sys.exit()
     return vernacular_class
 
 
@@ -52,7 +62,7 @@ def parse_enrichment_url(enrichment_url):
         if settings.SKIP_UNDEFINED_ENRICHMENTS:
             return None, None
         else:
-            raise Exception(f"ERROR: {enrichment_func} not found in {Record}")
+            raise EnrichmentException(f"ERROR: {enrichment_func} not found in {Record}")
     return enrichment_func, kwargs
 
 
@@ -65,7 +75,7 @@ def run_enrichments(records, collection, enrichment_set, page_filename):
         if enrichment_func in ['required_values_from_collection_registry',
                                'set_ucldc_dataprovider']:
             kwargs.update({'collection': collection})
-        logging.debug(
+        logger.debug(
             f"[{collection['id']}]: running enrichment: {enrichment_func} "
             f"for page {page_filename} with kwargs: {kwargs}")
         records = [
@@ -80,7 +90,7 @@ class MappedPageStatus:
     status: str
     num_mapped_records: int
     exceptions: dict[str, list[str]]
-    mapped_page_path: Union[str, None]
+    mapped_page_path: str | None
     # ex: 3433/vernacular_metadata_v1/mapped_metadata_v1/data/1.jsonl
 
 
@@ -102,7 +112,7 @@ def map_page(
         collection_id: int,
         vernacular_page_path: str,
         mapped_data_version: str,
-        collection: Union[dict, str]
+        collection: dict | str
 ) -> MappedPageStatus:
     """
     vernacular_page_path is a filepath relative to the collection id, ex:
@@ -125,7 +135,7 @@ def map_page(
     source_metadata_records = source_vernacular.parse(api_resp)
 
     if not source_metadata_records:
-        logging.warning(
+        logger.warning(
             f"No source vernacular records found for {collection_id} "
             f"page {vernacular_page_path}."
             )

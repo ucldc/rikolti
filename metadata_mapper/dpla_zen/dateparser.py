@@ -1,3 +1,4 @@
+# ruff: noqa: UP031, C402, 
 """
 > THIS FILE HAS BEEN COPIED FROM THE DPLA ZEN REPO
 > https://raw.githubusercontent.com/dpla-attic/zen/4bd3c3621aa8fa82e22b2514b93a0978a3179771/lib/dateparser.py
@@ -92,9 +93,8 @@ def names_to_index_table(names):
     return dict( (name, i+1) for (i, name) in enumerate(names) )
 
 # For now only supporting English month names
-MONTH_NAMES = ("January February March April May June July "
-               "August September October November December").split()
-MONTH_ABBR = ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec").split()
+MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 # Used to go from "January", "Jan" or "Jan." to the month index 1.
 MONTH_TABLE = names_to_index_table(MONTH_NAMES)
@@ -144,7 +144,7 @@ regex_patterns = {
 
 
 # A simple data class
-class DatePattern(object):
+class DatePattern:
     def __init__(self, pattern, month_table):
         self.pattern = pattern
         self.month_table = month_table
@@ -154,7 +154,7 @@ def template_to_pattern(template, month_table=None):
     
     Templates are terms seperated by whitespace. If the term starts
     with "\" then the rest of the term is used for exact string
-    matches. For example, "\." will match "." and only ".".
+    matches. For example, "\\." will match "." and only ".".
 
     If the term starts with a "/" then the rest of the term is a
     regular expression pattern. For example, "/." matchs any character.
@@ -217,7 +217,7 @@ def add_template(template=None, month_table=None, regex=None):
         raise NotImplementedError
         if template is not None:
             raise TypeError("Must not specify both 'template' and 'regex'")
-        pattern = DatePattern(re.compile(regex, re.X), month_table)
+        pattern = DatePattern(re.compile(regex, re.VERBOSE), month_table)
     _patterns.append(pattern)
 
 def split_date(date):
@@ -370,7 +370,7 @@ def to_iso8601(date):
 # YYYY-MM-DDThh:mm:ssTZD (1997-07-16T19:20:30+01:00)
 # YYYY-MM-DDThh:mm:ss.sTZD (eg 1997-07-16T19:20:30.45+01:00)
 
-'''
+r'''
 # I'm not using this approach because it's too complicated to see that it works
 add_template(regex=r"""
 (?P<isoyear>-?\d{4})
@@ -408,7 +408,7 @@ add_template("YYYY S* MONTH_NAME")
 
 # November 2003
 # Nov 2003
-add_template("MONTH_NAME /(,\s*)? S* YYYY")
+add_template(r"MONTH_NAME /(,\s*)? S* YYYY")
 
 # 16 November 2003
 # 16 November 2003 AD
@@ -428,7 +428,7 @@ add_template(r"DAY S* MONTH_NAME S* /(,\s*)? YEAR S* ERA?")
 # 16 November, 2003 AD
 # 16 November, 2003 BC
 # 16 Nov, 2003 BCE
-add_template("MONTH_NAME S* DAY S* /(,\s*)? S* YEAR S* ERA?")
+add_template(r"MONTH_NAME S* DAY S* /(,\s*)? S* YEAR S* ERA?")
 
 # 2003 November 16
 # 2003 Nov 16

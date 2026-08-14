@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from io import StringIO
 from typing import Any
 
@@ -5,7 +7,7 @@ from lxml import etree
 from pymarc import parse_xml_to_array
 from sickle import models
 
-from ..mapper import Record, Vernacular, Validator
+from ..mapper import Record, Validator, Vernacular
 
 
 class TindRecord(Record):
@@ -44,7 +46,7 @@ class TindRecord(Record):
             "type": self.get_marc_data_fields(["336"])
         }
 
-    def get_marc_control_field(self, field_tag: str, index: int = None) -> list:
+    def get_marc_control_field(self, field_tag: str, index: int | None = None) -> list:
         """
 
         See: https://www.loc.gov/marc/bibliographic/bd00x.html
@@ -156,7 +158,7 @@ class TindRecord(Record):
                 field_tag in field_tags}
 
 
-    def get_marc_data_fields(self, field_tags: list, subfield_codes=[], get_880_values=True,
+    def get_marc_data_fields(self, field_tags: list, subfield_codes=None, get_880_values=True,
                              exclude_subfields=False) -> list:
         """
         In most cases, this returns the Cartesian product of the provided `field_tags`
@@ -173,6 +175,7 @@ class TindRecord(Record):
                                   specified subfield codes.
         :return: A list of values of the specified subfields.
         """
+        subfield_codes = subfield_codes or []
         values = []
         for tag in field_tags:
             for marc_field in self.source_metadata.get("marc").get_fields(tag):
@@ -295,7 +298,7 @@ class TindValidator(Validator):
         if comparison_value and comparison_value.startswith('http'):
             comparison_value = comparison_value.replace('http', 'https')
 
-        if not rikolti_value == comparison_value:
+        if rikolti_value != comparison_value:
             return "Content mismatch"
 
 

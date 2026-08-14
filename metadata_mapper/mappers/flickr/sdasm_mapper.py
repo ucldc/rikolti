@@ -1,8 +1,8 @@
 import re
 from typing import Any
 
-from .flickr_mapper import FlickrRecord, FlickrValidator, FlickrVernacular
 from ..mapper import Validator
+from .flickr_mapper import FlickrRecord, FlickrValidator, FlickrVernacular
 
 
 class SdasmRecord(FlickrRecord):
@@ -142,7 +142,7 @@ class SdasmValidator(FlickrValidator):
         content_match_validation = Validator.content_match(
             validation_def, rikolti_value, comparison_value)
 
-        if content_match_validation == "Content mismatch":
+        if content_match_validation == "Content mismatch":  # noqa: SIM102
             if (comparison_value == ['Image'] and rikolti_value == ['image']):
                 return
 

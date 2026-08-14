@@ -1,8 +1,9 @@
 from typing import Any
 
-from .oai_mapper import OaiRecord, OaiVernacular
-from ..mapper import Validator
 from ...validator import ValidationLogLevel
+from ..mapper import Validator
+from .oai_mapper import OaiRecord, OaiVernacular
+
 
 class YosemiteRecord(OaiRecord):
     def UCLDC_map(self):
@@ -116,7 +117,7 @@ class YosemiteValidator(Validator):
             comparison_value = comparison_value.replace(
                 'https://npgallery.nps.gov/', 'https://www.nps.gov/npgallery/')
 
-        if not sorted(rikolti_value) == sorted(comparison_value):
+        if sorted(rikolti_value) != sorted(comparison_value):
             return "Content mismatch"
 
     @staticmethod
@@ -131,7 +132,7 @@ class YosemiteValidator(Validator):
             ) if item.startswith('https://npgallery.nps.gov/') else item
             for item in comparison_value
         ]
-        if not rikolti_value == comparison_value:
+        if rikolti_value != comparison_value:
             return "Content mismatch"
 
     @staticmethod

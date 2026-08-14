@@ -1,17 +1,17 @@
+from __future__ import annotations
+
 import argparse
 import logging
 import sys
-
-from dataclasses import dataclass, asdict
-from typing import Optional, Union
+from dataclasses import asdict, dataclass
 
 import requests
 
-from .lambda_shepherd import MappedCollectionStatus
-from .lambda_shepherd import map_collection
-from .validate_mapping import create_collection_validation_csv
-from rikolti.utils.versions import get_versioned_pages
 from rikolti.utils.registry_client import registry_endpoint
+from rikolti.utils.versions import get_versioned_pages
+
+from .lambda_shepherd import MappedCollectionStatus, map_collection
+from .validate_mapping import create_collection_validation_csv
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 def map_endpoint(
         url: str,
         fetched_versions: dict[str, str],
-        limit: Optional[Union[int, str]]=None
+        limit: int | str | None = None
     ) -> dict[int, MappedCollectionStatus]:
 
     response = requests.get(url=url)
     response.raise_for_status()
-    total: Union[int,str] = (
+    total: int | str = (
         response.json().get('meta', {}).get('total_count', 1))
     progress = 0
     # map_report_headers = (
@@ -73,11 +73,11 @@ def map_endpoint(
 
 @dataclass(frozen=True)
 class ValidationReportStatus:
-    filepath: Optional[str] = None
+    filepath: str | None = None
     num_validation_errors: int = 0
-    mapped_version: Optional[str] = None
+    mapped_version: str | None = None
     error: bool = False
-    exception: Optional[Exception] = None
+    exception: Exception | None = None
 
     def asdict(self):
         d = asdict(self)
@@ -119,7 +119,7 @@ def validate_endpoint(
         try:
             num_rows, version_page = create_collection_validation_csv(
                 collection_id, mapped_pages)
-        except Exception as e:
+        except Exception as e:      # noqa: BLE001
             print(f"{collection_id:<6}: {e}", file=sys.stderr)
             status = ValidationReportStatus(
                 mapped_version=mapped_version, error=True, exception=e

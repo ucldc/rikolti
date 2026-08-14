@@ -1,16 +1,19 @@
-import csv
-import sys
-import os
 import ast
+import csv
+import os
+import sys
 
 # get absolute path to parent of rikolti folder, four folders up
 rikolti_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../'))
 if rikolti_path not in sys.path:
     sys.path.append(rikolti_path)
 
-from rikolti.metadata_mapper.mappers.solr_updater_helpers import (          # noqa: E402
-    get_facet_decades, unpack_display_date, make_sort_dates)                # noqa: E402
-from rikolti.metadata_mapper.mappers.date_enrichments import convert_dates  # noqa: E402
+from rikolti.metadata_mapper.mappers.date_enrichments import convert_dates
+from rikolti.metadata_mapper.mappers.solr_updater_helpers import (
+    get_facet_decades,
+    make_sort_dates,
+    unpack_display_date,
+)
 
 
 def enumerate_cases_from_csv(csv_filename):

@@ -1,7 +1,9 @@
-from typing import Union, Any
+from __future__ import annotations
 
-from .oai_mapper import OaiRecord, OaiVernacular
+from typing import Any
+
 from ..mapper import Validator
+from .oai_mapper import OaiRecord, OaiVernacular
 
 
 class ChapmanRecord(OaiRecord):
@@ -12,11 +14,11 @@ class ChapmanRecord(OaiRecord):
             "spatial": self.map_spatial
         }
 
-    def map_is_shown_at(self) -> Union[str, None]:
+    def map_is_shown_at(self) -> str | None:
         identifiers = self.map_identifier()
         return identifiers[0] if identifiers else None
 
-    def map_is_shown_by(self) -> Union[str, None]:
+    def map_is_shown_by(self) -> str | None:
         description = [d for d in self.source_metadata.get("description", [])
                        if "thumbnail" in d]
         if not description:
@@ -24,7 +26,7 @@ class ChapmanRecord(OaiRecord):
 
         return description[0].replace("thumbnail", "preview")
 
-    def map_description(self) -> Union[str, None]:
+    def map_description(self) -> str | None:
         description = [d for d in self.source_metadata.get("description")
                        if "thumbnail" not in d]
         aggregate = [
@@ -44,7 +46,7 @@ class ChapmanRecord(OaiRecord):
 
         return spatial
 
-    def map_identifier(self) -> Union[str, None]:
+    def map_identifier(self) -> str | None:
         if "identifier" not in self.source_metadata:
             return
 
@@ -90,7 +92,7 @@ class ChapmanValidator(Validator):
                             comparison_item.startswith("http") else comparison_item for
                             comparison_item in comparison_value]
 
-        if not rikolti_value == comparison_value:
+        if rikolti_value != comparison_value:
             return "Content mismatch"
 
 
@@ -103,7 +105,7 @@ class ChapmanValidator(Validator):
 
         if comparison_value.startswith("http"):
             comparison_value = comparison_value.replace("http", "https")
-        if not rikolti_value == comparison_value:
+        if rikolti_value != comparison_value:
             return "Content mismatch"
 
 

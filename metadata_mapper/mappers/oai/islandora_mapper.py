@@ -1,9 +1,12 @@
-from typing import Union, Optional, Any
+from __future__ import annotations
 
-from .oai_mapper import OaiRecord, OaiVernacular
-from ..mapper import Validator
+from typing import Any
 
 from rikolti.utils.request_retry import configure_http_session
+
+from ..mapper import Validator
+from .oai_mapper import OaiRecord, OaiVernacular
+
 
 class IslandoraRecord(OaiRecord):
     # https://github.com/calisphere-legacy-harvester/dpla-ingestion/blob/ucldc/lib/mappers/islandora_oai_dc_mapper.py
@@ -13,7 +16,7 @@ class IslandoraRecord(OaiRecord):
             'spatial': self.map_spatial
         }
 
-    def map_spatial(self) -> Union[list[str], None]:
+    def map_spatial(self) -> list[str] | None:
         spatial = self.collate_fields(["coverage", "spatial"])()
         spatial = [s for s in spatial if s]
         split_spatial = []
@@ -62,7 +65,9 @@ class IslandoraRecord(OaiRecord):
 
         # Change URL from 'TN' to 'JPG' for larger versions of image
         # objects & test to make sure the link resolves
-        if 'image' or 'StillImage' in self.source_metadata.get('type', ''):
+        if ('image' in self.source_metadata.get('type', '') or
+            'StillImage' in self.source_metadata.get('type', '')
+        ):
             jpg_url = thumb_url.replace("/TN/", "/JPG/")
             # TODO: should figure out a way to punt a request
             # to minimize the mapper's reliance on external systems
@@ -94,7 +99,7 @@ class IslandoraValidator(Validator):
     def order_and_space_insensitive_dedupe_match(
             validation_def: dict, rikolti_value: Any,
             comparison_value: Any
-        ) -> Optional[str]:
+        ) -> str | None:
         """
         matches ['islandora:52_0', 'filename: cartaz_030', 'islandora: 52_0']
         with    ['filename: cartaz_030', 'islandora: 52_0']"""
@@ -104,8 +109,8 @@ class IslandoraValidator(Validator):
         rikolti_value = [v.replace(" ", "") for v in rikolti_value]
         comparison_value = [v.replace(" ", "") for v in comparison_value]
         if (
-            sorted(list(set(rikolti_value))) == 
-            sorted(list(set(comparison_value)))
+            sorted(set(rikolti_value)) ==
+            sorted(set(comparison_value))
         ):
             return None
 
@@ -113,7 +118,7 @@ class IslandoraValidator(Validator):
 
     @staticmethod
     def rights_match_ignore_suffix(validation_def: dict, rikolti_value: Any,
-                                   comparison_value: Any) -> Optional[str]:
+                                   comparison_value: Any) -> str | None:
         suffix = (
             " For more information on copyright or permissions for this "
             "image, please contact San Jose State University Special "

@@ -2,6 +2,7 @@ import json
 
 from ..mapper import Record, Vernacular
 
+
 class InternetArchiveRecord(Record):
     def to_UCLDC(self):
         # All collections w/ rikolti_mapper_type__startswith="internet_archive."

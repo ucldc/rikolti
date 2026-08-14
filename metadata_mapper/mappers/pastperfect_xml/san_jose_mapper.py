@@ -1,6 +1,7 @@
 from xml.etree import ElementTree
 
-from ..mapper import Vernacular, Record
+from ..mapper import Record, Vernacular
+
 
 class SanJoseRecord(Record):
     def to_UCLDC(self):

@@ -1,5 +1,6 @@
 from ..islandora_mapper import IslandoraRecord, IslandoraVernacular
 
+
 class ArchipelagoRecord(IslandoraRecord):
 
     def UCLDC_map(self):
