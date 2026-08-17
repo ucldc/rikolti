@@ -3,8 +3,9 @@ from __future__ import annotations
 import itertools
 import re
 import urllib.parse
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 from .validation_log import ValidationLog, ValidationLogLevel
 from .validation_mode import ValidationMode

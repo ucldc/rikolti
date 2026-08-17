@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import os
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from functools import lru_cache
-from typing import Any, Callable, Optional
+from typing import Any
 from urllib.parse import quote_plus, urlparse
 
 import requests
@@ -200,7 +201,7 @@ def in_last_seven_days(iso_date: str) -> bool:
     return seven_days_ago <= date <= today
 
 
-CreateComponentFunc = Callable[...,tuple[Optional[dict], list]]
+CreateComponentFunc = Callable[...,tuple[dict | None, list]]
 
 
 def content_component_cache(component_type: str) -> Callable[

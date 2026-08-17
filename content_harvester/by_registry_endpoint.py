@@ -1,5 +1,6 @@
 import sys
 
+import requests
 from rikolti.utils.registry_client import registry_endpoint
 from rikolti.utils.versions import get_most_recent_mapped_version
 

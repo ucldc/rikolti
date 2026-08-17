@@ -7,7 +7,8 @@ import os
 import re
 import traceback
 from abc import ABC
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from markupsafe import Markup
 from typing_extensions import deprecated
