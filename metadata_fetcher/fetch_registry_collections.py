@@ -2,6 +2,8 @@ import argparse
 import logging
 import sys
 
+import requests
+
 from rikolti.utils.registry_client import registry_endpoint
 from rikolti.utils.versions import create_vernacular_version
 

@@ -1,6 +1,6 @@
 import importlib
 import sys
-from typing import Callable
+from collections.abc import Callable
 
 
 def returns_callable(func: Callable) -> Callable:
