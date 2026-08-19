@@ -7,9 +7,6 @@ from airflow.providers.amazon.aws.operators.ecs import EcsRunTaskOperator
 from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
 
-registry_auth = Variable.get("rikolti_registry_auth", deserialize_json=True, default={})
-REGISTRY_USER = registry_auth.get('user', '')
-REGISTRY_TOKEN = registry_auth.get('token', '')
 
 # generally speaking, the CONTENT_HARVEST_EXECUTION_ENVIRONMENT should always
 # be 'ecs' in deployed MWAA and should always be 'docker' in local development.
@@ -55,6 +52,10 @@ def extract_prefix_from_pages(pages: str):
 class ContentHarvestEcsOperator(EcsRunTaskOperator):
     def __init__(self, collection_id=None, with_content_urls_version=None, pages=None, mapper_type=None, **kwargs):
         container_name = "rikolti-content_harvester"
+        registry_auth = Variable.get(
+            "rikolti_registry_auth", deserialize_json=True, default={})
+        registry_user = registry_auth.get('user', '')
+        registry_token = registry_auth.get('token', '')
 
         prefix, pages = extract_prefix_from_pages(pages)
         args = {
@@ -104,11 +105,11 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                             },
                             {
                                 "name": "REGISTRY_USER",
-                                "value": REGISTRY_USER
+                                "value": registry_user
                             },
                             {
                                 "name": "REGISTRY_TOKEN",
-                                "value": REGISTRY_TOKEN
+                                "value": registry_token
                             }
                         ]
                     }
@@ -193,6 +194,11 @@ class ContentHarvestDockerOperator(DockerOperator):
         else:
             rikolti_content = "file:///rikolti_content"
 
+        registry_auth = Variable.get(
+            "rikolti_registry_auth", deserialize_json=True, default={})
+        registry_user = registry_auth.get('user', '')
+        registry_token = registry_auth.get('token', '')
+
         prefix, pages = extract_prefix_from_pages(pages)
         args = {
             "image": f"{container_image}:{container_version}",
@@ -214,8 +220,8 @@ class ContentHarvestDockerOperator(DockerOperator):
                 "CONTENT_COMPONENT_CACHE": os.environ.get("CONTENT_COMPONENT_CACHE"),
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                 "NUXEO_PASS": os.environ.get("NUXEO_PASS"),
-                "REGISTRY_USER": REGISTRY_USER,
-                "REGISTRY_TOKEN": REGISTRY_TOKEN,
+                "REGISTRY_USER": registry_user,
+                "REGISTRY_TOKEN": registry_token,
             },
             "max_active_tis_per_dag": 4
         }
