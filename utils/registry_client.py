@@ -45,32 +45,34 @@ def add_auth(url):
     return url
 
 
-def mapper(collection_id):
-    url = ("https://registry.cdlib.org/api/v1/rikoltimapper/"
-           f"{collection_id}/?format=json")
+def collection_request(collection_id, url):
     try:
         response = requests.get(url=add_auth(url))
         response.raise_for_status()
         collection_data = response.json()
-    except requests.exceptions.HTTPError as err:
-        print(
-            f"[Collection {collection_id}]: "
-            f"[{url}]"
-            f"{err}; Can't retrieve collection data from registry"
-        )
+    except requests.exceptions.HTTPError:
+        print(f"[Collection {collection_id}]: [{url}]")
+        raise
     return collection_data
+
+# TODO: remove the rikoltifetcher registry endpoint and restructure
+# the fetch_collection function to accept a rikolticollection resource.
+def fetcher(collection_id):
+    url = ("https://registry.cdlib.org/api/v1/rikoltifetcher/"
+           f"{collection_id}/?format=json")
+    return collection_request(collection_id, url)
+
+
+def mapper(collection_id):
+    url = ("https://registry.cdlib.org/api/v1/rikoltimapper/"
+           f"{collection_id}/?format=json")
+    return collection_request(collection_id, url)
 
 
 def collection(collection_id):
-    resp = requests.get(
-        add_auth(
-            f'https://registry.cdlib.org/api/v1/'
-            f'rikolticollection/{collection_id}/?format=json'
-        )
-    )
-    resp.raise_for_status()
-    collection = resp.json()
-    return collection
+    url = ("https://registry.cdlib.org/api/v1/rikolticollection/"
+           f"{collection_id}/?format=json")
+    return collection_request(collection_id, url)
 
 
 def collection_count(url):

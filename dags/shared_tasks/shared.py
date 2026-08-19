@@ -4,7 +4,6 @@ import traceback
 from urllib.parse import urlparse
 
 import boto3
-import requests
 from airflow.decorators import task
 from rikolti.utils import registry_client
 
@@ -98,12 +97,7 @@ def get_registry_data_task(params=None, **context):
 
     # TODO: remove the rikoltifetcher registry endpoint and restructure
     # the fetch_collection function to accept a rikolticollection resource.
-    fetchdata_resp = requests.get(
-        "https://registry.cdlib.org/api/v1/"
-        f"rikoltifetcher/{collection_id}/?format=json"
-    )
-    fetchdata_resp.raise_for_status()
-    registry_data['registry_fetchdata'] = fetchdata_resp.json()
+    registry_data['registry_fetchdata'] = registry_client.fetcher(collection_id)
 
     send_event_to_sns(context, registry_data)
 
