@@ -52,7 +52,7 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
     def __init__(self, collection_id=None, with_content_urls_version=None, pages=None, mapper_type=None, **kwargs):
         container_name = "rikolti-content_harvester"
         registry_auth = Variable.get(
-            "rikolti_registry_auth", deserialize_json=True, default={})
+            "rikolti_registry_auth", deserialize_json=True, default_var={})
         registry_user = registry_auth.get('user', '')
         registry_token = registry_auth.get('token', '')
 
@@ -194,7 +194,7 @@ class ContentHarvestDockerOperator(DockerOperator):
             rikolti_content = "file:///rikolti_content"
 
         registry_auth = Variable.get(
-            "rikolti_registry_auth", deserialize_json=True, default={})
+            "rikolti_registry_auth", deserialize_json=True, default_var={})
         registry_user = registry_auth.get('user', '')
         registry_token = registry_auth.get('token', '')
 

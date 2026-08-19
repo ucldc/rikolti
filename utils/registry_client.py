@@ -12,7 +12,7 @@ except ImportError:
 REGISTRY_AUTH: dict = {}
 if AIRFLOW_AVAILABLE:
     REGISTRY_AUTH = Variable.get(
-        "rikolti_registry_auth", deserialize_json=True, default={}
+        "rikolti_registry_auth", deserialize_json=True, default_var={}
     )
 else:
     REGISTRY_AUTH = {
