@@ -7,7 +7,7 @@ from airflow.providers.amazon.aws.operators.ecs import EcsRunTaskOperator
 from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
 
-registry_auth = Variable.get("rikolti_registry_auth", deserialize_json=True)
+registry_auth = Variable.get("rikolti_registry_auth", deserialize_json=True, default={})
 REGISTRY_USER = registry_auth.get('user', '')
 REGISTRY_TOKEN = registry_auth.get('token', '')
 
