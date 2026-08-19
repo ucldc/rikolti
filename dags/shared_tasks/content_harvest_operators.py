@@ -7,7 +7,6 @@ from airflow.providers.amazon.aws.operators.ecs import EcsRunTaskOperator
 from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
 
-
 # generally speaking, the CONTENT_HARVEST_EXECUTION_ENVIRONMENT should always
 # be 'ecs' in deployed MWAA and should always be 'docker' in local development.
 # if one is working to debug airflow's connection to ecs, though, it may be 
