@@ -11,7 +11,7 @@ from .Fetcher import Fetcher, FetchError
 
 
 def is_playlist_url(url):
-    return urlparse(url).path == '/youtube/v3/videos'
+    return urlparse(url).path == '/youtube/v3/playlistItems'
 
 def is_videos_url(url):
     return urlparse(url).path == '/youtube/v3/videos'
