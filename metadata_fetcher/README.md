@@ -6,24 +6,24 @@ python -m metadata_fetcher.lambda_function '{"collection_id": 26098, "harvest_ty
 
 python -m metadata_fetcher.lambda_function '{"collection_id": 27364, "harvest_data": {"harvest_extra_data": "72157709037967781", "url": "http://example.edu"}, "harvest_type": "flickr", "rikolti_mapper_type": "flickr.sppl"}'
 
-> Must have a REGISTRY_USER and REGISTRY_TOKEN set for using metadata_fetcher.fetch_registry_collections
+> Must have a REGISTRY_USER and REGISTRY_API_KEY set for using metadata_fetcher.fetch_registry_collections
 
-python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/?harvest_type=NUX&format=json&user=$REGISTRY_USER&api_token=$REGISTRY_TOKEN"
+python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/?harvest_type=NUX&format=json&user=$REGISTRY_USER&api_key=$REGISTRY_API_KEY"
 
 Artist Books (complex image objects)
-python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/26147/?format=json&user=$REGISTRY_USER&api_token=$REGISTRY_TOKEN"
+python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/26147/?format=json&user=$REGISTRY_USER&api_key=$REGISTRY_API_KEY"
 
 Anthill (pdf objects)
-python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/26695/?format=json&user=$REGISTRY_USER&api_token=$REGISTRY_TOKEN"
+python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/26695/?format=json&user=$REGISTRY_USER&api_key=$REGISTRY_API_KEY"
 
 Viet Stories (complex multi-format objects)
-python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/36/?format=json&user=$REGISTRY_USER&api_token=$REGISTRY_TOKEN"
+python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/36/?format=json&user=$REGISTRY_USER&api_key=$REGISTRY_API_KEY"
 
 Nightingale (complex image)
-python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/76/?format=json&user=$REGISTRY_USER&api_token=$REGISTRY_TOKEN"
+python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/76/?format=json&user=$REGISTRY_USER&api_key=$REGISTRY_API_KEY"
 
 Halpern (simple & complex video objects)
-python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/27694/?format=json&user=$REGISTRY_USER&api_token=$REGISTRY_TOKEN"
+python -m metadata_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/27694/?format=json&user=$REGISTRY_USER&api_key=$REGISTRY_API_KEY"
 
 Ramicova (simple image objects)
-python -m metadat_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/26098/?format=json&user=$REGISTRY_USER&api_token=$REGISTRY_TOKEN"
+python -m metadat_fetcher.fetch_registry_collections "https://registry.cdlib.org/api/v1/rikoltifetcher/26098/?format=json&user=$REGISTRY_USER&api_key=$REGISTRY_API_KEY"

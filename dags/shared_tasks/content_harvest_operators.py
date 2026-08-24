@@ -54,7 +54,7 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
         registry_auth = Variable.get(
             "rikolti_registry_auth", deserialize_json=True, default_var={})
         registry_user = registry_auth.get('user', '')
-        registry_token = registry_auth.get('token', '')
+        registry_api_key = registry_auth.get('api_key', '')
 
         prefix, pages = extract_prefix_from_pages(pages)
         args = {
@@ -107,8 +107,8 @@ class ContentHarvestEcsOperator(EcsRunTaskOperator):
                                 "value": registry_user
                             },
                             {
-                                "name": "REGISTRY_TOKEN",
-                                "value": registry_token
+                                "name": "REGISTRY_API_KEY",
+                                "value": registry_api_key
                             }
                         ]
                     }
@@ -196,7 +196,7 @@ class ContentHarvestDockerOperator(DockerOperator):
         registry_auth = Variable.get(
             "rikolti_registry_auth", deserialize_json=True, default_var={})
         registry_user = registry_auth.get('user', '')
-        registry_token = registry_auth.get('token', '')
+        registry_api_key = registry_auth.get('api_key', '')
 
         prefix, pages = extract_prefix_from_pages(pages)
         args = {
@@ -220,7 +220,7 @@ class ContentHarvestDockerOperator(DockerOperator):
                 "NUXEO_USER": os.environ.get("NUXEO_USER"),
                 "NUXEO_PASS": os.environ.get("NUXEO_PASS"),
                 "REGISTRY_USER": registry_user,
-                "REGISTRY_TOKEN": registry_token,
+                "REGISTRY_API_KEY": registry_api_key,
             },
             "max_active_tis_per_dag": 4
         }

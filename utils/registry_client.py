@@ -17,11 +17,11 @@ if AIRFLOW_AVAILABLE:
 else:
     REGISTRY_AUTH = {
         "username": os.environ.get('RIKOLTI_REGISTRY_USER', ''),
-        "api_token": os.environ.get('RIKOLTI_REGISTRY_TOKEN', '')
+        "api_key": os.environ.get('RIKOLTI_REGISTRY_API_KEY', '')
     }
 
 if (
-    set(REGISTRY_AUTH.keys()) != {'username', 'api_token'} or
+    set(REGISTRY_AUTH.keys()) != {'username', 'api_key'} or
     not all(REGISTRY_AUTH.values())
 ):
     REGISTRY_AUTH = {}
@@ -29,7 +29,7 @@ if (
     # in dev environments.
     # raise ValueError(
     #     "Registry credentials are not set. Please set the "
-    #     "RIKOLTI_REGISTRY_USER and RIKOLTI_REGISTRY_TOKEN environment "
+    #     "RIKOLTI_REGISTRY_USER and RIKOLTI_REGISTRY_API_KEY environment "
     #     "variables or the rikolti_registry_auth Airflow variable."
     # )
 
