@@ -141,8 +141,7 @@ class PreservicaApiFetcher(Fetcher):
         """
         url = f"{self.BASE_URL}/accesstoken/login"
         data = {
-            "username": settings.PRESERVICA_USER,
-            "password": settings.PRESERVICA_PASS,
+            **settings.PRESERVICA_AUTH,
             "cookie": "false",
             "includeUserDetails": "false",
         }
