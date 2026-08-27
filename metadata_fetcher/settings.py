@@ -29,9 +29,9 @@ else:
     }
 
 # print all constants defined in settings, not just the os env vars:
-# for key, value in os.environ.items():
-#     logger.debug(f"{key}={value}")
-current_module = sys.modules[__name__]
-for key, value in current_module.__dict__.items():
-    if key.isupper():
-        logger.debug(f"{key}={value}")
+for key, value in os.environ.items():
+    logger.debug(f"{key}={value}")
+# current_module = sys.modules[__name__]
+# for key, value in current_module.__dict__.items():
+#     if key.isupper():
+#         logger.debug(f"{key}={value}")
