@@ -35,10 +35,9 @@ def get_indexed_ids_from_opensearch(collection_id: int) -> dict[str, str]:
         "track_total_hits": True
     }
 
-    search_url = f"{settings.ENDPOINT}/rikolti-prd/_search"
+    search_url = f"{settings.ENDPOINT}/rikolti-prd/_search?scroll=1m"
     resp = requests.get(
         url=search_url,
-        params={"scroll": "1m"},
         data=json.dumps(opensearch_request),
         headers={"Content-Type": "application/json"},
         auth=settings.get_auth(),
@@ -57,11 +56,12 @@ def get_indexed_ids_from_opensearch(collection_id: int) -> dict[str, str]:
         return {}
     
 
-    scroll_id = resp.headers.get('X-Scroll-Id')
+    scroll_id = response_data.get('_scroll_id')
     while scroll_id:
-        scroll_resp = requests.post(
+        scroll_resp = requests.get(
             url=f"{settings.ENDPOINT}/_search/scroll",
             data=json.dumps({
+                "scroll": "1m",
                 "scroll_id": scroll_id
             }),
             headers={"Content-Type": "application/json"},
@@ -76,13 +76,13 @@ def get_indexed_ids_from_opensearch(collection_id: int) -> dict[str, str]:
         if not scroll_data['hits']['hits']:
             break
         response_data['hits']['hits'].extend(scroll_data['hits']['hits'])
-        scroll_id = scroll_resp.headers.get('X-Scroll-Id')
+        scroll_id = scroll_data.get('_scroll_id')
 
     indexed_ids = {
         r['_id']: r['_source']['calisphere-id']
         for r in response_data['hits']['hits'] 
     }
-    
+
     if len(indexed_ids) != response_data['hits']['total']['value']:
         print(
             f"Warning: Retrieved {len(indexed_ids)} indexed IDs, "
@@ -164,16 +164,20 @@ def create_id_diff_report(
 
 # get basis of comparison for DIFFs
 
-def _get_indexed_data_from_opensearch(calisphere_ids: list[str]):
+def _get_indexed_data_from_opensearch(calisphere_ids: list[str], collection_id: str):
     search_url = f"{settings.ENDPOINT}/rikolti-prd/_search"
     query = {
         "query": {
-            "terms": {
-                "calisphere-id": calisphere_ids
+            "bool": {
+                "must": [
+                    {"match": {"collection_url": collection_id}},
+                    {"terms": {"calisphere-id": calisphere_ids}}
+                ]
             }
         },
         "size": len(calisphere_ids) * 2
     }
+
     resp = requests.post(
         url=search_url,
         data=json.dumps(query),
@@ -240,12 +244,12 @@ def _get_mapped_pages_from_opensearch(calisphere_ids: list[str]):
     print(f"getting mapped pages from open search: {c}")
     return c
 
-def get_basis_of_comparison(indexed_version: str | None, candidate_record_ids: list[str]) -> dict[str, dict]:
+def get_basis_of_comparison(indexed_version: str | None, candidate_record_ids: list[str], collection_id: str) -> dict[str, dict]:
     if not indexed_version:
         indexed_records = {}
     elif indexed_version == 'initial':
         indexed_records = _get_indexed_data_from_opensearch(
-            list(candidate_record_ids))
+            list(candidate_record_ids), collection_id)
     else:
         indexed_mapped_pages = (
             _get_mapped_pages_from_opensearch(list(candidate_record_ids))
@@ -492,8 +496,7 @@ def create_reports(collection_id, mapped_pages: list[str]) -> tuple[list[str], l
         candidate_ids.update({r['id']: r['calisphere-id'] for r in candidate_records})
         candidate_records = {r['calisphere-id']: r for r in candidate_records}
 
-        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()))
-
+        indexed_records = get_basis_of_comparison(indexed_version, list(candidate_records.keys()), collection_id)
         for candidate_record_id in candidate_records:
             missing_fields = check_for_missing_fields(candidate_records[candidate_record_id])
             if missing_fields:
