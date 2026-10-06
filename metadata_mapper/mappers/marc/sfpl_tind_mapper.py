@@ -12,7 +12,7 @@ class SfplTindRecord(TindRecord):
         return {
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
-            "source": self.get_marc_data_fields(["524", ["2"]]),
+            "source": self.get_marc_data_fields(["524"], ["a"])
         }
 
     def map_is_shown_at(self):
