@@ -5,7 +5,7 @@ class RecollectRecord(OaiRecord):
     def UCLDC_map(self):
         return {
             "isShownAt": self.map_is_shown_at,
-            "isShownBy": self.source_metadata.get("relation"),
+            "isShownBy": self.source_metadata.get("relation")[0],
             "relation": None
         }
 
