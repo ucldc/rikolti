@@ -12,6 +12,7 @@ class SfplTindRecord(TindRecord):
         return {
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
+            "creator": self.map_creator,
             "source": self.get_marc_data_fields(["524"], ["a"])
         }
 
@@ -46,6 +47,11 @@ class SfplTindRecord(TindRecord):
             for s in self.get_marc_data_fields(fields, ["2"], exclude_subfields=True)
         ]
 
+    def map_creator(self):
+        creator = self.get_marc_data_fields(["700"], ["a", "e"])
+        creator.extend(self.get_marc_data_fields(["710"], ["a"]))
+
+        return creator
 
 class SfplTindVernacular(TindVernacular):
     record_cls = SfplTindRecord
