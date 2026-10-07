@@ -19,7 +19,7 @@ class SanJoseRecord(Record):
             "description": self.ensure_list(self.source_metadata.get("description")),
             "subject": self.map_subject,
             "temporal": self.source_metadata.get("coverage"),
-            "creator": self.source_metadata.get("creator"),
+            "creator": self.ensure_list(self.source_metadata.get("creator")),
             "identifier": self.collate_fields(["identifier", "objectid"]),
             "type": self.source_metadata.get("type"),
             "relation": self.ensure_list(self.source_metadata.get("collection")),
@@ -28,7 +28,14 @@ class SanJoseRecord(Record):
 
     def map_subject(self):
         values = self.collate_fields(["subject", "people", "searchterms"])()
-        return [{"name": value} for value in values]
+
+        subjects = []
+        for str_value in values:
+            list_value = [v.strip() for v in str_value.split("|")]
+            subjects.extend(list_value)
+        deduped = list(set(subjects))
+
+        return [{"name": subject} for subject in deduped]
 
 class SanJoseVernacular(Vernacular):
     record_cls = SanJoseRecord
