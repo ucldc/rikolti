@@ -29,12 +29,13 @@ class SanJoseRecord(Record):
     def map_subject(self):
         values = self.collate_fields(["subject", "people", "searchterms"])()
 
-        split_values = []
-        for value in values:
-            split_values.extend(value.split("|"))
-        deduped = list(set(split_values))
+        subjects = []
+        for str_value in values:
+            list_value = [v.strip() for v in str_value.split("|")]
+            subjects.extend(list_value)
+        deduped = list(set(subjects))
 
-        return [{"name": value} for value in deduped]
+        return [{"name": subject} for subject in deduped]
 
 class SanJoseVernacular(Vernacular):
     record_cls = SanJoseRecord
