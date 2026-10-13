@@ -53,6 +53,11 @@ class SfplTindRecord(TindRecord):
 
         return creator
 
+    def map_description(self) -> list:
+        field_range = [str(i) for i in range(500, 600) if i not in [524, 538, 540]]
+
+        return self.get_marc_data_fields(field_range, ["a"])
+
 class SfplTindVernacular(TindVernacular):
     record_cls = SfplTindRecord
     validator = TindValidator
