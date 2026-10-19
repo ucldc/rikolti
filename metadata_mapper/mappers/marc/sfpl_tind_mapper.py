@@ -12,7 +12,7 @@ class SfplTindRecord(TindRecord):
         return {
             "isShownAt": self.map_is_shown_at,
             "isShownBy": self.map_is_shown_by,
-            "creator": self.map_creator,
+            "creator": self.get_marc_data_fields(["700", "710"], ["a"]),
             "source": self.get_marc_data_fields(["524"], ["a"])
         }
 
@@ -46,12 +46,6 @@ class SfplTindRecord(TindRecord):
             {"name": s}
             for s in self.get_marc_data_fields(fields, ["2"], exclude_subfields=True)
         ]
-
-    def map_creator(self):
-        creator = self.get_marc_data_fields(["700"], ["a", "e"])
-        creator.extend(self.get_marc_data_fields(["710"], ["a"]))
-
-        return creator
 
     def map_description(self) -> list:
         field_range = [str(i) for i in range(500, 600) if i not in [524, 538, 540]]
